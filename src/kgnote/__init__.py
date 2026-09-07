@@ -1,0 +1,1 @@
+"""KGnote core package."""

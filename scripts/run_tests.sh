@@ -11,4 +11,5 @@ if [ ! -x "$test_python" ]; then
 fi
 
 cd "$project_root"
-"$test_python" -m unittest discover -s tests -p 'test_*.py' -v
+PYTHONPATH="$project_root/src${PYTHONPATH:+:$PYTHONPATH}" \
+  "$test_python" -m unittest discover -s tests -p 'test_*.py' -v
