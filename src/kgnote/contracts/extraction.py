@@ -25,25 +25,37 @@ class ExtractionInputValidationError(ValueError):
         super().__init__(f"{code} at {pointer} ({validator})")
 
 
+class ExtractionOutputValidationError(ValueError):
+    """A safe, machine-assertable CandidateResult validation failure."""
+
+    def __init__(self, path: tuple[object, ...], validator: str):
+        self.code = "invalid_candidate_result"
+        self.path = path
+        self.validator = validator
+        pointer = "/" + "/".join(str(part) for part in path) if path else "/"
+        super().__init__(f"{self.code} at {pointer} ({validator})")
+
+
 def _load_json(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as handle:
         return json.load(handle)
 
 
-def _build_input_validator() -> Draft202012Validator:
+def _build_validator(schema_name: str) -> Draft202012Validator:
     definitions = _load_json(SCHEMA_ROOT / "definitions.schema.json")
-    input_schema = _load_json(SCHEMA_ROOT / "input.schema.json")
+    schema = _load_json(SCHEMA_ROOT / schema_name)
     registry = Registry().with_resource(
         definitions["$id"], Resource.from_contents(definitions)
     )
     return Draft202012Validator(
-        input_schema,
+        schema,
         registry=registry,
         format_checker=FormatChecker(),
     )
 
 
-_INPUT_VALIDATOR = _build_input_validator()
+_INPUT_VALIDATOR = _build_validator("input.schema.json")
+_OUTPUT_VALIDATOR = _build_validator("output.schema.json")
 
 
 def _error_code(path: tuple[object, ...]) -> str:
@@ -77,5 +89,25 @@ def validate_extraction_input(payload: Mapping[str, Any]) -> None:
     raise ExtractionInputValidationError(
         code=_error_code(path),
         path=path,
+        validator=str(error.validator),
+    )
+
+
+def validate_extraction_output(payload: Mapping[str, Any]) -> None:
+    """Validate CandidateResult without returning or logging untrusted data."""
+
+    errors = sorted(
+        _OUTPUT_VALIDATOR.iter_errors(payload),
+        key=lambda error: (
+            tuple(str(part) for part in error.absolute_path),
+            tuple(str(part) for part in error.absolute_schema_path),
+        ),
+    )
+    if not errors:
+        return
+
+    error = errors[0]
+    raise ExtractionOutputValidationError(
+        path=tuple(error.absolute_path),
         validator=str(error.validator),
     )
