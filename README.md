@@ -2,7 +2,7 @@
 
 KGnote 是 knowledge-graph-first 的互動式學習筆記本。它保留原始教材與 AI 對話作為 evidence，把可重用概念組成可導覽的 knowledge graph，並用可追溯的學習事件而不是虛假精確的熟練百分比，記錄使用者與知識的互動。
 
-目前專案處於 contract-first 的 Phase 0，尚未有產品程式碼。
+目前已完成 contract-first Phase 0 與 Phase 1 extractor pipeline 的 mock 驗證，正在以全離線 synthetic/replay 流程進行 Phase 2 Obsidian 實用性驗證；Gemini Free Tier key 維持停用。
 
 ## 閱讀順序
 
@@ -29,4 +29,3 @@ RAG review and low-friction exposure
 ```
 
 這是階段順序，不是授權一次實作全部功能。
-

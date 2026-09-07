@@ -225,7 +225,23 @@ def _render_record(record: Mapping[str, Any], body: str) -> bytes:
 
 def _created_body(record: Mapping[str, Any]) -> str:
     title = record.get("canonical_name") or record.get("proposition") or record.get("event_type") or record["id"]
-    return f"\n# {title}\n"
+    links: list[str] = []
+    if record["type"] == "source":
+        raw_path = str(record["uri_or_path"])
+        links.append(f"Raw evidence: [[{raw_path.removesuffix('.md')}]]")
+    elif record["type"] == "concept":
+        links.extend(f"Evidence: [[{record_id}]]" for record_id in record["evidence_ids"])
+    elif record["type"] == "evidence":
+        links.append(f"Source: [[{record['source_id']}]]")
+    elif record["type"] == "learning_event":
+        links.extend(f"Source: [[{record_id}]]" for record_id in record["source_ids"])
+        links.extend(f"Concept: [[{record_id}]]" for record_id in record["concept_ids"])
+        links.extend(f"Evidence: [[{record_id}]]" for record_id in record["evidence_ids"])
+    elif record["type"] == "edge":
+        links.extend((f"Source node: [[{record['source_id']}]]", f"Target node: [[{record['target_id']}]]"))
+        links.extend(f"Evidence: [[{record_id}]]" for record_id in record["evidence_ids"])
+    link_section = "\n".join(links)
+    return f"\n# {title}\n" + (f"\n{link_section}\n" if link_section else "")
 
 
 def _atomic_write(path: Path, content: bytes) -> None:

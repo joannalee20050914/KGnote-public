@@ -323,12 +323,30 @@ def _validate_projected_references(
 def plan_dry_run(
     normalized: NormalizationResult,
     existing_records: Sequence[Mapping[str, Any]],
+    *,
+    source_candidate: Mapping[str, Any] | None = None,
 ) -> DryRunPlan:
     """Build an immutable preview without reading, writing, merging, or applying."""
 
     candidates, rejected = _flatten_normalized_records(normalized)
     if rejected:
         return rejected
+    if source_candidate is not None:
+        source_problem = _validate_record(source_candidate, ("source_candidate",))
+        if source_problem:
+            return _reject(
+                source_problem.code,
+                path=source_problem.path,
+                record_id=source_problem.record_id,
+                reference=source_problem.reference,
+            )
+        if source_candidate["type"] != "source":
+            return _reject(
+                "source_candidate_wrong_type",
+                path=("source_candidate", "type"),
+                record_id=source_candidate["id"],
+            )
+        candidates.append(json.loads(_canonical_json(source_candidate)))
     existing_by_id, rejected = _index_snapshot(existing_records)
     if rejected:
         return rejected
