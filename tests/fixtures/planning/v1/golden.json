@@ -1,0 +1,127 @@
+{
+  "planned_items": [
+    {
+      "changes": [],
+      "operation": "UNCHANGED",
+      "problem": null,
+      "record_id": "concept_71e225c3eb339d45a15adcafc057629aaf3f4cba31e6261cc75a95e6888aa968",
+      "record_type": "concept"
+    },
+    {
+      "changes": [
+        {
+          "after": ["evidence_772636d7b8e1a355b5847c404ac27af50034a486c543566c378f4f9632930c62"],
+          "before": [],
+          "field": "evidence_ids"
+        }
+      ],
+      "operation": "UPDATE",
+      "problem": null,
+      "record_id": "concept_bf39760112fc27d73ec067f67556fd5ee17555cb287eff53317ae047c8fcf3da",
+      "record_type": "concept"
+    },
+    {
+      "changes": [
+        {
+          "after": "Two variables vary together without establishing a causal direction.",
+          "before": "Human-edited summary",
+          "field": "summary"
+        }
+      ],
+      "operation": "CONFLICT",
+      "problem": {
+        "code": "non_allowlisted_difference",
+        "path": [],
+        "record_id": "concept_ea26933dbe9dc273d0d068c37f0e2b6f6e78b3457d519cdb3392c25f40a2f644",
+        "reference": null
+      },
+      "record_id": "concept_ea26933dbe9dc273d0d068c37f0e2b6f6e78b3457d519cdb3392c25f40a2f644",
+      "record_type": "concept"
+    },
+    {
+      "changes": [
+        {
+          "after": {
+            "aliases": ["因果關係"],
+            "canonical_name": "Causation",
+            "evidence_ids": ["evidence_998c0a3e9990c605bd242915d0e7bce2dc0cde1538c6959b0ad48a1d5549d388"],
+            "id": "concept_f3de09cafa9df16556b8a1125430d4dbbededee3a03592e9cfb6d225f2f9f9e2",
+            "integrated_at": "2026-09-07T00:00:00+08:00",
+            "integration_version": "kgnote.normalize.v1",
+            "schema_version": "kgnote.v0.1",
+            "spaces": ["causal-inference"],
+            "status": "needs_review",
+            "summary": "A change in one variable causes a change in another.",
+            "type": "concept"
+          },
+          "before": null,
+          "field": "$record"
+        }
+      ],
+      "operation": "CREATE",
+      "problem": null,
+      "record_id": "concept_f3de09cafa9df16556b8a1125430d4dbbededee3a03592e9cfb6d225f2f9f9e2",
+      "record_type": "concept"
+    },
+    {
+      "changes": [],
+      "operation": "UNCHANGED",
+      "problem": null,
+      "record_id": "edge_52da7cac5bed4fc9dd3b88f03502939be3675102e037d07bc047f4ed58914bdd",
+      "record_type": "edge"
+    },
+    {
+      "changes": [],
+      "operation": "UNCHANGED",
+      "problem": null,
+      "record_id": "edge_7d1b2460e3f1663fd1599d74c70fa8069e277831c4309c74554ef61ad6d274fd",
+      "record_type": "edge"
+    },
+    {
+      "changes": [],
+      "operation": "UNCHANGED",
+      "problem": null,
+      "record_id": "edge_8ed9a3462ca6a6a8c07ce1f883e4f22d828e06ac61ccff91c261418e2a68c48b",
+      "record_type": "edge"
+    },
+    {
+      "changes": [],
+      "operation": "UNCHANGED",
+      "problem": null,
+      "record_id": "evidence_772636d7b8e1a355b5847c404ac27af50034a486c543566c378f4f9632930c62",
+      "record_type": "evidence"
+    },
+    {
+      "changes": [],
+      "operation": "UNCHANGED",
+      "problem": null,
+      "record_id": "evidence_998c0a3e9990c605bd242915d0e7bce2dc0cde1538c6959b0ad48a1d5549d388",
+      "record_type": "evidence"
+    },
+    {
+      "changes": [],
+      "operation": "UNCHANGED",
+      "problem": null,
+      "record_id": "event_1f6729e8718038decb35708735f482b861b78d19adf9fc9d2688aac6c6ea9452",
+      "record_type": "learning_event"
+    }
+  ],
+  "rejected_items": [
+    {
+      "changes": [],
+      "operation": "REJECT",
+      "problem": {
+        "code": "unresolved_projected_reference",
+        "path": [
+          "projected_records",
+          "event_1f6729e8718038decb35708735f482b861b78d19adf9fc9d2688aac6c6ea9452",
+          "source_ids"
+        ],
+        "record_id": "event_1f6729e8718038decb35708735f482b861b78d19adf9fc9d2688aac6c6ea9452",
+        "reference": "src_synthetic_causality_chat"
+      },
+      "record_id": "event_1f6729e8718038decb35708735f482b861b78d19adf9fc9d2688aac6c6ea9452",
+      "record_type": null
+    }
+  ]
+}
