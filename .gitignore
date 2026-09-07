@@ -1,0 +1,25 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+node_modules/
+dist/
+build/
+coverage/
+.coverage
+
+# Generated imports, model responses, logs, graph renders and local scratch data.
+output/
+tmp/
+logs/
+*.log
+
+# Local editor/workspace state. Canonical notes should live in explicit project folders.
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
