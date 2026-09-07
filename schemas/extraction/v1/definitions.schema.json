@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:kgnote:schema:extraction:v1:definitions",
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "sourceId": {
+      "type": "string",
+      "pattern": "^src_[a-z0-9][a-z0-9_]*$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sourceKind": {
+      "enum": [
+        "chatgpt_conversation",
+        "notebooklm_export",
+        "codex_session",
+        "course_material",
+        "document",
+        "web"
+      ]
+    },
+    "nullableDateTime": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": {
+          "enum": ["line_range", "heading", "message", "page", "timestamp", "whole_source"]
+        },
+        "value": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "confidence": {
+      "enum": ["high", "medium", "low"]
+    },
+    "conceptRef": {
+      "type": "string",
+      "pattern": "^c_[a-z0-9][a-z0-9_]*$"
+    },
+    "evidenceRef": {
+      "type": "string",
+      "pattern": "^ev_[a-z0-9][a-z0-9_]*$"
+    },
+    "learningEventRef": {
+      "type": "string",
+      "pattern": "^le_[a-z0-9][a-z0-9_]*$"
+    },
+    "edgeRef": {
+      "type": "string",
+      "pattern": "^ed_[a-z0-9][a-z0-9_]*$"
+    },
+    "canonicalRelation": {
+      "enum": ["is_a", "part_of", "requires", "maps_to", "causes", "contrasts_with", "related_to"]
+    },
+    "learningRelation": {
+      "enum": ["encountered", "asked_about", "confused_with", "explained", "applied", "demonstrated"]
+    }
+  }
+}

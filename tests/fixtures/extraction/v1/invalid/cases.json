@@ -1,0 +1,132 @@
+[
+  {
+    "name": "input_missing_schema_version",
+    "schema": "input",
+    "mutation": {"op": "delete", "path": ["schema_version"]},
+    "expected": {"validator": "required", "path": []}
+  },
+  {
+    "name": "input_unsupported_schema_version",
+    "schema": "input",
+    "mutation": {"op": "set", "path": ["schema_version"], "value": "kgnote.extraction-input.v2"},
+    "expected": {"validator": "const", "path": ["schema_version"]}
+  },
+  {
+    "name": "input_unknown_top_level_field",
+    "schema": "input",
+    "mutation": {"op": "set", "path": ["api_key"], "value": "not-allowed"},
+    "expected": {"validator": "additionalProperties", "path": []}
+  },
+  {
+    "name": "input_missing_required_title",
+    "schema": "input",
+    "mutation": {"op": "delete", "path": ["source", "title"]},
+    "expected": {"validator": "required", "path": ["source"]}
+  },
+  {
+    "name": "input_wrong_content_type",
+    "schema": "input",
+    "mutation": {"op": "set", "path": ["source", "content"], "value": ["not", "a", "string"]},
+    "expected": {"validator": "type", "path": ["source", "content"]}
+  },
+  {
+    "name": "input_unknown_source_kind",
+    "schema": "input",
+    "mutation": {"op": "set", "path": ["source", "source_kind"], "value": "private_brain_scan"},
+    "expected": {"validator": "enum", "path": ["source", "source_kind"]}
+  },
+  {
+    "name": "input_malformed_sha256",
+    "schema": "input",
+    "mutation": {"op": "set", "path": ["source", "content_sha256"], "value": "abc123"},
+    "expected": {"validator": "pattern", "path": ["source", "content_sha256"]}
+  },
+  {
+    "name": "input_malformed_timestamp",
+    "schema": "input",
+    "mutation": {"op": "set", "path": ["source", "captured_at"], "value": "yesterday"},
+    "expected": {"validator": "format", "path": ["source", "captured_at"]}
+  },
+  {
+    "name": "output_whitespace_concept_name",
+    "schema": "output",
+    "mutation": {"op": "set", "path": ["concepts", 0, "name"], "value": "   "},
+    "expected": {"validator": "pattern", "path": ["concepts", 0, "name"]}
+  },
+  {
+    "name": "output_unsupported_schema_version",
+    "schema": "output",
+    "mutation": {"op": "set", "path": ["schema_version"], "value": "kgnote.extraction-output.v2"},
+    "expected": {"validator": "const", "path": ["schema_version"]}
+  },
+  {
+    "name": "output_empty_locator",
+    "schema": "output",
+    "mutation": {"op": "set", "path": ["evidence", 0, "locator", "value"], "value": ""},
+    "expected": {"validator": "pattern", "path": ["evidence", 0, "locator", "value"]}
+  },
+  {
+    "name": "output_canonical_id_as_local_ref",
+    "schema": "output",
+    "mutation": {"op": "set", "path": ["concepts", 0, "local_ref"], "value": "concept_correlation"},
+    "expected": {"validator": "pattern", "path": ["concepts", 0, "local_ref"]}
+  },
+  {
+    "name": "output_learning_edge_wrong_source_kind",
+    "schema": "output",
+    "mutation": {"op": "set", "path": ["edges", 1, "source_ref"], "value": "c_correlation"},
+    "expected": {"validator": "pattern", "path": ["edges", 1, "source_ref"]}
+  },
+  {
+    "name": "output_learning_edge_wrong_target_kind",
+    "schema": "output",
+    "mutation": {"op": "set", "path": ["edges", 1, "target_ref"], "value": "ev_difference"},
+    "expected": {"validator": "pattern", "path": ["edges", 1, "target_ref"]}
+  },
+  {
+    "name": "output_canonical_edge_with_learning_relation",
+    "schema": "output",
+    "mutation": {"op": "set", "path": ["edges", 0, "relation"], "value": "asked_about"},
+    "expected": {"validator": "enum", "path": ["edges", 0, "relation"]}
+  },
+  {
+    "name": "output_learning_edge_without_evidence",
+    "schema": "output",
+    "mutation": {"op": "set", "path": ["edges", 1, "evidence_refs"], "value": []},
+    "expected": {"validator": "minItems", "path": ["edges", 1, "evidence_refs"]}
+  },
+  {
+    "name": "output_soft_association_with_precise_relation",
+    "schema": "output",
+    "mutations": [
+      {"op": "set", "path": ["edges", 0, "edge_class"], "value": "soft_association"},
+      {"op": "set", "path": ["edges", 0, "relation"], "value": "causes"},
+      {"op": "set", "path": ["edges", 0, "confidence"], "value": "unresolved"}
+    ],
+    "expected": {"validator": "enum", "path": ["edges", 0, "relation"]}
+  },
+  {
+    "name": "output_forbids_understood_field",
+    "schema": "output",
+    "mutation": {"op": "set", "path": ["learning_events", 0, "understood"], "value": true},
+    "expected": {"validator": "additionalProperties", "path": ["learning_events", 0]}
+  },
+  {
+    "name": "output_forbids_mastered_field",
+    "schema": "output",
+    "mutation": {"op": "set", "path": ["concepts", 0, "mastered"], "value": true},
+    "expected": {"validator": "additionalProperties", "path": ["concepts", 0]}
+  },
+  {
+    "name": "output_forbids_numeric_proficiency",
+    "schema": "output",
+    "mutation": {"op": "set", "path": ["concepts", 0, "proficiency"], "value": 0.73},
+    "expected": {"validator": "additionalProperties", "path": ["concepts", 0]}
+  },
+  {
+    "name": "output_malformed_generated_at",
+    "schema": "output",
+    "mutation": {"op": "set", "path": ["generated_at"], "value": "not-a-timestamp"},
+    "expected": {"validator": "format", "path": ["generated_at"]}
+  }
+]

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:kgnote:schema:extraction:v1:input",
+  "title": "KGnote ExtractionInput v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source"],
+  "properties": {
+    "schema_version": {"const": "kgnote.extraction-input.v1"},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source_kind", "title", "content_sha256", "captured_at", "locator_basis", "content"],
+      "properties": {
+        "id": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/sourceId"},
+        "source_kind": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/sourceKind"},
+        "title": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/nonEmptyString"},
+        "content_sha256": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/sha256"},
+        "captured_at": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/nullableDateTime"},
+        "locator_basis": {
+          "enum": ["line_range", "heading", "message", "page", "timestamp", "whole_source"]
+        },
+        "content": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/nonEmptyString"}
+      }
+    }
+  }
+}

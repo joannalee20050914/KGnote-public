@@ -1,0 +1,104 @@
+{
+  "schema_version": "kgnote.extraction-output.v1",
+  "source_id": "src_synthetic_causality_chat",
+  "extractor_version": "fixture-replay.v1",
+  "generated_at": "2026-09-07T00:00:00+08:00",
+  "concepts": [
+    {
+      "local_ref": "c_correlation",
+      "name": "Correlation",
+      "aliases": ["相關"],
+      "spaces": ["causal-inference"],
+      "summary": "Two variables vary together without establishing a causal direction.",
+      "evidence_refs": ["ev_difference"],
+      "extraction_confidence": "high"
+    },
+    {
+      "local_ref": "c_causation",
+      "name": "Causation",
+      "aliases": ["因果關係"],
+      "spaces": ["causal-inference"],
+      "summary": "A change in one variable causes a change in another.",
+      "evidence_refs": ["ev_difference"],
+      "extraction_confidence": "high"
+    },
+    {
+      "local_ref": "c_causal_inference",
+      "name": "Causal inference",
+      "aliases": ["因果推論"],
+      "spaces": ["causal-inference"],
+      "summary": "A broader topic mentioned in the conversation without a mastery claim.",
+      "evidence_refs": ["ev_counterfactual_unresolved"],
+      "extraction_confidence": "medium"
+    },
+    {
+      "local_ref": "c_counterfactual",
+      "name": "Counterfactual",
+      "aliases": ["反事實"],
+      "spaces": ["causal-inference"],
+      "summary": "A concept whose precise relation remains unresolved in this source.",
+      "evidence_refs": ["ev_counterfactual_unresolved"],
+      "extraction_confidence": "medium"
+    }
+  ],
+  "evidence": [
+    {
+      "local_ref": "ev_difference",
+      "source_id": "src_synthetic_causality_chat",
+      "locator": {"kind": "line_range", "value": "L5-L7"},
+      "proposition": "Learner asks whether correlation implies causation; Tutor distinguishes the two claims.",
+      "observed_at": null,
+      "extraction_confidence": "high"
+    },
+    {
+      "local_ref": "ev_counterfactual_unresolved",
+      "source_id": "src_synthetic_causality_chat",
+      "locator": {"kind": "line_range", "value": "L13-L15"},
+      "proposition": "Learner asks whether counterfactual is related; Tutor says the precise relation is not established in this conversation.",
+      "observed_at": null,
+      "extraction_confidence": "high"
+    }
+  ],
+  "learning_events": [
+    {
+      "local_ref": "le_causality_question",
+      "source_id": "src_synthetic_causality_chat",
+      "locator": {"kind": "line_range", "value": "L5-L7"},
+      "event_type": "question",
+      "occurred_at": null,
+      "context": "Learner asks how correlation differs from causation.",
+      "concept_refs": ["c_correlation", "c_causation"],
+      "evidence_refs": ["ev_difference"],
+      "extraction_confidence": "high"
+    }
+  ],
+  "edges": [
+    {
+      "local_ref": "ed_correlation_contrasts_causation",
+      "source_ref": "c_correlation",
+      "relation": "contrasts_with",
+      "target_ref": "c_causation",
+      "edge_class": "canonical",
+      "evidence_refs": ["ev_difference"],
+      "confidence": "high"
+    },
+    {
+      "local_ref": "ed_event_asked_correlation",
+      "source_ref": "le_causality_question",
+      "relation": "asked_about",
+      "target_ref": "c_correlation",
+      "edge_class": "learning",
+      "evidence_refs": ["ev_difference"],
+      "confidence": "high"
+    },
+    {
+      "local_ref": "ed_causal_inference_counterfactual_unresolved",
+      "source_ref": "c_causal_inference",
+      "relation": null,
+      "target_ref": "c_counterfactual",
+      "edge_class": "soft_association",
+      "evidence_refs": ["ev_counterfactual_unresolved"],
+      "confidence": "unresolved"
+    }
+  ]
+}

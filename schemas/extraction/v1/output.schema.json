@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:kgnote:schema:extraction:v1:output",
+  "title": "KGnote ExtractionCandidateResult v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source_id", "extractor_version", "generated_at", "concepts", "evidence", "learning_events", "edges"],
+  "properties": {
+    "schema_version": {"const": "kgnote.extraction-output.v1"},
+    "source_id": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/sourceId"},
+    "extractor_version": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/nonEmptyString"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "concepts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/conceptCandidate"}
+    },
+    "evidence": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/evidenceCandidate"}
+    },
+    "learning_events": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/learningEventCandidate"}
+    },
+    "edges": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/edgeCandidate"}
+    }
+  },
+  "$defs": {
+    "conceptCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["local_ref", "name", "aliases", "spaces", "summary", "evidence_refs", "extraction_confidence"],
+      "properties": {
+        "local_ref": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/conceptRef"},
+        "name": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/nonEmptyString"},
+        "aliases": {
+          "type": "array",
+          "items": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/nonEmptyString"},
+          "uniqueItems": true
+        },
+        "spaces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/nonEmptyString"},
+          "uniqueItems": true
+        },
+        "summary": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/nonEmptyString"},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/evidenceRef"},
+          "uniqueItems": true
+        },
+        "extraction_confidence": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/confidence"}
+      }
+    },
+    "evidenceCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["local_ref", "source_id", "locator", "proposition", "observed_at", "extraction_confidence"],
+      "properties": {
+        "local_ref": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/evidenceRef"},
+        "source_id": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/sourceId"},
+        "locator": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/locator"},
+        "proposition": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/nonEmptyString"},
+        "observed_at": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/nullableDateTime"},
+        "extraction_confidence": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/confidence"}
+      }
+    },
+    "learningEventCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["local_ref", "source_id", "locator", "event_type", "occurred_at", "context", "concept_refs", "evidence_refs", "extraction_confidence"],
+      "properties": {
+        "local_ref": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/learningEventRef"},
+        "source_id": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/sourceId"},
+        "locator": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/locator"},
+        "event_type": {"enum": ["exposure", "question", "confusion", "explanation", "application", "assessment"]},
+        "occurred_at": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/nullableDateTime"},
+        "context": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/nonEmptyString"},
+        "concept_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/conceptRef"},
+          "uniqueItems": true
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/evidenceRef"},
+          "uniqueItems": true
+        },
+        "extraction_confidence": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/confidence"}
+      }
+    },
+    "edgeCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["local_ref", "source_ref", "relation", "target_ref", "edge_class", "evidence_refs", "confidence"],
+      "properties": {
+        "local_ref": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/edgeRef"},
+        "source_ref": {"type": "string"},
+        "relation": {"type": ["string", "null"]},
+        "target_ref": {"type": "string"},
+        "edge_class": {"enum": ["canonical", "learning", "soft_association"]},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/evidenceRef"},
+          "uniqueItems": true
+        },
+        "confidence": {"enum": ["high", "medium", "low", "unresolved"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"edge_class": {"const": "canonical"}}},
+          "then": {
+            "properties": {
+              "source_ref": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/conceptRef"},
+              "relation": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/canonicalRelation"},
+              "target_ref": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/conceptRef"}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"edge_class": {"const": "learning"}}},
+          "then": {
+            "properties": {
+              "source_ref": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/learningEventRef"},
+              "relation": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/learningRelation"},
+              "target_ref": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/conceptRef"}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"edge_class": {"const": "soft_association"}}},
+          "then": {
+            "properties": {
+              "source_ref": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/conceptRef"},
+              "relation": {"enum": [null, "related_to"]},
+              "target_ref": {"$ref": "urn:kgnote:schema:extraction:v1:definitions#/$defs/conceptRef"},
+              "confidence": {"enum": ["low", "unresolved"]}
+            }
+          }
+        }
+      ]
+    }
+  }
+}
