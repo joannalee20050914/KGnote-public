@@ -16,6 +16,11 @@ from .run_adapter import (
     build_extraction_preview,
     run_extraction,
 )
+from .gemini_transport import (
+    GEMINI_MODEL,
+    GEMINI_PROVIDER,
+    GeminiExtractionTransport,
+)
 
 __all__ = [
     "ExtractionAttempt",
@@ -30,4 +35,7 @@ __all__ = [
     "TransportResponse",
     "build_extraction_preview",
     "run_extraction",
+    "GEMINI_MODEL",
+    "GEMINI_PROVIDER",
+    "GeminiExtractionTransport",
 ]

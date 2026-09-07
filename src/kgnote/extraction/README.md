@@ -17,3 +17,12 @@ Parser 拒絕 invalid JSON、duplicate object keys 與非標準 `NaN/Infinity`�
 
 這一層不檢查跨 collection local ref 是否存在／唯一，也不做 normalization、stable ID、
 deduplication 或 merge。
+
+## Selected real-provider transport
+
+`GeminiExtractionTransport` is the single Issue #9 provider wrapper. It targets
+`google-gemini` / `gemini-3.7-flash` through one non-streaming `generateContent`
+REST request, requires an explicitly injected API key, and never retries. The caller
+must still build and approve the exact `ExtractionPreview`; constructing a transport
+does not authorize an external send. See `docs/ADR-0001-GEMINI-EXTRACTION-TRANSPORT.md`
+for the selection, privacy boundary, and live-test gate.
