@@ -5,5 +5,29 @@ from .offline_response import (
     ExtractionRejection,
     replay_extraction_response,
 )
+from .run_adapter import (
+    RUN_ADAPTER_VERSION,
+    ExtractionPreview,
+    ExtractionRunResult,
+    RedactionReport,
+    TransportConfig,
+    TransportFailure,
+    TransportResponse,
+    build_extraction_preview,
+    run_extraction,
+)
 
-__all__ = ["ExtractionAttempt", "ExtractionRejection", "replay_extraction_response"]
+__all__ = [
+    "ExtractionAttempt",
+    "ExtractionRejection",
+    "replay_extraction_response",
+    "RUN_ADAPTER_VERSION",
+    "ExtractionPreview",
+    "ExtractionRunResult",
+    "RedactionReport",
+    "TransportConfig",
+    "TransportFailure",
+    "TransportResponse",
+    "build_extraction_preview",
+    "run_extraction",
+]

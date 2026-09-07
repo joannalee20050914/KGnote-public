@@ -1,0 +1,28 @@
+{
+  "manifest": {
+    "adapter_version": "kgnote.extraction-run.v1",
+    "error_code": null,
+    "extractor_version": "fake-extractor.v1",
+    "generated_at": "2026-09-07T00:00:00+08:00",
+    "model": "fake-model-v1",
+    "outbound_sha256": "96d69aa002e675af3c47450f2c3a55fce6e6b737e3db4ad2385129cc5b7ede78",
+    "prompt_version": "fake-prompt.v1",
+    "provider": "fake-provider",
+    "raw_response_sha256": "a1edb23d8644a9365d86ba7e4c2e4fed9fa7658ce884bab936bb7fe3959a1162",
+    "redaction_version": "none.v1",
+    "request_fingerprint": "f1e24a203f9be591c5884c7e891629526ca8149039376c58a8c4cdce9d8d5c54",
+    "request_id": "req_fixture_1",
+    "run_id": "run_fixture_1",
+    "schema_version": "kgnote.extraction-run-manifest.v1",
+    "status": "accepted",
+    "usage": {
+      "input_tokens": 123,
+      "output_tokens": 45
+    }
+  },
+  "preview": {
+    "consent_digest": "96d69aa002e675af3c47450f2c3a55fce6e6b737e3db4ad2385129cc5b7ede78",
+    "outbound_bytes": 1757,
+    "outbound_sha256": "96d69aa002e675af3c47450f2c3a55fce6e6b737e3db4ad2385129cc5b7ede78"
+  }
+}
