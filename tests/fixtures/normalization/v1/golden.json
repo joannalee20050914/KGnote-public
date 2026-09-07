@@ -1,0 +1,158 @@
+{
+  "records": {
+    "concepts": [
+      {
+        "aliases": ["反事實"],
+        "canonical_name": "Counterfactual",
+        "evidence_ids": ["evidence_772636d7b8e1a355b5847c404ac27af50034a486c543566c378f4f9632930c62"],
+        "id": "concept_71e225c3eb339d45a15adcafc057629aaf3f4cba31e6261cc75a95e6888aa968",
+        "integrated_at": "2026-09-07T00:00:00+08:00",
+        "integration_version": "kgnote.normalize.v1",
+        "schema_version": "kgnote.v0.1",
+        "spaces": ["causal-inference"],
+        "status": "needs_review",
+        "summary": "A concept whose precise relation remains unresolved in this source.",
+        "type": "concept"
+      },
+      {
+        "aliases": ["因果推論"],
+        "canonical_name": "Causal inference",
+        "evidence_ids": ["evidence_772636d7b8e1a355b5847c404ac27af50034a486c543566c378f4f9632930c62"],
+        "id": "concept_bf39760112fc27d73ec067f67556fd5ee17555cb287eff53317ae047c8fcf3da",
+        "integrated_at": "2026-09-07T00:00:00+08:00",
+        "integration_version": "kgnote.normalize.v1",
+        "schema_version": "kgnote.v0.1",
+        "spaces": ["causal-inference"],
+        "status": "needs_review",
+        "summary": "A broader topic mentioned in the conversation without a mastery claim.",
+        "type": "concept"
+      },
+      {
+        "aliases": ["相關"],
+        "canonical_name": "Correlation",
+        "evidence_ids": ["evidence_998c0a3e9990c605bd242915d0e7bce2dc0cde1538c6959b0ad48a1d5549d388"],
+        "id": "concept_ea26933dbe9dc273d0d068c37f0e2b6f6e78b3457d519cdb3392c25f40a2f644",
+        "integrated_at": "2026-09-07T00:00:00+08:00",
+        "integration_version": "kgnote.normalize.v1",
+        "schema_version": "kgnote.v0.1",
+        "spaces": ["causal-inference"],
+        "status": "needs_review",
+        "summary": "Two variables vary together without establishing a causal direction.",
+        "type": "concept"
+      },
+      {
+        "aliases": ["因果關係"],
+        "canonical_name": "Causation",
+        "evidence_ids": ["evidence_998c0a3e9990c605bd242915d0e7bce2dc0cde1538c6959b0ad48a1d5549d388"],
+        "id": "concept_f3de09cafa9df16556b8a1125430d4dbbededee3a03592e9cfb6d225f2f9f9e2",
+        "integrated_at": "2026-09-07T00:00:00+08:00",
+        "integration_version": "kgnote.normalize.v1",
+        "schema_version": "kgnote.v0.1",
+        "spaces": ["causal-inference"],
+        "status": "needs_review",
+        "summary": "A change in one variable causes a change in another.",
+        "type": "concept"
+      }
+    ],
+    "edges": [
+      {
+        "confidence": "high",
+        "edge_class": "canonical",
+        "evidence_ids": ["evidence_998c0a3e9990c605bd242915d0e7bce2dc0cde1538c6959b0ad48a1d5549d388"],
+        "generated_at": "2026-09-07T00:00:00+08:00",
+        "id": "edge_52da7cac5bed4fc9dd3b88f03502939be3675102e037d07bc047f4ed58914bdd",
+        "relation": "contrasts_with",
+        "ruleset_version": "kgnote.normalize.v1",
+        "schema_version": "kgnote.v0.1",
+        "source_id": "concept_ea26933dbe9dc273d0d068c37f0e2b6f6e78b3457d519cdb3392c25f40a2f644",
+        "target_id": "concept_f3de09cafa9df16556b8a1125430d4dbbededee3a03592e9cfb6d225f2f9f9e2",
+        "type": "edge"
+      },
+      {
+        "confidence": "unresolved",
+        "edge_class": "soft_association",
+        "evidence_ids": ["evidence_772636d7b8e1a355b5847c404ac27af50034a486c543566c378f4f9632930c62"],
+        "generated_at": "2026-09-07T00:00:00+08:00",
+        "id": "edge_7d1b2460e3f1663fd1599d74c70fa8069e277831c4309c74554ef61ad6d274fd",
+        "relation": null,
+        "ruleset_version": "kgnote.normalize.v1",
+        "schema_version": "kgnote.v0.1",
+        "source_id": "concept_bf39760112fc27d73ec067f67556fd5ee17555cb287eff53317ae047c8fcf3da",
+        "target_id": "concept_71e225c3eb339d45a15adcafc057629aaf3f4cba31e6261cc75a95e6888aa968",
+        "type": "edge"
+      },
+      {
+        "confidence": "high",
+        "edge_class": "learning",
+        "evidence_ids": ["evidence_998c0a3e9990c605bd242915d0e7bce2dc0cde1538c6959b0ad48a1d5549d388"],
+        "generated_at": "2026-09-07T00:00:00+08:00",
+        "id": "edge_8ed9a3462ca6a6a8c07ce1f883e4f22d828e06ac61ccff91c261418e2a68c48b",
+        "relation": "asked_about",
+        "ruleset_version": "kgnote.normalize.v1",
+        "schema_version": "kgnote.v0.1",
+        "source_id": "event_1f6729e8718038decb35708735f482b861b78d19adf9fc9d2688aac6c6ea9452",
+        "target_id": "concept_ea26933dbe9dc273d0d068c37f0e2b6f6e78b3457d519cdb3392c25f40a2f644",
+        "type": "edge"
+      }
+    ],
+    "evidence": [
+      {
+        "extracted_at": "2026-09-07T00:00:00+08:00",
+        "extraction_confidence": "high",
+        "extractor_version": "fixture-replay.v1",
+        "id": "evidence_772636d7b8e1a355b5847c404ac27af50034a486c543566c378f4f9632930c62",
+        "locator": {"kind": "line_range", "value": "L13-L15"},
+        "observed_at": null,
+        "proposition": "Learner asks whether counterfactual is related; Tutor says the precise relation is not established in this conversation.",
+        "review_status": "unreviewed",
+        "schema_version": "kgnote.v0.1",
+        "source_id": "src_synthetic_causality_chat",
+        "type": "evidence"
+      },
+      {
+        "extracted_at": "2026-09-07T00:00:00+08:00",
+        "extraction_confidence": "high",
+        "extractor_version": "fixture-replay.v1",
+        "id": "evidence_998c0a3e9990c605bd242915d0e7bce2dc0cde1538c6959b0ad48a1d5549d388",
+        "locator": {"kind": "line_range", "value": "L5-L7"},
+        "observed_at": null,
+        "proposition": "Learner asks whether correlation implies causation; Tutor distinguishes the two claims.",
+        "review_status": "unreviewed",
+        "schema_version": "kgnote.v0.1",
+        "source_id": "src_synthetic_causality_chat",
+        "type": "evidence"
+      }
+    ],
+    "learning_events": [
+      {
+        "concept_ids": [
+          "concept_ea26933dbe9dc273d0d068c37f0e2b6f6e78b3457d519cdb3392c25f40a2f644",
+          "concept_f3de09cafa9df16556b8a1125430d4dbbededee3a03592e9cfb6d225f2f9f9e2"
+        ],
+        "context": "Learner asks how correlation differs from causation.",
+        "event_type": "question",
+        "evidence_ids": ["evidence_998c0a3e9990c605bd242915d0e7bce2dc0cde1538c6959b0ad48a1d5549d388"],
+        "extracted_at": "2026-09-07T00:00:00+08:00",
+        "extraction_confidence": "high",
+        "extractor_version": "fixture-replay.v1",
+        "id": "event_1f6729e8718038decb35708735f482b861b78d19adf9fc9d2688aac6c6ea9452",
+        "occurred_at": null,
+        "schema_version": "kgnote.v0.1",
+        "source_ids": ["src_synthetic_causality_chat"],
+        "type": "learning_event"
+      }
+    ]
+  },
+  "ref_map": {
+    "c_causal_inference": "concept_bf39760112fc27d73ec067f67556fd5ee17555cb287eff53317ae047c8fcf3da",
+    "c_causation": "concept_f3de09cafa9df16556b8a1125430d4dbbededee3a03592e9cfb6d225f2f9f9e2",
+    "c_correlation": "concept_ea26933dbe9dc273d0d068c37f0e2b6f6e78b3457d519cdb3392c25f40a2f644",
+    "c_counterfactual": "concept_71e225c3eb339d45a15adcafc057629aaf3f4cba31e6261cc75a95e6888aa968",
+    "ed_causal_inference_counterfactual_unresolved": "edge_7d1b2460e3f1663fd1599d74c70fa8069e277831c4309c74554ef61ad6d274fd",
+    "ed_correlation_contrasts_causation": "edge_52da7cac5bed4fc9dd3b88f03502939be3675102e037d07bc047f4ed58914bdd",
+    "ed_event_asked_correlation": "edge_8ed9a3462ca6a6a8c07ce1f883e4f22d828e06ac61ccff91c261418e2a68c48b",
+    "ev_counterfactual_unresolved": "evidence_772636d7b8e1a355b5847c404ac27af50034a486c543566c378f4f9632930c62",
+    "ev_difference": "evidence_998c0a3e9990c605bd242915d0e7bce2dc0cde1538c6959b0ad48a1d5549d388",
+    "le_causality_question": "event_1f6729e8718038decb35708735f482b861b78d19adf9fc9d2688aac6c6ea9452"
+  }
+}
