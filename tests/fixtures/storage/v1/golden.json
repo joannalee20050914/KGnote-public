@@ -1,0 +1,23 @@
+{
+  "first_apply": {
+    "backup_paths": [
+      ".kgnote-backups/05dd6ef749ea4770a870639ddf58e8d75477d241766df04d027ef8685c1f9681/concepts/concept_bf39760112fc27d73ec067f67556fd5ee17555cb287eff53317ae047c8fcf3da.md"
+    ],
+    "created_paths": [
+      "concepts/concept_71e225c3eb339d45a15adcafc057629aaf3f4cba31e6261cc75a95e6888aa968.md",
+      "concepts/concept_ea26933dbe9dc273d0d068c37f0e2b6f6e78b3457d519cdb3392c25f40a2f644.md",
+      "concepts/concept_f3de09cafa9df16556b8a1125430d4dbbededee3a03592e9cfb6d225f2f9f9e2.md",
+      "edges/edge_52da7cac5bed4fc9dd3b88f03502939be3675102e037d07bc047f4ed58914bdd.md",
+      "edges/edge_7d1b2460e3f1663fd1599d74c70fa8069e277831c4309c74554ef61ad6d274fd.md",
+      "edges/edge_8ed9a3462ca6a6a8c07ce1f883e4f22d828e06ac61ccff91c261418e2a68c48b.md",
+      "evidence/evidence_772636d7b8e1a355b5847c404ac27af50034a486c543566c378f4f9632930c62.md",
+      "evidence/evidence_998c0a3e9990c605bd242915d0e7bce2dc0cde1538c6959b0ad48a1d5549d388.md",
+      "learning-events/event_1f6729e8718038decb35708735f482b861b78d19adf9fc9d2688aac6c6ea9452.md"
+    ],
+    "updated_paths": [
+      "concepts/concept_bf39760112fc27d73ec067f67556fd5ee17555cb287eff53317ae047c8fcf3da.md"
+    ],
+    "write_count": 10
+  },
+  "plan_digest": "05dd6ef749ea4770a870639ddf58e8d75477d241766df04d027ef8685c1f9681"
+}

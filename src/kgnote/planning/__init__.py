@@ -5,6 +5,7 @@ from .dry_run import (
     DryRunPlan,
     DryRunProblem,
     plan_dry_run,
+    validate_existing_snapshot,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "DryRunPlan",
     "DryRunProblem",
     "plan_dry_run",
+    "validate_existing_snapshot",
 ]

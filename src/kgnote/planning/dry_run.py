@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Any, Literal, Mapping, Sequence
 
@@ -133,6 +134,8 @@ def _validate_record(
         return DryRunProblem("unsupported_record_type", path + ("type",), record_id)
     if not record_id.startswith(TYPE_PREFIXES[record_type]):
         return DryRunProblem("record_id_type_mismatch", path + ("id",), record_id)
+    if re.fullmatch(r"[a-z]+_[A-Za-z0-9][A-Za-z0-9_-]*", record_id) is None:
+        return DryRunProblem("unsafe_record_id", path + ("id",), record_id)
     if record.get("schema_version") != SUPPORTED_SCHEMA_VERSION:
         return DryRunProblem(
             "unsupported_schema_version", path + ("schema_version",), record_id
@@ -382,3 +385,15 @@ def plan_dry_run(
         return reference_problem
     items.sort(key=lambda item: (item["record_type"] or "", item["record_id"] or ""))
     return DryRunPlan(status="planned", _items_json=_canonical_json(items))
+
+
+def validate_existing_snapshot(existing_records: Sequence[Mapping[str, Any]]) -> DryRunPlan:
+    """Validate a complete canonical snapshot with the same rules used by planning."""
+
+    indexed, rejected = _index_snapshot(existing_records)
+    if rejected:
+        return rejected
+    reference_problem = _validate_projected_references(indexed)
+    if reference_problem:
+        return reference_problem
+    return DryRunPlan(status="planned")
