@@ -1,4 +1,5 @@
 import {buildScene, validateApplicationResult} from "./graph.js";
+import {buildNodeDetails} from "./panel.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const fixtureUrl = "./fixtures/phase0-graph-view.json";
@@ -10,6 +11,12 @@ const countLabel = document.querySelector("#graph-count");
 let payload;
 let baseBox = {x: 0, y: 0, width: 1200, height: 720};
 let viewBox = {...baseBox};
+const detailPanel = document.querySelector("#detail-panel");
+const detailTitle = document.querySelector("#detail-title");
+const detailKind = document.querySelector("#detail-kind");
+const detailContent = document.querySelector("#detail-content");
+const closeDetailButton = document.querySelector("#close-detail");
+let detailTrigger = null;
 
 function element(name, attributes = {}) {
   const node = document.createElementNS(SVG_NS, name);
@@ -19,6 +26,72 @@ function element(name, attributes = {}) {
 
 function relationLabel(link) {
   return link.relation ? link.relation.replaceAll("_", " ") : "unresolved";
+}
+
+function textElement(name, text, className) {
+  const node = document.createElement(name);
+  if (className) node.className = className;
+  node.textContent = text;
+  return node;
+}
+
+function section(title, items, renderItem, emptyText) {
+  const container = document.createElement("section");
+  container.className = "detail-section";
+  container.append(textElement("h3", title));
+  if (!items.length) container.append(textElement("p", emptyText, "empty-state"));
+  else {
+    const list = document.createElement("ul");
+    for (const item of items) list.append(renderItem(item));
+    container.append(list);
+  }
+  return container;
+}
+
+function evidenceItem(item) {
+  const row = document.createElement("li");
+  row.append(textElement("strong", item.label), textElement("p", item.proposition));
+  row.append(textElement("small", `${item.locator.kind.replaceAll("_", " ")} · ${item.locator.value} · ${item.extraction_confidence} confidence · ${item.review_status} · ${item.extractor_version}`));
+  return row;
+}
+
+function closeDetails({restoreFocus = true} = {}) {
+  detailPanel.hidden = true;
+  document.body.classList.remove("detail-open");
+  if (restoreFocus && detailTrigger?.isConnected) detailTrigger.focus();
+}
+
+function openDetails(nodeId, trigger) {
+  const result = buildNodeDetails(payload.view, nodeId);
+  if (result.status !== "ready") return;
+  const detail = result.detail;
+  detailTrigger = trigger;
+  detailTitle.textContent = detail.label;
+  detailKind.textContent = detail.kind === "concept" ? "Concept details" : "Learning event details";
+  detailContent.replaceChildren();
+  if (detail.kind === "concept") {
+    detailContent.append(textElement("p", detail.summary, "detail-summary"));
+    detailContent.append(textElement("p", `Status: ${detail.status.replaceAll("_", " ")} · Spaces: ${detail.spaces.join(", ") || "None"}`, "detail-meta"));
+  } else {
+    detailContent.append(textElement("p", detail.context, "detail-summary"));
+    detailContent.append(textElement("p", `${detail.event_type.replaceAll("_", " ")} · ${detail.occurred_at ?? "Time not recorded"}`, "detail-meta"));
+    detailContent.append(section("Concepts", detail.concepts, (item) => textElement("li", item.label), "No concepts in this view."));
+  }
+  detailContent.append(section("Evidence", detail.evidence, evidenceItem, "No evidence in this view."));
+  detailContent.append(section("Sources", detail.sources, (source) => {
+    const row = document.createElement("li");
+    row.append(textElement("strong", source.label), textElement("small", `${source.source_kind.replaceAll("_", " ")} · ${source.captured_at ?? "Capture time not recorded"}`));
+    return row;
+  }, "No sources in this view."));
+  detailContent.append(section("Learning history", detail.history, (event) => {
+    const row = document.createElement("li");
+    row.append(textElement("strong", event.label), textElement("p", event.context), textElement("small", `${event.event_type} · ${event.occurred_at ?? "Time not recorded"}`));
+    return row;
+  }, "No learning events in this view."));
+  detailContent.append(section("Known confusion", detail.known_confusion.evidence, evidenceItem, "No explicitly evidenced confusion in this view."));
+  detailPanel.hidden = false;
+  document.body.classList.add("detail-open");
+  closeDetailButton.focus();
 }
 
 function render(scene) {
@@ -63,11 +136,21 @@ function render(scene) {
     label.textContent = node.label;
     group.append(label);
     nodes.append(group);
+    const activate = () => openDetails(node.id, group);
+    group.addEventListener("click", activate);
+    group.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); activate(); }
+    });
   }
   svg.append(nodes);
   modeLabel.textContent = scene.mode === "local" ? "Local · 1 hop" : "Full graph";
   countLabel.textContent = `${scene.nodes.length} nodes · ${scene.links.length} links`;
 }
+
+closeDetailButton.addEventListener("click", () => closeDetails());
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !detailPanel.hidden) closeDetails();
+});
 
 function showError(text) {
   message.textContent = text;

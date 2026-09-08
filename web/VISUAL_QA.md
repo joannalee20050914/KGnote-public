@@ -29,3 +29,12 @@ Start from the repository root with `npm run serve:web`, then open
 - No visual language implies that `question`, `encountered`, or `explained` means understood.
 - Record screenshot paths and PASS/FAIL observations in `DEVELOPMENT_PLAIN.md`; remove browser-generated
   project files before checking Git status.
+# Issue #18 node detail panel
+
+- Open a Concept with pointer and keyboard; confirm summary, status/spaces, Evidence, Source,
+  Learning history, and the explicit empty known-confusion state.
+- Open the LearningEvent; confirm event type/context/time, Concepts, Evidence, and Source.
+- Confirm Enter/Space opens, Escape and close button dismiss, and focus returns to the node.
+- Check 1440×1000, 1024×768, and 390×844: desktop/tablet side panel and mobile bottom sheet must
+  remain readable without horizontal overflow or permanently hiding the graph.
+- Confirm no editing or mutation controls, stable IDs, raw source content, or private paths appear.

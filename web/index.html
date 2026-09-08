@@ -21,6 +21,7 @@
         </div>
       </header>
 
+      <section class="workspace" aria-label="Graph explorer">
       <section class="graph-card" aria-labelledby="canvas-title">
         <div class="canvas-bar">
           <div>
@@ -37,6 +38,15 @@
           <svg id="graph" role="img" aria-labelledby="canvas-title canvas-caption"></svg>
           <div id="graph-message" class="graph-message" hidden></div>
         </div>
+      </section>
+
+      <aside id="detail-panel" class="detail-panel" aria-labelledby="detail-title" hidden>
+        <header class="detail-header">
+          <div><p id="detail-kind" class="detail-kind"></p><h2 id="detail-title"></h2></div>
+          <button id="close-detail" class="close-detail" type="button" aria-label="Close details">×</button>
+        </header>
+        <div id="detail-content" class="detail-content"></div>
+      </aside>
       </section>
 
       <footer class="legend" aria-label="Graph legend">
