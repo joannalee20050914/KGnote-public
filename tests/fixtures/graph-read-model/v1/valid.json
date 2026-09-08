@@ -1,6 +1,6 @@
 {
   "schema_version": "kgnote.graph-read-model.v1",
-  "snapshot_sha256": "11f02acc22f0f61a45791e75e97eca0357544bdca7aeedbf6beb6ec8892ba330",
+  "snapshot_sha256": "f3f4ea690dea22ac5fa2f520bf0d6f4201de0e890a15458ad2d49b7fd71e060e",
   "nodes": [
     {"id":"concept_causal_inference","kind":"concept","label":"Causal inference","aliases":["因果推論"],"spaces":["causal-inference"],"summary":"根據資料與假設推論因果關係的研究問題。","status":"needs_review","evidence_ids":["evidence_apply_confounder"]},
     {"id":"concept_causation","kind":"concept","label":"Causation","aliases":["因果關係"],"spaces":["causal-inference"],"summary":"主張一個變數的變化造成另一個變數的變化。","status":"active","evidence_ids":["evidence_define_correlation_causation","evidence_question_correlation_causation"]},

@@ -49,7 +49,7 @@
         "id": {"type": "string", "pattern": "^event_[A-Za-z0-9][A-Za-z0-9_-]*$"},
         "kind": {"const": "learning_event"},
         "label": {"$ref": "#/$defs/safeLabel"},
-        "event_type": {"enum": ["question", "explanation", "application", "confusion", "review"]},
+        "event_type": {"enum": ["exposure", "question", "confusion", "explanation", "application", "assessment"]},
         "occurred_at": {"type": ["string", "null"], "format": "date-time"},
         "context": {"type": "string"},
         "concept_ids": {"$ref": "#/$defs/idList", "minItems": 1},
@@ -92,7 +92,7 @@
         "observed_at": {"type": ["string", "null"], "format": "date-time"},
         "extractor_version": {"type": "string", "minLength": 1},
         "extraction_confidence": {"enum": ["high", "medium", "low", "unresolved"]},
-        "review_status": {"enum": ["pending", "accepted", "rejected"]}
+        "review_status": {"enum": ["unreviewed", "accepted", "corrected", "rejected"]}
       }
     },
     "source": {

@@ -27,8 +27,8 @@ fall back to `Record <id-fragment>` and append an ID fragment when labels collid
 
 All record arrays and nested ID/string lists are sorted lexicographically and contain no
 duplicates. `snapshot_sha256` is SHA-256 over canonical JSON (UTF-8, sorted object keys,
-compact separators) of the validated in-memory canonical record list, itself sorted by
-`(type, id)`. A producer must deep-copy or rebuild its output; callers must not receive mutable
+compact separators) of a normalized copy of the validated in-memory canonical record list,
+with records sorted by `(type, id)` and set-like arrays sorted. A producer must deep-copy or rebuild its output; callers must not receive mutable
 references into the canonical snapshot.
 
 This version intentionally does not define a filesystem adapter, HTTP endpoint, browser UI,
