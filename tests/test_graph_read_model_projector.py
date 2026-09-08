@@ -35,6 +35,7 @@ class GraphReadModelProjectorTests(unittest.TestCase):
         self.assertEqual(result.projector_version, GRAPH_PROJECTOR_VERSION)
         self.assertIsNone(result.problem)
         self.assertEqual(result.model, self.golden)
+        self.assertTrue(all(node["concept_ids"] for node in result.model["nodes"] if node["kind"] == "learning_event"))
 
     def test_record_and_set_like_array_permutations_are_deterministic(self) -> None:
         permuted = copy.deepcopy(self.records)

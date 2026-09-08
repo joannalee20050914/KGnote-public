@@ -15,6 +15,10 @@ format and not an API transport.
 - `snapshot_sha256` identifies the deterministic canonical input snapshot. There is no
   render-time clock field.
 - `filter_facets` advertises present values only. It does not execute filtering.
+- A complete projector result keeps at least one `concept_id` on each LearningEvent. A
+  plan-materialized view may have an empty `concept_ids` list when node filters intentionally
+  exclude every related Concept; it means no related Concept is present in this view, not that
+  canonical provenance was removed.
 
 ## Privacy and safety boundary
 

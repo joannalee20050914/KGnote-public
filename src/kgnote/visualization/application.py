@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Literal, Mapping
 
-from kgnote.contracts import validate_graph_read_model
+from kgnote.contracts import GraphReadModelValidationError, validate_graph_read_model
 from kgnote.storage import read_canonical_store
 
 from .query_plan import QUERY_VERSION, plan_graph_view
@@ -127,10 +127,14 @@ def load_graph_view(root: str | os.PathLike[str], query: Mapping[str, Any] | Non
             planning_problem.path if planning_problem else (),
         )
     plan = planning.plan
+    try:
+        materialized = _materialize(model, plan)
+    except GraphReadModelValidationError as error:
+        return _reject("projector", "materialized_view_invalid", error.path)
     payload = {
         "schema_version": APPLICATION_VERSION,
         "status": "ready",
-        "view": _materialize(model, plan),
+        "view": materialized,
         "plan": plan,
     }
     return _result(payload)

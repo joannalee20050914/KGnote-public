@@ -91,6 +91,23 @@ class GraphViewApplicationTests(unittest.TestCase):
         self.assertEqual(response["view"]["links"], [])
         self.assertEqual(response["view"]["filter_facets"]["edge_classes"], [])
 
+    def test_learning_event_only_is_a_valid_zero_link_materialized_view(self) -> None:
+        digest = load_graph_view(STORE).response["view"]["snapshot_sha256"]
+        query = {
+            "schema_version": "kgnote.graph-view-query.v1",
+            "snapshot_sha256": digest,
+            "focus_node_id": None,
+            "hop_depth": None,
+            "filters": {"node_kinds": ["learning_event"], "edge_classes": [], "relations": [], "spaces": []},
+        }
+        result = load_graph_view(STORE, query)
+        self.assertEqual(result.status, "ready")
+        response = result.response
+        self.assertEqual([node["kind"] for node in response["view"]["nodes"]], ["learning_event"])
+        self.assertEqual(response["view"]["nodes"][0]["concept_ids"], [])
+        self.assertEqual(response["view"]["links"], [])
+        validate_graph_read_model(response["view"])
+
     def test_stale_and_malformed_queries_map_to_safe_planner_problems(self) -> None:
         digest = load_graph_view(STORE).response["view"]["snapshot_sha256"]
         base = {

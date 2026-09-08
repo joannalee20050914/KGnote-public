@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test web/tests/*.test.js",
-    "serve:web": "python3 -m http.server 4173"
+    "serve:web": ".venv/bin/python scripts/serve_graph_view.py --store fixtures/phase0-obsidian --port 4173"
   },
   "engines": {"node": ">=20"}
 }

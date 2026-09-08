@@ -60,8 +60,8 @@ function ellipsePositions(nodes, rx, ry, centerX, centerY, offset = -Math.PI / 2
   }));
 }
 
-export function buildScene(view, {mobile = false} = {}) {
-  const selected = mobile ? selectLocalNeighborhood(view) : {nodes: view.nodes, links: view.links, focusId: null};
+export function buildScene(view, {mobile = false, materialized = false} = {}) {
+  const selected = mobile && !materialized ? selectLocalNeighborhood(view) : {nodes: view.nodes, links: view.links, focusId: null};
   const nodes = selected.nodes.slice().sort((a, b) => a.id.localeCompare(b.id));
   const concepts = nodes.filter((node) => node.kind === "concept");
   const events = nodes.filter((node) => node.kind === "learning_event");

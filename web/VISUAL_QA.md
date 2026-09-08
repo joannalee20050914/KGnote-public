@@ -38,3 +38,17 @@ Start from the repository root with `npm run serve:web`, then open
 - Check 1440×1000, 1024×768, and 390×844: desktop/tablet side panel and mobile bottom sheet must
   remain readable without horizontal overflow or permanently hiding the graph.
 - Confirm no editing or mutation controls, stable IDs, raw source content, or private paths appear.
+
+# Issue #19 hop and facet controls
+
+- At 1440×1000, confirm the default is `Full filtered graph`, 7 nodes / 8 links, and filters expand
+  without colliding with the canvas or Issue #18 panel.
+- Focus Correlation and verify 1 / 2 / 3 hops update via the server; labels and counts must match the
+  materialized response. Confirm changing a view closes any open stale detail panel.
+- Exercise node kind, edge class, relation, and space groups. Confirm OR within a group, AND across
+  populated groups, filter-first behavior, isolated zero-link state, and deterministic Reset.
+- At 1024×768, confirm controls, full graph, and detail panel remain keyboard/pointer accessible.
+- At 390×844, confirm initial planner-backed `Local · 1 hop`, collapsible filters, bounded scrolling,
+  no horizontal overflow, and Reset returns to the same local default.
+- Confirm safe UI messages for rejected/empty views and no stable ID, absolute path, raw source,
+  mutation control, console error, or console warning.

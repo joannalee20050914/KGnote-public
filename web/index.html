@@ -21,6 +21,27 @@
         </div>
       </header>
 
+      <section class="filter-card" aria-labelledby="filter-title">
+        <div class="filter-primary">
+          <div><p class="eyebrow">VIEW QUERY</p><h2 id="filter-title">Choose a neighborhood</h2></div>
+          <label>Focus
+            <select id="focus-node" aria-label="Focus node"></select>
+          </label>
+          <label>Hops
+            <select id="hop-depth" aria-label="Hop depth">
+              <option value="1">1 hop</option><option value="2">2 hops</option><option value="3">3 hops</option>
+            </select>
+          </label>
+          <div class="filter-actions"><button id="update-view" type="button">Update view</button><button id="reset-query" type="button">Reset</button></div>
+        </div>
+        <details class="filter-details">
+          <summary>Filters <span id="filter-count">None active</span></summary>
+          <div id="filter-groups" class="filter-groups"></div>
+          <p class="filter-help">Selections use OR within each group and AND across groups. Filters run before hop traversal.</p>
+        </details>
+        <p id="query-message" class="query-message" role="status" aria-live="polite"></p>
+      </section>
+
       <section class="workspace" aria-label="Graph explorer">
       <section class="graph-card" aria-labelledby="canvas-title">
         <div class="canvas-bar">

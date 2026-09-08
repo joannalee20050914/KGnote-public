@@ -52,7 +52,7 @@
         "event_type": {"enum": ["exposure", "question", "confusion", "explanation", "application", "assessment"]},
         "occurred_at": {"type": ["string", "null"], "format": "date-time"},
         "context": {"type": "string"},
-        "concept_ids": {"$ref": "#/$defs/idList", "minItems": 1},
+        "concept_ids": {"$ref": "#/$defs/idList"},
         "evidence_ids": {"$ref": "#/$defs/idList", "minItems": 1},
         "source_ids": {"$ref": "#/$defs/idList", "minItems": 1}
       }

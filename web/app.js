@@ -1,5 +1,6 @@
 import {buildScene, validateApplicationResult} from "./graph.js";
 import {buildNodeDetails} from "./panel.js";
+import {buildGraphViewQuery, defaultViewState, modeDescription} from "./filters.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const fixtureUrl = "./fixtures/phase0-graph-view.json";
@@ -9,6 +10,8 @@ const message = document.querySelector("#graph-message");
 const modeLabel = document.querySelector("#view-mode");
 const countLabel = document.querySelector("#graph-count");
 let payload;
+let catalogView;
+let activeQuery;
 let baseBox = {x: 0, y: 0, width: 1200, height: 720};
 let viewBox = {...baseBox};
 const detailPanel = document.querySelector("#detail-panel");
@@ -16,6 +19,11 @@ const detailTitle = document.querySelector("#detail-title");
 const detailKind = document.querySelector("#detail-kind");
 const detailContent = document.querySelector("#detail-content");
 const closeDetailButton = document.querySelector("#close-detail");
+const focusSelect = document.querySelector("#focus-node");
+const hopSelect = document.querySelector("#hop-depth");
+const filterGroups = document.querySelector("#filter-groups");
+const filterCount = document.querySelector("#filter-count");
+const queryMessage = document.querySelector("#query-message");
 let detailTrigger = null;
 
 function element(name, attributes = {}) {
@@ -143,8 +151,10 @@ function render(scene) {
     });
   }
   svg.append(nodes);
-  modeLabel.textContent = scene.mode === "local" ? "Local · 1 hop" : "Full graph";
+  modeLabel.textContent = activeQuery ? modeDescription(activeQuery) : (scene.mode === "local" ? "Local · 1 hop" : "Full graph");
   countLabel.textContent = `${scene.nodes.length} nodes · ${scene.links.length} links`;
+  message.hidden = scene.nodes.length > 0;
+  if (!scene.nodes.length) message.textContent = "No nodes match this view.";
 }
 
 closeDetailButton.addEventListener("click", () => closeDetails());
@@ -186,16 +196,105 @@ stage.addEventListener("pointerup", () => { drag = null; });
 
 function renderResponsive() {
   if (!payload) return;
-  render(buildScene(payload.view, {mobile: window.innerWidth <= 600}));
+  render(buildScene(payload.view, {mobile: window.innerWidth <= 600, materialized: true}));
 }
+
+function pretty(value) { return value.replaceAll("_", " "); }
+
+function populateControls() {
+  focusSelect.replaceChildren(new Option("Full graph", ""));
+  for (const node of catalogView.nodes) focusSelect.append(new Option(`${node.label} · ${node.kind === "concept" ? "Concept" : "Learning event"}`, node.id));
+  const labels = {node_kinds: "Node kinds", edge_classes: "Edge classes", relations: "Relations", spaces: "Spaces"};
+  filterGroups.replaceChildren();
+  for (const [name, values] of Object.entries(catalogView.filter_facets)) {
+    const group = document.createElement("section");
+    group.className = "filter-group";
+    group.dataset.filter = name;
+    group.append(textElement("h3", labels[name]));
+    const options = document.createElement("div");
+    options.className = "filter-options";
+    for (const value of values) {
+      const label = document.createElement("label");
+      label.className = "filter-option";
+      const input = document.createElement("input");
+      Object.assign(input, {type: "checkbox", value});
+      label.append(input, document.createTextNode(pretty(value)));
+      options.append(label);
+    }
+    if (!values.length) options.append(textElement("span", "Unavailable", "empty-state"));
+    group.append(options);
+    filterGroups.append(group);
+  }
+}
+
+function writeState(state) {
+  focusSelect.value = state.focus_node_id ?? "";
+  hopSelect.value = String(state.hop_depth ?? 1);
+  hopSelect.disabled = state.focus_node_id === null;
+  for (const group of filterGroups.querySelectorAll("[data-filter]")) {
+    for (const input of group.querySelectorAll("input")) input.checked = state.filters[group.dataset.filter].includes(input.value);
+  }
+  updateFilterCount();
+}
+
+function readState() {
+  const focus = focusSelect.value || null;
+  return {
+    focus_node_id: focus,
+    hop_depth: focus === null ? null : Number(hopSelect.value),
+    filters: Object.fromEntries([...filterGroups.querySelectorAll("[data-filter]")].map((group) => [
+      group.dataset.filter, [...group.querySelectorAll("input:checked")].map(({value}) => value),
+    ])),
+  };
+}
+
+function updateFilterCount() {
+  const count = filterGroups.querySelectorAll("input:checked").length;
+  filterCount.textContent = count ? `${count} active` : "None active";
+}
+
+async function applyState(state) {
+  const built = buildGraphViewQuery(catalogView, state);
+  if (built.status !== "ready") { queryMessage.textContent = "This view request is not available."; return; }
+  queryMessage.textContent = "Loading view…";
+  try {
+    const response = await fetch("/api/graph-view", {
+      method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(built.query), cache: "no-store",
+    });
+    const next = await response.json();
+    const validation = validateApplicationResult(next);
+    if (!response.ok || !validation.ok) throw new Error("query_rejected");
+    closeDetails({restoreFocus: false});
+    payload = next;
+    activeQuery = built.query;
+    writeState(state);
+    renderResponsive();
+    queryMessage.textContent = next.view.nodes.length ? "View updated." : "No nodes match this view.";
+  } catch {
+    queryMessage.textContent = "This view could not be loaded safely.";
+  }
+}
+
+focusSelect.addEventListener("change", () => { hopSelect.disabled = !focusSelect.value; });
+filterGroups.addEventListener("change", updateFilterCount);
+document.querySelector("#update-view").addEventListener("click", () => applyState(readState()));
+document.querySelector("#reset-query").addEventListener("click", () => {
+  const mobile = window.innerWidth <= 600;
+  const mobileFocusId = mobile ? buildScene(catalogView, {mobile: true}).focusId : null;
+  applyState(defaultViewState(catalogView, {mobile, mobileFocusId}));
+});
 
 try {
   const response = await fetch(fixtureUrl, {cache: "no-store"});
   if (!response.ok) throw new Error("fixture_load_failed");
-  payload = await response.json();
-  const validation = validateApplicationResult(payload);
+  const initial = await response.json();
+  const validation = validateApplicationResult(initial);
   if (!validation.ok) throw new Error(validation.code);
-  renderResponsive();
+  catalogView = structuredClone(initial.view);
+  populateControls();
+  const mobile = window.innerWidth <= 600;
+  const mobileFocusId = mobile ? buildScene(catalogView, {mobile: true}).focusId : null;
+  await applyState(defaultViewState(catalogView, {mobile, mobileFocusId}));
   let resizeTimer;
   window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderResponsive, 80); });
 } catch (error) {
