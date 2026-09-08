@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/graph-read-model/v1/graph-read-model.schema.json",
+  "title": "KGnote read-only graph read model v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "snapshot_sha256", "nodes", "links", "evidence", "sources", "filter_facets"],
+  "properties": {
+    "schema_version": {"const": "kgnote.graph-read-model.v1"},
+    "snapshot_sha256": {"$ref": "#/$defs/sha256"},
+    "nodes": {
+      "type": "array",
+      "items": {"oneOf": [{"$ref": "#/$defs/conceptNode"}, {"$ref": "#/$defs/learningEventNode"}]}
+    },
+    "links": {"type": "array", "items": {"$ref": "#/$defs/link"}},
+    "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
+    "sources": {"type": "array", "items": {"$ref": "#/$defs/source"}},
+    "filter_facets": {"$ref": "#/$defs/filterFacets"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "safeLabel": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^(?=.*\\S)[^\\[\\]|#^\\r\\n]+$"
+    },
+    "idList": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "conceptNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "label", "aliases", "spaces", "summary", "status", "evidence_ids"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^concept_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "kind": {"const": "concept"},
+        "label": {"$ref": "#/$defs/safeLabel"},
+        "aliases": {"type": "array", "items": {"$ref": "#/$defs/safeLabel"}, "uniqueItems": true},
+        "spaces": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "summary": {"type": "string"},
+        "status": {"enum": ["active", "needs_review", "deprecated"]},
+        "evidence_ids": {"$ref": "#/$defs/idList", "minItems": 1}
+      }
+    },
+    "learningEventNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "label", "event_type", "occurred_at", "context", "concept_ids", "evidence_ids", "source_ids"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^event_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "kind": {"const": "learning_event"},
+        "label": {"$ref": "#/$defs/safeLabel"},
+        "event_type": {"enum": ["question", "explanation", "application", "confusion", "review"]},
+        "occurred_at": {"type": ["string", "null"], "format": "date-time"},
+        "context": {"type": "string"},
+        "concept_ids": {"$ref": "#/$defs/idList", "minItems": 1},
+        "evidence_ids": {"$ref": "#/$defs/idList", "minItems": 1},
+        "source_ids": {"$ref": "#/$defs/idList", "minItems": 1}
+      }
+    },
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source_id", "target_id", "relation", "edge_class", "confidence", "evidence_ids"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^edge_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "source_id": {"type": "string", "minLength": 1},
+        "target_id": {"type": "string", "minLength": 1},
+        "relation": {"type": ["string", "null"]},
+        "edge_class": {"enum": ["canonical", "learning", "soft_association"]},
+        "confidence": {"enum": ["high", "medium", "low", "unresolved"]},
+        "evidence_ids": {"$ref": "#/$defs/idList", "minItems": 1}
+      },
+      "allOf": [
+        {"if": {"properties": {"edge_class": {"const": "canonical"}}}, "then": {"properties": {"relation": {"enum": ["is_a", "part_of", "prerequisite_of", "contrasts_with", "causes", "related_to"]}, "confidence": {"enum": ["high", "medium", "low"]}}}},
+        {"if": {"properties": {"edge_class": {"const": "learning"}}}, "then": {"properties": {"relation": {"enum": ["asked_about", "explained", "applied", "confused_with", "encountered", "reviewed"]}, "confidence": {"enum": ["high", "medium", "low"]}}}},
+        {"if": {"properties": {"edge_class": {"const": "soft_association"}}}, "then": {"properties": {"relation": {"type": "null"}, "confidence": {"const": "unresolved"}}}}
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "source_id", "locator", "proposition", "observed_at", "extractor_version", "extraction_confidence", "review_status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^evidence_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "label": {"$ref": "#/$defs/safeLabel"},
+        "source_id": {"type": "string", "minLength": 1},
+        "locator": {
+          "type": "object", "additionalProperties": false, "required": ["kind", "value"],
+          "properties": {"kind": {"enum": ["line_range", "message_range", "page_range", "timestamp_range", "section"]}, "value": {"type": "string", "minLength": 1}}
+        },
+        "proposition": {"type": "string", "minLength": 1},
+        "observed_at": {"type": ["string", "null"], "format": "date-time"},
+        "extractor_version": {"type": "string", "minLength": 1},
+        "extraction_confidence": {"enum": ["high", "medium", "low", "unresolved"]},
+        "review_status": {"enum": ["pending", "accepted", "rejected"]}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "source_kind", "captured_at", "content_sha256"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^src_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "label": {"$ref": "#/$defs/safeLabel"},
+        "source_kind": {"type": "string", "minLength": 1},
+        "captured_at": {"type": ["string", "null"], "format": "date-time"},
+        "content_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "filterFacets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_kinds", "edge_classes", "relations", "spaces"],
+      "properties": {
+        "node_kinds": {"type": "array", "items": {"enum": ["concept", "learning_event"]}, "uniqueItems": true},
+        "edge_classes": {"type": "array", "items": {"enum": ["canonical", "learning", "soft_association"]}, "uniqueItems": true},
+        "relations": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "spaces": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      }
+    }
+  }
+}

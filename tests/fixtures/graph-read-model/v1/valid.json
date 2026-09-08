@@ -1,0 +1,38 @@
+{
+  "schema_version": "kgnote.graph-read-model.v1",
+  "snapshot_sha256": "11f02acc22f0f61a45791e75e97eca0357544bdca7aeedbf6beb6ec8892ba330",
+  "nodes": [
+    {"id":"concept_causal_inference","kind":"concept","label":"Causal inference","aliases":["因果推論"],"spaces":["causal-inference"],"summary":"根據資料與假設推論因果關係的研究問題。","status":"needs_review","evidence_ids":["evidence_apply_confounder"]},
+    {"id":"concept_causation","kind":"concept","label":"Causation","aliases":["因果關係"],"spaces":["causal-inference"],"summary":"主張一個變數的變化造成另一個變數的變化。","status":"active","evidence_ids":["evidence_define_correlation_causation","evidence_question_correlation_causation"]},
+    {"id":"concept_confounder","kind":"concept","label":"Confounder","aliases":["混淆變數"],"spaces":["causal-inference"],"summary":"同時影響所觀察變數、可能造成表面相關的第三個變數。","status":"active","evidence_ids":["evidence_apply_confounder","evidence_define_correlation_causation"]},
+    {"id":"concept_correlation","kind":"concept","label":"Correlation","aliases":["相關"],"spaces":["causal-inference"],"summary":"兩個變數呈現共同變動，但本身不主張因果方向。","status":"active","evidence_ids":["evidence_define_correlation_causation","evidence_question_correlation_causation"]},
+    {"id":"concept_counterfactual","kind":"concept","label":"Counterfactual","aliases":["反事實"],"spaces":["causal-inference"],"summary":"本 fixture 只記錄它被詢問；定義及與因果推論的精確關係尚無足夠 evidence。","status":"needs_review","evidence_ids":["evidence_counterfactual_unresolved"]},
+    {"id":"concept_randomized_controlled_trial","kind":"concept","label":"Randomized controlled trial","aliases":["RCT","隨機對照試驗"],"spaces":["causal-inference"],"summary":"使用隨機分派降低組別間系統性混淆的研究設計。","status":"active","evidence_ids":["evidence_apply_confounder"]},
+    {"id":"event_causality_question","kind":"learning_event","label":"Question event","event_type":"question","occurred_at":null,"context":"synthetic-causality-chat lines L5-L15; learner asks about correlation and causation, then applies confounder to the example","concept_ids":["concept_causal_inference","concept_causation","concept_confounder","concept_correlation","concept_counterfactual","concept_randomized_controlled_trial"],"evidence_ids":["evidence_apply_confounder","evidence_counterfactual_unresolved","evidence_define_correlation_causation","evidence_question_correlation_causation"],"source_ids":["src_synthetic_causality_chat"]}
+  ],
+  "links": [
+    {"id":"edge_causal_inference_counterfactual_unresolved","source_id":"concept_causal_inference","target_id":"concept_counterfactual","relation":null,"edge_class":"soft_association","confidence":"unresolved","evidence_ids":["evidence_counterfactual_unresolved"]},
+    {"id":"edge_confounder_related_correlation","source_id":"concept_confounder","target_id":"concept_correlation","relation":"related_to","edge_class":"canonical","confidence":"high","evidence_ids":["evidence_apply_confounder","evidence_define_correlation_causation"]},
+    {"id":"edge_correlation_contrasts_causation","source_id":"concept_correlation","target_id":"concept_causation","relation":"contrasts_with","edge_class":"canonical","confidence":"high","evidence_ids":["evidence_define_correlation_causation"]},
+    {"id":"edge_event_applied_confounder","source_id":"event_causality_question","target_id":"concept_confounder","relation":"applied","edge_class":"learning","confidence":"high","evidence_ids":["evidence_apply_confounder"]},
+    {"id":"edge_event_asked_causation","source_id":"event_causality_question","target_id":"concept_causation","relation":"asked_about","edge_class":"learning","confidence":"high","evidence_ids":["evidence_question_correlation_causation"]},
+    {"id":"edge_event_asked_correlation","source_id":"event_causality_question","target_id":"concept_correlation","relation":"asked_about","edge_class":"learning","confidence":"high","evidence_ids":["evidence_question_correlation_causation"]},
+    {"id":"edge_event_encountered_counterfactual","source_id":"event_causality_question","target_id":"concept_counterfactual","relation":"encountered","edge_class":"learning","confidence":"high","evidence_ids":["evidence_counterfactual_unresolved"]},
+    {"id":"edge_rct_related_confounder","source_id":"concept_randomized_controlled_trial","target_id":"concept_confounder","relation":"related_to","edge_class":"canonical","confidence":"high","evidence_ids":["evidence_apply_confounder"]}
+  ],
+  "evidence": [
+    {"id":"evidence_apply_confounder","label":"Evidence L9-L11","source_id":"src_synthetic_causality_chat","locator":{"kind":"line_range","value":"L9-L11"},"proposition":"Learner 在冰淇淋與溺水例子中提出氣溫是 confounder；Tutor 確認這次應用，但明確限制其不能證明已理解完整 causal inference。","observed_at":null,"extractor_version":"manual.phase0.v1","extraction_confidence":"high","review_status":"accepted"},
+    {"id":"evidence_counterfactual_unresolved","label":"Evidence L13-L15","source_id":"src_synthetic_causality_chat","locator":{"kind":"line_range","value":"L13-L15"},"proposition":"Learner 詢問 counterfactual 是否相關；Tutor 只回答可能相關，未提供精確 relation，因此該關係保持 unresolved。","observed_at":null,"extractor_version":"manual.phase0.v1","extraction_confidence":"high","review_status":"accepted"},
+    {"id":"evidence_define_correlation_causation","label":"Evidence L7","source_id":"src_synthetic_causality_chat","locator":{"kind":"line_range","value":"L7"},"proposition":"Tutor 區分 correlation 與 causation，並指出共同變動可能來自第三個變數。","observed_at":null,"extractor_version":"manual.phase0.v1","extraction_confidence":"high","review_status":"accepted"},
+    {"id":"evidence_question_correlation_causation","label":"Evidence L5","source_id":"src_synthetic_causality_chat","locator":{"kind":"line_range","value":"L5"},"proposition":"Learner 詢問冰淇淋銷量與溺水人數共同上升是否代表因果，並明確表示分不清 correlation 與 causation。","observed_at":null,"extractor_version":"manual.phase0.v1","extraction_confidence":"high","review_status":"accepted"}
+  ],
+  "sources": [
+    {"id":"src_synthetic_causality_chat","label":"Synthetic causality learning conversation","source_kind":"chatgpt_conversation","captured_at":null,"content_sha256":"9e2a61399ba4d19ca14e9e0332ea8df8d92dade379f047a8afb7533956c5faf6"}
+  ],
+  "filter_facets": {
+    "node_kinds":["concept","learning_event"],
+    "edge_classes":["canonical","learning","soft_association"],
+    "relations":["applied","asked_about","contrasts_with","encountered","related_to"],
+    "spaces":["causal-inference"]
+  }
+}
