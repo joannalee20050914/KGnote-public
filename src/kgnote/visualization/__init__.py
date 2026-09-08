@@ -7,6 +7,12 @@ from .read_model import (
     project_graph_read_model,
 )
 from .query_plan import GraphViewPlanResult, GraphViewProblem, plan_graph_view
+from .application import (
+    APPLICATION_VERSION,
+    GraphViewApplicationProblem,
+    GraphViewApplicationResult,
+    load_graph_view,
+)
 
 __all__ = [
     "GRAPH_PROJECTOR_VERSION",
@@ -16,4 +22,8 @@ __all__ = [
     "GraphViewPlanResult",
     "GraphViewProblem",
     "plan_graph_view",
+    "APPLICATION_VERSION",
+    "GraphViewApplicationProblem",
+    "GraphViewApplicationResult",
+    "load_graph_view",
 ]

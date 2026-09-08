@@ -17,3 +17,10 @@ query, applies type/relation/space filters, traverses retained links direction-n
 three hops, and returns only sorted selected IDs plus stable exclusion reasons. It never changes
 link direction or treats Evidence/Source support records as canvas nodes. The versioned query and
 plan decisions are documented under `schemas/graph-view/v1/`.
+
+`load_graph_view(explicit_root, query=None)` is the sole filesystem-facing application boundary. It
+composes the canonical reader, projector, and planner, then returns a plan-materialized read model
+containing only selected provenance support. Missing query means full graph; supplied queries must
+match the current projected snapshot digest. Its versioned envelope and safe error mapping are
+documented under `schemas/graph-view-application/v1/`. It performs no writes and is not an HTTP or
+UI adapter.
