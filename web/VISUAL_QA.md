@@ -52,3 +52,17 @@ Start from the repository root with `npm run serve:web`, then open
   no horizontal overflow, and Reset returns to the same local default.
 - Confirm safe UI messages for rejected/empty views and no stable ID, absolute path, raw source,
   mutation control, console error, or console warning.
+
+# Issue #20 Phase 3 boundary closure
+
+- Repeat the Mac 1440×1000, iPad 1024×768, and iPhone 390×844 smoke paths from Issues #17–#19:
+  pan/zoom/reset, full/local graph, node panel, LearningEvent-only, one filtered/isolated view, and
+  deterministic query reset.
+- Trigger a rejected focus/filter query after a successful result. Confirm the old graph and detail
+  panel disappear, `View unavailable` / `Graph unavailable` are visible, and Reset recovers.
+- Inspect successful and rejected requests: only `POST /api/graph-view` succeeds as an application
+  route; repository/canonical/traversal paths and PUT/PATCH/DELETE are non-successful.
+- Confirm CSP, no-store, no-referrer, no-sniff, and frame-denial headers; no Server/Date identification
+  headers; zero browser console errors/warnings.
+- Confirm no editing, persisted drag/layout, proficiency score, understood inference, stable ID,
+  absolute path, raw Markdown, or request/exception content appears.

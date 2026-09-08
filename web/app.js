@@ -169,6 +169,14 @@ function showError(text) {
   countLabel.textContent = "Graph unavailable";
 }
 
+function rejectView(text) {
+  closeDetails({restoreFocus: false});
+  payload = null;
+  activeQuery = null;
+  modeLabel.textContent = "View unavailable";
+  showError(text);
+}
+
 function setViewBox(next) {
   viewBox = next;
   svg.setAttribute("viewBox", `${next.x} ${next.y} ${next.width} ${next.height}`);
@@ -255,7 +263,11 @@ function updateFilterCount() {
 
 async function applyState(state) {
   const built = buildGraphViewQuery(catalogView, state);
-  if (built.status !== "ready") { queryMessage.textContent = "This view request is not available."; return; }
+  if (built.status !== "ready") {
+    queryMessage.textContent = "This view request is not available.";
+    rejectView("The requested view is unavailable.");
+    return;
+  }
   queryMessage.textContent = "Loading view…";
   try {
     const response = await fetch("/api/graph-view", {
@@ -272,6 +284,7 @@ async function applyState(state) {
     queryMessage.textContent = next.view.nodes.length ? "View updated." : "No nodes match this view.";
   } catch {
     queryMessage.textContent = "This view could not be loaded safely.";
+    rejectView("The requested view is unavailable.");
   }
 }
 

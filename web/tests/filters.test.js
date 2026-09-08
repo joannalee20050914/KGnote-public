@@ -60,5 +60,9 @@ test("UI exposes all query controls and delegates execution to the read-only end
   for (const id of ["focus-node", "hop-depth", "filter-groups", "update-view", "reset-query"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(app, /fetch\("\/api\/graph-view"/);
   assert.match(app, /closeDetails\(\{restoreFocus: false\}\)/);
+  assert.match(app, /function rejectView/);
+  assert.match(app, /payload = null/);
+  assert.match(app, /modeLabel\.textContent = "View unavailable"/);
+  assert.match(app, /rejectView\("The requested view is unavailable\."\)/);
   assert.doesNotMatch(html + app, /<form|contenteditable|\b(save|delete|merge|rename|apply)\b/i);
 });
