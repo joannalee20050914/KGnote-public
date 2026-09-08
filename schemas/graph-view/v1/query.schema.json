@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/graph-view/v1/query.schema.json",
+  "title": "KGnote graph view query v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "snapshot_sha256", "focus_node_id", "hop_depth", "filters"],
+  "properties": {
+    "schema_version": {"const": "kgnote.graph-view-query.v1"},
+    "snapshot_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "focus_node_id": {"type": ["string", "null"], "minLength": 1},
+    "hop_depth": {"type": ["integer", "null"], "minimum": 1, "maximum": 3},
+    "filters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_kinds", "edge_classes", "relations", "spaces"],
+      "properties": {
+        "node_kinds": {"type": "array", "uniqueItems": true, "items": {"enum": ["concept", "learning_event"]}},
+        "edge_classes": {"type": "array", "uniqueItems": true, "items": {"enum": ["canonical", "learning", "soft_association"]}},
+        "relations": {"type": "array", "uniqueItems": true, "items": {"enum": ["is_a", "part_of", "prerequisite_of", "contrasts_with", "causes", "related_to", "asked_about", "explained", "applied", "confused_with", "encountered", "reviewed"]}},
+        "spaces": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  },
+  "oneOf": [
+    {"properties": {"focus_node_id": {"type": "null"}, "hop_depth": {"type": "null"}}},
+    {"properties": {"focus_node_id": {"type": "string", "minLength": 1}, "hop_depth": {"type": "integer", "minimum": 1, "maximum": 3}}}
+  ]
+}

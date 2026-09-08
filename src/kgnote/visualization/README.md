@@ -11,3 +11,9 @@ without echoing record bodies.
 The projector does not locate or read a vault. A future filesystem/application adapter may call
 the canonical store reader first and then pass `StoreSnapshot.records` here. HTTP serialization,
 layout, filtering, neighborhood selection, UI state, and mutation remain outside this module.
+
+`plan_graph_view(model, query)` is the next pure boundary. It validates an explicit snapshot-bound
+query, applies type/relation/space filters, traverses retained links direction-neutrally for up to
+three hops, and returns only sorted selected IDs plus stable exclusion reasons. It never changes
+link direction or treats Evidence/Source support records as canvas nodes. The versioned query and
+plan decisions are documented under `schemas/graph-view/v1/`.

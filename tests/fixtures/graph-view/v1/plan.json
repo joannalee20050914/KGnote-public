@@ -1,0 +1,19 @@
+{
+  "schema_version":"kgnote.graph-view-plan.v1",
+  "snapshot_sha256":"f3f4ea690dea22ac5fa2f520bf0d6f4201de0e890a15458ad2d49b7fd71e060e",
+  "query_sha256":"e17cd62b6eeb2aec02b7858b4eb1f31515a69dd83ff247e3edea9324a26e58be",
+  "selected":{
+    "node_ids":["concept_causation","concept_confounder","concept_correlation","event_causality_question"],
+    "link_ids":["edge_confounder_related_correlation","edge_correlation_contrasts_causation","edge_event_applied_confounder","edge_event_asked_causation","edge_event_asked_correlation"],
+    "evidence_ids":["evidence_apply_confounder","evidence_counterfactual_unresolved","evidence_define_correlation_causation","evidence_question_correlation_causation"],
+    "source_ids":["src_synthetic_causality_chat"]
+  },
+  "excluded":[
+    {"kind":"link","id":"edge_causal_inference_counterfactual_unresolved","reason":"outside_hop"},
+    {"kind":"link","id":"edge_event_encountered_counterfactual","reason":"outside_hop"},
+    {"kind":"link","id":"edge_rct_related_confounder","reason":"outside_hop"},
+    {"kind":"node","id":"concept_causal_inference","reason":"outside_hop"},
+    {"kind":"node","id":"concept_counterfactual","reason":"outside_hop"},
+    {"kind":"node","id":"concept_randomized_controlled_trial","reason":"outside_hop"}
+  ]
+}

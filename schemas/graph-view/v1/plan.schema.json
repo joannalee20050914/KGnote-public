@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/graph-view/v1/plan.schema.json",
+  "title": "KGnote graph view plan v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "snapshot_sha256", "query_sha256", "selected", "excluded"],
+  "properties": {
+    "schema_version": {"const": "kgnote.graph-view-plan.v1"},
+    "snapshot_sha256": {"$ref": "#/$defs/sha256"},
+    "query_sha256": {"$ref": "#/$defs/sha256"},
+    "selected": {
+      "type": "object", "additionalProperties": false,
+      "required": ["node_ids", "link_ids", "evidence_ids", "source_ids"],
+      "properties": {
+        "node_ids": {"$ref": "#/$defs/idList"}, "link_ids": {"$ref": "#/$defs/idList"},
+        "evidence_ids": {"$ref": "#/$defs/idList"}, "source_ids": {"$ref": "#/$defs/idList"}
+      }
+    },
+    "excluded": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["kind", "id", "reason"],
+        "properties": {
+          "kind": {"enum": ["node", "link"]}, "id": {"type": "string", "minLength": 1},
+          "reason": {"enum": ["filtered_node_kind", "filtered_space", "filtered_edge_class", "filtered_relation", "endpoint_excluded", "outside_hop"]}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "idList": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+  }
+}
