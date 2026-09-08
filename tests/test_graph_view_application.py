@@ -51,6 +51,8 @@ class GraphViewApplicationTests(unittest.TestCase):
         self.assertEqual(len(response["view"]["sources"]), 1)
         self.assertEqual(response["plan"]["selected"]["node_ids"], [node["id"] for node in response["view"]["nodes"]])
         self.assertEqual(response["plan"]["snapshot_sha256"], response["view"]["snapshot_sha256"])
+        web_fixture = load_json(ROOT / "web" / "fixtures" / "phase0-graph-view.json")
+        self.assertEqual(web_fixture, response)
 
     def test_explicit_query_materializes_only_selected_records(self) -> None:
         full = load_graph_view(STORE).response

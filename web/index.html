@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111b22">
+    <title>KGnote · Knowledge map</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="masthead">
+        <div>
+          <p class="eyebrow">KGNOTE / READ-ONLY MAP</p>
+          <h1>See how the ideas connect.</h1>
+          <p class="lede">Concepts and learning events stay distinct, with every relationship grounded in evidence.</p>
+        </div>
+        <div class="status-stack" aria-label="Graph status">
+          <span id="view-mode" class="view-mode">Full graph</span>
+          <span id="graph-count" class="graph-count">Loading graph…</span>
+        </div>
+      </header>
+
+      <section class="graph-card" aria-labelledby="canvas-title">
+        <div class="canvas-bar">
+          <div>
+            <h2 id="canvas-title">Causal inference</h2>
+            <p id="canvas-caption">A navigable map of concepts and observed learning activity.</p>
+          </div>
+          <div class="zoom-controls" aria-label="Canvas zoom controls">
+            <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
+            <button type="button" id="reset-view">Reset</button>
+            <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+          </div>
+        </div>
+        <div id="graph-stage" class="graph-stage" tabindex="0" aria-label="Knowledge graph canvas">
+          <svg id="graph" role="img" aria-labelledby="canvas-title canvas-caption"></svg>
+          <div id="graph-message" class="graph-message" hidden></div>
+        </div>
+      </section>
+
+      <footer class="legend" aria-label="Graph legend">
+        <span><i class="dot concept"></i>Concept</span>
+        <span><i class="dot event"></i>Learning event</span>
+        <span><i class="line canonical"></i>Canonical</span>
+        <span><i class="line learning"></i>Learning evidence</span>
+        <span><i class="line unresolved"></i>Unresolved</span>
+        <span class="read-only">Read-only · source of truth stays in Markdown</span>
+      </footer>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

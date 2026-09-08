@@ -1,0 +1,11 @@
+{
+  "name": "kgnote",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test web/tests/*.test.js",
+    "serve:web": "python3 -m http.server 4173"
+  },
+  "engines": {"node": ">=20"}
+}

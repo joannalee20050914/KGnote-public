@@ -1,0 +1,83 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #0a1117;
+  color: #f2f5f3;
+  --ink-muted: #9baab0;
+  --panel: rgba(20, 31, 39, 0.88);
+  --line: rgba(255, 255, 255, 0.1);
+  --mint: #7be0bd;
+  --blue: #78aee8;
+  --amber: #f1b56a;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at 72% 12%, #183346 0, transparent 34%), linear-gradient(145deg, #0c141b, #080d12 70%); }
+button { font: inherit; }
+.shell { width: min(1440px, 100%); min-height: 100vh; margin: 0 auto; padding: clamp(22px, 4vw, 54px); display: grid; grid-template-rows: auto minmax(520px, 1fr) auto; gap: 24px; }
+.masthead { display: flex; align-items: end; justify-content: space-between; gap: 32px; }
+.eyebrow { margin: 0 0 12px; color: var(--mint); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.18em; }
+h1 { margin: 0; max-width: 720px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.2rem, 5vw, 5rem); font-weight: 500; letter-spacing: -0.045em; line-height: 0.95; }
+.lede { max-width: 650px; margin: 18px 0 0; color: var(--ink-muted); font-size: clamp(0.95rem, 1.7vw, 1.15rem); line-height: 1.55; }
+.status-stack { flex: 0 0 auto; display: grid; justify-items: end; gap: 7px; }
+.view-mode { border: 1px solid rgba(123, 224, 189, 0.38); border-radius: 999px; padding: 8px 13px; color: var(--mint); background: rgba(123, 224, 189, 0.08); font-size: 0.78rem; font-weight: 750; letter-spacing: 0.04em; }
+.graph-count { color: var(--ink-muted); font-size: 0.78rem; }
+.graph-card { min-height: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 26px; background: var(--panel); box-shadow: 0 34px 80px rgba(0, 0, 0, 0.34); backdrop-filter: blur(18px); }
+.canvas-bar { min-height: 76px; padding: 17px 20px 15px 25px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--line); }
+.canvas-bar h2 { margin: 0 0 4px; font-size: 1rem; letter-spacing: 0.01em; }
+.canvas-bar p { margin: 0; color: var(--ink-muted); font-size: 0.78rem; }
+.zoom-controls { display: flex; gap: 6px; }
+.zoom-controls button { height: 36px; min-width: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; color: #e7eeeb; background: rgba(255,255,255,0.045); cursor: pointer; }
+.zoom-controls button:hover, .zoom-controls button:focus-visible { outline: none; border-color: rgba(123,224,189,.58); background: rgba(123,224,189,.1); }
+.graph-stage { position: relative; height: calc(100% - 76px); min-height: 440px; overflow: hidden; cursor: grab; touch-action: none; background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px); background-size: 38px 38px; }
+.graph-stage:active { cursor: grabbing; }
+#graph { display: block; width: 100%; height: 100%; min-height: 440px; }
+.graph-link line { stroke-width: 2.5; opacity: .74; }
+.graph-link text { fill: #83939a; font-size: 12px; text-anchor: middle; paint-order: stroke; stroke: #111c23; stroke-width: 5px; stroke-linejoin: round; }
+.graph-link.canonical line { stroke: var(--blue); }
+.graph-link.learning line { stroke: var(--mint); }
+.graph-link.soft_association line { stroke: var(--amber); stroke-dasharray: 7 9; opacity: .55; }
+.graph-link.soft_association text { fill: var(--amber); font-style: italic; }
+#arrow path { fill: context-stroke; }
+.graph-node { outline: none; }
+.graph-node circle, .graph-node rect { vector-effect: non-scaling-stroke; stroke-width: 2; transition: filter .18s ease, stroke-width .18s ease; }
+.graph-node.concept circle { fill: #182b3b; stroke: var(--blue); }
+.graph-node.learning_event rect { fill: #17352f; stroke: var(--mint); stroke-dasharray: 4 3; }
+.graph-node.focused circle { fill: #234660; stroke-width: 4; filter: drop-shadow(0 0 15px rgba(120,174,232,.42)); }
+.graph-node:focus-visible circle, .graph-node:focus-visible rect { stroke-width: 5; filter: drop-shadow(0 0 12px rgba(123,224,189,.35)); }
+.node-label { fill: #f1f5f3; font-size: 15px; font-weight: 650; text-anchor: middle; paint-order: stroke; stroke: #101a21; stroke-width: 6px; stroke-linejoin: round; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; color: var(--ink-muted); font-size: 0.76rem; }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.dot.concept { background: var(--blue); }
+.dot.event { border-radius: 3px; background: var(--mint); }
+.line { display: inline-block; width: 20px; height: 2px; }
+.line.canonical { background: var(--blue); }
+.line.learning { background: var(--mint); }
+.line.unresolved { height: 0; border-top: 2px dashed var(--amber); }
+.read-only { margin-left: auto; color: #75858c; }
+.graph-message { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-muted); }
+.graph-message[hidden] { display: none; }
+
+@media (max-width: 760px) {
+  .shell { padding: 20px; grid-template-rows: auto minmax(480px, 1fr) auto; }
+  .masthead { align-items: start; }
+  .lede { max-width: 34rem; }
+  .canvas-bar p { display: none; }
+  .read-only { flex-basis: 100%; margin-left: 0; }
+}
+
+@media (max-width: 600px) {
+  .shell { min-height: 100svh; padding: 16px; gap: 16px; grid-template-rows: auto minmax(430px, 1fr) auto; }
+  .masthead { display: grid; gap: 14px; }
+  h1 { max-width: 10ch; font-size: clamp(2.25rem, 12vw, 3.35rem); }
+  .lede { margin-top: 12px; font-size: .9rem; }
+  .status-stack { justify-items: start; grid-template-columns: auto auto; align-items: center; }
+  .graph-card { border-radius: 20px; }
+  .canvas-bar { min-height: 64px; padding: 12px 12px 12px 17px; }
+  .zoom-controls button { height: 34px; padding: 0 9px; }
+  #reset-view { font-size: .72rem; }
+  .graph-stage, #graph { min-height: 365px; }
+  .legend { gap: 10px 16px; font-size: .7rem; }
+  .node-label { font-size: 17px; }
+}
