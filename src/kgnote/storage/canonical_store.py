@@ -6,6 +6,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import shutil
 import tempfile
 from dataclasses import dataclass, field
@@ -223,23 +224,77 @@ def _render_record(record: Mapping[str, Any], body: str) -> bytes:
     return f"---\n{front_matter}---\n{body}".encode("utf-8")
 
 
-def _created_body(record: Mapping[str, Any]) -> str:
+def _safe_display_text(value: object, fallback: str) -> str:
+    if not isinstance(value, str):
+        return fallback
+    text = re.sub(r"[\[\]|#^]", " ", value)
+    text = re.sub(r"\s+", " ", text).strip()
+    if not text:
+        return fallback
+    return text if len(text) <= 64 else f"{text[:61].rstrip()}..."
+
+
+def _base_display_label(record: Mapping[str, Any]) -> str:
+    record_id = str(record["id"])
+    fallback = f"Record {record_id.rsplit('_', 1)[-1][:8]}"
+    if record["type"] == "concept":
+        return _safe_display_text(record.get("canonical_name"), fallback)
+    if record["type"] == "source":
+        return _safe_display_text(record.get("title"), fallback)
+    if record["type"] == "evidence":
+        locator = record.get("locator")
+        value = locator.get("value") if isinstance(locator, Mapping) else None
+        return _safe_display_text(f"Evidence {value}" if value else None, fallback)
+    if record["type"] == "learning_event":
+        event_type = record.get("event_type")
+        return _safe_display_text(
+            f"{str(event_type).replace('_', ' ').title()} event" if event_type else None,
+            fallback,
+        )
+    relation = record.get("relation") or "Unresolved"
+    return _safe_display_text(f"{str(relation).replace('_', ' ').title()} edge", fallback)
+
+
+def _display_labels(records: Sequence[Mapping[str, Any]]) -> dict[str, str]:
+    bases = {str(record["id"]): _base_display_label(record) for record in records}
+    counts: dict[str, int] = {}
+    for label in bases.values():
+        counts[label.casefold()] = counts.get(label.casefold(), 0) + 1
+    return {
+        record_id: (
+            f"{label} · {record_id.rsplit('_', 1)[-1][:8]}"
+            if counts[label.casefold()] > 1
+            else label
+        )
+        for record_id, label in bases.items()
+    }
+
+
+def _wiki_link(record_id: str, labels: Mapping[str, str]) -> str:
+    label = labels.get(record_id, record_id)
+    return f"[[{record_id}|{label}]]"
+
+
+def _created_body(record: Mapping[str, Any], labels: Mapping[str, str]) -> str:
     title = record.get("canonical_name") or record.get("proposition") or record.get("event_type") or record["id"]
     links: list[str] = []
     if record["type"] == "source":
         raw_path = str(record["uri_or_path"])
-        links.append(f"Raw evidence: [[{raw_path.removesuffix('.md')}]]")
+        links.append(f"Raw evidence: [[{raw_path.removesuffix('.md')}|Raw source]]")
     elif record["type"] == "concept":
-        links.extend(f"Evidence: [[{record_id}]]" for record_id in record["evidence_ids"])
+        links.extend(f"Evidence: {_wiki_link(record_id, labels)}" for record_id in record["evidence_ids"])
     elif record["type"] == "evidence":
-        links.append(f"Source: [[{record['source_id']}]]")
+        links.append(f"Source: {_wiki_link(record['source_id'], labels)}")
     elif record["type"] == "learning_event":
-        links.extend(f"Source: [[{record_id}]]" for record_id in record["source_ids"])
-        links.extend(f"Concept: [[{record_id}]]" for record_id in record["concept_ids"])
-        links.extend(f"Evidence: [[{record_id}]]" for record_id in record["evidence_ids"])
+        links.extend(f"Source: {_wiki_link(record_id, labels)}" for record_id in record["source_ids"])
+        links.extend(f"Concept: {_wiki_link(record_id, labels)}" for record_id in record["concept_ids"])
+        links.extend(f"Evidence: {_wiki_link(record_id, labels)}" for record_id in record["evidence_ids"])
     elif record["type"] == "edge":
-        links.extend((f"Source node: [[{record['source_id']}]]", f"Target node: [[{record['target_id']}]]"))
-        links.extend(f"Evidence: [[{record_id}]]" for record_id in record["evidence_ids"])
+        links.extend((
+            f"Source node: {_wiki_link(record['source_id'], labels)}",
+            f"Target node: {_wiki_link(record['target_id'], labels)}",
+        ))
+        links.extend(f"Evidence: {_wiki_link(record_id, labels)}" for record_id in record["evidence_ids"])
     link_section = "\n".join(links)
     return f"\n# {title}\n" + (f"\n{link_section}\n" if link_section else "")
 
@@ -333,6 +388,21 @@ def apply_approved_plan(
     records_by_id = {record["id"]: record for record in snapshot.records}
     documents_by_id = {document.record_id: document for document in snapshot.documents}
     projected = json.loads(_canonical_json(records_by_id))
+    display_records = list(records_by_id.values())
+    for item in items:
+        if item["operation"] != "CREATE":
+            continue
+        change = next(
+            (
+                change
+                for change in item["changes"]
+                if isinstance(change, dict) and change.get("field") == "$record"
+            ),
+            None,
+        )
+        if change is not None and isinstance(change.get("after"), dict):
+            display_records.append(change["after"])
+    display_labels = _display_labels(display_records)
     actions: list[tuple[str, str, Path, bytes, bytes | None]] = []
     unchanged_paths: list[str] = []
 
@@ -354,7 +424,13 @@ def apply_approved_plan(
             if change is None or change["before"] is not None or not isinstance(change["after"], dict):
                 return _apply_problem("invalid_create_preview", relative, record_id)
             projected[record_id] = change["after"]
-            actions.append((operation, relative, target, _render_record(change["after"], _created_body(change["after"])), None))
+            actions.append((
+                operation,
+                relative,
+                target,
+                _render_record(change["after"], _created_body(change["after"], display_labels)),
+                None,
+            ))
             continue
         if operation != "UPDATE" or record_id not in records_by_id:
             return _apply_problem("invalid_update_preview", relative, record_id)

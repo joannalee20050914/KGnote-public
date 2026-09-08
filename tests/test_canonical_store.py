@@ -143,6 +143,39 @@ class CanonicalStoreTest(unittest.TestCase):
             self.assertEqual(second.write_count, 0)
             self.assertEqual(tree_digest(PHASE0_VAULT), phase0_before)
 
+    def test_created_bodies_use_safe_human_labels_without_changing_targets(self):
+        records = [
+            {"id": "concept_aaaabbbb", "type": "concept", "canonical_name": "Graph | unsafe]"},
+            {"id": "concept_ccccdddd", "type": "concept", "canonical_name": "Graph unsafe"},
+            {"id": "evidence_11112222", "type": "evidence", "locator": {"value": "L1-L2"}},
+            {"id": "evidence_33334444", "type": "evidence", "locator": {"value": "L1-L2"}},
+        ]
+        labels = store_module._display_labels(records)
+        self.assertEqual(labels["concept_aaaabbbb"], "Graph unsafe · aaaabbbb")
+        self.assertEqual(labels["concept_ccccdddd"], "Graph unsafe · ccccdddd")
+        self.assertEqual(labels["evidence_11112222"], "Evidence L1-L2 · 11112222")
+        self.assertNotIn("|", labels["concept_aaaabbbb"])
+        self.assertNotIn("]", labels["concept_aaaabbbb"])
+        self.assertEqual(
+            store_module._wiki_link("concept_aaaabbbb", labels),
+            "[[concept_aaaabbbb|Graph unsafe · aaaabbbb]]",
+        )
+
+    def test_new_documents_keep_stable_filenames_and_render_aliased_links(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self.make_store(temporary)
+            snapshot, plan = self.read_and_plan(root)
+            result = apply_approved_plan(root, snapshot, plan, plan_digest(plan))
+            self.assertEqual(result.status, "applied")
+            correlation_id = self.normalized.ref_map["c_correlation"]
+            document = next(
+                document for document in result.audit_snapshot.documents
+                if document.record_id == correlation_id
+            )
+            self.assertEqual(Path(document.relative_path).name, f"{correlation_id}.md")
+            self.assertIn("|Evidence L5-L7", document.body)
+            self.assertNotIn("[[Evidence L5-L7", document.body)
+
     def test_approval_and_blocking_plan_fail_before_write(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = self.make_store(temporary)
