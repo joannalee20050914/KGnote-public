@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/product-review/v1/review-result.schema.json",
+  "title": "KGnote GitHub product review result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol",
+    "program_id",
+    "goal_id",
+    "candidate_fingerprint",
+    "candidate_commit",
+    "review_round",
+    "verdict",
+    "findings",
+    "native_ui_observed"
+  ],
+  "properties": {
+    "protocol": {"const": "kgnote.product-review.v1"},
+    "program_id": {"type": "string", "minLength": 1},
+    "goal_id": {"type": "string", "minLength": 1},
+    "candidate_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "candidate_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "review_round": {"type": "integer", "minimum": 1, "maximum": 3},
+    "verdict": {"enum": ["PASS", "REVISE", "ESCALATE"]},
+    "findings": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/finding"}
+    },
+    "native_ui_observed": {"type": "boolean"}
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "severity",
+        "category",
+        "observation",
+        "expected_behavior",
+        "authority_refs",
+        "candidate_evidence"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^finding-[a-z0-9-]+$"},
+        "severity": {"enum": ["blocking", "major", "minor"]},
+        "category": {"enum": ["product_intent", "ux", "semantic", "architecture", "engineering"]},
+        "observation": {"type": "string", "minLength": 1},
+        "expected_behavior": {"type": "string", "minLength": 1},
+        "authority_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "candidate_evidence": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}
