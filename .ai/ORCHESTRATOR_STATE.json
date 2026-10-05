@@ -2,9 +2,9 @@
   "schema_version": "kgnote.orchestrator-state.v1",
   "run_id": "orch-canonical-public-migration-v1",
   "active_goal": "GOAL-KGNOTE-CANONICAL-PUBLIC-MIGRATION-V1",
-  "work_package": "MIG-CANONICAL-PR",
-  "state": "IMPLEMENTING",
-  "current_agent": "CODEX_IMPLEMENTER",
+  "work_package": null,
+  "state": "GOAL_COMPLETE",
+  "current_agent": null,
   "candidate_fingerprint": null,
   "review_id": null,
   "review_cycle": 0,
@@ -13,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Complete public-safe HEAD audit and deterministic verification before history rewrite.",
+  "next_action": "Canonical public migration is complete; preserve the pending PA-HUMAN-1 and NS-HUMAN-SMOKE gates while ChatGPT Work reviews PR #1.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -21,7 +21,11 @@
     "review_id": null,
     "fingerprint": null
   },
-  "next_human_checkpoint": null,
+  "next_human_checkpoint": {
+    "id": "PA-HUMAN-1",
+    "status": "pending_human_review",
+    "description": "Only the concentrated integrated-candidate human trial can decide this product gate."
+  },
   "last_agent_run": null,
   "created_at": "2026-09-27T00:00:00+08:00",
   "updated_at": "2026-10-05T00:00:00+08:00"

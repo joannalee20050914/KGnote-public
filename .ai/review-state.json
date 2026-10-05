@@ -7,7 +7,7 @@
     ".ai/REVIEWER_BOOTSTRAP.md"
   ],
   "pr": {
-    "number": null,
+    "number": 1,
     "head": "codex/kg-note-autonomous-review",
     "base": "main"
   },
