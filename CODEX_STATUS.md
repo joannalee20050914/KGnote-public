@@ -15,14 +15,14 @@ This file records factual execution and recovery state; it does not define produ
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
   "git": {
     "branch": "codex/kg-note-autonomous-review",
-    "head": "46a826138878e8bdf7a6d72c0c1f94b70b318f47",
+    "head": "2ce467c3ac3a725f258c34dc984644df92e61af5",
     "checkpoint_commit": "46a826138878e8bdf7a6d72c0c1f94b70b318f47",
     "checkpoint_manifest": "docs/control-plane/checkpoints/public-readiness-pre-rewrite-20261005.json",
     "checkpoint_manifest_sha256": "6450347a61a671dd7b30cb9f8444b7bde60945794e6cefad9fdf3537a22f8d8f"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v2-review-bus-exclusions (tracked and non-ignored untracked candidate files; mutable review bus excluded exactly)",
-    "fingerprint": "bf64909df10dd9a732ff2a820e44b385ff1b695ff5216d091f8c2bd8fe9120cd",
+    "fingerprint": "a8ea481aef6fd5bcaeb491339aee124342825ce1309adfed32c8f40290d217e4",
     "starting_fingerprint": "8beffa5807e289de89e8d39553237d7430a9f88ba96257a5b1c6189f2c111cfd",
     "expected_dirty_policy": "Only paths owned by the active canonical-public-migration milestone may differ from the checkpoint.",
     "unexpected_dirty_paths": []
