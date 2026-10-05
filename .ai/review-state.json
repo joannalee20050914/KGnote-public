@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "repository": "joannalee20050914/KGnote",
+  "repository": "joannalee20050914/KGnote-public",
   "phase": "implementation",
-  "implementation_status": "blocked_public_readiness",
+  "implementation_status": "ready_for_ai_review",
   "source_of_truth": [
     ".ai/REVIEWER_BOOTSTRAP.md"
   ],
