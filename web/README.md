@@ -3,7 +3,7 @@
 ## Morning beta routes
 
 - `/home.html`：OS、BitePacer、熟悉材料 三單元 catalog 與最近 Attempt continuity；零筆記可用。
-- `/learn.html?unit=os|bitepacer|pvz`：共用 recursive Learning Structure、Reader、Reading Assist 與 scope-local graph。熟悉材料 使用本機 Whisper 逐字稿的有界節選，只把逐字稿內主張標為 reviewed，不冒充外部事實查核。
+- `/learn.html?unit=os|bitepacer|pvz`：共用 recursive Learning Structure、Reader、Reading Assist 與 scope-local graph。第三個 learning unit 使用 repository 內原創 synthetic fixture，驗證相同 renderer 能處理不同教材而不加入 unit-specific branch。
 - `/practice.html?unit=...`：隔離式 Practice；提交後才取得 canonical answer／Evidence，之後追加 self-assessment。
 - `/review.html`：Due Queue；1／3／7／21 天 prototype milestones，snooze／skip／stop 不建立 Attempt。
 

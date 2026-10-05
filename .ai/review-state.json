@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "repository": "joannalee20050914/KGnote",
+  "phase": "implementation",
+  "implementation_status": "blocked_public_readiness",
+  "source_of_truth": [
+    ".ai/REVIEWER_BOOTSTRAP.md"
+  ],
+  "pr": {
+    "number": null,
+    "head": "codex/kg-note-autonomous-review",
+    "base": "main"
+  },
+  "verification": {
+    "deterministic_tests_passed": true,
+    "codex_self_review_passed": true
+  },
+  "ai_review": {
+    "status": "pending",
+    "last_reviewed_commit": null,
+    "verdict": null
+  },
+  "human_review": {
+    "required": false,
+    "reason": null
+  }
+}
