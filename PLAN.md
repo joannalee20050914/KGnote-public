@@ -91,7 +91,7 @@ This file contains exactly one active execution goal. It does not change KGnote 
       "status": "active",
       "dependencies": ["MIG-REPOSITORY"],
       "human_gate": "none",
-      "owned_paths": [".ai/", "docs/control-plane/", "PLAN.md", "CODEX_STATUS.md"],
+      "owned_paths": [".ai/", "docs/control-plane/", "docs/requirements/human-decisions/", "PLAN.md", "CODEX_STATUS.md"],
       "acceptance": ["deterministic verification and Codex self-review pass, review-state is current, and exactly one canonical Draft PR exists"]
     },
     {
@@ -100,7 +100,7 @@ This file contains exactly one active execution goal. It does not change KGnote 
       "status": "pending",
       "dependencies": ["MIG-CANONICAL-PR"],
       "human_gate": "none",
-      "owned_paths": [".ai/", "docs/control-plane/", "PLAN.md", "CODEX_STATUS.md"],
+      "owned_paths": [".ai/", "docs/control-plane/", "docs/requirements/human-decisions/", "PLAN.md", "CODEX_STATUS.md"],
       "acceptance": ["a read-only Pull Request opened event task can be created for the new public repository without API or custom infrastructure"]
     }
   ]
