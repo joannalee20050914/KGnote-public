@@ -15,7 +15,7 @@ This file records factual execution and recovery state; it does not define produ
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
   "git": {
     "branch": "codex/kg-note-autonomous-review",
-    "head": "2ce467c3ac3a725f258c34dc984644df92e61af5",
+    "head": "40378b8993960aa5f46495317e07ba0971940ed8",
     "checkpoint_commit": "46a826138878e8bdf7a6d72c0c1f94b70b318f47",
     "checkpoint_manifest": "docs/control-plane/checkpoints/public-readiness-pre-rewrite-20261005.json",
     "checkpoint_manifest_sha256": "6450347a61a671dd7b30cb9f8444b7bde60945794e6cefad9fdf3537a22f8d8f"
