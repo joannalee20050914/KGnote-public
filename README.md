@@ -29,3 +29,18 @@ RAG review and low-friction exposure
 ```
 
 這是階段順序，不是授權一次實作全部功能。
+
+## Local setup
+
+Prerequisites: Python 3.11 or newer, Node.js, and npm.
+
+```sh
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+npm ci
+scripts/run_tests.sh
+```
+
+Runtime credentials are supplied through environment variables or an ignored local `.env` file. Copy `.env.example` only as a local starting point; the committed example contains placeholders and no credential values. Offline and replay verification does not require a live provider key.
+
+KGnote is under active development. The repository's deterministic checks validate contracts and fixtures, but they do not replace the explicit physical-device and human product-acceptance gates documented in the control plane.
