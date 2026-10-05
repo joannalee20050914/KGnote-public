@@ -1,0 +1,35 @@
+{
+  "schema_version": "kgnote.requirements-run-evidence.v1",
+  "run_id": "personal-alpha-pa2-20260922",
+  "goal_id": "GOAL-OBSIDIAN-PERSONAL-ALPHA-V1",
+  "milestone_id": "PA-2",
+  "repository_head": "47269690f3d389f6ce2ddf43a79b1e7e7f6324e2",
+  "branch": "codex/control-plane-bootstrap",
+  "working_tree": "dirty; approved checkpoint plus owned PA-0 through PA-2 changes; no commit",
+  "runs": [
+    {
+      "command": "PYTHONPATH=src .venv/bin/python -m unittest -v tests.test_personal_alpha_analysis tests.test_personal_alpha_workspace",
+      "result": "pass",
+      "tests": 11,
+      "scope": "three-source materialization/read-back, source bytes, local wikilinks, idempotent rerun, user-owned file preservation, managed-file conflict, source drift, injected update rollback, injected new-workspace rollback"
+    },
+    {
+      "command": "materialize harmony glossary in a temporary vault and print Start Here.md plus read-back",
+      "result": "pass",
+      "scope": "human-readable entry note, native links, provenance, review warnings, 10 managed files and 46 local links reopened"
+    }
+  ],
+  "repair_history": [
+    {
+      "finding": "A source-owned [[Voice leading]] wikilink was initially interpreted as a generated workspace link during glossary read-back.",
+      "repair": "Source excerpts are escaped when rendered and immutable source files are excluded from generated-link resolution; the three-shape materialization test now covers the case.",
+      "result": "pass"
+    }
+  ],
+  "limits": [
+    "Generated files are fail-closed on local edits; user content belongs in My Notes.md or other unmanaged files.",
+    "This milestone verifies filesystem and Markdown read-back, not the Obsidian desktop application's subjective usability.",
+    "The one-command daily workflow and documentation remain PA-3.",
+    "This is engineering evidence, not product owner's usability acceptance or learning-effectiveness evidence."
+  ]
+}

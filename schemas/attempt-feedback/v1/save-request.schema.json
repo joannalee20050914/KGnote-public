@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/attempt-feedback/v1/save-request.schema.json",
+  "title": "Attempt feedback save request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "assessment_id", "attempt_id", "outcome", "disagrees", "correction", "occurred_at"],
+  "properties": {
+    "schema_version": {"const": "kgnote.attempt-feedback-request.v1"},
+    "assessment_id": {"type": "string", "pattern": "^assessment_[a-f0-9]{32}$"},
+    "attempt_id": {"type": "string", "pattern": "^attempt_[a-f0-9]{32}$"},
+    "outcome": {"enum": ["CORRECT", "PARTIAL", "INCORRECT", "INSUFFICIENT_EVIDENCE"]},
+    "disagrees": {"type": "boolean"},
+    "correction": {"type": ["string", "null"], "maxLength": 4000},
+    "occurred_at": {"type": "string", "format": "date-time"}
+  },
+  "allOf": [{"if": {"properties": {"disagrees": {"const": true}}}, "then": {"properties": {"correction": {"type": "string", "minLength": 1}}}}]
+}

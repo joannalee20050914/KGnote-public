@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import http.client
 import subprocess
+import tempfile
 import threading
 import time
 import unittest
@@ -11,7 +12,7 @@ from unittest import mock
 
 from http.server import ThreadingHTTPServer
 
-from scripts.serve_graph_view import MAX_QUERY_BYTES, SECURITY_HEADERS, execute_query, handler_for, safe_static_path
+from scripts.serve_graph_view import MAX_QUERY_BYTES, SECURITY_HEADERS, execute_guided_review, execute_query, handler_for, safe_static_path
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -180,6 +181,74 @@ class GraphViewHttpBoundaryTests(unittest.TestCase):
         self.assertEqual(response.status, 400)
         self.assertEqual(json.loads(response.read())["problem"]["code"], "invalid_content_length")
         connection.close()
+
+
+class GuidedReviewHttpBoundaryTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.temporary = tempfile.TemporaryDirectory()
+        cls.review_root = Path(cls.temporary.name) / "guided"
+        cls.review_root.mkdir()
+        cls.model = json.loads((ROOT / "tests/fixtures/guided-map/v1/bitepacer-golden.json").read_text())
+        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(
+            STORE, guided_map_model=cls.model, guided_review_root=cls.review_root,
+        ))
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+        cls.port = cls.server.server_address[1]
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.server.shutdown()
+        cls.server.server_close()
+        cls.thread.join(timeout=2)
+        cls.temporary.cleanup()
+
+    def request(self, payload: dict) -> tuple[int, dict[str, str], dict]:
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=3)
+        connection.request("POST", "/api/guided-reviews", body=json.dumps(payload).encode(), headers={"Content-Type": "application/json"})
+        response = connection.getresponse()
+        result = response.status, {key: value for key, value in response.getheaders()}, json.loads(response.read())
+        connection.close()
+        return result
+
+    def test_append_only_guided_review_http_and_stale_rejection(self) -> None:
+        request = {
+            "schema_version": "kgnote.guided-review-request.v1",
+            "learning_unit_id": self.model["learning_unit"]["id"],
+            "source_id": self.model["source"]["id"],
+            "graph_snapshot_sha256": self.model["graph_snapshot_sha256"],
+            "edge_id": "edge_80042c4f448d92b2d8311f064b6189e7259615ff1c0babd38bb817adcf561c4a",
+            "response": "主動送出",
+            "hint_used": False,
+        }
+        status, headers, body = self.request(request)
+        self.assertEqual(status, 200, body)
+        self.assertEqual(body["status"], "recorded")
+        self.assertEqual(body["comparison"], "matched_reviewed_phrase")
+        self.assertTrue((self.review_root / "reviews" / f"{body['review_id']}.md").is_file())
+        for name in SECURITY_HEADERS:
+            self.assertIn(name, headers)
+        request["graph_snapshot_sha256"] = "0" * 64
+        status, _, body = self.request(request)
+        self.assertEqual(status, 400)
+        self.assertEqual(body["problem"]["code"], "stale_guided_review")
+
+    def test_guided_endpoint_is_not_exposed_without_explicit_configuration(self) -> None:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(STORE))
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            connection = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=3)
+            connection.request("POST", "/api/guided-reviews", body=b"{}", headers={"Content-Type": "application/json"})
+            response = connection.getresponse()
+            self.assertEqual(response.status, 404)
+            self.assertEqual(json.loads(response.read())["problem"]["code"], "not_found")
+            connection.close()
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
 
 
 if __name__ == "__main__":

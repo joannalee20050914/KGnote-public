@@ -1,0 +1,115 @@
+{
+  "schema_version": "kgnote.authority-lock.v1",
+  "generated_at": "2026-10-05",
+  "product_direction_id": "kgnote-obsidian-first-2026-09-22",
+  "conflict_policy": "fail_closed_authority_drift",
+  "product_authority": [
+    {
+      "path": "docs/control-plane/AUTHORITY.md",
+      "role": "authority_policy",
+      "sha256": "7367aae495b9440c5eb5e124f2c0b6d3ba1e0ab3b65c74f977854edabe6e12a8",
+      "required_marker": "kgnote-obsidian-first-2026-09-22"
+    },
+    {
+      "path": "docs/requirements/USER_DIRECTION_DELTA_20260922.md",
+      "role": "current_explicit_product_decision",
+      "sha256": "75adfd0fadbd8e6835f23c126d867eed0ab94f95a135e9e6c8a89cc71cdf819f",
+      "required_marker": "Obsidian-first"
+    },
+    {
+      "path": "docs/requirements/PERSONAL_ALPHA_DIRECTION_20260922.md",
+      "role": "current_explicit_personal_alpha_decision",
+      "sha256": "522d9cc3e6d0822e7e38a6d31d1d2c512bae7bc781259195eb1442621871dc09",
+      "required_marker": "Obsidian-first Personal Alpha"
+    },
+    {
+      "path": "docs/requirements/PERSONAL_ALPHA_HUMAN_FEEDBACK_20260923.md",
+      "role": "current_explicit_personal_alpha_human_feedback",
+      "sha256": "c573dd8a2704ff61100bb6761bdd712fdc4d404a59bb72c5e42c20ed8a054ddd",
+      "required_marker": "PA-HUMAN-1"
+    },
+    {
+      "path": "docs/requirements/OBSIDIAN_LEARNER_PROJECTION_NATIVE_SPIKE_DIRECTION_20260923.md",
+      "role": "current_explicit_learner_projection_and_native_spike_decision",
+      "sha256": "79390360bc9bfff47083b0a5b17257dceec728cf0f2fac92e0bd4ca9ee7c5d30",
+      "required_marker": "GOAL-OBSIDIAN-LEARNER-PROJECTION-AND-NATIVE-SPIKE-V3"
+    },
+    {
+      "path": "docs/requirements/PERSONAL_ALPHA_INTEGRATED_STAGE_DIRECTION_20260927.md",
+      "role": "current_explicit_integrated_personal_alpha_stage_decision",
+      "sha256": "32a4bfd100952edbf80ec6ae9f8dc31c75c02dab295398554d3bac3cee7d22ab",
+      "required_marker": "kgnote-obsidian-first-2026-09-22"
+    },
+    {
+      "path": "docs/requirements/requirements.json",
+      "role": "requirements_ssot",
+      "sha256": "3a91e8914814a1105360aaf9a9e5a42eedc1c2eb15a8e35990b0b4bfd5573f09",
+      "required_marker": "KG-ALPHA-05"
+    },
+    {
+      "path": "docs/requirements/scenarios.json",
+      "role": "scenarios_ssot",
+      "sha256": "e893ef38666bbaf7026acb0fdf87a6e513cc9d107c5b68cd66922bd670a9961f",
+      "required_marker": "SC-48"
+    },
+    {
+      "path": "docs/requirements/sources.json",
+      "role": "sources_ssot",
+      "sha256": "1891de3770dd5e1ac44f0af8c47ea83aff6c4e506a76cafa6636e8285f7b0d53",
+      "required_marker": "U-PERSONAL-ALPHA-INTEGRATED-STAGE"
+    },
+    {
+      "path": "docs/PRODUCT_CONTRACT.md",
+      "role": "active_product_contract",
+      "sha256": "baf77edc9edde436c325c1454ca104a2994ef329170997c486fa99efcddf48e0",
+      "required_marker": "kgnote-obsidian-first-2026-09-22"
+    },
+    {
+      "path": "docs/DATA_MODEL.md",
+      "role": "active_data_contract",
+      "sha256": "3f413cd6504340ffa67897fec30764a5c57934499355a6e058b07f8b0dc3757a",
+      "required_marker": "kgnote-obsidian-first-2026-09-22"
+    },
+    {
+      "path": "docs/REPRESENTATION_CONSISTENCY_CONTRACT.md",
+      "role": "active_representation_contract",
+      "sha256": "19a25bdfa850125e475884fcd6ae2984fc25537c8451f78f10b04c78d294124c",
+      "required_marker": "kgnote-obsidian-first-2026-09-22"
+    },
+    {
+      "path": "DEVELOPMENT_PLAIN.md",
+      "role": "active_roadmap",
+      "sha256": "06e50f107b21644cb8a87995e062ef87a26081722c6d794c09a21d91b9dab7d9",
+      "required_marker": "Obsidian-first learning layer"
+    }
+  ],
+  "execution_authority": {
+    "status": "active",
+    "locked_paths": [
+      {
+        "path": "AGENTS.md",
+        "role": "agent_behavior_policy",
+        "validation": "sha256",
+        "sha256": "eb5e64785a07fbdf15ee0a9569eefbb956a698676a377360910c66f521047839",
+        "required_marker": "kgnote-obsidian-first-2026-09-22"
+      },
+      {
+        "path": "PLAN.md",
+        "role": "single_active_goal",
+        "validation": "structured_state",
+        "required_marker": "kgnote.codex-plan.v1"
+      },
+      {
+        "path": "CODEX_STATUS.md",
+        "role": "factual_handoff_state",
+        "validation": "structured_state",
+        "required_marker": "kgnote.codex-status.v1"
+      }
+    ]
+  },
+  "historical_provenance_policy": {
+    "unchecked_items_are_requirements": false,
+    "may_override_active_authority": false,
+    "registry": "docs/control-plane/AUTHORITY.md"
+  }
+}

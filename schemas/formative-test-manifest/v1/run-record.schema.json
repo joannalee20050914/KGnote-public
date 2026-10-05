@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/formative-test-manifest/v1/run-record.schema.json",
+  "title": "KGnote formative H0 run record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "manifest_id", "source_sha256", "participant_id", "status", "started_at", "completed_at", "pretest", "observations", "decision"],
+  "properties": {
+    "schema_version": {"const": "kgnote.formative-run-record.v1"},
+    "run_id": {"type": "string", "pattern": "^run_[a-z0-9][a-z0-9_-]{2,127}$"},
+    "manifest_id": {"type": "string", "pattern": "^experiment_[a-z0-9][a-z0-9_-]{2,127}$"},
+    "source_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "participant_id": {"type": "string", "pattern": "^participant_[a-z0-9][a-z0-9_-]{2,63}$"},
+    "status": {"enum": ["planned", "pretest_excluded", "in_progress", "completed", "aborted"]},
+    "started_at": {"type": ["string", "null"], "format": "date-time"},
+    "completed_at": {"type": ["string", "null"], "format": "date-time"},
+    "pretest": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["recorded_at", "rating", "raw_response", "eligible"],
+          "properties": {
+            "recorded_at": {"type": "string", "format": "date-time"},
+            "rating": {"type": "integer", "minimum": 0, "maximum": 4},
+            "raw_response": {"type": "string", "maxLength": 4000},
+            "eligible": {"type": "boolean"}
+          }
+        }
+      ]
+    },
+    "observations": {
+      "type": "array", "maxItems": 2,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["condition_id", "started_at", "ended_at", "help_count", "save_reopen_success", "lookup_seconds", "lookup_errors", "notes_location", "notes_sha256", "unaided_response", "confidence", "rubric_scores", "reported_friction"],
+        "properties": {
+          "condition_id": {"enum": ["baseline_markdown", "kgnote_no_graph"]},
+          "started_at": {"type": "string", "format": "date-time"},
+          "ended_at": {"type": ["string", "null"], "format": "date-time"},
+          "help_count": {"type": ["integer", "null"], "minimum": 0},
+          "save_reopen_success": {"type": ["boolean", "null"]},
+          "lookup_seconds": {"type": ["number", "null"], "minimum": 0},
+          "lookup_errors": {"type": ["integer", "null"], "minimum": 0},
+          "notes_location": {"type": "string", "minLength": 1, "maxLength": 500},
+          "notes_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+          "unaided_response": {"type": ["string", "null"], "maxLength": 8000},
+          "confidence": {"type": ["integer", "null"], "minimum": 0, "maximum": 4},
+          "rubric_scores": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0, "maximum": 5}},
+          "reported_friction": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 500}}
+        }
+      }
+    },
+    "decision": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["outcome", "rationale"],
+          "properties": {
+            "outcome": {"enum": ["continue", "modify", "stop"]},
+            "rationale": {"type": "string", "minLength": 1, "maxLength": 2000}
+          }
+        }
+      ]
+    }
+  }
+}

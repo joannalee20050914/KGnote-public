@@ -1,0 +1,71 @@
+{
+  "schema_version": "kgnote.actual-run-evidence.v1",
+  "evidence_id": "RUN-PA-V3-PROJECTION-20260923",
+  "recorded_at": "2026-09-23T02:45:00+08:00",
+  "goal_id": "GOAL-OBSIDIAN-LEARNER-PROJECTION-AND-NATIVE-SPIKE-V3",
+  "milestone_id": "PA-REGRESSION",
+  "result": "automated_pass",
+  "requirements_baseline_id": "kgnote-reconciliation-2026-09-23-r6",
+  "commands": [
+    "PYTHONPATH=src .venv/bin/python -m unittest -v tests.test_personal_alpha_analysis tests.test_personal_alpha_cli tests.test_personal_alpha_workspace tests.test_personal_alpha_presentation",
+    "PYTHONPATH=src .venv/bin/python scripts/kgnote_alpha.py tests/fixtures/personal-alpha/hierarchical/network-path.md --vault output/personal-alpha/v3-three-fixture-vault --space networking",
+    "PYTHONPATH=src .venv/bin/python scripts/kgnote_alpha.py tests/fixtures/personal-alpha/glossary/harmony-glossary.md --vault output/personal-alpha/v3-three-fixture-vault --space music",
+    "PYTHONPATH=src .venv/bin/python scripts/kgnote_alpha.py tests/fixtures/personal-alpha/procedural/seed-starting.md --vault output/personal-alpha/v3-three-fixture-vault --space gardening"
+  ],
+  "test_result": {
+    "tests_run": 26,
+    "failures": 0,
+    "errors": 0,
+    "red_evidence": "output/control-plane/gf1-red-20260923T0228+0800.json",
+    "red_result": "5 of 6 presentation tests failed before production changes",
+    "green_result": "all presentation and Personal Alpha regression tests passed after implementation"
+  },
+  "generated_artifacts": {
+    "root": "output/personal-alpha/v3-three-fixture-vault/KGnote Alpha",
+    "artifact_fingerprint_algorithm": "sha256-canonical-json-file-inventory-v1",
+    "artifact_fingerprint": "39096cf88d1f82f84ad49972e9fa1721fb39acc39a4320877b84a02f4422027a",
+    "file_count": 44,
+    "workspaces": [
+      {
+        "shape": "hierarchical",
+        "path": "output/personal-alpha/v3-three-fixture-vault/KGnote Alpha/network-path-a178f811",
+        "source_sha256": "2df7ea0ff998afb4afe369b38d5a3b5830e8f24397091a083e5cf15364078e2a",
+        "rerun": "unchanged"
+      },
+      {
+        "shape": "heading_free_glossary",
+        "path": "output/personal-alpha/v3-three-fixture-vault/KGnote Alpha/harmony-glossary-47e57045",
+        "source_sha256": "ac6b860620e30b763ac57b1f7123e108a94628d24c7ae5f4f3c47d08e453c602",
+        "rerun": "unchanged"
+      },
+      {
+        "shape": "procedural",
+        "path": "output/personal-alpha/v3-three-fixture-vault/KGnote Alpha/seed-starting-5b1d9846",
+        "source_sha256": "0c8896a0638b1dfcdb2d488dfc86ff3663a6cc3156c066948bd818ac3d5d9ece",
+        "rerun": "unchanged"
+      }
+    ]
+  },
+  "assertions": {
+    "golden_start_here_port_relationships": "pass",
+    "known_bad_primary_patterns_absent": "pass",
+    "required_learner_patterns_present": "pass",
+    "evidence_reference_not_mandatory_path": "pass",
+    "learner_evidence_deduplicated_without_canonical_id_loss": "pass",
+    "human_readable_collision_safe_filenames": "pass",
+    "continue_here_and_my_notes_preserved": "pass",
+    "canonical_identity_unchanged": "pass",
+    "source_bytes_unchanged": "pass",
+    "heading_free_no_invented_hierarchy": "pass",
+    "procedural_order_not_promoted_to_causality": "pass",
+    "transactional_failure_recovery": "pass",
+    "generated_wikilink_read_back": "pass"
+  },
+  "claims": {
+    "candidate_verified": false,
+    "release_verified": false,
+    "pa_human_1": "pending_human_review",
+    "mobile_accepted": false,
+    "learning_effectiveness_verified": false
+  }
+}

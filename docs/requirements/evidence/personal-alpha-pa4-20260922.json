@@ -1,0 +1,71 @@
+{
+  "schema_version": "kgnote.requirements-run-evidence.v1",
+  "run_id": "personal-alpha-pa4-20260922",
+  "goal_id": "GOAL-OBSIDIAN-PERSONAL-ALPHA-V1",
+  "milestone_id": "PA-4",
+  "repository_head": "47269690f3d389f6ce2ddf43a79b1e7e7f6324e2",
+  "branch": "codex/control-plane-bootstrap",
+  "working_tree": "dirty; approved checkpoint plus owned PA-0 through PA-4 changes; no commit",
+  "recorded_at": "2026-09-22T15:36:33+08:00",
+  "workflow": "python3 scripts/kgnote_alpha.py SOURCE --vault VAULT --space candidate",
+  "sources": [
+    {
+      "path": "tests/fixtures/personal-alpha/hierarchical/network-path.md",
+      "shape": "heading hierarchy with an explicit request path and one unresolved co-mention",
+      "sha256": "2df7ea0ff998afb4afe369b38d5a3b5830e8f24397091a083e5cf15364078e2a",
+      "first_run": "pass; applied; 14 files created; read-back passed",
+      "second_run": "pass; unchanged; 14 files unchanged; read-back passed",
+      "record_counts": {"concepts": 7, "relations": 3, "evidence": 10}
+    },
+    {
+      "path": "tests/fixtures/personal-alpha/glossary/harmony-glossary.md",
+      "shape": "heading-free glossary with source-owned wikilink syntax",
+      "sha256": "ac6b860620e30b763ac57b1f7123e108a94628d24c7ae5f4f3c47d08e453c602",
+      "first_run": "pass; applied; 11 files created; read-back passed",
+      "second_run": "pass; unchanged; 11 files unchanged; read-back passed",
+      "record_counts": {"concepts": 4, "relations": 1, "evidence": 7}
+    },
+    {
+      "path": "tests/fixtures/personal-alpha/procedural/seed-starting.md",
+      "shape": "procedural checklist with compact causal and prerequisite statements",
+      "sha256": "0c8896a0638b1dfcdb2d488dfc86ff3663a6cc3156c066948bd818ac3d5d9ece",
+      "first_run": "pass; applied; 13 files created; read-back passed",
+      "second_run": "pass; unchanged; 13 files unchanged; read-back passed",
+      "record_counts": {"concepts": 6, "relations": 3, "evidence": 10}
+    }
+  ],
+  "runs": [
+    {
+      "command": "PYTHONPATH=src .venv/bin/python -m unittest -v tests.test_personal_alpha_cli",
+      "result": "pass",
+      "tests": 4,
+      "scope": "single command, preview-only, actionable errors, and three-source apply/reopen/duplicate check/unchanged rerun"
+    },
+    {
+      "command": "same documented workflow run twice for each source in output/personal-alpha/pa4-vault",
+      "result": "pass",
+      "scope": "three workspaces; exact source digests; first runs applied; second runs unchanged; every CLI read-back passed"
+    },
+    {
+      "command": "targeted PA-1 through PA-3 recovery and provenance tests",
+      "result": "pass",
+      "scope": "source bytes, exact provenance, stable IDs, local-link read-back, managed-edit conflict, user-note preservation, and injected rollback"
+    }
+  ],
+  "inspectable_output": "output/personal-alpha/pa4-vault",
+  "full_verifier": {
+    "evidence": "output/control-plane/verification-20260922T153953+0800.json",
+    "result": "pass",
+    "fingerprint": "ee2a831719e6cac1c2600d5260a4d1ec0a6bbd0e4b28808d18a5d0fe75f9eb29",
+    "requirements_guard_tests": 16,
+    "control_plane_tests": 14,
+    "python_product_tests": 253,
+    "node_tests": 54,
+    "release_verified": false
+  },
+  "limits": [
+    "The candidate uses deterministic explicit Markdown signals and does not claim semantic completeness or factual review.",
+    "The final repository verifier is separate fingerprint-bound control-plane evidence referenced from CODEX_STATUS.md.",
+    "Automated evidence establishes candidate readiness only; product owner's Obsidian daily-usability acceptance remains PA-HUMAN-1."
+  ]
+}

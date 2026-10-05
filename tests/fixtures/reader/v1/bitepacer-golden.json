@@ -1,0 +1,59 @@
+{
+  "document": {
+    "annotations": [
+      {
+        "concept_ids": [
+          "concept_d18b2812af2ceef6d4d683eb766686b01b608336e89cc608b30c687218d858cf"
+        ],
+        "edge_ids": [
+          "edge_80042c4f448d92b2d8311f064b6189e7259615ff1c0babd38bb817adcf561c4a"
+        ],
+        "evidence_id": "evidence_b1861d12c500f976ca0364f6ec0ac869851ab741a5cc2110cd5714c39d4f3bed",
+        "locator": {
+          "kind": "line_range",
+          "value": "L3-L18"
+        },
+        "proposition": "用戶端是主動提出 request 的程式，伺服器是等待 request、處理後回傳 response 的程式；兩者是互動角色，不是固定的電腦種類。",
+        "review_status": "accepted"
+      }
+    ],
+    "byte_length": 2141,
+    "content": "# BitePacer 驅動的迷你計網：從 Client／Server 到 ngrok\n\n最開始只要這個：\n\n```text\n程式 A                         程式 B\nClient                         Server\n\n「我要 /liff/diet」\n      ───────────────────────→\n\n      ←───────────────────────\n                    「好，這是結果」\n```\n\n**Client**：主動提出 request 的一方。\n**Server**：等待 request，處理後回 response 的一方。\n\n注意它們不是固定的「電腦種類」。你的 Chrome、LINE server 或 `curl` 都可以當 client。\n\n## 它怎麼找到 Flask？\n\n需要兩個概念：\n\n```text\nIP / hostname → 找「哪台機器」\nport          → 找「那台機器上的哪個網路服務」\n```\n\n因此 `127.0.0.1:5050` 可以拆成：\n\n```text\n127.0.0.1  :  5050\n    ↑            ↑\n哪台主機       哪個入口\n```\n\n`127.0.0.1` 是特殊的 loopback address，指向「自己這台主機」。\n\n```text\nhttp://127.0.0.1:5050/liff/diet\n\nhttp://       → 用 HTTP 溝通\n127.0.0.1    → 跟自己這台 Mac 溝通\n:5050        → 找 listening 在 port 5050 的程式\n/liff/diet   → 跟 Web application 要這個 resource/route\n```\n\n## HTTP 與 Flask\n\n```text\nClient\n    │ HTTP Request：GET /liff/diet\n    ▼\nFlask\n    │ Python 處理\n    │ HTTP Response：200 OK\n    ▼\nClient\n```\n\n看到 `@app.route(\"/liff/diet\")` 時，可以理解成：Flask 收到 request 後查看 routing table，找到這個 path 對應的 Python function，執行 handler，再生成 response。\n\n## 為什麼需要 ngrok？\n\nLINE 不能直接 request `http://127.0.0.1:5050`，因為 LINE server 的 `127.0.0.1` 代表 LINE server 自己，不是你的 Mac。\n\n```text\nInternet\n   ↓\nhttps://xxxx.ngrok.app\n   ↓\nngrok tunnel\n   ↓\n你的 Mac :5050\n   ↓\nFlask\n```\n\nngrok 補上外界通往 Mac 本機 Flask 的路徑。\n\n---\n\n來源：摘錄自 product owner 與 ChatGPT 的 BitePacer 教學對話，原始對話日期 2026-08-14。此檔保留本次產品測試需要的完整教學上下文，不代表整篇原始對話。\n",
+    "focus": {
+      "concept_ids": [
+        "concept_d18b2812af2ceef6d4d683eb766686b01b608336e89cc608b30c687218d858cf"
+      ],
+      "edge_ids": [
+        "edge_80042c4f448d92b2d8311f064b6189e7259615ff1c0babd38bb817adcf561c4a"
+      ],
+      "end_line": 18,
+      "evidence_ids": [
+        "evidence_b1861d12c500f976ca0364f6ec0ac869851ab741a5cc2110cd5714c39d4f3bed"
+      ],
+      "excerpt": "最開始只要這個：\n\n```text\n程式 A                         程式 B\nClient                         Server\n\n「我要 /liff/diet」\n      ───────────────────────→\n\n      ←───────────────────────\n                    「好，這是結果」\n```\n\n**Client**：主動提出 request 的一方。\n**Server**：等待 request，處理後回 response 的一方。\n\n",
+      "locator": {
+        "kind": "line_range",
+        "value": "L3-L18"
+      },
+      "start_line": 3
+    },
+    "line_count": 84,
+    "snapshot_sha256": "63d15fb5ad8431b0ad49dd3f105067a33384bf4ab807205c1c6cc13fcbd9a8c3",
+    "source": {
+      "captured_at": "2026-08-14T19:51:44+08:00",
+      "content_sha256": "bbef6549c2381ee729c355b69151777bbdbda459ca16079055316f52318792db",
+      "id": "src_bitepacer_mini_network_lesson",
+      "label": "BitePacer 驅動的迷你計網",
+      "source_kind": "chatgpt_conversation"
+    }
+  },
+  "response_headers": {
+    "Cache-Control": "no-store",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY"
+  },
+  "schema_version": "kgnote.reader-application.v1",
+  "status": "ready"
+}

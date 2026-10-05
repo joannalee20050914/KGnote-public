@@ -10,6 +10,7 @@ from kgnote.extraction import (
     GEMINI_MODEL,
     GEMINI_PROVIDER,
     GeminiExtractionTransport,
+    GeminiLinkingPhraseTransport,
     TransportConfig,
     TransportFailure,
     build_extraction_preview,
@@ -179,6 +180,32 @@ class GeminiTransportTest(unittest.TestCase):
                 (Path(ledger) / "gemini_fixture_1/response.raw").read_bytes(),
                 self.raw_text.encode("utf-8"),
             )
+
+    def test_linking_phrase_transport_is_one_scoped_structured_request(self):
+        raw = '{"proposals":[{"edge_id":"edge_fixture","linking_phrase":"轉送到"}]}'
+        opener = RecordingOpener(self.provider_payload(raw))
+        transport = GeminiLinkingPhraseTransport(api_key="phrase-secret", opener=opener)
+        envelope = {
+            "schema_version": "kgnote.linking-phrase-outbound.v1",
+            "context": {"edges": [{"edge_id": "edge_fixture"}]},
+        }
+        response = transport(envelope, self.config)
+        self.assertEqual(len(opener.calls), 1)
+        request, timeout = opener.calls[0]
+        self.assertEqual(timeout, 15.0)
+        body = json.loads(request.data)
+        self.assertEqual(json.loads(body["contents"][0]["parts"][0]["text"]), envelope)
+        generation = body["generationConfig"]
+        self.assertEqual(generation["candidateCount"], 1)
+        self.assertEqual(generation["maxOutputTokens"], 2048)
+        self.assertEqual(generation["responseMimeType"], "application/json")
+        proposal = generation["responseJsonSchema"]["properties"]["proposals"]["items"]
+        self.assertEqual(set(proposal["properties"]), {"edge_id", "linking_phrase"})
+        self.assertFalse(proposal["additionalProperties"])
+        self.assertEqual(response.raw_response, raw.encode())
+        self.assertEqual(response.request_id, "resp_fixture_9")
+        self.assertEqual(response.usage["total_tokens"], 408)
+        self.assertNotIn("phrase-secret", repr(transport))
 
 
 if __name__ == "__main__":

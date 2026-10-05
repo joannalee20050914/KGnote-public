@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/linking-phrase/v1/decisions.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["candidate_set_id", "decisions"],
+  "properties": {
+    "candidate_set_id": {"type": "string", "pattern": "^linking_phrase_candidates_[0-9a-f]{64}$"},
+    "decisions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["edge_id", "action"],
+        "properties": {
+          "edge_id": {"type": "string", "pattern": "^edge_[A-Za-z0-9_-]+$"},
+          "action": {"enum": ["accept", "correct", "reject"]},
+          "corrected_linking_phrase": {"type": "string", "minLength": 2, "maxLength": 80, "pattern": "^(?=.*\\S)[^\\r\\n]+$"}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"action": {"const": "correct"}}, "required": ["action"]},
+            "then": {"required": ["corrected_linking_phrase"]},
+            "else": {"not": {"required": ["corrected_linking_phrase"]}}
+          }
+        ]
+      }
+    }
+  }
+}

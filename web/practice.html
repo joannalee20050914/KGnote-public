@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#172824">
+    <title>KGnote · Practice</title>
+    <link rel="stylesheet" href="./learn.css">
+  </head>
+  <body class="practice-page">
+    <header class="topbar practice-topbar">
+      <a id="back-to-learn" class="brand" href="./learn.html">← 回到閱讀</a>
+      <span>獨立 Practice session · 提交前不載入答案或原文</span>
+    </header>
+    <main class="practice-shell">
+      <section id="practice-picker" class="practice-picker">
+        <p class="eyebrow">PRACTICE · 由你開始</p>
+        <h1>選一種輸出活動</h1>
+        <p>開始作答或要求提示後才建立 Attempt。離開未提交的 draft 不會算錯。</p>
+        <div class="activity-grid">
+          <button type="button" data-activity="relation_recall"><strong>關係／概念回想</strong><span>補上一個合理關係，不要求逐字相同</span></button>
+          <button type="button" data-activity="free_explanation"><strong>自由解釋</strong><span>用自己的話說明兩個概念如何連接</span></button>
+          <button type="button" data-activity="application_prediction"><strong>應用／預測</strong><span>把概念用在一個具體情境，預測接下來發生什麼</span></button>
+          <button type="button" data-activity="distinction"><strong>辨別差異</strong><span>區分兩個容易混淆但不相同的現象</span></button>
+        </div>
+      </section>
+
+      <section id="attempt-panel" class="attempt-panel" hidden>
+        <div class="attempt-heading">
+          <div><p id="activity-label" class="eyebrow"></p><h1 id="practice-prompt"></h1></div>
+          <label>題目<select id="item-select" aria-label="選擇練習題"></select></label>
+        </div>
+        <label class="answer-label">你的回答
+          <textarea id="practice-answer" rows="7" maxlength="8000" autocomplete="off" placeholder="可以回答「不知道」；這也是有效回答。"></textarea>
+        </label>
+        <label class="confidence">作答信心（可不填）
+          <select id="confidence"><option value="">不填</option><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select>
+        </label>
+        <div class="practice-actions">
+          <button id="hint-button" type="button" class="secondary">我要提示</button>
+          <button id="submit-button" type="button" class="primary">提交並查看答案</button>
+        </div>
+        <p id="hint-text" class="hint" hidden></p>
+        <p id="attempt-status" role="status" aria-live="polite"></p>
+        <section id="reveal-panel" class="reveal" hidden>
+          <p class="eyebrow">提交後回饋</p>
+          <h2 id="canonical-answer"></h2>
+          <p id="feedback"></p>
+          <ul id="rubric-list"></ul>
+          <div id="reveal-evidence"></div>
+          <section id="self-assessment" class="self-assessment" aria-labelledby="assessment-title">
+            <h3 id="assessment-title">你的自評（獨立追加，不改寫原 Attempt）</h3>
+            <div class="assessment-grid">
+              <button type="button" data-outcome="CORRECT">答對</button><button type="button" data-outcome="PARTIAL">部分正確</button><button type="button" data-outcome="INCORRECT">答錯</button><button type="button" data-outcome="INSUFFICIENT_EVIDENCE">尚無法判斷</button>
+            </div>
+            <label class="disagree"><input id="disagree" type="checkbox">我不同意這份標準答案／rubric</label>
+            <label id="correction-label" hidden>請留下修正理由<textarea id="correction" rows="3" maxlength="4000"></textarea></label>
+            <p id="assessment-status" role="status"></p>
+          </section>
+          <button id="retry-button" type="button" class="primary">再試一次（建立新 Attempt）</button>
+        </section>
+      </section>
+
+      <section class="history" aria-labelledby="history-title">
+        <div class="section-header"><div><p class="eyebrow">READ-BACK</p><h2 id="history-title">已保存的 Attempts</h2></div><button id="refresh-history" type="button" class="secondary">重新讀取</button></div>
+        <div id="attempt-history"><p>正在讀取…</p></div>
+      </section>
+    </main>
+    <script type="module" src="./practice-app.js"></script>
+  </body>
+</html>

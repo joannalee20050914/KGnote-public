@@ -1,0 +1,7 @@
+[
+  {"name": "unknown field", "patch": {"unexpected": true}, "code": "invalid_learning_note"},
+  {"name": "raw html", "patch": {"markdown": "<script>alert(1)</script>"}, "code": "raw_html_not_allowed"},
+  {"name": "external image syntax", "patch": {"markdown": "![tracking](https://example.test/a.png)"}, "code": "markdown_images_not_allowed"},
+  {"name": "reversed locator", "anchor_locator": "L9-L2", "code": "invalid_source_anchor_range"},
+  {"name": "duplicate anchor", "duplicate_anchor": true, "code": "duplicate_source_anchor"}
+]

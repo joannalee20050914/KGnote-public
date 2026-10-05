@@ -79,13 +79,15 @@ test("is deterministic, copy-safe, and does not mutate the read model", () => {
   assert.deepEqual(fixture.view, before);
 });
 
-test("HTML and app expose accessible read-only detail behavior", async () => {
+test("HTML and app expose accessible details with append-only review", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   assert.match(html, /<aside id="detail-panel"/);
-  assert.match(html, /aria-label="Close details"/);
+  assert.match(html, /aria-label="關閉詳細內容"/);
   assert.match(app, /event\.key === "Enter"/);
   assert.match(app, /event\.key === "Escape"/);
   assert.match(app, /detailTrigger\.focus\(\)/);
-  assert.doesNotMatch(html + app, /<form|contenteditable|\b(save|delete|merge|rename|apply)\b/i);
+  assert.match(app, /複習這個概念/);
+  assert.match(app, /保存複習紀錄/);
+  assert.doesNotMatch(html + app, /contenteditable|\b(delete|merge|rename|apply canonical)\b/i);
 });

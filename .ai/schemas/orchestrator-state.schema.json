@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/orchestrator-state.schema.json",
+  "title": "KGnote durable orchestrator state",
+  "type": "object",
+  "required": ["schema_version", "run_id", "active_goal", "work_package", "state", "current_agent", "candidate_fingerprint", "review_id", "review_cycle", "max_review_cycles", "empty_reviewer_results", "blockers", "next_action", "human_action_required", "candidate_custody", "next_human_checkpoint", "updated_at"],
+  "properties": {
+    "schema_version": {"const": "kgnote.orchestrator-state.v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "active_goal": {"type": ["string", "null"]},
+    "work_package": {"type": ["string", "null"]},
+    "state": {"enum": ["IMPLEMENTING", "VALIDATING", "READY_FOR_AI_REVIEW", "REVIEWING", "REPAIRING", "HUMAN_CHECKPOINT_REQUIRED", "PRODUCT_DECISION_REQUIRED", "AUTHORITY_CONFLICT", "AUTOMATION_BLOCKED", "BUDGET_EXHAUSTED", "GOAL_COMPLETE", "STOPPED"]},
+    "current_agent": {"type": ["string", "null"]},
+    "candidate_fingerprint": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "review_id": {"type": ["string", "null"]},
+    "review_cycle": {"type": "integer", "minimum": 0},
+    "max_review_cycles": {"type": "integer", "minimum": 1},
+    "agent_failures": {"type": "integer", "minimum": 0},
+    "max_agent_failures": {"type": "integer", "minimum": 1},
+    "empty_reviewer_results": {"type": "integer", "minimum": 0},
+    "blockers": {"type": "array", "items": {"type": "object"}},
+    "next_action": {"type": ["string", "null"]},
+    "human_action_required": {"type": "boolean"},
+    "candidate_custody": {
+      "type": "object",
+      "required": ["status", "owner", "review_id", "fingerprint"],
+      "properties": {
+        "status": {"enum": ["NONE", "SEALED", "REVIEWER"]},
+        "owner": {"type": ["string", "null"]},
+        "review_id": {"type": ["string", "null"]},
+        "fingerprint": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "next_human_checkpoint": {"type": ["object", "null"]},
+    "last_agent_run": {"type": ["object", "null"]},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": "string"}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/guided-review/v1/record.schema.json",
+  "title": "KGnote guided edge review interaction v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "type", "learning_unit_id", "source_ids", "concept_ids", "edge_ids", "evidence_ids", "evidence_locators", "graph_snapshot_sha256", "prompt_stage", "question", "response", "hint_used", "comparison", "canonical_proposition", "view_context", "occurred_at", "reviewer_version", "recorded_at"],
+  "properties": {
+    "schema_version": {"const": "kgnote.guided-review-interaction.v1"},
+    "id": {"type": "string", "pattern": "^review_[a-f0-9]{64}$"},
+    "type": {"const": "review_interaction"},
+    "learning_unit_id": {"type": "string", "minLength": 1},
+    "source_ids": {"$ref": "#/$defs/idList"},
+    "concept_ids": {"$ref": "#/$defs/idList"},
+    "edge_ids": {"$ref": "#/$defs/idList"},
+    "evidence_ids": {"$ref": "#/$defs/idList"},
+    "evidence_locators": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/locator"}},
+    "graph_snapshot_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "prompt_stage": {"const": "linking_phrase_retrieval"},
+    "question": {"type": "string", "minLength": 1},
+    "response": {"type": "string", "minLength": 1, "maxLength": 80},
+    "hint_used": {"type": "boolean"},
+    "comparison": {"enum": ["matched_reviewed_phrase", "different_from_reviewed_phrase"]},
+    "canonical_proposition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["subject_concept_id", "subject_label", "linking_phrase", "object_concept_id", "object_label", "canonical_relation"],
+      "properties": {
+        "subject_concept_id": {"type": "string"}, "subject_label": {"type": "string"},
+        "linking_phrase": {"type": "string"}, "object_concept_id": {"type": "string"},
+        "object_label": {"type": "string"}, "canonical_relation": {"type": "string"}
+      }
+    },
+    "view_context": {
+      "type": "object", "additionalProperties": false,
+      "required": ["view", "focus_question"],
+      "properties": {"view": {"const": "guided_map"}, "focus_question": {"type": "string", "minLength": 1}}
+    },
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "reviewer_version": {"const": "human-phrase-comparison.v1"},
+    "recorded_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "idList": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "locator": {"type": "object", "additionalProperties": false, "required": ["kind", "value"], "properties": {"kind": {"type": "string"}, "value": {"type": "string", "minLength": 1}}}
+  }
+}

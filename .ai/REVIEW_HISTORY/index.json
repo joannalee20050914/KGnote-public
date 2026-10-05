@@ -1,0 +1,8 @@
+{
+  "schema_version": "kgnote.review-history-index.v1",
+  "protocol_version": "kgnote.review-protocol.v1",
+  "event_count": 0,
+  "last_event_id": null,
+  "reviews": {},
+  "findings": {}
+}

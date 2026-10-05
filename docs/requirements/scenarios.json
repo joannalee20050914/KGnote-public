@@ -1,0 +1,1273 @@
+{
+  "schema_version": "kgnote.acceptance-scenarios.v1",
+  "status": "specifications_only_no_product_tests_executed",
+  "scenarios": [
+    {
+      "id": "SC-01",
+      "title": "零筆記也能從閱讀進入任意活動",
+      "source_refs": [
+        "B19-U",
+        "U-READ"
+      ],
+      "given": "全新session，無NoteBlock且可無canonical graph。",
+      "when": "開啟來源、讀導讀、查看解說，再選继续閱讀或輸出。",
+      "then": "所有主要路徑均可通行；不要求輸入目標、疑問、筆記或熟悉度。",
+      "must_fail_if": "先完成筆記／任意mandatory input才開正文或Practice。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_learning_http.py",
+            "selector": "LearningHttpTests.test_sc01_zero_note_catalog_read_and_practice_paths_have_no_note_gate"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop1-20260920.json"
+        ]
+      },
+      "run_status": "automated_partial",
+      "revision": 1,
+      "result_note": "Zero-note/no-notes-root paths pass; main catalog still requires a map fixture, so graph-absent behavior remains partial."
+    },
+    {
+      "id": "SC-02",
+      "title": "純浸泡與滑走不構成錯誤作答",
+      "source_refs": [
+        "B23-U",
+        "B26-U"
+      ],
+      "given": "有一張熟悉情境曝光卡。",
+      "when": "選輕鬆再看→讀卡→滑走→關閉。",
+      "then": "可顯示答案；只留允許的呈現/曝光事件，無incorrect／submitted attempt。",
+      "must_fail_if": "所謂Soak其實只是Practice改名，沒有不作答路徑。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_learning_http.py",
+            "selector": "LearningHttpTests.test_sc02_sc18_soak_reveal_skip_is_separate_from_attempt_and_due"
+          },
+          {
+            "path": "tests/test_exposure_store.py",
+            "selector": "ExposureStoreTests.test_sc02_append_only_exposure_is_not_attempt_or_retrieval_result"
+          },
+          {
+            "path": "web/tests/soak-workspace.test.js",
+            "selector": "SC-02 Soak event carries observation identity without assessment fields"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop1-20260920.json"
+        ]
+      },
+      "run_status": "automated_pass",
+      "revision": 1
+    },
+    {
+      "id": "SC-03",
+      "title": "續學回到具體缺口，不重啟整章",
+      "source_refs": [
+        "B24-U",
+        "B25-U"
+      ],
+      "given": "曾問branch/worktree，留原問、解說、實際回答與暫緩Git internals。",
+      "when": "隔日新session選繼續Git。",
+      "then": "帶回具体問題／source anchor／已做未做及選項；不需重述背景。",
+      "must_fail_if": "只提供最近文件列表，或斷言用戶已理解前述答案。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_resume_context.py",
+            "selector": "ResumeContextTests.test_sc03_exact_context_is_append_only_idempotent_and_read_back"
+          },
+          {
+            "path": "tests/test_learning_http.py",
+            "selector": "LearningHttpTests.test_sc03_exact_resume_context_round_trips_and_enriches_activity"
+          },
+          {
+            "path": "web/tests/continuity.test.js",
+            "selector": "SC-03 Learn saves exact scope breadcrumb selection and unresolved question"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop2-20260920.json"
+        ]
+      },
+      "run_status": "automated_pass",
+      "revision": 1
+    },
+    {
+      "id": "SC-04",
+      "title": "實務處理不被補课吞掉",
+      "source_refs": [
+        "B10-U",
+        "B11-U",
+        "B15-A"
+      ],
+      "given": "目的為判斷服务是否可用，測試用唯讀紀錄全正常。",
+      "when": "使用操作導讀。",
+      "then": "指出可停止，深挖是選項；不建構實機restart副作用。",
+      "must_fail_if": "為完成課程繼續建議不必要restart或強制學完整前置。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-05",
+      "title": "DMA已在正文說明時不自動重複",
+      "source_refs": [
+        "U-RECALL",
+        "U-GLOSS"
+      ],
+      "given": "中央閱讀DMA完整段落。",
+      "when": "左側導航到DMA，不點閱讀求助。",
+      "then": "焦點定位正文，無重複字典欄；主動求助才按需顯示不同視角。",
+      "must_fail_if": "Summary/Detailed/Source三處相同句且宣稱更深入。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "web/tests/learn-workspace.test.js",
+            "selector": "Learning Structure is recursive view navigation while Reading Assist stays explicit"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop1-20260920.json"
+        ]
+      },
+      "run_status": "automated_pass",
+      "revision": 1
+    },
+    {
+      "id": "SC-06",
+      "title": "概念與語法可以不同記憶策略",
+      "source_refs": [
+        "B19-A",
+        "R-PRODUCT"
+      ],
+      "given": "目標為知道如何查監聽服務，不要求默寫全部flags。",
+      "when": "設查詢語法為lookup，概念解釋為remember。",
+      "then": "lookup可回找、不進強制due；重要性按用途保存。",
+      "must_fail_if": "兩者因同Concept被強迫共用記憶義務。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-07",
+      "title": "recursive hierarchy定位且保留上下文",
+      "source_refs": [
+        "B18-U",
+        "U-STRUCT",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      ],
+      "given": "OS teaching structure有主題/子主題/項目，來源anchor可用。",
+      "when": "展開CPU執行管理→排程→Round Robin，再返回。",
+      "then": "层级与breadcrumb正確，點擊到正文；不強制字典；同資料可大圖展示。",
+      "must_fail_if": "flat buckets被標成hierarchy，或動畫存在但定位不到原段。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "web/tests/learn-workspace.test.js",
+            "selector": "Learning Structure is recursive view navigation while Reading Assist stays explicit"
+          },
+          {
+            "path": "tests/test_obsidian_native_spike.py",
+            "selector": "ObsidianNativeArtifactTests.test_hierarchical_canvas_is_deterministic_three_level_and_typed"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop1-20260920.json",
+          "docs/requirements/evidence/obsidian-native-v3-20260923.json"
+        ]
+      },
+      "run_status": "automated_partial",
+      "revision": 1,
+      "result_note": "Recursive parent/child navigation is protected, and the V3 native candidate deterministically read-backs a real three-level Canvas over Markdown anchors. Obsidian interaction remains unreviewed by a human."
+    },
+    {
+      "id": "SC-08",
+      "title": "組織語意不偷渡領域事實",
+      "source_refs": [
+        "U-STRUCT",
+        "R-DATA",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      ],
+      "given": "一組排程方案與一組待釐清關係。",
+      "when": "顯示比較／替代／problem-solution標示。",
+      "then": "區分編輯者比較意圖與已支持的事實關係；可追溯依據。",
+      "must_fail_if": "同層被推成互斥，或把資料標view-only就免審查。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "web/tests/learn-workspace.test.js",
+            "selector": "SC-08 structural semantics remain typed view data and do not become canonical propositions"
+          },
+          {
+            "path": "tests/test_obsidian_native_spike.py",
+            "selector": "ObsidianNativeArtifactTests.test_hierarchical_canvas_is_deterministic_three_level_and_typed"
+          },
+          {
+            "path": "tests/test_obsidian_native_spike.py",
+            "selector": "ObsidianNativeArtifactTests.test_procedural_canvas_expresses_order_without_canonical_causality"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json",
+          "docs/requirements/evidence/obsidian-native-v3-20260923.json"
+        ]
+      },
+      "run_status": "automated_pass",
+      "revision": 1
+    },
+    {
+      "id": "SC-09",
+      "title": "重排與重疊membership不修改ontology",
+      "source_refs": [
+        "R-DATA",
+        "U-STRUCT",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      ],
+      "given": "CPU在兩個不同Lens且資料中無part_of Edge。",
+      "when": "重排、折疊、切Lens。",
+      "then": "Concept ID不變，canonical digest不變，来源未涵蓋內容有明示。",
+      "must_fail_if": "自動生成part_of或添加未教的虛構章節。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_obsidian_native_spike.py",
+            "selector": "ObsidianNativeArtifactTests.test_hierarchical_canvas_is_deterministic_three_level_and_typed"
+          },
+          {
+            "path": "tests/test_obsidian_native_spike.py",
+            "selector": "ObsidianNativeArtifactTests.test_augmentation_adds_only_discoverability_markdown_and_reruns_byte_identically"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/obsidian-native-v3-20260923.json"
+        ]
+      },
+      "run_status": "automated_partial",
+      "revision": 2,
+      "result_note": "The native candidate preserves canonical and Markdown digests while deterministically projecting hierarchy. Interactive lens switching and overlapping-membership behavior remain unrun."
+    },
+    {
+      "id": "SC-10",
+      "title": "跨來源舊知與同名異義",
+      "source_refs": [
+        "B26-U",
+        "U-RECALL"
+      ],
+      "given": "兩來源共享同concept，一筆是已發生的user接觸；另有同名異義詞。",
+      "when": "在新文highlight該詞。",
+      "then": "顯示真實舊例子與來源；可返回新文；歧義保持待選。",
+      "must_fail_if": "只有庫内存在就寫你以前學會，或同名強行merge。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_prior_encounters.py",
+            "selector": "PriorEncounterTests.test_sc10_shared_concept_requires_real_other_unit_history"
+          },
+          {
+            "path": "web/tests/learn-workspace.test.js",
+            "selector": "SC-10 prior encounter rendering is event-backed and not inferred from Concept existence"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "run_status": "automated_partial",
+      "revision": 1
+    },
+    {
+      "id": "SC-11",
+      "title": "PID當句最低補充與非canonical術語",
+      "source_refs": [
+        "U-GLOSS"
+      ],
+      "given": "overview原句有PID但無充分定義；已準備可信外補，term尚可無Concept ID。",
+      "when": "highlight PID並求解。",
+      "then": "出現当前所需短解說、對當句角色、來源与可深入；可保存問題；不强制建node。",
+      "must_fail_if": "沒canonical concept就無法求助，或預設展開ps/namespace指令教學。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "web/tests/learn-workspace.test.js",
+            "selector": "Learning Structure is recursive view navigation while Reading Assist stays explicit"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop1-20260920.json"
+        ]
+      },
+      "run_status": "automated_partial",
+      "revision": 1,
+      "result_note": "PID without a required canonical ID and its depth are protected; saving an arbitrary selected phrase/question is not yet implemented."
+    },
+    {
+      "id": "SC-12",
+      "title": "context深度可變，深入可返回",
+      "source_refs": [
+        "U-GLOSS",
+        "R-READING"
+      ],
+      "given": "同詞在overview與診斷文本中，兩者目的不同。",
+      "when": "分別求助，並從overview主動深入。",
+      "then": "範圍按context不同且可自主深入；返回保留原位置，Concept不被写固定depth。",
+      "must_fail_if": "四级label鎖住好奇心或補充反过来誤改原文。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "web/tests/learn-workspace.test.js",
+            "selector": "SC-12 the same concept gets context-local depth without becoming a concept mastery label"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "run_status": "automated_partial",
+      "revision": 1
+    },
+    {
+      "id": "SC-13",
+      "title": "多個不懂不演變成名詞雪崩",
+      "source_refs": [
+        "B10-U",
+        "B16-U",
+        "B15-A"
+      ],
+      "given": "一段含多個使用者標记不懂的必要概念。",
+      "when": "請求協助繼續理解。",
+      "then": "提供最小橋接或較易版本選項，停車其餘疑問，保留原任務。",
+      "must_fail_if": "一次講完五篇百科或硬编码三詞锁課。",
+      "verification_method": "rubric_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-14",
+      "title": "不從課程或曝光推斷能力",
+      "source_refs": [
+        "B03-U",
+        "B07-U",
+        "B25-U"
+      ],
+      "given": "修過課的profile、只由AI說過的詞與一筆用戶明示不懂。",
+      "when": "產生Reading Assist或續學摘要。",
+      "then": "用户澄清優先；無紀錄为unknown；不用智力/吞吐标签；曝光不等于理解。",
+      "must_fail_if": "課名、頁面點擊或缺資料被轉成已懂/未學過斷言。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-15",
+      "title": "原始證據糾正AI後設摘要",
+      "source_refs": [
+        "B11-U",
+        "B25-A"
+      ],
+      "given": "原紀錄：四PASS後user仍嘗試restart且未成功；AI後續例子稱已獨立判斷不需restart。",
+      "when": "抽取學習事件／續學包。",
+      "then": "保留实际查驗與嘗試，標記摘要不吻合；不宣稱獨立判斷或成功restart。",
+      "must_fail_if": "只因AI寫了demonstrated就當成行為證據。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-16",
+      "title": "具體混淆與後續更正",
+      "source_refs": [
+        "B06-U",
+        "B20-A",
+        "B25-U"
+      ],
+      "given": "user明說label像Git版本；後續有澄清或新的正確回答。",
+      "when": "查看history或短對比練習。",
+      "then": "原混淆、日期、配對、修正可回查；推薦不帶強制增加負擔。",
+      "must_fail_if": "只存最後綠燈或把共同出現的詞推成混淆。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_reviewer_context.py",
+            "selector": "ReviewerContextTest.test_confusion_first_prompt_offers_distinction_and_does_not_erase_history"
+          },
+          {
+            "path": "tests/test_review_store.py",
+            "selector": "ReviewStoreTest.test_prompt_is_grounded_and_append_is_readable_and_idempotent"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "run_status": "automated_partial",
+      "revision": 1
+    },
+    {
+      "id": "SC-17",
+      "title": "熟悉外型、提示、活動可各自變動",
+      "source_refs": [
+        "B26-U",
+        "B19-U"
+      ],
+      "given": "同target有熟悉句、不同措辭、另一安全例子。",
+      "when": "先曝光，再選強提示填空，再返回曝光或自由解釋。",
+      "then": "可雙向切換；保存variant/context/support，不改Knowledge identity。",
+      "must_fail_if": "固定逐關解鎖，或毫無變化重複同句。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "web/tests/soak-workspace.test.js",
+            "selector": "SC-17 support fading is a deterministic representation progression, not one permanent prompt"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "run_status": "automated_pass",
+      "revision": 1
+    },
+    {
+      "id": "SC-18",
+      "title": "間斷使用無債務",
+      "source_refs": [
+        "B23-U",
+        "B26-U"
+      ],
+      "given": "累積多個due item且用戶幾天未使用。",
+      "when": "今天只看一則或選跳過。",
+      "then": "可結束且無責備／罰分／強制清庫；仍能日後回找。",
+      "must_fail_if": "連續天數處罰、欠卡遮罩或今天必須還完。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_learning_http.py",
+            "selector": "LearningHttpTests.test_sc02_sc18_soak_reveal_skip_is_separate_from_attempt_and_due"
+          },
+          {
+            "path": "web/tests/soak-workspace.test.js",
+            "selector": "SC-18 Soak page states no debt and never submits an Attempt"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop1-20260920.json"
+        ]
+      },
+      "run_status": "automated_pass",
+      "revision": 1
+    },
+    {
+      "id": "SC-19",
+      "title": "獨立Attempt與合法支援模式",
+      "source_refs": [
+        "R-PRACTICE",
+        "U-READ"
+      ],
+      "given": "Learn曾顯示答案，之後明確選無輔助Practice。",
+      "when": "載入、reload、切焦點、用hint、提交或取消。",
+      "then": "無意外UI/ARIA/hidden DOM答案；主動揭露另記；prompt不受瀏覽替換；取消非錯。",
+      "must_fail_if": "把曾看過教材視為作弊，或正常活動答案曝光仍標unassisted。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "web/tests/practice-workspace.test.js",
+            "selector": "isolated Practice document contains no hidden Reader, graph, selection summary, answer, or source excerpt"
+          },
+          {
+            "path": "tests/test_practice_http.py",
+            "selector": "PracticeHttpTests.test_safe_items_submit_reveal_retry_semantics_and_reload_readback"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop1-20260920.json"
+        ]
+      },
+      "run_status": "automated_pass",
+      "revision": 1
+    },
+    {
+      "id": "SC-20",
+      "title": "自由解釋、有用回饋与追加保存",
+      "source_refs": [
+        "B19-U",
+        "B20-U",
+        "R-PRACTICE"
+      ],
+      "given": "reviewed rubric與同義正確／部分／錯誤回答樣例。",
+      "when": "提交→對照→自評→更正→重試。",
+      "then": "未評估是unassessed；有來源的feedback另追加；原回答保留；新Attempt。",
+      "must_fail_if": "任意回答一律insufficient或exact-match錯誤；只保留最後一次。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_attempt_store.py",
+            "selector": "AttemptStoreTests.test_retry_requires_and_preserves_a_new_attempt_identity"
+          },
+          {
+            "path": "web/tests/practice-workspace.test.js",
+            "selector": "Attempt starts with stable client identity and records hints, raw response, exposure, and refs"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "run_status": "automated_pass",
+      "revision": 1
+    },
+    {
+      "id": "SC-21",
+      "title": "來源錯誤與題目失效隔離",
+      "source_refs": [
+        "R-DATA",
+        "R-PRACTICE"
+      ],
+      "given": "原文有爭議claim且已有舊due與attempt。",
+      "when": "新增erratum／撤回教學readiness。",
+      "then": "raw hash不變；Reader正常、警告可見；新出題及舊due阻擋；歷史保留。",
+      "must_fail_if": "警告不影響planner或修改原文掩蓋錯誤。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-22",
+      "title": "持久化重送與衝突",
+      "source_refs": [
+        "R-RELIABILITY",
+        "R-PRACTICE"
+      ],
+      "given": "已建立attempt／note草稿。",
+      "when": "模擬寫入成功回應丟失、同ID重送、同ID改回答與stale revision。",
+      "then": "不重複提交、不靜默覆寫；明確保存狀態與可復原文字。",
+      "must_fail_if": "server timestamp創新ID、錯誤卻顯示保存成功。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_attempt_store.py",
+            "selector": "AttemptStoreTests.test_concurrent_first_write_preserves_one_submitted_payload"
+          },
+          {
+            "path": "tests/test_learning_note_store.py",
+            "selector": "LearningNoteStoreTests.test_concurrent_writers_with_one_etag_produce_one_save_and_one_conflict"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "run_status": "automated_pass",
+      "revision": 1
+    },
+    {
+      "id": "SC-23",
+      "title": "due與attempt不同、排程可重放",
+      "source_refs": [
+        "B26-U",
+        "R-PRACTICE"
+      ],
+      "given": "固定target/revision與注入clock。",
+      "when": "到期、snooze、skip、啟動活動、提交。",
+      "then": "到期/延期不建立attempt；間隔起算清楚，可重播相同next due。",
+      "must_fail_if": "到期自造學習紀錄或算法不能解釋時間基準。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-24",
+      "title": "自然曝光不冒充retrieval",
+      "source_refs": [
+        "B26-A",
+        "R-PRACTICE"
+      ],
+      "given": "一份log只含POST；另一筆是user在新情境正確解釋POST。",
+      "when": "套用去重／排程政策。",
+      "then": "前者只能記來源出現/曝光；後者可形成特定task的回答證據；兩種影響可查。",
+      "must_fail_if": "兩者都直接當correct recall而取消必要檢核。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_exposure_store.py",
+            "selector": "ExposureStoreTests.test_natural_exposure_kinds_remain_typed_without_correctness"
+          },
+          {
+            "path": "tests/test_feedback_scheduling.py",
+            "selector": "FeedbackSchedulingTests.test_sc24_natural_exposure_is_visible_to_scheduler_without_advancing_or_scoring_due"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop1-20260920.json",
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "run_status": "automated_pass",
+      "revision": 1,
+      "result_note": "Typed events remain non-assessment; the scheduler exposes a manual snooze/changed-context signal without advancing or scoring the Due item."
+    },
+    {
+      "id": "SC-25",
+      "title": "實驗與完成狀態的界線",
+      "source_refs": [
+        "R-EXPERIMENT",
+        "U-READ"
+      ],
+      "given": "UI可用，只有N=1/自動smoke；無7/21天資料。",
+      "when": "輸出完成報告與comparison protocol。",
+      "then": "列測試類型、內容/時間/順序，baseline為實際偏好；未驗證效果不推論。",
+      "must_fail_if": "宣稱全部學習有效或以不交筆記算理解0分。",
+      "verification_method": "review_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-26",
+      "title": "模糊聯想可保存而不污染facts",
+      "source_refs": [
+        "B25-U",
+        "R-DATA"
+      ],
+      "given": "創意類比有原話但沒有精確ontology relation。",
+      "when": "保存、回找、查看Knowledge Graph。",
+      "then": "可保存soft link／association，原話可查；不強迫標fact或label。",
+      "must_fail_if": "必須填精確relation才能保存或renderer自動canonical/high。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-27",
+      "title": "多端閱讀與可存取操作",
+      "source_refs": [
+        "B27-U",
+        "U-STRUCT"
+      ],
+      "given": "同單元於桌面／1024×768與窄屏。",
+      "when": "讀、展開hierarchy、選詞求助、關閉panel、開始Practice。",
+      "then": "主要文字可讀、focus返回、無全頁横向溢位；實體device未測有標記。",
+      "must_fail_if": "以viewport測試冒充真iPad；小字樹遮住正文。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-28",
+      "title": "Evidence多向解析",
+      "source_refs": [
+        "R-DATA"
+      ],
+      "given": "一Evidence對0/1/2個Claim的fixtures。",
+      "when": "選Evidence，並反轉claim列表順序。",
+      "then": "Evidence可作焦點，多個候選完整且不因排序換選取。",
+      "must_fail_if": "find取第一項或沒有claim就拒讀Evidence。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-29",
+      "title": "有範圍的Graph而非全量複本",
+      "source_refs": [
+        "U-STRUCT",
+        "R-DATA",
+        "B26-U"
+      ],
+      "given": "OS多topic與跨topic Edge，含一爭議關係。",
+      "when": "開目前Lens／concept ego並按需展開。",
+      "then": "群組、scope、方向、hidden count與爭議皆可辨；圖與Reader不必等集合。",
+      "must_fail_if": "無邊界全量圖或為连通捏造Edge。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-30",
+      "title": "故障、回退與資料保留",
+      "source_refs": [
+        "R-RELIABILITY",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      ],
+      "given": "既有來源/筆記/attempt與單個損毀派生圖。",
+      "when": "關閉feature flag、restart server或故障view。",
+      "then": "來源與安全紀錄仍可讀；新舊history不刪；未知格式說明而非亂讀。",
+      "must_fail_if": "Graph錯誤拖垮全Reader或回退刪新紀錄。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_learning_catalog.py",
+            "selector": "LearningCatalogTests.test_structure_and_context_gloss_projection_failures_do_not_block_source_reader"
+          },
+          {
+            "path": "tests/test_durability_scale.py",
+            "selector": "DurabilityScaleTests.test_large_append_only_history_round_trips_without_identity_loss"
+          },
+          {
+            "path": "tests/test_obsidian_native_spike.py",
+            "selector": "ObsidianNativeArtifactTests.test_injected_native_write_failure_rolls_back_and_rerun_recovers"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json",
+          "docs/requirements/evidence/obsidian-native-v3-20260923.json"
+        ]
+      },
+      "run_status": "automated_partial",
+      "revision": 1
+    },
+    {
+      "id": "SC-31",
+      "title": "資料驅動多單元與輸入邊界",
+      "source_refs": [
+        "B27-U",
+        "R-RELIABILITY"
+      ],
+      "given": "OS、BitePacer與第三份安全小資料。",
+      "when": "用同一renderer載入，再模擬選定單篇來源匯入。",
+      "then": "無OS硬碼；來源schema/身份一致；fixture支援與live導入分開驗收。",
+      "must_fail_if": "複製三份JS或假稱支持任意材料。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_learning_catalog.py",
+            "selector": "LearningCatalogTests.test_three_units_load_with_structure_assist_and_three_or_more_activity_types"
+          },
+          {
+            "path": "web/tests/learn-workspace.test.js",
+            "selector": "SC-31 a third synthetic unit uses the same workspace renderer without unit-name branches"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "run_status": "automated_partial",
+      "revision": 1
+    },
+    {
+      "id": "SC-32",
+      "title": "未授權外送與AI透明fallback",
+      "source_refs": [
+        "B24-U",
+        "B26-U",
+        "R-RELIABILITY"
+      ],
+      "given": "無live API授权，source內含要求忽略規範的文字。",
+      "when": "閱讀解說／要求feedback。",
+      "then": "離線模式明示；transport零呼叫；source指令不成執行規範。",
+      "must_fail_if": "外送私人對話、讀key或把預製內容宣稱live模型結果。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-33",
+      "title": "optional/deferred不是刪掉",
+      "source_refs": [
+        "B27-U",
+        "U-GOV"
+      ],
+      "given": "有語音、跨平台、模型與浸泡候選，但本轮milestone較小。",
+      "when": "縮scope或結案。",
+      "then": "台帳保留ID、理由、重啟條件；回報局部完成與剩餘能力。",
+      "must_fail_if": "刪除需求後用較小分母宣稱100%。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-34",
+      "title": "dirty tree與資料擁有權",
+      "source_refs": [
+        "U-NIGHT",
+        "R-RELIABILITY"
+      ],
+      "given": "repo已有混合未提交變更與他人檔案。",
+      "when": "規劃/實作可逆切片。",
+      "then": "先記錄起點，只改任務檔，commit只含可辨識變更，無reset/clean。",
+      "must_fail_if": "為使working tree乾淨而清除／混合提交。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-35",
+      "title": "需求追溯與驗證證據",
+      "source_refs": [
+        "U-GOV",
+        "N-GOV"
+      ],
+      "given": "新的feature task與版本化台帳。",
+      "when": "生成context packet→綁implementation/tests→回報完成。",
+      "then": "有source、must/not、scenario、base revision、run evidence；缺少不可verified。",
+      "must_fail_if": "寫test路徑就代表已跑，或checker PASS被描述為產品PASS。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-36",
+      "title": "衝突與弱化變更不可靜默",
+      "source_refs": [
+        "U-GOV",
+        "N-GOV"
+      ],
+      "given": "baseline含Soak不作答與Notes optional。",
+      "when": "候選patch刪掉Soak、將optional改must或把驗收刪掉。",
+      "then": "delta可見，保留舊ID並提供明確decision；AI不能自行捏造user批准。",
+      "must_fail_if": "同一agent降規格+改測試後以全綠結案。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-37",
+      "title": "查驗、操作、恢復與原因不被混寫",
+      "source_refs": [
+        "B12-U",
+        "B13-U"
+      ],
+      "given": "紀錄包含唯讀PASS查驗、拼字錯誤而未執行的restart、稍後服務可用，以及使用者提出網路恢復假說。",
+      "when": "建立學習事件或精確續學時間線。",
+      "then": "分列觀察、未成功操作、恢復狀態、假說與後續依據；不宣稱查詢或使用者成功restart造成恢復。",
+      "must_fail_if": "AI後設摘要或時間相鄰被當成成功修復的行為與因果證據。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-38",
+      "title": "Obsidian-first 普通文章入口不要求學系統",
+      "source_refs": [
+        "U-OBS-FIRST",
+        "U-PA-HUMAN-FEEDBACK",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3",
+        "O-OBS-LINKS",
+        "O-OBS-MOBILE"
+      ],
+      "given": "LLM Wiki已有一篇可讀Markdown，KGnote plugin可啟用或停用。",
+      "when": "使用者從Obsidian打開文章並開始閱讀，尚未主動選取KGnote功能。",
+      "then": "主體仍是普通文章、links／backlinks／preview可沿用；不先顯示dashboard、內部record術語或要求任何輸入，plugin停用後Markdown仍可讀。",
+      "must_fail_if": "必須先理解Claim／Evidence／Lens／Attempt、切換多欄頁或離開Obsidian才能開始讀原文。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_materialize_reopen_links_source_bytes_and_idempotent_rerun"
+          },
+          {
+            "path": "tests/test_personal_alpha_presentation.py",
+            "selector": "PersonalAlphaPresentationTests.test_start_here_is_a_learning_entry_not_a_debug_dashboard"
+          },
+          {
+            "path": "tests/test_personal_alpha_presentation.py",
+            "selector": "PersonalAlphaPresentationTests.test_evidence_is_reachable_but_not_a_mandatory_learning_path_step"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-human-feedback-20260923.json",
+          "docs/requirements/evidence/personal-alpha-v3-projection-20260923.json"
+        ]
+      },
+      "run_status": "manual_fail",
+      "revision": 2,
+      "result_note": "product owner's earlier review remains manual_fail. The V3 learner-first remediation now passes Golden and generated-artifact automation, but PA-HUMAN-1 remains pending a new human review."
+    },
+    {
+      "id": "SC-39",
+      "title": "教材結構圖與熟悉後的知識漫遊圖不混用",
+      "source_refs": [
+        "U-OBS-FIRST",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3",
+        "O-OBS-CANVAS"
+      ],
+      "given": "同一領域有tree-like文章結構、typed組織關係與部分尚未熟悉Concept。",
+      "when": "使用者從結構圖定位文章，之後開啟Knowledge Roaming。",
+      "then": "結構圖從一開始可見、edge詳述可查且節點回Markdown anchor；漫遊圖只投影eligible Concept並沿用相同identity。",
+      "must_fail_if": "把tree membership寫成canonical knowledge Edge，或因文章／Concept曾出現就把全部未知節點放入漫遊圖。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_obsidian_native_spike.py",
+            "selector": "ObsidianNativeArtifactTests.test_hierarchical_canvas_is_deterministic_three_level_and_typed"
+          },
+          {
+            "path": "tests/test_obsidian_native_spike.py",
+            "selector": "ObsidianNativeArtifactTests.test_semantic_validator_reads_back_all_three_shapes"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/obsidian-native-v3-20260923.json"
+        ]
+      },
+      "run_status": "automated_partial",
+      "revision": 2,
+      "result_note": "The structure Canvas is now generated from the same canonical identity and resolves back to Markdown anchors. Knowledge Roaming eligibility and human Obsidian interaction remain unrun."
+    },
+    {
+      "id": "SC-40",
+      "title": "原句便利貼可收合展開且不靜默改原文",
+      "source_refs": [
+        "U-OBS-FIRST"
+      ],
+      "given": "使用者在一篇versioned Markdown中反白目前不懂、尚無獨立文章的詞。",
+      "when": "建立一句最低必要解釋並在閱讀時展開、收合、關閉重開，或取消／遇到stale anchor。",
+      "then": "解釋留在原句context、可編輯並有provenance；source snapshot不變，正式寫入可編輯文章必須另有preview與新revision。",
+      "must_fail_if": "每個便利貼都自動建Concept、取消仍留垃圾節點、stale anchor猜位置，或AI解釋無preview覆寫文章。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-41",
+      "title": "練習由有選項cloze逐步撤除支援",
+      "source_refs": [
+        "U-OBS-FIRST"
+      ],
+      "given": "一個新Target有reviewed原文span，使用者對具體詞彙尚不熟。",
+      "when": "先做原文挖空＋選項，再依可說明的事件或主動選擇進入提示與無提示回想。",
+      "then": "各活動共享Target／Source identity但分別記錄support、prompt revision、答案可見與Attempt；後期問法貼近原文，退階／保留提示／不知道均合法。",
+      "must_fail_if": "一開始只給自由回想、把選項題冒充無提示提取，或為測驗刻意換成無關的陌生問法。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-42",
+      "title": "問題先找來源再升級AI且擴充可審核",
+      "source_refs": [
+        "U-OBS-FIRST"
+      ],
+      "given": "閱讀或練習中提出一個可能由原文回答、也可能需要跨概念比較的問題。",
+      "when": "系統先檢索目前文章與直接連結來源，再判斷最低必要深度與是否升級AI。",
+      "then": "原文足夠時回最接近anchor且不呼叫live模型；不足時明示升級理由、限制與provenance，擴充只有preview接受後才成為文章新revision或linked note。",
+      "must_fail_if": "所有問題一律外送、AI自行判定並覆寫原文、偏題判斷不可申覆，或每次回答建立重複Concept。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-43",
+      "title": "複習清單與結構圖狀態一致且漫遊有門檻",
+      "source_refs": [
+        "U-OBS-FIRST"
+      ],
+      "given": "同一Target有可重放的排程、自然曝光、提示與無提示Attempt，並出現在教材結構圖。",
+      "when": "查看今日清單、結構圖顏色並決定是否進入Knowledge Roaming。",
+      "then": "兩種投影顯示相同可解釋狀態；顏色有文字替代；七天規則標為使用者選定方案；漫遊資格依行為evidence與override而非曝光或假百分比。",
+      "must_fail_if": "清單與圖矛盾、snooze建立Attempt、只閱讀就標成已回想／可漫遊，或把固定天數宣稱個人最佳遺忘曲線。",
+      "verification_method": "automated_and_manual",
+      "test_binding": null,
+      "run_status": "not_run",
+      "revision": 1
+    },
+    {
+      "id": "SC-44",
+      "title": "單一命令從選定 Markdown 建立 workspace",
+      "source_refs": [
+        "U-PERSONAL-ALPHA",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      ],
+      "given": "使用者有一份明示選定、UTF-8 且非空的 Markdown 與一個空白或既有的 allowlisted 目的地。",
+      "when": "依文件執行唯一 daily-use workflow，不編輯 JSON、Python、fixture、schema、ID，也不逐一呼叫 pipeline internals。",
+      "then": "命令先做完整 validation／preview，再一次安全 materialize 並回報可開啟的 entry note、來源 digest、created／updated／unchanged 摘要與下一步；失敗訊息可操作且不聲稱成功。",
+      "must_fail_if": "需要手寫 extraction response、複製生成 ID、詢問 Codex 下一條命令，或錯誤只留下 stack trace／半完成成功訊息。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_personal_alpha_analysis.py",
+            "selector": "PersonalAlphaAnalysisTests.test_hierarchical_preview_is_deterministic_zero_write_and_source_grounded"
+          },
+          {
+            "path": "tests/test_personal_alpha_analysis.py",
+            "selector": "PersonalAlphaAnalysisTests.test_malformed_sources_fail_with_actionable_codes_and_no_destination"
+          },
+          {
+            "path": "tests/test_personal_alpha_cli.py",
+            "selector": "PersonalAlphaCliTests.test_one_command_materializes_reports_entry_and_reruns_unchanged"
+          },
+          {
+            "path": "tests/test_personal_alpha_cli.py",
+            "selector": "PersonalAlphaCliTests.test_same_daily_command_handles_three_distinct_sources_and_reopens_cleanly"
+          },
+          {
+            "path": "tests/test_personal_alpha_cli.py",
+            "selector": "PersonalAlphaCliTests.test_input_and_managed_file_errors_are_actionable_without_traceback"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-pa1-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa3-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa4-20260922.json",
+          "docs/requirements/evidence/personal-alpha-v3-projection-20260923.json"
+        ]
+      },
+      "run_status": "automated_partial",
+      "revision": 1,
+      "result_note": "One command now validates, previews, materializes, read-backs, reports the entry path and safely reruns unchanged; documentation and errors require no internal-format edits. Manual daily usability remains PA-HUMAN-1."
+    },
+    {
+      "id": "SC-45",
+      "title": "Obsidian entry note 回答學習與 provenance 問題",
+      "source_refs": [
+        "U-PERSONAL-ALPHA",
+        "U-OBS-FIRST",
+        "U-PA-HUMAN-FEEDBACK",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      ],
+      "given": "一份含標題層級、概念敘述、關係線索與部分不確定內容的新 Markdown 已完成 materialization。",
+      "when": "使用者在 Obsidian 從生成的 entry note 閱讀並沿普通 wikilink／heading anchor 導覽。",
+      "then": "可找到材料概要、主要主題、重要概念、可支持的關係、每項來源 Evidence 與待確認清單；immutable source 可逐 byte 回讀，內部 record 不成為必經入口。",
+      "must_fail_if": "只能看到 canonical 檔名／enum／平面圖、關係沒有來源理由、派生摘要冒充原文，或 plugin／Web UI 不在時內容不可讀。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_personal_alpha_analysis.py",
+            "selector": "PersonalAlphaAnalysisTests.test_three_materially_different_markdown_shapes_share_one_contract"
+          },
+          {
+            "path": "tests/test_personal_alpha_analysis.py",
+            "selector": "PersonalAlphaAnalysisTests.test_every_concept_and_relation_resolves_to_exact_source_evidence"
+          },
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_materialize_reopen_links_source_bytes_and_idempotent_rerun"
+          },
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_all_three_markdown_shapes_materialize_and_reopen_without_source_links_leaking"
+          },
+          {
+            "path": "tests/test_personal_alpha_cli.py",
+            "selector": "PersonalAlphaCliTests.test_same_daily_command_handles_three_distinct_sources_and_reopens_cleanly"
+          },
+          {
+            "path": "tests/test_personal_alpha_presentation.py",
+            "selector": "PersonalAlphaPresentationTests.test_start_here_is_a_learning_entry_not_a_debug_dashboard"
+          },
+          {
+            "path": "tests/test_personal_alpha_presentation.py",
+            "selector": "PersonalAlphaPresentationTests.test_port_teaches_source_scoped_meaning_before_audit_details"
+          },
+          {
+            "path": "tests/test_personal_alpha_presentation.py",
+            "selector": "PersonalAlphaPresentationTests.test_relationships_lead_with_readable_propositions_and_plain_uncertainty"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-pa1-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa2-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa4-20260922.json",
+          "docs/requirements/evidence/personal-alpha-human-feedback-20260923.json",
+          "docs/requirements/evidence/personal-alpha-v3-projection-20260923.json"
+        ]
+      },
+      "run_status": "manual_fail",
+      "revision": 2,
+      "result_note": "product owner's earlier Obsidian result remains manual_fail. V3 now passes Golden and generated-artifact checks for learner-first Start Here, source-scoped concepts, readable relationships, on-demand Evidence, and preserved source bytes; a new human review has not run."
+    },
+    {
+      "id": "SC-46",
+      "title": "Personal Alpha 冪等重跑與交易式失敗回復",
+      "source_refs": [
+        "U-PERSONAL-ALPHA",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      ],
+      "given": "同一來源已成功 materialize，且測試可在 commit 前後的指定寫入點注入中斷或 I/O 失敗。",
+      "when": "先原樣重跑，再執行一個注入失敗的更新／建立流程並重新開啟 workspace。",
+      "then": "原樣重跑不新增等價 Concept／Evidence／relation 或覆寫人工內容；失敗後仍只有先前完整版本或完全沒有新 workspace，下一次合法重跑可恢復。",
+      "must_fail_if": "出現重複 canonical identity、部分新舊檔混合、人工檔案被靜默改寫、暫存檔被誤當正式內容，或需要 reset／手工 JSON 修復。",
+      "verification_method": "automated",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_materialize_reopen_links_source_bytes_and_idempotent_rerun"
+          },
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_source_update_preserves_user_notes_and_removes_no_unmanaged_files"
+          },
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_new_readable_concept_path_never_overwrites_user_owned_file"
+          },
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_local_edit_to_generated_file_fails_closed_without_overwrite"
+          },
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_injected_update_failure_rolls_back_to_previous_complete_workspace"
+          },
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_injected_new_workspace_failure_leaves_no_partial_target"
+          },
+          {
+            "path": "tests/test_personal_alpha_cli.py",
+            "selector": "PersonalAlphaCliTests.test_same_daily_command_handles_three_distinct_sources_and_reopens_cleanly"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-pa2-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa4-20260922.json",
+          "docs/requirements/evidence/personal-alpha-v3-projection-20260923.json"
+        ]
+      },
+      "run_status": "automated_pass",
+      "revision": 1,
+      "result_note": "Same-input rerun is unchanged; source updates preserve user-owned files; managed edits fail closed; injected failures after backup or commit restore the prior complete state or leave no new target."
+    },
+    {
+      "id": "SC-47",
+      "title": "三種 materially different 來源的 candidate verification",
+      "source_refs": [
+        "U-PERSONAL-ALPHA",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      ],
+      "given": "至少三份在領域、篇章形狀或關係表達上有明確差異的 Markdown fixture。",
+      "when": "每份都只經同一 documented daily-use workflow 建立、關閉後 read-back、原樣重跑，並執行完整 repository verification。",
+      "then": "三份均保存 source bytes/provenance、產生 coherent Obsidian workspace、無重複 canonical record 且 verifier 綠燈；狀態只標 candidate_verified。",
+      "must_fail_if": "fixture 只是換名字的複本、任一來源需手改內部格式、只檢查檔案存在、full verifier 未綠，或把 automated evidence 寫成 product owner 已接受 usability。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_personal_alpha_analysis.py",
+            "selector": "PersonalAlphaAnalysisTests.test_three_materially_different_markdown_shapes_share_one_contract"
+          },
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_all_three_markdown_shapes_materialize_and_reopen_without_source_links_leaking"
+          },
+          {
+            "path": "tests/test_personal_alpha_cli.py",
+            "selector": "PersonalAlphaCliTests.test_same_daily_command_handles_three_distinct_sources_and_reopens_cleanly"
+          },
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_injected_update_failure_rolls_back_to_previous_complete_workspace"
+          },
+          {
+            "path": "tests/test_personal_alpha_presentation.py",
+            "selector": "LearnerProjectionTests.test_three_source_shapes_keep_distinct_navigation_semantics"
+          },
+          {
+            "path": "tests/test_obsidian_native_spike.py",
+            "selector": "ObsidianNativeArtifactTests.test_semantic_validator_reads_back_all_three_shapes"
+          },
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_manual_continuation_requires_complete_exact_heading_or_block_target"
+          },
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_evidence_states_heading_jump_and_document_only_line_limit_honestly"
+          },
+          {
+            "path": "tests/test_personal_alpha_workspace.py",
+            "selector": "PersonalAlphaWorkspaceTests.test_source_update_preserves_user_notes_and_removes_no_unmanaged_files"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-pa1-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa2-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa3-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa4-20260922.json",
+          "docs/requirements/evidence/personal-alpha-v3-projection-20260923.json",
+          "docs/requirements/evidence/obsidian-native-v3-20260923.json"
+        ]
+      },
+      "run_status": "automated_partial",
+      "revision": 1,
+      "result_note": "The same workflows applied and reran unchanged for hierarchical, heading-free glossary, and procedural sources; V3 learner projection and native Canvas both have semantic read-back evidence. product owner's Obsidian usability acceptance remains PA-HUMAN-1."
+    },
+    {
+      "id": "SC-48",
+      "title": "Obsidian Personal Alpha 從進入教材到手動續讀重開的整合流程",
+      "source_refs": [
+        "U-PERSONAL-ALPHA-INTEGRATED-STAGE"
+      ],
+      "given": "一份已授權 fixture 經 documented daily workflow 產生 disposable local Obsidian workspace，且使用者未依賴 Codex 對話、未編輯 Python／JSON，也未安裝第三方 plugin。",
+      "when": "使用者以真正 vault root 開啟工作區，從 Start Here 閱讀 source/concepts/structure/relationships，按需核對 Evidence，留下 My Notes 與手動 Continue Here 的 note/section/next/question，關閉後重新開啟並沿入口返回記錄位置，選擇性開啟 Canvas。",
+      "then": "Markdown 本身完成連續可導航學習流程；Canvas 路徑以 vault root 解析並只提供可選增益；Reading view 第一眼是教材；Evidence 明示實際 locator 精度；regeneration 保留 user-owned bytes；工程、原生操作與尚待真人驗收的證據分層記錄。",
+      "must_fail_if": "validator 只在子目錄通過但真實 vault root 路徑錯誤、Start Here 找不到 Canvas/Continue Here、Canvas 成為必經、frontmatter 干擾主要閱讀、空模板或 recent file 被當成續讀完成、Evidence document link 被宣稱為精準段落定位、user-owned bytes 被覆寫，或 automated/read-back 結果提升任何 human gate。",
+      "verification_method": "automated_and_manual",
+      "test_binding": {
+        "test_refs": [
+          {
+            "path": "tests/test_obsidian_native_spike.py",
+            "selector": "ObsidianNativeArtifactTests.test_augmentation_adds_only_discoverability_markdown_and_reruns_byte_identically"
+          },
+          {
+            "path": "tests/test_obsidian_native_spike.py",
+            "selector": "ObsidianNativeArtifactTests.test_documented_native_command_reports_exact_vault_root_and_reruns_unchanged"
+          },
+          {
+            "path": "tests/test_obsidian_native_spike.py",
+            "selector": "ObsidianNativeArtifactTests.test_semantic_validator_reads_back_all_three_shapes"
+          },
+          {
+            "path": "tests/test_obsidian_native_spike.py",
+            "selector": "ObsidianNativeArtifactTests.test_integrated_trial_flow_reads_back_and_preserves_all_three_shapes"
+          }
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-v3-partial-feedback-20260927.json",
+          "docs/requirements/evidence/personal-alpha-rp-pa-1-20260927.json",
+          "docs/requirements/evidence/personal-alpha-rp-pa-2-20260927.json",
+          "docs/requirements/evidence/personal-alpha-rp-pa-3-20260927.json"
+        ]
+      },
+      "run_status": "automated_partial",
+      "revision": 1,
+      "result_note": "RP-PA-1 covers exact vault-root semantics, optional Canvas discovery, and disposable Reading-view files. RP-PA-2 adds a manual exact heading/block continuation read-back that rejects an empty starter or stale anchor, honest heading-versus-document-only Evidence navigation, and byte-preserving same-input/source-update regeneration. RP-PA-3 exercises the documented preparation command across all three accepted source shapes, reads back the integrated flow, preserves learner-owned Markdown across rerun/update, and provides an exact concentrated-trial handoff plus recoverable prior candidate. The native/human trial remains not run; earlier manual_fail evidence and both pending human gates remain unchanged."
+    }
+  ]
+}

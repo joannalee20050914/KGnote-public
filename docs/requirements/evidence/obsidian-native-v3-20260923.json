@@ -1,0 +1,85 @@
+{
+  "schema_version": "kgnote.actual-run-evidence.v1",
+  "evidence_id": "RUN-OBSIDIAN-NATIVE-V3-20260923",
+  "recorded_at": "2026-09-23T03:08:00+08:00",
+  "goal_id": "GOAL-OBSIDIAN-LEARNER-PROJECTION-AND-NATIVE-SPIKE-V3",
+  "milestone_ids": ["NS-1", "NS-2"],
+  "result": "automated_pass",
+  "decision": "native_sufficient_for_next_reading_slice",
+  "requirements_baseline_id": "kgnote-reconciliation-2026-09-23-r6",
+  "implementation_refs": [
+    "src/kgnote/obsidian_native/spike.py",
+    "src/kgnote/obsidian_native/validator.py",
+    "scripts/kgnote_obsidian_spike.py"
+  ],
+  "test_refs": [
+    "tests/test_obsidian_native_spike.py"
+  ],
+  "commands": [
+    "PYTHONPATH=src .venv/bin/python -m unittest -v tests.test_obsidian_native_spike",
+    "PYTHONPATH=src .venv/bin/python scripts/kgnote_obsidian_spike.py tests/fixtures/personal-alpha/hierarchical/network-path.md --vault output/obsidian-native-spike/v3-vault --space networking",
+    "PYTHONPATH=src .venv/bin/python scripts/kgnote_obsidian_spike.py tests/fixtures/personal-alpha/glossary/harmony-glossary.md --vault output/obsidian-native-spike/v3-vault --space music",
+    "PYTHONPATH=src .venv/bin/python scripts/kgnote_obsidian_spike.py tests/fixtures/personal-alpha/procedural/seed-starting.md --vault output/obsidian-native-spike/v3-vault --space gardening"
+  ],
+  "test_result": {
+    "tests_run": 10,
+    "failures": 0,
+    "errors": 0
+  },
+  "artifact_root": "output/obsidian-native-spike/v3-vault/KGnote Alpha",
+  "artifact_fingerprint_algorithm": "sha256-canonical-json-file-inventory-v1",
+  "artifact_fingerprint": "1764fe4e962f2e169b6e41c995fdaf8b3041cc58d04bca4da961c534021e5c9f",
+  "file_count": 53,
+  "workspaces": [
+    {
+      "shape": "hierarchical",
+      "path": "output/obsidian-native-spike/v3-vault/KGnote Alpha/network-path-a178f811",
+      "nodes": 5,
+      "edges": 4,
+      "canonical_digest": "b3f1596045f2f05163954474203ca81d5bb50005e16d8fbbc39e2dde9cf648e4",
+      "markdown_digest": "0f74e6e48181d6328332356c70ef3187bcccca563c14b3df705985810d10184f",
+      "rerun": "unchanged",
+      "read_back": "pass"
+    },
+    {
+      "shape": "heading_free",
+      "path": "output/obsidian-native-spike/v3-vault/KGnote Alpha/harmony-glossary-47e57045",
+      "nodes": 3,
+      "edges": 2,
+      "canonical_digest": "dbbd6efe034b9395c26c410a8e298c8d0b97ab6e761a96d7046b4996893e10b0",
+      "markdown_digest": "6e8e0ad3808be13d7a983dc23e74d2c8cff794956b28985e63eeb05f5554b467",
+      "rerun": "unchanged",
+      "read_back": "pass"
+    },
+    {
+      "shape": "procedural",
+      "path": "output/obsidian-native-spike/v3-vault/KGnote Alpha/seed-starting-5b1d9846",
+      "nodes": 7,
+      "edges": 6,
+      "canonical_digest": "835ecda787448bc26b2cd1f309887d90a282a0871d1a99e21d4caeb17aa45d34",
+      "markdown_digest": "15e358006672135c6ba47f7a9825de7cc63ab22c5c444162a923c0cf908ba99e",
+      "rerun": "unchanged",
+      "read_back": "pass"
+    }
+  ],
+  "negative_evidence": [
+    "malformed Canvas rejected",
+    "duplicate IDs rejected",
+    "dangling endpoints rejected",
+    "stale heading and block anchors rejected",
+    "absolute and traversal paths rejected",
+    "symlink escape rejected",
+    "user-owned collision rejected without overwrite",
+    "injected failure rolled back and rerun recovered",
+    "heading-free hierarchy invention rejected",
+    "procedural causality promotion rejected"
+  ],
+  "claims": {
+    "candidate_verified": false,
+    "release_verified": false,
+    "pa_human_1": "pending_human_review",
+    "obsidian_human_smoke": "not_run",
+    "mobile_accepted": false,
+    "learning_effectiveness_verified": false
+  }
+}

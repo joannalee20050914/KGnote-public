@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kgnote.review-history-index.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "protocol_version", "event_count", "last_event_id", "reviews", "findings"],
+  "properties": {
+    "schema_version": {"const": "kgnote.review-history-index.v1"},
+    "protocol_version": {"const": "kgnote.review-protocol.v1"},
+    "event_count": {"type": "integer", "minimum": 0},
+    "last_event_id": {"type": ["string", "null"]},
+    "reviews": {"type": "object"},
+    "findings": {"type": "object"}
+  }
+}

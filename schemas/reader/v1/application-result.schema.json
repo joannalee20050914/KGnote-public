@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/reader/v1/application-result.schema.json",
+  "title": "KGnote safe Reader application result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "status", "response_headers"],
+  "properties": {
+    "schema_version": {"const": "kgnote.reader-application.v1"},
+    "status": {"enum": ["ready", "rejected"]},
+    "response_headers": {"$ref": "#/$defs/responseHeaders"},
+    "document": {"$ref": "#/$defs/document"},
+    "problem": {"$ref": "#/$defs/problem"}
+  },
+  "oneOf": [
+    {"properties": {"status": {"const": "ready"}}, "required": ["document"], "not": {"required": ["problem"]}},
+    {"properties": {"status": {"const": "rejected"}}, "required": ["problem"], "not": {"required": ["document"]}}
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "idList": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "locator": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "value"],
+      "properties": {"kind": {"const": "line_range"}, "value": {"type": "string", "pattern": "^L[1-9][0-9]*-L[1-9][0-9]*$"}}
+    },
+    "responseHeaders": {
+      "type": "object", "additionalProperties": false,
+      "required": ["Cache-Control", "Content-Security-Policy", "Referrer-Policy", "X-Content-Type-Options", "X-Frame-Options"],
+      "properties": {
+        "Cache-Control": {"const": "no-store"},
+        "Content-Security-Policy": {"const": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"},
+        "Referrer-Policy": {"const": "no-referrer"},
+        "X-Content-Type-Options": {"const": "nosniff"},
+        "X-Frame-Options": {"const": "DENY"}
+      }
+    },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "label", "source_kind", "captured_at", "content_sha256"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^src_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "label": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^(?=.*\\S)[^\\[\\]|#^\\r\\n]+$"},
+        "source_kind": {"type": "string", "minLength": 1},
+        "captured_at": {"type": ["string", "null"], "format": "date-time"},
+        "content_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "annotation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidence_id", "locator", "proposition", "review_status", "concept_ids", "edge_ids"],
+      "properties": {
+        "evidence_id": {"type": "string", "pattern": "^evidence_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "locator": {"$ref": "#/$defs/locator"},
+        "proposition": {"type": "string", "minLength": 1},
+        "review_status": {"enum": ["accepted", "corrected"]},
+        "concept_ids": {"$ref": "#/$defs/idList"},
+        "edge_ids": {"$ref": "#/$defs/idList"}
+      }
+    },
+    "focus": {
+      "type": "object", "additionalProperties": false,
+      "required": ["locator", "start_line", "end_line", "excerpt", "evidence_ids", "concept_ids", "edge_ids"],
+      "properties": {
+        "locator": {"$ref": "#/$defs/locator"},
+        "start_line": {"type": "integer", "minimum": 1},
+        "end_line": {"type": "integer", "minimum": 1},
+        "excerpt": {"type": "string"},
+        "evidence_ids": {"$ref": "#/$defs/idList"},
+        "concept_ids": {"$ref": "#/$defs/idList"},
+        "edge_ids": {"$ref": "#/$defs/idList"}
+      }
+    },
+    "document": {
+      "type": "object", "additionalProperties": false,
+      "required": ["snapshot_sha256", "source", "content", "byte_length", "line_count", "focus", "annotations"],
+      "properties": {
+        "snapshot_sha256": {"$ref": "#/$defs/sha256"},
+        "source": {"$ref": "#/$defs/source"},
+        "content": {"type": "string"},
+        "byte_length": {"type": "integer", "minimum": 1},
+        "line_count": {"type": "integer", "minimum": 1},
+        "focus": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/focus"}]},
+        "annotations": {"type": "array", "items": {"$ref": "#/$defs/annotation"}}
+      }
+    },
+    "problem": {
+      "type": "object", "additionalProperties": false, "required": ["component", "code", "path"],
+      "properties": {
+        "component": {"enum": ["store", "projector", "query", "source", "reader"]},
+        "code": {"type": "string", "minLength": 1},
+        "path": {"type": "array", "items": {"type": ["string", "integer"]}}
+      }
+    }
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "schema_version": "kgnote.actual-run-evidence.v1",
+  "evidence_id": "RUN-PERSONAL-ALPHA-RP-PA-3-20260927",
+  "recorded_at": "2026-09-27T20:48:25+08:00",
+  "goal_id": "GOAL-OBSIDIAN-PERSONAL-ALPHA-INTEGRATED-V1",
+  "milestone_id": "RP-PA-3",
+  "result": "automated_pass_pending_orchestrator_validation_and_review",
+  "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
+  "requirement_ids": [
+    "KG-ALPHA-01",
+    "KG-ALPHA-02",
+    "KG-ALPHA-03",
+    "KG-ALPHA-04",
+    "KG-ALPHA-05",
+    "KG-GOV-07"
+  ],
+  "scenario_ids": ["SC-38", "SC-45", "SC-46", "SC-47", "SC-48"],
+  "commands": [
+    "PYTHONPATH=src:. .venv/bin/python -m unittest tests.test_obsidian_native_spike.ObsidianNativeArtifactTests.test_integrated_trial_flow_reads_back_and_preserves_all_three_shapes -v",
+    "PYTHONPATH=src:. .venv/bin/python -m unittest -v tests.test_personal_alpha_analysis tests.test_personal_alpha_cli tests.test_personal_alpha_presentation tests.test_personal_alpha_workspace tests.test_obsidian_native_spike",
+    "python3 docs/requirements/requirements_guard.py check --repo .",
+    "python3 scripts/kgnote_obsidian_spike.py tests/fixtures/personal-alpha/hierarchical/network-path.md --vault output/personal-alpha/rp-pa-3-integrated-candidate --space personal-alpha-trial",
+    "git diff --check"
+  ],
+  "focused_test_result": {
+    "integrated_test_runs": 1,
+    "fixtures_exercised": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  "focused_suite_result": {
+    "tests_run": 40,
+    "failures": 0,
+    "errors": 0
+  },
+  "integrated_candidate": {
+    "vault_root": "output/personal-alpha/rp-pa-3-integrated-candidate/KGnote Alpha/network-path-a178f811",
+    "entry_path": "output/personal-alpha/rp-pa-3-integrated-candidate/KGnote Alpha/network-path-a178f811/Start Here.md",
+    "canvas_path": "output/personal-alpha/rp-pa-3-integrated-candidate/KGnote Alpha/network-path-a178f811/Learning Structure.canvas",
+    "source_sha256": "2df7ea0ff998afb4afe369b38d5a3b5830e8f24397091a083e5cf15364078e2a",
+    "canonical_digest": "c9d39cfc9676ff354345dc731ef59ef710df3f4dec05d6bc0928848d2f64a784",
+    "markdown_digest": "69679151b96fecada2574e8b1047f8334190ae15acd3bc3084e05d7afa44f614",
+    "nodes": 5,
+    "edges": 4,
+    "checked_files": 5,
+    "checked_anchors": 4,
+    "read_back": "pass"
+  },
+  "three_fixture_read_back": {
+    "hierarchical": "pass",
+    "heading_free": "pass",
+    "procedural": "pass",
+    "verified_flow": [
+      "documented one-command preparation",
+      "exact vault-root and Start Here reporting",
+      "source, concepts, source-supported structure, relationships, and on-demand Evidence",
+      "manual heading continuation after reopen read-back",
+      "optional Canvas and Reading-view static validation",
+      "same-input idempotency",
+      "source-update preservation of My Notes, Continue Here, and unmanaged Markdown"
+    ]
+  },
+  "regression_repaired": {
+    "problem": "The native Markdown digest previously included user-owned and unmanaged Markdown, so valid notes or continuation changes falsely invalidated the optional Canvas candidate.",
+    "resolution": "The digest now follows the Personal Alpha managed-file ownership inventory and excludes learner-owned Markdown while retaining generated lesson/source integrity checks.",
+    "test": "ObsidianNativeArtifactTests.test_integrated_trial_flow_reads_back_and_preserves_all_three_shapes"
+  },
+  "handoff": {
+    "path": "docs/obsidian/PERSONAL_ALPHA_INTEGRATED_TRIAL.md",
+    "trial_scenarios": 3,
+    "previous_candidate": "output/obsidian-native-spike/v3-vault/KGnote Alpha/network-path-a178f811",
+    "previous_candidate_archive": "output/obsidian-native-spike/v3-vault/KGnote Alpha/network-path-a178f811.zip"
+  },
+  "evidence_boundary": {
+    "static_generated_artifact_and_navigation_checks": "automated_pass",
+    "native_obsidian_application_behavior": "not_run",
+    "human_close_reopen_usability": "not_run",
+    "mobile_behavior": "not_run",
+    "learning_effectiveness": "not_run"
+  },
+  "claims": {
+    "candidate_verified": false,
+    "release_verified": false,
+    "pa_human_1": "pending_human_review",
+    "ns_human_smoke": "not_run",
+    "learning_effectiveness_verified": false
+  }
+}

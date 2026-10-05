@@ -1,0 +1,89 @@
+{
+  "schema_version": "kgnote.actual-run-evidence.v1",
+  "evidence_id": "RUN-PERSONAL-ALPHA-RP-PA-2-20260927",
+  "recorded_at": "2026-09-27T22:00:00+08:00",
+  "goal_id": "GOAL-OBSIDIAN-PERSONAL-ALPHA-INTEGRATED-V1",
+  "milestone_id": "RP-PA-2",
+  "result": "automated_pass_pending_orchestrator_validation_and_review",
+  "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
+  "requirement_ids": ["KG-ALPHA-03", "KG-ALPHA-05", "KG-STR-08"],
+  "scenario_ids": ["SC-45", "SC-46", "SC-48"],
+  "commands": [
+    "PYTHONPATH=src python3 -m unittest -v tests.test_personal_alpha_workspace tests.test_personal_alpha_presentation tests.test_personal_alpha_cli tests.test_obsidian_native_spike",
+    "python3 docs/requirements/requirements_guard.py check --repo .",
+    "git diff --check",
+    "scripts/codex_verify.sh",
+    "PYTHONPATH=src .venv/bin/python <non-socket unittest selection>"
+  ],
+  "focused_test_result": {
+    "tests_run": 35,
+    "failures": 0,
+    "errors": 0
+  },
+  "full_verifier_result": {
+    "result": "environment_blocked",
+    "evidence_path": "output/control-plane/verification-20260927T203907+0800.json",
+    "passing_gates": [
+      "requirements_guard",
+      "requirements_guard_tests_16_of_16",
+      "control_plane_tests_57_of_57",
+      "node_tests_54_of_54",
+      "strict_git_diff_check",
+      "untracked_whitespace"
+    ],
+    "blocked_gate": "python_product_tests",
+    "blocked_reason": "Eight legacy HTTP tests could not bind 127.0.0.1 in the restricted execution sandbox and raised PermissionError before assertions; no product assertion failed.",
+    "non_socket_product_regression": "263 tests passed with 0 failures and 0 errors using the repository venv; only socket-binding modules/classes were excluded from this supplemental run.",
+    "candidate_verified": false
+  },
+  "generated_artifact_read_back": {
+    "fixtures": [
+      {
+        "shape": "hierarchical",
+        "checked_links": 72,
+        "source_bytes_equal": true,
+        "heading_navigation": true,
+        "continuation_heading_target": "recorded_and_resolved"
+      },
+      {
+        "shape": "heading_free_glossary",
+        "checked_links": 42,
+        "source_bytes_equal": true,
+        "document_only_limitation": true
+      },
+      {
+        "shape": "procedural",
+        "checked_links": 65,
+        "source_bytes_equal": true,
+        "heading_navigation": true
+      }
+    ],
+    "artifact_location": "ephemeral disposable directory; no private or formal vault accessed"
+  },
+  "assertions": {
+    "manual_continuation_requires_exact_heading_or_block_link": "pass",
+    "empty_starter_is_not_completed_continuation": "pass",
+    "mismatched_or_stale_continuation_target_is_rejected": "pass",
+    "recent_file_or_activity_is_not_used_as_continuation": "pass",
+    "unique_source_heading_link_opens_containing_section": "pass",
+    "heading_free_source_link_is_explicitly_document_only": "pass",
+    "line_range_is_not_claimed_as_a_native_jump_anchor": "pass",
+    "same_input_user_owned_bytes_preserved": "pass",
+    "source_update_user_owned_bytes_preserved": "pass",
+    "unmanaged_user_file_bytes_preserved": "pass",
+    "generated_heading_anchors_resolve_during_read_back": "pass"
+  },
+  "evidence_boundary": {
+    "static_generated_artifact_and_navigation_checks": "automated_pass",
+    "native_obsidian_application_behavior": "not_run",
+    "human_close_reopen_usability": "not_run",
+    "mobile_behavior": "not_run"
+  },
+  "claims": {
+    "candidate_verified": false,
+    "release_verified": false,
+    "pa_human_1": "pending_human_review",
+    "ns_human_smoke": "not_run",
+    "learning_effectiveness_verified": false
+  }
+}

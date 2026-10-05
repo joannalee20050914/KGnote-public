@@ -1,0 +1,37 @@
+{
+  "schema_version": "kgnote.requirements-run-evidence.v1",
+  "run_id": "personal-alpha-pa3-20260922",
+  "goal_id": "GOAL-OBSIDIAN-PERSONAL-ALPHA-V1",
+  "milestone_id": "PA-3",
+  "repository_head": "47269690f3d389f6ce2ddf43a79b1e7e7f6324e2",
+  "branch": "codex/control-plane-bootstrap",
+  "working_tree": "dirty; approved checkpoint plus owned PA-0 through PA-3 changes; no commit",
+  "runs": [
+    {
+      "command": "PYTHONPATH=src .venv/bin/python -m unittest -v tests.test_personal_alpha_cli",
+      "result": "pass",
+      "tests": 3,
+      "scope": "one-command apply and unchanged rerun, preview-only zero writes, actionable input and managed-file conflict errors without traceback"
+    },
+    {
+      "command": "python3 scripts/kgnote_alpha.py --help",
+      "result": "pass",
+      "scope": "single explicit source, required vault destination, optional space, optional preview-only"
+    },
+    {
+      "command": "python3 scripts/kgnote_alpha.py tests/fixtures/personal-alpha/procedural/seed-starting.md --vault <temporary-vault> --space gardening (run twice)",
+      "result": "pass",
+      "scope": "first run exited 0 with 13 generated files and read-back passed; identical second run exited 0 with 13 unchanged and zero created/updated"
+    }
+  ],
+  "documentation": [
+    "README.md",
+    "docs/WORKFLOW.md"
+  ],
+  "limits": [
+    "The command is local-only and deterministic; semantic completeness still depends on explicit Markdown signals.",
+    "Generated files fail closed on local edits; My Notes.md and other unmanaged files are the user-owned continuation surface.",
+    "Automated CLI success does not establish product owner's Obsidian daily-usability acceptance.",
+    "Three-source full-command candidate verification remains PA-4."
+  ]
+}
