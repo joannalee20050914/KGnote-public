@@ -2,7 +2,7 @@
   "schema_version": "kgnote.orchestrator-state.v1",
   "run_id": "orch-canonical-public-migration-v1",
   "active_goal": "GOAL-KGNOTE-CANONICAL-PUBLIC-MIGRATION-V1",
-  "work_package": "MIG-PUBLIC-SAFETY",
+  "work_package": "MIG-CANONICAL-PR",
   "state": "IMPLEMENTING",
   "current_agent": "CODEX_IMPLEMENTER",
   "candidate_fingerprint": null,

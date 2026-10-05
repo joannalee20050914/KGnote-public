@@ -9,7 +9,7 @@ This file contains exactly one active execution goal. It does not change KGnote 
   "goal_id": "GOAL-KGNOTE-CANONICAL-PUBLIC-MIGRATION-V1",
   "objective": "Promote the verified sanitized KGnote history into one new canonical public repository, initialize one canonical Draft PR, and validate the ChatGPT Work pull-request event transport without exposing the old repository's stale pull refs.",
   "status": "active",
-  "active_milestone_id": "MIG-PUBLIC-SAFETY",
+  "active_milestone_id": "MIG-CANONICAL-PR",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
   "explicit_direction": {
@@ -70,7 +70,7 @@ This file contains exactly one active execution goal. It does not change KGnote 
     {
       "id": "MIG-PUBLIC-SAFETY",
       "title": "Public-history safety and recovery verification",
-      "status": "active",
+      "status": "complete",
       "dependencies": [],
       "human_gate": "none",
       "owned_paths": [".git/", ".ai/", "docs/control-plane/", "PLAN.md", "CODEX_STATUS.md"],
@@ -79,7 +79,7 @@ This file contains exactly one active execution goal. It does not change KGnote 
     {
       "id": "MIG-REPOSITORY",
       "title": "New public canonical repository and remote transition",
-      "status": "pending",
+      "status": "complete",
       "dependencies": ["MIG-PUBLIC-SAFETY"],
       "human_gate": "none",
       "owned_paths": [".git/", "docs/control-plane/", "PLAN.md", "CODEX_STATUS.md"],
@@ -88,7 +88,7 @@ This file contains exactly one active execution goal. It does not change KGnote 
     {
       "id": "MIG-CANONICAL-PR",
       "title": "Canonical autonomous-review branch and Draft PR",
-      "status": "pending",
+      "status": "active",
       "dependencies": ["MIG-REPOSITORY"],
       "human_gate": "none",
       "owned_paths": [".ai/", "docs/control-plane/", "PLAN.md", "CODEX_STATUS.md"],
