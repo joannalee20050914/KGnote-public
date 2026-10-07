@@ -276,6 +276,7 @@ class OrchestrationSimulationTests(unittest.TestCase):
                 "candidate_repository": "owner/public", "trigger_repository": "owner/public",
                 "review_request_repository": "owner/public", "archive_repository": "owner/archive",
                 "review_pr_number": 1, "request_marker": "REQUEST_V2",
+                "max_product_review_rounds": 8,
             }
             external = {
                 "canonical_repository": "owner/public", "candidate_repository": "owner/public",
