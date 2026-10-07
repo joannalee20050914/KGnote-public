@@ -32,6 +32,12 @@ class PublicationTransitionTests(unittest.TestCase):
     def test_exact_remote_snapshot_passes(self):
         self.assertEqual([], PUBLISH.remote_snapshot_errors(self.config, self.state, self.snapshot))
 
+    def test_command_runner_preserves_leading_porcelain_status_column(self):
+        completed = mock.Mock(returncode=0, stdout=" M .ai/ORCHESTRATION_HISTORY/events.jsonl\n", stderr="")
+        with mock.patch.object(PUBLISH.subprocess, "run", return_value=completed):
+            output = PUBLISH._run(["git", "status", "--porcelain"], cwd=ROOT)
+        self.assertTrue(output.startswith(" M .ai/"))
+
     def test_fresh_process_resolves_exact_candidate_only_from_pr_and_recomputed_fingerprint(self):
         observed = {"headRefOid": "a" * 40, "body": self.snapshot["body"]}
         self.assertEqual(self.state, PUBLISH.resolve_pr_candidate(self.config, observed, "b" * 64))
@@ -63,7 +69,8 @@ class PublicationTransitionTests(unittest.TestCase):
             def runner(command, *, cwd):
                 calls.append(command)
                 if command[:3] == ["git", "rev-parse", "HEAD"]: return "a" * 40
-                if command[:3] == ["git", "status", "--porcelain"]: return "?? .ai/ORCHESTRATOR.lock"
+                if command[:3] == ["git", "status", "--porcelain"]:
+                    return " M .ai/ORCHESTRATION_HISTORY/events.jsonl\n?? .ai/ORCHESTRATOR.lock"
                 if command[:4] == ["git", "remote", "get-url", "origin"]: return "https://github.com/owner/public.git"
                 if command[:3] == ["git", "branch", "--show-current"]: return "codex/candidate"
                 if command[:3] == ["gh", "pr", "view"] and command[-1] == "body": return json.dumps({"body": "PR"})

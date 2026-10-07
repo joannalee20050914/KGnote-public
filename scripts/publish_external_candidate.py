@@ -74,7 +74,10 @@ def _run(command: list[str], *, cwd: Path) -> str:
     completed = subprocess.run(command, cwd=cwd, text=True, capture_output=True)
     if completed.returncode:
         raise PublicationError(f"command failed closed: {' '.join(command[:3])}: {completed.stderr.strip()}")
-    return completed.stdout.strip()
+    # Preserve leading porcelain-status columns.  Removing leading whitespace
+    # turns a tracked path such as `.ai/...` into `ai/...` on the first row and
+    # can falsely classify orchestrator-owned mutable state as candidate bytes.
+    return completed.stdout.rstrip("\r\n")
 
 
 def publish(repo: Path, runner: Callable[..., str] | None = None) -> dict[str, Any]:
