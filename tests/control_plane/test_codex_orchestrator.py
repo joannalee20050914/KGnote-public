@@ -333,6 +333,9 @@ class OrchestrationSimulationTests(unittest.TestCase):
 
             self.assertEqual(result["state"], "AWAITING_EXTERNAL_PRODUCT_REVIEW")
             self.assertFalse(result["human_action_required"])
+            self.assertEqual(result["review_id"], "review-011")
+            self.assertEqual(result["candidate_fingerprint"], "b" * 64)
+            self.assertEqual(result["candidate_custody"]["status"], "NONE")
             self.assertTrue(any(command[:3] == ["git", "push", "origin"] for command in remote_commands))
             schema = json.loads((ROOT / ".ai/schemas/orchestrator-state.schema.json").read_text())
             Draft202012Validator(schema).validate(json.loads((root / ".ai/ORCHESTRATOR_STATE.json").read_text()))

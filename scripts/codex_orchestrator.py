@@ -544,6 +544,9 @@ def advance_after_pass(repo: Path, state: dict[str, Any]) -> None:
                 state,
                 "AWAITING_EXTERNAL_PRODUCT_REVIEW",
                 f"Exact candidate published at {publication['artifact_url']}; await and consume the configured ChatGPT Work event result automatically.",
+                review_id=request.get("review_id"),
+                candidate_fingerprint=fingerprint,
+                candidate_custody={"status": "NONE", "owner": None, "review_id": None, "fingerprint": None},
             )
             return
     if active.get("id") == "AR-PUBLISH":

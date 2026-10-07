@@ -563,6 +563,44 @@ class RepositoryIntegrityTests(unittest.TestCase):
     def test_external_review_wait_state_survives_fresh_session_preflight(self):
         self.assertIn("AWAITING_EXTERNAL_PRODUCT_REVIEW", CONTROL.ORCHESTRATOR_STATES)
 
+    def test_external_review_wait_state_binds_current_review_identity(self):
+        plan = {"goal_id": "goal-1", "active_milestone_id": "milestone-1"}
+        request = {
+            "status": "PASS",
+            "review_id": "review-001",
+            "candidate_fingerprint": "b" * 64,
+        }
+        state = json.loads((ROOT / ".ai/ORCHESTRATOR_STATE.json").read_text())
+        state.update({
+            "active_goal": "goal-1",
+            "work_package": "milestone-1",
+            "state": "AWAITING_EXTERNAL_PRODUCT_REVIEW",
+            "review_id": "review-001",
+            "candidate_fingerprint": "b" * 64,
+            "human_action_required": False,
+            "candidate_custody": {
+                "status": "NONE", "owner": None, "review_id": None, "fingerprint": None,
+            },
+        })
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            (repo / ".ai").mkdir()
+            (repo / ".ai/ORCHESTRATOR_STATE.json").write_text(json.dumps(state))
+            self.assertEqual([], CONTROL.validate_orchestrator_state(repo, plan, request))
+            state["review_id"] = "review-stale"
+            (repo / ".ai/ORCHESTRATOR_STATE.json").write_text(json.dumps(state))
+            self.assertIn(
+                "waiting review_id differs",
+                " ".join(CONTROL.validate_orchestrator_state(repo, plan, request)),
+            )
+            state["review_id"] = "review-001"
+            state["candidate_fingerprint"] = "c" * 64
+            (repo / ".ai/ORCHESTRATOR_STATE.json").write_text(json.dumps(state))
+            self.assertIn(
+                "waiting fingerprint differs",
+                " ".join(CONTROL.validate_orchestrator_state(repo, plan, request)),
+            )
+
     def test_fresh_agent_can_reconstruct_resume_state_from_repository_only(self):
         plan, status = CONTROL.load_plan_status(ROOT)
         request, result, decisions = CONTROL.load_review_artifacts(ROOT)

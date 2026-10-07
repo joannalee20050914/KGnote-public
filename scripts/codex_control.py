@@ -282,6 +282,15 @@ def validate_orchestrator_state(
         errors.append("orchestrator_state: READY_FOR_AI_REVIEW requires a sealed READY_FOR_REVIEW request")
     if state.get("state") == "REVIEWING" and request.get("status") != "UNDER_REVIEW":
         errors.append("orchestrator_state: REVIEWING requires UNDER_REVIEW custody")
+    if state.get("state") == "AWAITING_EXTERNAL_PRODUCT_REVIEW":
+        if request.get("status") != "PASS":
+            errors.append("orchestrator_state: external-review wait requires internal PASS")
+        if state.get("review_id") != request.get("review_id"):
+            errors.append("orchestrator_state: waiting review_id differs from current request")
+        if state.get("candidate_fingerprint") != request.get("candidate_fingerprint"):
+            errors.append("orchestrator_state: waiting fingerprint differs from current request")
+        if not isinstance(custody, dict) or custody.get("status") != "NONE":
+            errors.append("orchestrator_state: external-review wait requires released candidate custody")
     human_states = {
         "HUMAN_CHECKPOINT_REQUIRED", "PRODUCT_DECISION_REQUIRED", "AUTHORITY_CONFLICT",
         "AUTOMATION_BLOCKED", "BUDGET_EXHAUSTED",
