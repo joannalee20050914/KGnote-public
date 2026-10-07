@@ -265,7 +265,10 @@ class OrchestratorDurabilityTests(unittest.TestCase):
         target_milestone = (
             active_milestones[0]
             if len(active_milestones) == 1
-            else plan["milestones"][-1]
+            else next(
+                milestone for milestone in plan["milestones"]
+                if milestone.get("human_gate", "none") in {"none", "complete"}
+            )
         )
         target_milestone_id = target_milestone["id"]
         plan["status"] = "active"

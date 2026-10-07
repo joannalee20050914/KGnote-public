@@ -37,6 +37,8 @@ candidate-complete 時依序：
 
 `PASS` 只對 result 中 exact review ID、revision 與 fingerprint 有效。任何 candidate byte drift 都使它 stale。orchestrator archive PASS 後，若下一 work package dependencies 完成且沒有該 package 的 human checkpoint，必須自動前進；不得因 routine test/build failure、review failure、agent/thread 結束或 context rollover 等待 human。PASS 仍須服從 PLAN dependency 與 explicit human checkpoints；尤其不得提升 `PA-HUMAN-1`、`NS-HUMAN-SMOKE`、`release_verified`、physical-device、真人學習或 live-provider 結論。
 
+Internal repository reviewer 與 ChatGPT Work external product reviewer 是兩個不同 gate。當 `docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md` 存在且 active goal 要求 external review 時，internal PASS 只能授權 exact-candidate publication，不能進入 human checkpoint。candidate repository、canonical repository、configured trigger repository 與 review-request repository 必須一致；external GitHub artifact 必須綁定同一 PR、HEAD 與 fingerprint。缺失、stale、wrong-repository 或仍含 blocking findings 時，orchestrator 必須停留在 autonomous repair/review loop，禁止把 owner 設為下一 actor。
+
 Orchestrator 的 start／resume／status／stop 介面為 `python3 scripts/codex_orchestrator.py --repo . {start,resume,status,stop}`。durable state 必須包含 active goal、work package、state、current agent、fingerprint、review cycle、blockers、next action、human action required 與 candidate custody。正常 human interruption 只允許 `HUMAN_CHECKPOINT_REQUIRED`、`PRODUCT_DECISION_REQUIRED`、`AUTHORITY_CONFLICT`、`AUTOMATION_BLOCKED`、`BUDGET_EXHAUSTED`、`GOAL_COMPLETE`；operator 明示 `stop` 另以 `STOPPED` 安全停止。
 
 ## 1. 產品目標

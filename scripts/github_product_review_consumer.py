@@ -23,15 +23,17 @@ from jsonschema.exceptions import SchemaError
 SUPPORTED_PROTOCOL = "kgnote.product-review.v1"
 SUPPORTED_SOURCES = {"pull_request_review", "issue_comment"}
 FORMAL_STATE_BY_VERDICT = {
-    "PASS": "APPROVED",
-    "REVISE": "CHANGES_REQUESTED",
-    "ESCALATE": "COMMENTED",
+    "PASS": "COMMENTED",
+    "CHANGES_REQUIRED": "COMMENTED",
+    "PRODUCT_DECISION_REQUIRED": "COMMENTED",
 }
 JSON_FENCE_RE = re.compile(r"```json\s*(\{.*?\})\s*```", re.DOTALL | re.IGNORECASE)
 
 
 @dataclass(frozen=True)
 class CandidateIdentity:
+    repository: str
+    pull_request: int
     program_id: str
     goal_id: str
     candidate_fingerprint: str
@@ -54,7 +56,7 @@ def _result_marker(config: dict[str, Any]) -> str:
     marker = config.get("result_marker")
     if not isinstance(marker, str) or not marker:
         raise ConsumerInputError("config.result_marker must be a non-empty string")
-    return f"<!-- {marker} -->"
+    return marker
 
 
 def _trusted_author(config: dict[str, Any]) -> str | None:
@@ -85,12 +87,19 @@ def _validate_record_shape(record: Any, index: int) -> dict[str, Any]:
     return record
 
 
-def _parse_one_result(body: str, marker: str) -> tuple[dict[str, Any] | None, str | None]:
-    marker_count = body.count(marker)
-    if marker_count == 0:
+def _parse_one_result(
+    body: str, marker: str, candidate_commit: str
+) -> tuple[dict[str, Any] | None, str | None]:
+    marker_re = re.compile(
+        rf"<!--\s*{re.escape(marker)}\s+reviewed_head_sha=([0-9a-f]{{40}})\s*-->"
+    )
+    markers = marker_re.findall(body)
+    if not markers:
         return None, "missing_result_marker"
-    if marker_count != 1:
+    if len(markers) != 1:
         return None, "expected_exactly_one_result_marker"
+    if markers[0] != candidate_commit:
+        return None, "result_marker_commit_mismatch"
     matches = JSON_FENCE_RE.findall(body)
     if len(matches) != 1:
         return None, "expected_exactly_one_fenced_json_object"
@@ -108,6 +117,8 @@ def _identity_mismatches(
 ) -> list[str]:
     expected = {
         "protocol": SUPPORTED_PROTOCOL,
+        "repository": identity.repository,
+        "pull_request": identity.pull_request,
         "program_id": identity.program_id,
         "goal_id": identity.goal_id,
         "candidate_fingerprint": identity.candidate_fingerprint,
@@ -171,7 +182,9 @@ def consume_records(
             rejected.append(rejection)
             continue
 
-        result, parse_error = _parse_one_result(record["body"], marker)
+        result, parse_error = _parse_one_result(
+            record["body"], marker, identity.candidate_commit
+        )
         if parse_error:
             rejection["reason"] = parse_error
             rejected.append(rejection)
@@ -256,6 +269,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--schema", type=Path, required=True)
     parser.add_argument("--records", type=Path, required=True)
     parser.add_argument("--program-id", required=True)
+    parser.add_argument("--repository", required=True)
+    parser.add_argument("--pull-request", type=int, required=True)
     parser.add_argument("--goal-id", required=True)
     parser.add_argument("--candidate-fingerprint", required=True)
     parser.add_argument("--candidate-commit", required=True)
@@ -277,6 +292,8 @@ def main() -> int:
             config=config,
             schema=schema,
             identity=CandidateIdentity(
+                repository=args.repository,
+                pull_request=args.pull_request,
                 program_id=args.program_id,
                 goal_id=args.goal_id,
                 candidate_fingerprint=args.candidate_fingerprint,

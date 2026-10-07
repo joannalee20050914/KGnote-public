@@ -146,17 +146,16 @@ def _concept_explanation(
     evidence_by_id: Mapping[str, Mapping[str, Any]],
 ) -> tuple[str, str | None, str]:
     name = str(concept["canonical_name_candidate"])
-    definition = next(
-        (
-            evidence_by_id[str(evidence_id)]
-            for evidence_id in concept["evidence_ids"]
-            if re.search(
-                r"(?:\*\*|__)[^\n]+(?:\*\*|__)\s*[:：]",
-                str(evidence_by_id[str(evidence_id)]["excerpt"]),
-            )
-        ),
-        None,
-    )
+    definition = None
+    for evidence_id in concept["evidence_ids"]:
+        candidate = evidence_by_id[str(evidence_id)]
+        match = re.search(
+            r"(?:\*\*|__)([^\n]+?)(?:\*\*|__)\s*[:：]",
+            str(candidate["excerpt"]),
+        )
+        if match and _plain(match.group(1)).strip().casefold() == name.strip().casefold():
+            definition = candidate
+            break
     if definition:
         excerpt = str(definition["excerpt"]).strip()
         tail = re.split(r"[:：]", excerpt, maxsplit=1)[1].strip()
@@ -191,23 +190,27 @@ def _concept_explanation(
     if outgoing:
         other = str(outgoing["object_label"])
         phrase = _relation_phrase(outgoing["relation"])
-        if name.casefold() == "port" and other.casefold() == "service endpoint":
-            explanation = "In this material, **Port** is used to select the service endpoint."
-            role = (
-                "The lesson first identifies a host with an IP address, then uses the "
-                "Port → service endpoint relationship to identify where the browser request "
-                "should go in this simplified example."
-            )
-        else:
+        if outgoing["review_status"] in {"verified", "accepted", "corrected"}:
             explanation = f"In this material, **{name}** {phrase} **{other}**."
             role = (
                 f"The lesson uses the **{name}** → **{other}** relationship: "
                 f"**{name}** {phrase} **{other}**."
             )
+        else:
+            explanation = (
+                f"The source contains an unreviewed candidate connecting **{name}** to "
+                f"**{other}** with “{phrase}”. KGnote keeps it provisional."
+            )
+            role = explanation
     elif incoming:
         other = str(incoming["subject_label"])
         phrase = _relation_phrase(incoming["relation"])
-        if incoming["relation"] == "maps_to":
+        if incoming["review_status"] not in {"verified", "accepted", "corrected"}:
+            explanation = (
+                f"The source contains an unreviewed candidate connecting **{other}** to "
+                f"**{name}** with “{phrase}”. KGnote keeps it provisional."
+            )
+        elif incoming["relation"] == "maps_to":
             explanation = f"In this material, **{name}** is the endpoint that **{other}** maps to."
         elif incoming["relation"] == "requires":
             explanation = f"In this material, **{name}** is required by **{other}**."
@@ -236,11 +239,17 @@ def _related_concepts(
     related: list[dict[str, str]] = []
     concept_id = str(concept["id"])
     for item in relations:
+        approved = item["review_status"] in {"verified", "accepted", "corrected"}
         if str(item["subject_concept_id"]) == concept_id:
             other_id = str(item["object_concept_id"])
             phrase = _relation_phrase(item["relation"])
             label = str(item["object_label"])
-            if item["relation"] == "maps_to":
+            if not approved:
+                description = (
+                    f"has an unreviewed source-linked candidate from "
+                    f"{concept['canonical_name_candidate']} using “{phrase}”."
+                )
+            elif item["relation"] == "maps_to":
                 description = (
                     f"the endpoint {concept['canonical_name_candidate']} maps to in the lesson."
                 )
@@ -259,7 +268,12 @@ def _related_concepts(
         elif str(item["object_concept_id"]) == concept_id:
             other_id = str(item["subject_concept_id"])
             label = str(item["subject_label"])
-            if item["relation"] == "maps_to":
+            if not approved:
+                description = (
+                    f"has an unreviewed source-linked candidate to "
+                    f"{concept['canonical_name_candidate']} using “{_relation_phrase(item['relation'])}”."
+                )
+            elif item["relation"] == "maps_to":
                 description = f"maps to {concept['canonical_name_candidate']} in the lesson."
             elif item["relation"] == "requires":
                 description = f"requires {concept['canonical_name_candidate']} in the lesson."
@@ -273,25 +287,6 @@ def _related_concepts(
             {"id": other_id, "label": label, "path": paths[other_id], "description": description}
         )
     related.sort(key=lambda item: (item["label"].casefold(), item["id"]))
-    if str(concept["canonical_name_candidate"]).casefold() == "port":
-        ip = next(
-            (
-                item
-                for item in concepts
-                if str(item["canonical_name_candidate"]).casefold() == "ip address"
-            ),
-            None,
-        )
-        if ip is not None and all(item["id"] != str(ip["id"]) for item in related):
-            related.insert(
-                0,
-                {
-                    "id": str(ip["id"]),
-                    "label": "IP address",
-                    "path": paths[str(ip["id"])],
-                    "description": "identifies the host.",
-                },
-            )
     return related
 
 
@@ -407,7 +402,8 @@ def project_learner_workspace(payload: Mapping[str, Any]) -> LearnerProjection:
                 "object_id": item["object_concept_id"],
                 "object_label": item["object_label"],
                 "object_path": paths[str(item["object_concept_id"])],
-                "resolved": relation is not None,
+                "resolved": relation is not None
+                and item["review_status"] in {"verified", "accepted", "corrected"},
                 "evidence_groups": [
                     groups_by_evidence_id[str(evidence_id)]
                     for evidence_id in item["evidence_ids"]

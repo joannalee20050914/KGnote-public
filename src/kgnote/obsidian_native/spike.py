@@ -553,6 +553,36 @@ def _reject_symlinks(root: Path) -> None:
                 )
 
 
+def _is_complete_committed_workspace(target: Path) -> bool:
+    """Recognize a fully committed native workspace without mutating either copy."""
+    manifest_path = target / Path(*MANIFEST_PATH.parts)
+    workspace_manifest_path = target / Path(*WORKSPACE_MANIFEST_PATH.parts)
+    if target.is_symlink() or not target.is_dir() or not workspace_manifest_path.is_file():
+        return False
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return False
+    if manifest.get("schema_version") != NATIVE_MANIFEST_VERSION:
+        return False
+    rows = manifest.get("managed_files")
+    if not isinstance(rows, list) or not rows:
+        return False
+    try:
+        for row in rows:
+            if not isinstance(row, Mapping):
+                return False
+            relative = _safe_relative(str(row.get("path", "")))
+            path = target / Path(*relative.parts)
+            if path.is_symlink() or not path.is_file():
+                return False
+            if _sha256(path.read_bytes()) != row.get("sha256"):
+                return False
+    except (OSError, NativeSpikeError):
+        return False
+    return True
+
+
 def _recover(transaction: Path, target: Path) -> bool:
     if not transaction.exists():
         return False
@@ -566,8 +596,17 @@ def _recover(transaction: Path, target: Path) -> bool:
     staged = transaction / "staged"
     if backup.exists():
         if target.exists():
-            _remove(target)
-        os.replace(backup, target)
+            if not _is_complete_committed_workspace(target):
+                raise NativeSpikeError(
+                    "native_recovery_ambiguous",
+                    "Both committed and backup workspaces exist, but the committed workspace is incomplete.",
+                    "Preserve both copies for inspection; recovery refused to overwrite either one.",
+                )
+            # A crash after staged -> target committed left its backup behind.
+            # Keep the verified committed target and discard only the older backup.
+            _remove(backup)
+        else:
+            os.replace(backup, target)
     _remove(staged)
     _remove(transaction)
     return True

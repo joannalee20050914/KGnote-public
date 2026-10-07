@@ -42,6 +42,9 @@ Execution documents may govern how Codex works, verifies, advances, or stops. Th
 | `docs/DATA_MODEL.md` | Data contract; old phase labels are historical sequencing | active |
 | `docs/REPRESENTATION_CONSISTENCY_CONTRACT.md` | Cross-representation semantic contract, renderer-agnostic after amendment | active |
 | `DEVELOPMENT_PLAIN.md` | Active roadmap and next product slice | active, not requirements SSOT |
+| `docs/control-plane/CANONICAL_PUBLIC_REPOSITORY_MIGRATION_20261005.md` | Canonical/archival repository identity and migration boundary | active execution authority |
+| `docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md` | Internal→publication→external-review→human gate ordering and repository identity invariants | active execution authority |
+| `docs/control-plane/INCIDENT_EXTERNAL_REVIEW_BYPASS_20261007.md` | Durable incident analysis and regression lessons | active corrective evidence |
 | `README.md` | Orientation only | informative |
 | `docs/DEVELOPMENT_PLAIN_SUPERSEDED_20260922.md` | Prior roadmap | historical provenance |
 | `docs/chatgpt_6pro_20260919_review.txt` | Historical AI review | historical provenance |

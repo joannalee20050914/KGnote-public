@@ -102,6 +102,13 @@ def build_practice_set(model: Mapping[str, Any], overlay: Any, supplement: Any =
         if not isinstance(supplement, Mapping) or supplement.get("schema_version") != "kgnote.practice-supplement.v1" or supplement.get("learning_unit_id") != model["learning_unit"]["id"] or not isinstance(supplement.get("items"), list):
             return _result("rejected", problem="invalid_practice_supplement")
         ready_claims = {item["claim_ref"]["claim_id"]: item["claim_ref"]["revision"] for item in items}
+        ready_evidence = {
+            proposition["edge_id"]: set(proposition["evidence_ids"])
+            for proposition in model.get("propositions", [])
+            if proposition.get("edge_id") in ready_claims
+        }
+        known_evidence = set(evidence)
+        known_item_ids = {item["item_id"] for item in items}
         for supplied in supplement["items"]:
             required = {"item_id", "revision", "activity_type", "label", "prompt", "hint", "claim_ref", "source_refs", "evidence_refs", "canonical_answer", "rubric"}
             if not isinstance(supplied, Mapping) or set(supplied) != required or supplied["activity_type"] not in {"application_prediction", "distinction"}:
@@ -109,6 +116,27 @@ def build_practice_set(model: Mapping[str, Any], overlay: Any, supplement: Any =
             claim_ref = supplied["claim_ref"]
             if ready_claims.get(claim_ref.get("claim_id")) != claim_ref.get("revision"):
                 return _result("rejected", problem="supplement_claim_not_ready")
+            item_id = supplied.get("item_id")
+            evidence_refs = supplied.get("evidence_refs")
+            if not isinstance(item_id, str) or not item_id or item_id in known_item_ids:
+                return _result("rejected", problem="duplicate_practice_item_id")
+            if supplied.get("source_refs") != [model["source"]["id"]]:
+                return _result("rejected", problem="invalid_practice_supplement")
+            if (
+                not isinstance(evidence_refs, list)
+                or not evidence_refs
+                or any(not isinstance(value, str) for value in evidence_refs)
+                or not set(evidence_refs) <= known_evidence
+                or not set(evidence_refs) <= ready_evidence.get(claim_ref["claim_id"], set())
+            ):
+                return _result("rejected", problem="supplement_evidence_not_ready")
+            if not isinstance(supplied.get("canonical_answer"), str) or not supplied["canonical_answer"].strip():
+                return _result("rejected", problem="invalid_practice_supplement")
+            if not isinstance(supplied.get("rubric"), list) or not supplied["rubric"] or any(
+                not isinstance(row, str) or not row.strip() for row in supplied["rubric"]
+            ):
+                return _result("rejected", problem="invalid_practice_supplement")
+            known_item_ids.add(item_id)
             items.append({key: json.loads(json.dumps(supplied[key], ensure_ascii=False)) for key in ("item_id", "revision", "activity_type", "label", "prompt", "hint", "claim_ref", "source_refs", "evidence_refs") } | {
                 "learning_unit_id": model["learning_unit"]["id"], "required_context": {},
             })

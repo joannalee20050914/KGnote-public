@@ -139,6 +139,20 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
             self.assertEqual(missing_error.exception.code, "source_not_found")
             self.assertEqual(sorted(path.name for path in root.iterdir()), ["empty.md", "lesson.txt"])
 
+    def test_negated_or_modal_relation_phrase_is_not_promoted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "adversarial.md"
+            source.write_text(
+                "# Adversarial\n\n**Client** no longer requires **Server**.\n\n"
+                "**Cache** might depend on **Database**.\n",
+                encoding="utf-8",
+            )
+            preview = build_learning_workspace_preview(source)
+        relations = preview.payload["relations"]
+        self.assertTrue(relations)
+        self.assertTrue(all(item["relation"] is None for item in relations))
+        self.assertTrue(all(item["edge_class"] == "soft_association" for item in relations))
+
 
 if __name__ == "__main__":
     unittest.main()

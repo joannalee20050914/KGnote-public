@@ -6,6 +6,8 @@
   "additionalProperties": false,
   "required": [
     "protocol",
+    "repository",
+    "pull_request",
     "program_id",
     "goal_id",
     "candidate_fingerprint",
@@ -17,12 +19,14 @@
   ],
   "properties": {
     "protocol": {"const": "kgnote.product-review.v1"},
+    "repository": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
+    "pull_request": {"type": "integer", "minimum": 1},
     "program_id": {"type": "string", "minLength": 1},
     "goal_id": {"type": "string", "minLength": 1},
     "candidate_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "candidate_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-    "review_round": {"type": "integer", "minimum": 1, "maximum": 3},
-    "verdict": {"enum": ["PASS", "REVISE", "ESCALATE"]},
+    "review_round": {"type": "integer", "minimum": 1, "maximum": 5},
+    "verdict": {"enum": ["PASS", "CHANGES_REQUIRED", "PRODUCT_DECISION_REQUIRED"]},
     "findings": {
       "type": "array",
       "items": {"$ref": "#/$defs/finding"}

@@ -286,6 +286,7 @@ class ControlPlaneNegativeTests(unittest.TestCase):
 
     def test_only_exact_review_bus_paths_are_fingerprint_excluded(self):
         self.assertTrue(CONTROL.fingerprint_excluded(".ai/REVIEW_REQUEST.md"))
+        self.assertTrue(CONTROL.fingerprint_excluded(".ai/external-review-state.json"))
         self.assertTrue(CONTROL.fingerprint_excluded(".ai/REVIEW_HISTORY/review-1/result.md"))
         self.assertFalse(CONTROL.fingerprint_excluded(".ai/REVIEW_PROTOCOL.md"))
         self.assertFalse(CONTROL.fingerprint_excluded("src/kgnote/review.py"))

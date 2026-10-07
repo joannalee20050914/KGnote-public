@@ -374,6 +374,16 @@ def _build_concepts(
 
 def _relation_between(text: str) -> str | None:
     normalized = _SPACE.sub(" ", text.casefold())
+    # Relation extraction is deliberately conservative.  A lexical trigger inside
+    # a negated or modal clause is not affirmative evidence for a canonical edge.
+    blockers = (
+        " no longer ", " not ", " never ", " doesn't ", " does not ",
+        " without ", " may ", " might ", " could ", " sometimes ",
+        "不再", "不是", "不需要", "不依賴", "可能", "未必",
+    )
+    padded = f" {normalized} "
+    if any(blocker in padded for blocker in blockers):
+        return None
     tests = (
         ("is part of", "part_of"),
         ("是一部分", "part_of"),
@@ -394,7 +404,6 @@ def _relation_between(text: str) -> str | None:
         (" is a ", "is_a"),
         ("是一種", "is_a"),
     )
-    padded = f" {normalized} "
     for phrase, relation in tests:
         if phrase in padded:
             return relation

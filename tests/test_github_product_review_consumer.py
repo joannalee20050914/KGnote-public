@@ -28,11 +28,13 @@ class GitHubProductReviewConsumerTest(unittest.TestCase):
     def setUp(self):
         self.config = {
             "enabled": True,
-            "result_marker": "KGNOTE_PRODUCT_REVIEW_RESULT_V1",
+            "result_marker": "kgnote-ai-product-review:v1",
             "trusted_reviewer_author_login": "trusted-reviewer[bot]",
             "last_reviewed_candidate_fingerprint": None,
         }
         self.identity = CandidateIdentity(
+            repository="joannalee20050914/KGnote-public",
+            pull_request=1,
             program_id="program-1",
             goal_id="goal-1",
             candidate_fingerprint=FINGERPRINT,
@@ -45,6 +47,8 @@ class GitHubProductReviewConsumerTest(unittest.TestCase):
             findings = []
         return {
             "protocol": "kgnote.product-review.v1",
+            "repository": "joannalee20050914/KGnote-public",
+            "pull_request": 1,
             "program_id": "program-1",
             "goal_id": "goal-1",
             "candidate_fingerprint": FINGERPRINT,
@@ -61,10 +65,10 @@ class GitHubProductReviewConsumerTest(unittest.TestCase):
         record = {
             "source": "pull_request_review",
             "author_login": "trusted-reviewer[bot]",
-            "review_state": "APPROVED",
+            "review_state": "COMMENTED",
             "record_id": 42,
             "body": (
-                "<!-- KGNOTE_PRODUCT_REVIEW_RESULT_V1 -->\n"
+                f"<!-- kgnote-ai-product-review:v1 reviewed_head_sha={COMMIT} -->\n"
                 f"```json\n{json.dumps(result)}\n```"
             ),
         }
@@ -148,7 +152,7 @@ class GitHubProductReviewConsumerTest(unittest.TestCase):
 
     def test_rejects_duplicate_result_markers(self):
         record = self.record()
-        record["body"] += "\n<!-- KGNOTE_PRODUCT_REVIEW_RESULT_V1 -->"
+        record["body"] += f"\n<!-- kgnote-ai-product-review:v1 reviewed_head_sha={COMMIT} -->"
         decision = self.consume([record])
         self.assertEqual(
             "expected_exactly_one_result_marker",
@@ -157,7 +161,7 @@ class GitHubProductReviewConsumerTest(unittest.TestCase):
 
     def test_rejects_formal_state_that_disagrees_with_verdict(self):
         revise = self.result(
-            verdict="REVISE",
+            verdict="CHANGES_REQUIRED",
             findings=[
                 {
                     "id": "finding-example",
@@ -170,12 +174,12 @@ class GitHubProductReviewConsumerTest(unittest.TestCase):
                 }
             ],
         )
-        decision = self.consume([self.record(result=revise)])
+        decision = self.consume([self.record(result=revise, review_state="APPROVED")])
         self.assertEqual(
             "formal_review_state_mismatch", decision["rejected"][0]["reason"]
         )
 
-    def test_accepts_structured_revise_findings(self):
+    def test_accepts_structured_changes_required_findings(self):
         finding = {
             "id": "finding-example",
             "severity": "blocking",
@@ -188,13 +192,38 @@ class GitHubProductReviewConsumerTest(unittest.TestCase):
         decision = self.consume(
             [
                 self.record(
-                    result=self.result(verdict="REVISE", findings=[finding]),
-                    review_state="CHANGES_REQUESTED",
+                    result=self.result(verdict="CHANGES_REQUIRED", findings=[finding]),
+                    review_state="COMMENTED",
                 )
             ]
         )
-        self.assertEqual("REVISE", decision["status"])
+        self.assertEqual("CHANGES_REQUIRED", decision["status"])
         self.assertEqual([finding], decision["findings"])
+
+    def test_live_config_accepts_literal_documented_round_five_pass(self):
+        config = json.loads((REPO / ".ai/github-product-reviewer.json").read_text())
+        identity = CandidateIdentity(
+            repository="joannalee20050914/KGnote-public",
+            pull_request=1,
+            program_id=config["program_id"],
+            goal_id="goal-1",
+            candidate_fingerprint=FINGERPRINT,
+            candidate_commit=COMMIT,
+            review_round=5,
+        )
+        result = self.result()
+        result.update({
+            "repository": identity.repository,
+            "pull_request": identity.pull_request,
+            "program_id": identity.program_id,
+            "review_round": 5,
+        })
+        decision = consume_records(
+            config=config, schema=self.schema, identity=identity,
+            records=[self.record(result=result, author_login="joannalee20050914")],
+        )
+        self.assertEqual("PASS", decision["status"])
+        self.assertTrue(decision["accepted"])
 
     def test_dedupes_already_consumed_candidate(self):
         config = {

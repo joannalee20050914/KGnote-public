@@ -7,7 +7,7 @@
     {
       "path": "docs/control-plane/AUTHORITY.md",
       "role": "authority_policy",
-      "sha256": "7367aae495b9440c5eb5e124f2c0b6d3ba1e0ab3b65c74f977854edabe6e12a8",
+      "sha256": "adcb9a5e08e04b46957ee24f43e3fdd32d4a2d4e59b86f0e6fdc620e42006507",
       "required_marker": "kgnote-obsidian-first-2026-09-22"
     },
     {
@@ -90,7 +90,7 @@
         "path": "AGENTS.md",
         "role": "agent_behavior_policy",
         "validation": "sha256",
-        "sha256": "eb5e64785a07fbdf15ee0a9569eefbb956a698676a377360910c66f521047839",
+        "sha256": "cb00649b968edbbf66887a0609c24b6a5b80326d76274369e479c8a526868284",
         "required_marker": "kgnote-obsidian-first-2026-09-22"
       },
       {

@@ -1,0 +1,18 @@
+{
+  "schema_version": "kgnote.github-product-reviewer-config.v2",
+  "program_id": "program-kgnote-autonomous-external-review-v2",
+  "transport": "chatgpt_work_github_event",
+  "enabled": true,
+  "canonical_repository": "joannalee20050914/KGnote-public",
+  "candidate_repository": "joannalee20050914/KGnote-public",
+  "trigger_repository": "joannalee20050914/KGnote-public",
+  "review_request_repository": "joannalee20050914/KGnote-public",
+  "archive_repository": "joannalee20050914/KGnote",
+  "review_pr_number": 1,
+  "request_marker": "KGNOTE_PRODUCT_REVIEW_REQUEST_V2",
+  "result_marker": "kgnote-ai-product-review:v1",
+  "trusted_reviewer_author_login": "joannalee20050914",
+  "trigger_events": ["pull_request.ready_for_review", "pull_request.synchronize"],
+  "last_reviewed_candidate_fingerprint": null,
+  "max_product_review_rounds": 5
+}

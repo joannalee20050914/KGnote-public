@@ -451,6 +451,34 @@ class ObsidianNativeArtifactTests(unittest.TestCase):
                 validate_native_workspace(updated, workspace)["status"], "loaded"
             )
 
+    def test_recovery_keeps_complete_committed_target_when_backup_coexists(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            preview, workspace = self.materialized(root)
+            transaction = workspace.parent / f".kgnote-native-transaction-{str(preview.payload['source']['id'])[-16:]}"
+            transaction.mkdir()
+            shutil.copytree(workspace, transaction / "backup")
+            marker = workspace / "committed-after-crash.txt"
+            marker.write_text("new committed target\n", encoding="utf-8")
+            result = augment_native_workspace(preview, workspace)
+            self.assertTrue(result.recovered_interrupted_transaction)
+            self.assertEqual("new committed target\n", marker.read_text(encoding="utf-8"))
+            self.assertFalse(transaction.exists())
+
+    def test_ambiguous_recovery_preserves_both_target_and_backup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            preview, workspace = self.materialized(root)
+            transaction = workspace.parent / f".kgnote-native-transaction-{str(preview.payload['source']['id'])[-16:]}"
+            transaction.mkdir()
+            shutil.copytree(workspace, transaction / "backup")
+            (workspace / "Learning Structure.canvas").write_text("corrupt", encoding="utf-8")
+            with self.assertRaises(NativeSpikeError) as caught:
+                augment_native_workspace(preview, workspace)
+            self.assertEqual("native_recovery_ambiguous", caught.exception.code)
+            self.assertTrue(workspace.exists())
+            self.assertTrue((transaction / "backup").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

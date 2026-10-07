@@ -6,10 +6,12 @@ import json
 import tempfile
 import threading
 import unittest
+from unittest import mock
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
-from scripts.serve_graph_view import handler_for
+from scripts.serve_graph_view import execute_attempt_save, handler_for
+from kgnote.review.practice import PracticeResult
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -95,6 +97,23 @@ class PracticeHttpTests(unittest.TestCase):
         self.assertEqual(status, 409)
         self.assertEqual(body["problem"]["code"], "stale_practice_item")
         self.assertFalse((self.attempts_root / "attempts" / f"{stale['attempt_id']}.json").exists())
+
+    def test_unavailable_reveal_fails_before_attempt_is_saved(self) -> None:
+        _, items_body = self.request("GET", "/api/practice-items")
+        submitted = self.payload(items_body["items"][0], state="submitted", response="answer")
+        submitted["attempt_id"] = "attempt_cccccccccccccccccccccccccccccccc"
+        with tempfile.TemporaryDirectory() as directory, mock.patch(
+            "scripts.serve_graph_view.reveal_practice_answer",
+            return_value=PracticeResult("rejected", problem_code="forced"),
+        ):
+            attempts_root = Path(directory)
+            status, body = execute_attempt_save(
+                attempts_root, MODEL, OVERLAY, submitted["attempt_id"],
+                json.dumps(submitted).encode("utf-8"),
+            )
+            self.assertEqual(409, status)
+            self.assertEqual("practice_answer_unavailable", body["problem"]["code"])
+            self.assertFalse((attempts_root / "attempts" / f"{submitted['attempt_id']}.json").exists())
 
 
 if __name__ == "__main__":

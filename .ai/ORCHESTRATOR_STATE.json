@@ -1,19 +1,19 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "orch-canonical-public-migration-v1",
-  "active_goal": "GOAL-KGNOTE-CANONICAL-PUBLIC-MIGRATION-V1",
-  "work_package": null,
-  "state": "GOAL_COMPLETE",
+  "run_id": "orch-external-review-recovery-v1",
+  "active_goal": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
+  "work_package": "AR-PUBLISH",
+  "state": "IMPLEMENTING",
   "current_agent": null,
   "candidate_fingerprint": null,
   "review_id": null,
-  "review_cycle": 0,
+  "review_cycle": 2,
   "max_review_cycles": 5,
   "agent_failures": 0,
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Canonical public migration is complete; preserve the pending PA-HUMAN-1 and NS-HUMAN-SMOKE gates while ChatGPT Work reviews PR #1.",
+  "next_action": "Automatically begin authorized work package AR-PUBLISH.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -22,11 +22,20 @@
     "fingerprint": null
   },
   "next_human_checkpoint": {
-    "id": "PA-HUMAN-1",
-    "status": "pending_human_review",
-    "description": "Only the concentrated integrated-candidate human trial can decide this product gate."
+    "id": "PA-HUMAN-1_AND_NS-HUMAN-SMOKE",
+    "status": "not_eligible_external_review_pending",
+    "description": "External exact-candidate PASS is required first."
   },
-  "last_agent_run": null,
-  "created_at": "2026-09-27T00:00:00+08:00",
-  "updated_at": "2026-10-05T00:00:00+08:00"
+  "last_agent_run": {
+    "role": "reviewer",
+    "separate_ephemeral_context": true,
+    "exit_code": 0,
+    "duration_seconds": 90.331,
+    "output_tail": "les, related-concept descriptions, or resolved relationships. Unreviewed typed candidates are explicitly described as provisional in Relationships.md and in both affected concept notes; accepted, verified, or corrected relations continue to render as directional teaching propositions.\",\n+      \"evidence\": [\n+        \"src/kgnote/personal_alpha/learner_projection.py gates settled explanations, inverse descriptions, related-concept prose, and resolved state on verified/accepted/corrected review status.\",\n+        \"src/kgnote/personal_alpha/workspace.py labels source-linked relationship candidates and explicitly states that unreviewed typed candidates are not settled learner truth.\",\n+        \"tests/test_personal_alpha_presentation.py performs adversarial materialization and reads Relationships.md plus both Client and Server concept notes, asserting provisional wording and absence of settled requires/is-required-by claims; it also changes the same relation to verified and asserts the directional proposition returns.\",\n+        \"Reviewer reran PYTHONPATH=src .venv/bin/python -m unittest tests.test_personal_alpha_presentation -v: 11 tests passed.\",\n+        \"Recorded exact-candidate verification output/control-plane/verification-20261007T170254+0800.json reports the full Python product suite passing.\"\n+      ],\n+      \"affected_files_or_behavior\": [\n+        \"src/kgnote/personal_alpha/learner_projection.py\",\n+        \"src/kgnote/personal_alpha/workspace.py generated learner workspace\",\n+        \"tests/test_personal_alpha_presentation.py\",\n+        \"KG-ALPHA-02 learner-facing semantic consistency\"\n+      ],\n+      \"required_resolution\": \"Make concept explanations, roles, related-concept descriptions, and resolved state review-status aware. Unreviewed typed candidates must be omitted from settled teaching prose or use consistently explicit provisional language; approved statuses must retain evidence-backed direction.\",\n+      \"verification_method\": \"Materialize an adversarial unreviewed typed relation and read back Relationships.md and both concept notes, then repeat projection with an approved status. Assert provisional language across all unreviewed surfaces and coherent directional prose only for the approved relation.\",\n+      \"status\": \"VERIFIED\",\n+      \"resolution_evidence\": [\n+        \"Direct reviewer inspection confirmed every learner-facing relation path is review-status aware.\",\n+        \"PYTHONPATH=src .venv/bin/python -m unittest tests.test_personal_alpha_presentation -v: PASS (11/11).\",\n+        \"output/control-plane/verification-20261007T170254+0800.json: full Python product suite PASS.\"\n+      ]\n+    }\n+  ],\n+  \"verified_requirements\": [\n+    \"KG-GOV-07\",\n+    \"KG-KNOW-03\",\n+    \"KG-KNOW-06\",\n+    \"KG-ALPHA-02\",\n+    \"KG-ALPHA-03\",\n+    \"KG-PRAC-07\",\n+    \"KG-PRAC-08\"\n+  ],\n   \"unverified_requirements\": [],\n   \"human_decisions_required\": [],\n-  \"human_gates_preserved\": [],\n-  \"reviewed_at\": null\n+  \"human_gates_preserved\": [\n+    \"PA-HUMAN-1\",\n+    \"NS-HUMAN-SMOKE\",\n+    \"release_verified=false\"\n+  ],\n+  \"reviewed_at\": \"2026-10-07T17:35:00+08:00\"\n }\n ```\n <!-- END KGNOTE REVIEW RESULT JSON -->\n \n-Independent semantic review found blocking candidate defects. The orchestrator owns submission and routing.\n+Independent semantic review passed the exact sealed candidate. The orchestrator owns submission and routing; this result does not promote any preserved human or release gate.\n\ntokens used\n60,458\nIndependent review completed for the exact sealed candidate.\n\n- Verdict: `PASS`\n- Review: `review-external-review-recovery-v1-002`\n- Fingerprint: `675d3eeb05fb763bb76417d4ebc707d45ce8bebaca0caf693d89112d9a09aa93`\n- R-001 and R-002: `VERIFIED`\n- New findings: none\n- Human decisions required: none\n- `review-validate-pending`: PASS\n- Candidate fingerprint remained unchanged\n- Human and release gates remain preserved\n\nReviewer result: [.ai/REVIEW_RESULT.md](./.ai/REVIEW_RESULT.md)\n",
+    "last_message_path": "output/control-plane/orchestrator/orch-external-review-recovery-v1-reviewer-20261007T170342+0800.txt",
+    "created_at": "2026-10-07T17:05:12+08:00",
+    "transcript_path": "output/control-plane/orchestrator/orch-external-review-recovery-v1-reviewer-20261007T170342+0800.json"
+  },
+  "created_at": "2026-10-07T16:40:00+08:00",
+  "updated_at": "2026-10-07T17:05:12+08:00"
 }

@@ -70,6 +70,7 @@ FINGERPRINT_EXCLUDES = {
     ".ai/ORCHESTRATOR_STATE.json",
     ".ai/ORCHESTRATOR_STOP",
     ".ai/ORCHESTRATOR.lock",
+    ".ai/external-review-state.json",
 }
 FINGERPRINT_EXCLUDE_PREFIXES = (".ai/REVIEW_HISTORY/", ".ai/ORCHESTRATION_HISTORY/")
 

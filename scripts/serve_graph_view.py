@@ -247,6 +247,14 @@ def execute_attempt_save(
     stale_problem = validate_attempt_against_practice_set(guided_map_model, claim_review_overlay, request, supplement)
     if stale_problem:
         return HTTPStatus.CONFLICT, http_problem(stale_problem)
+    reveal_payload = None
+    if request.get("state") == "submitted":
+        reveal = reveal_practice_answer(
+            guided_map_model, claim_review_overlay, request["review_item_id"], supplement
+        )
+        if reveal.status != "ready":
+            return HTTPStatus.CONFLICT, http_problem("practice_answer_unavailable")
+        reveal_payload = reveal.payload
     result = save_attempt(attempts_root, request)
     status = {
         "saved": HTTPStatus.CREATED if result.payload.get("created") else HTTPStatus.OK,
@@ -256,11 +264,8 @@ def execute_attempt_save(
         "failed": HTTPStatus.INTERNAL_SERVER_ERROR,
     }[result.status]
     payload = _application_payload("kgnote.attempt-http.v1", result)
-    if result.status in {"saved", "unchanged"} and request.get("state") == "submitted":
-        reveal = reveal_practice_answer(guided_map_model, claim_review_overlay, request["review_item_id"], supplement)
-        if reveal.status != "ready":
-            return HTTPStatus.CONFLICT, http_problem("practice_answer_unavailable")
-        payload["reveal"] = reveal.payload
+    if result.status in {"saved", "unchanged"} and reveal_payload is not None:
+        payload["reveal"] = reveal_payload
     return status, payload
 
 

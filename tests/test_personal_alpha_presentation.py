@@ -125,12 +125,12 @@ class PersonalAlphaPresentationTests(unittest.TestCase):
     def test_port_teaches_source_scoped_meaning_before_audit_details(self):
         _, text = self.concept_note("Port")
         body = primary_body(text)
-        self.assertIn("In this material, **Port**", body)
+        self.assertIn("unreviewed candidate connecting **Port**", body)
         self.assertIn("This source does not provide a broader standalone definition", body)
         self.assertIn("## In this material", body)
         self.assertIn("## Related concepts", body)
-        self.assertIn("[[IP address]] — identifies the host", body)
-        self.assertIn("[[service endpoint]] — the endpoint", body)
+        self.assertNotIn("identifies the host", body)
+        self.assertIn("[[service endpoint]] — has an unreviewed source-linked candidate", body)
         self.assertIn("[!quote]- Source evidence", text)
         for forbidden in (
             "## Why it is included",
@@ -293,6 +293,50 @@ class LearnerProjectionTests(unittest.TestCase):
         self.assertIn("Fill a tray", procedural["learning_path"][0])
         self.assertIn("Record temperature and germination together", procedural["learning_path"][-1])
         self.assertNotIn("causes", {item["relation"] for item in procedural["relationships"]})
+
+    def test_definition_and_unreviewed_relation_do_not_leak_as_settled_truth(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "adversarial.md"
+            source.write_text(
+                "# Systems\n\n**Cache** and **Database** are components.\n\n"
+                "**Database**: stores durable records.\n\n**Client** requires **Server**.\n",
+                encoding="utf-8",
+            )
+            preview = build_learning_workspace_preview(source)
+            vault = root / "vault"
+            vault.mkdir()
+            result = materialize_learning_workspace(preview, vault)
+            workspace = Path(result.workspace_path)
+            cache_note = next(
+                path for path in (workspace / "Concepts").glob("*.md")
+                if "# Cache\n" in path.read_text(encoding="utf-8")
+            ).read_text(encoding="utf-8")
+            relationships = (workspace / "Relationships.md").read_text(encoding="utf-8")
+            client_note = next(
+                path for path in (workspace / "Concepts").glob("*.md")
+                if "# Client\n" in path.read_text(encoding="utf-8")
+            ).read_text(encoding="utf-8")
+            server_note = next(
+                path for path in (workspace / "Concepts").glob("*.md")
+                if "# Server\n" in path.read_text(encoding="utf-8")
+            ).read_text(encoding="utf-8")
+        self.assertNotIn("stores durable records", cache_note)
+        self.assertIn("still unreviewed", relationships)
+        self.assertNotIn("## Client → Server", relationships)
+        self.assertNotIn("]] **requires** [[", relationships)
+        self.assertIn("unreviewed candidate", client_note)
+        self.assertIn("unreviewed candidate", server_note)
+        self.assertNotIn("**Client** requires **Server**", primary_body(client_note))
+        self.assertNotIn("**Server** is required by **Client**", primary_body(server_note))
+
+        approved = copy.deepcopy(preview.payload)
+        for relation in approved["relations"]:
+            if relation["subject_label"] == "Client" and relation["object_label"] == "Server":
+                relation["review_status"] = "verified"
+        projection = project_learner_workspace(approved).as_dict()
+        client = next(item for item in projection["concepts"] if item["label"] == "Client")
+        self.assertIn("**Client** requires **Server**", client["explanation"])
 
 
 if __name__ == "__main__":

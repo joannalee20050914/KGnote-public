@@ -603,7 +603,7 @@ def _render_learner_relationships(
         )
         + "# Key relationships",
         "",
-        "These are the relationships this material supports strongly enough to use while studying.",
+        "These are source-linked relationship candidates. Unreviewed candidates remain visibly provisional.",
         "",
     ]
     for relation in projection["relationships"]:
@@ -629,7 +629,12 @@ def _render_learner_relationships(
                     f"[[{subject}|{relation['subject_label']}]] and "
                     f"[[{object_}|{relation['object_label']}]] are mentioned together.",
                     "",
-                    "The source does **not** establish a more precise relationship, so KGnote leaves this unresolved.",
+                    (
+                        f"The source contains the candidate phrase **{relation['phrase']}**, but it is "
+                        "still unreviewed, so KGnote does not present it as settled learner truth."
+                        if relation["relation"] is not None
+                        else "The source does **not** establish a more precise relationship, so KGnote leaves this unresolved."
+                    ),
                 ]
             )
         lines.append("")

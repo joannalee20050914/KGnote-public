@@ -1,107 +1,213 @@
 # KGnote active execution plan
 
-This file contains exactly one active execution goal. It does not change KGnote product direction or promote any human product gate.
+This file contains exactly one active execution goal. It does not promote any human product gate.
 
 <!-- BEGIN CODEX PLAN JSON -->
 ```json
 {
   "schema_version": "kgnote.codex-plan.v1",
-  "goal_id": "GOAL-KGNOTE-CANONICAL-PUBLIC-MIGRATION-V1",
-  "objective": "Promote the verified sanitized KGnote history into one new canonical public repository, initialize one canonical Draft PR, and validate the ChatGPT Work pull-request event transport without exposing the old repository's stale pull refs.",
-  "status": "complete",
-  "active_milestone_id": null,
+  "goal_id": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
+  "objective": "Repair the canonical-review split brain, consume every blocking finding from KGnote-public#1, publish an exact verified candidate to the one canonical ChatGPT Work review surface, and continue autonomous repair/re-review until external product review has no blocking findings before any human acceptance gate becomes eligible.",
+  "status": "active",
+  "active_milestone_id": "AR-PUBLISH",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
   "explicit_direction": {
-    "date": "2026-10-05",
+    "date": "2026-10-07",
     "speaker": "product owner",
-    "source_path": "docs/control-plane/CANONICAL_PUBLIC_REPOSITORY_MIGRATION_20261005.md",
-    "durable_goal_record": "docs/control-plane/CANONICAL_PUBLIC_REPOSITORY_MIGRATION_20261005.md"
+    "source_path": "docs/control-plane/INCIDENT_EXTERNAL_REVIEW_BYPASS_20261007.md",
+    "durable_goal_record": "docs/control-plane/INCIDENT_EXTERNAL_REVIEW_BYPASS_20261007.md"
   },
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
     "docs/control-plane/CANONICAL_PUBLIC_REPOSITORY_MIGRATION_20261005.md",
-    ".ai/REVIEWER_BOOTSTRAP.md",
+    "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
+    "docs/control-plane/INCIDENT_EXTERNAL_REVIEW_BYPASS_20261007.md",
+    ".ai/GITHUB_WORK_PRODUCT_REVIEWER.md",
     ".ai/REVIEW_PROTOCOL.md",
+    "docs/PRODUCT_CONTRACT.md",
+    "docs/REPRESENTATION_CONSISTENCY_CONTRACT.md",
     "docs/requirements/requirements.json",
     "docs/requirements/scenarios.json",
     "PLAN.md",
     "AGENTS.md"
   ],
   "requirement_context": {
-    "requirement_ids": ["KG-GOV-07", "KG-PLAT-03", "KG-PLAT-05", "KG-PLAT-08"],
-    "scenario_ids": ["SC-31", "SC-32", "SC-33", "SC-38"],
+    "requirement_ids": [
+      "KG-GOV-07",
+      "KG-KNOW-03",
+      "KG-KNOW-04",
+      "KG-KNOW-06",
+      "KG-KNOW-07",
+      "KG-ING-04",
+      "KG-ALPHA-02",
+      "KG-ALPHA-03",
+      "KG-ALPHA-05",
+      "KG-PRAC-07",
+      "KG-PRAC-08"
+    ],
+    "scenario_ids": [
+      "SC-31",
+      "SC-33",
+      "SC-38",
+      "SC-45",
+      "SC-47"
+    ],
+    "external_finding_ids": [
+      "KG-SEM-001",
+      "KG-ALPHA-RECOVERY-001",
+      "KG-PRACTICE-001",
+      "KG-PRACTICE-002",
+      "KG-CTRL-001"
+    ],
     "forbidden_substitutes": [
-      "making the old archival repository public",
-      "weakening product requirements instead of removing private provenance",
-      "copying stale pull refs or private review history into the new repository",
-      "treating deterministic verification as AI product review or human acceptance",
-      "adding a mirror, custom webhook service, OpenAI API worker, or polling daemon"
+      "treating internal reviewer PASS as external product-review PASS",
+      "publishing to the archival KGnote repository or any repository other than KGnote-public",
+      "transitioning to a human checkpoint without exact external PASS evidence",
+      "asking the owner to transport findings or trigger routine repair",
+      "dropping or renaming unresolved external findings instead of carrying their stable IDs"
     ]
   },
-  "scope": [
-    "re-audit sanitized rewritten content and history",
-    "normalize publication-sensitive commit metadata with verified recovery",
-    "create one new public canonical repository with main as default",
-    "establish origin as canonical and archive-origin as the private archive",
-    "push one autonomous-review branch and open one canonical Draft PR",
-    "maintain machine-readable review state and complete deterministic self-review",
-    "validate a minimal ChatGPT Work Pull Request opened event trigger"
-  ],
-  "non_goals": [
-    "product redesign or requirement weakening",
-    "modifying, reviving, or deleting old PR #21 or #22",
-    "promotion of PA-HUMAN-1, NS-HUMAN-SMOKE, release verification, native-device behavior, or learning effectiveness",
-    "long-term mirror, custom webhook infrastructure, OpenAI API use, auto-merge, or unrelated product work"
-  ],
+  "repository_authority": {
+    "canonical_repository": "joannalee20050914/KGnote-public",
+    "candidate_repository": "joannalee20050914/KGnote-public",
+    "trigger_repository": "joannalee20050914/KGnote-public",
+    "review_request_repository": "joannalee20050914/KGnote-public",
+    "archive_repository": "joannalee20050914/KGnote",
+    "pull_request": 1
+  },
   "auto_advance": {
     "enabled": true,
     "requires_current_milestone_green": true,
     "requires_dependencies_complete": true,
     "stop_on_human_gate": true,
-    "max_review_cycles_across_goal": 5,
-    "stop_on_review_state": ["PRODUCT_DECISION_REQUIRED", "HUMAN_CHECKPOINT_REQUIRED", "AUTHORITY_CONFLICT", "AUTOMATION_BLOCKED", "BUDGET_EXHAUSTED", "GOAL_COMPLETE"]
+    "external_review_required_before_human_gate": true,
+    "max_review_cycles_per_milestone": 5,
+    "stop_on_review_state": [
+      "PRODUCT_DECISION_REQUIRED",
+      "AUTHORITY_CONFLICT",
+      "AUTOMATION_BLOCKED",
+      "BUDGET_EXHAUSTED",
+      "GOAL_COMPLETE"
+    ]
   },
   "preserved_human_gates": [
-    {"id": "PA-HUMAN-1", "status": "pending_human_review", "release_verified": false, "rule": "Only the concentrated integrated-candidate human trial can decide this product gate."},
-    {"id": "NS-HUMAN-SMOKE", "status": "not_run", "release_verified": false, "rule": "Native Obsidian desktop/mobile interaction remains externally unverified."}
+    {
+      "id": "PA-HUMAN-1",
+      "status": "not_eligible_external_review_pending",
+      "release_verified": false,
+      "rule": "Eligible only after exact external product-review PASS with no blocking findings."
+    },
+    {
+      "id": "NS-HUMAN-SMOKE",
+      "status": "not_eligible_external_review_pending",
+      "release_verified": false,
+      "rule": "Eligible only after exact external product-review PASS with no blocking findings."
+    }
   ],
   "milestones": [
     {
-      "id": "MIG-PUBLIC-SAFETY",
-      "title": "Public-history safety and recovery verification",
+      "id": "AR-REPAIR",
+      "title": "Authority/routing regression and external blocking-finding repair",
       "status": "complete",
       "dependencies": [],
       "human_gate": "none",
-      "owned_paths": [".git/", ".ai/", "docs/control-plane/", "PLAN.md", "CODEX_STATUS.md"],
-      "acceptance": ["approved refs contain no credential or private-data blocker, unsafe pull-ref-only blobs are unreachable, publication-sensitive commit metadata is normalized, and recovery remains verified"]
+      "owned_paths": [
+        ".ai/",
+        "AGENTS.md",
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        "DEVELOPMENT_PLAIN.md",
+        "docs/control-plane/",
+        "docs/requirements/",
+        "scripts/",
+        "schemas/product-review/",
+        "src/kgnote/personal_alpha/",
+        "src/kgnote/obsidian_native/",
+        "src/kgnote/review/",
+        "tests/"
+      ],
+      "acceptance": [
+        "all five external findings remain visible and are fixed with direct regressions",
+        "canonical/candidate/trigger/request repositories are identical and the archive is excluded",
+        "missing external evidence and internal-only PASS cannot enter a human checkpoint",
+        "the formal incident and canonical lesson survive fresh-session recovery"
+      ]
     },
     {
-      "id": "MIG-REPOSITORY",
-      "title": "New public canonical repository and remote transition",
+      "id": "AR-INTERNAL-VERIFY",
+      "title": "Deterministic verification and internal independent review",
       "status": "complete",
-      "dependencies": ["MIG-PUBLIC-SAFETY"],
+      "dependencies": [
+        "AR-REPAIR"
+      ],
       "human_gate": "none",
-      "owned_paths": [".git/", "docs/control-plane/", "PLAN.md", "CODEX_STATUS.md"],
-      "acceptance": ["old repository remains private, new repository is public with main default, only approved refs are pushed, and origin/archive-origin semantics are verified"]
+      "owned_paths": [
+        ".ai/",
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        "output/control-plane/"
+      ],
+      "acceptance": [
+        "full verifier is stable and internal review has no blocking findings for the exact candidate"
+      ]
     },
     {
-      "id": "MIG-CANONICAL-PR",
-      "title": "Canonical autonomous-review branch and Draft PR",
-      "status": "complete",
-      "dependencies": ["MIG-REPOSITORY"],
+      "id": "AR-PUBLISH",
+      "title": "Exact candidate publication to canonical PR",
+      "status": "active",
+      "dependencies": [
+        "AR-INTERNAL-VERIFY"
+      ],
       "human_gate": "none",
-      "owned_paths": [".ai/", "docs/control-plane/", "docs/requirements/human-decisions/", "PLAN.md", "CODEX_STATUS.md"],
-      "acceptance": ["deterministic verification and Codex self-review pass, review-state is current, and exactly one canonical Draft PR exists"]
+      "owned_paths": [
+        ".ai/",
+        ".git/",
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        "docs/control-plane/"
+      ],
+      "acceptance": [
+        "remote PR #1 head, request repository, trigger repository, commit, and fingerprint match by read-back"
+      ]
     },
     {
-      "id": "MIG-WORK-TRIGGER",
-      "title": "Minimal ChatGPT Work PR-opened transport validation",
-      "status": "complete",
-      "dependencies": ["MIG-CANONICAL-PR"],
+      "id": "AR-EXTERNAL-REVIEW",
+      "title": "ChatGPT Work external product-review and autonomous repair loop",
+      "status": "pending",
+      "dependencies": [
+        "AR-PUBLISH"
+      ],
       "human_gate": "none",
-      "owned_paths": [".ai/", "docs/control-plane/", "docs/requirements/human-decisions/", "PLAN.md", "CODEX_STATUS.md"],
-      "acceptance": ["a read-only Pull Request opened event task can be created for the new public repository without API or custom infrastructure"]
+      "owned_paths": [
+        ".ai/",
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        "docs/control-plane/",
+        "scripts/",
+        "src/",
+        "tests/"
+      ],
+      "acceptance": [
+        "an actual canonical-PR external artifact binds the exact head and fingerprint and reports PASS with zero blocking findings"
+      ]
+    },
+    {
+      "id": "AR-HUMAN-ELIGIBILITY",
+      "title": "Enable only genuinely human acceptance gates",
+      "status": "pending",
+      "dependencies": [
+        "AR-EXTERNAL-REVIEW"
+      ],
+      "human_gate": "PA-HUMAN-1_AND_NS-HUMAN-SMOKE",
+      "owned_paths": [
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        "docs/requirements/evidence/"
+      ],
+      "acceptance": [
+        "external PASS evidence is exact and all remaining questions require native Obsidian use or subjective learner judgment"
+      ]
     }
   ]
 }
@@ -110,4 +216,6 @@ This file contains exactly one active execution goal. It does not change KGnote 
 
 ## Current recovery note
 
-The old repository is private and archival. The current task is publication and review transport only; the Obsidian-first product direction and all product/human gates remain unchanged.
+Autonomous orchestration state: `IMPLEMENTING`. Active work package: `AR-PUBLISH`.
+Next action: Automatically begin authorized work package AR-PUBLISH.
+Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.

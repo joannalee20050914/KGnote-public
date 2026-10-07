@@ -1,27 +1,14 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "repository": "joannalee20050914/KGnote-public",
-  "phase": "implementation",
-  "implementation_status": "ready_for_ai_review",
-  "source_of_truth": [
-    ".ai/REVIEWER_BOOTSTRAP.md"
-  ],
-  "pr": {
-    "number": 1,
-    "head": "codex/kg-note-autonomous-review",
-    "base": "main"
-  },
-  "verification": {
-    "deterministic_tests_passed": true,
-    "codex_self_review_passed": true
-  },
-  "ai_review": {
-    "status": "pending",
-    "last_reviewed_commit": null,
-    "verdict": null
-  },
-  "human_review": {
-    "required": false,
-    "reason": null
-  }
+  "pull_request": 1,
+  "phase": "repairing_external_findings",
+  "implementation_status": "implementing",
+  "internal_review_status": "pending",
+  "external_review_status": "changes_required",
+  "external_reviewed_commit": "15d043c786a33e7a1a97c61519a49f6eb7c1091d",
+  "candidate_commit": null,
+  "candidate_fingerprint": null,
+  "human_acceptance_eligible": false,
+  "release_verified": false
 }

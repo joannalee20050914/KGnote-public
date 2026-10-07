@@ -21,6 +21,7 @@ from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
 import codex_control as control
+import external_review_control
 
 
 STATE_PATH = ".ai/ORCHESTRATOR_STATE.json"
@@ -400,6 +401,8 @@ def execute_reviewer(repo: Path, state: dict[str, Any], runner: AgentRunner) -> 
 
 def reset_review_bus_after_pass(repo: Path, next_action: str) -> None:
     request, _, _ = control.load_review_artifacts(repo)
+    plan, status = control.load_plan_status(repo)
+    active = current_milestone(plan)
     old_review_id = request["review_id"]
     old_fingerprint = request.get("candidate_fingerprint")
     request["review_id"] = control.next_review_id(old_review_id)
@@ -407,6 +410,9 @@ def reset_review_bus_after_pass(repo: Path, next_action: str) -> None:
     request["candidate_revision"] = None
     request["candidate_fingerprint"] = None
     request["requested_at"] = None
+    if active is not None:
+        request["milestone_id"] = active["id"]
+        request["acceptance_criteria"] = list(active.get("acceptance", []))
     control.write_review_request(repo, request)
     control.replace_embedded_json(
         repo / ".ai/REVIEW_RESULT.md",
@@ -414,7 +420,6 @@ def reset_review_bus_after_pass(repo: Path, next_action: str) -> None:
         control.REVIEW_RESULT_END,
         control.empty_review_result(),
     )
-    _, status = control.load_plan_status(repo)
     status["updated_at"] = now()
     status["implementation_state"] = "IMPLEMENTING"
     status["review"] = {
@@ -479,6 +484,15 @@ def advance_after_pass(repo: Path, state: dict[str, Any]) -> None:
     ]
     next_package = ready[0] if ready else None
     if next_package and next_package.get("human_gate", "none") not in {"none", "complete"}:
+        external_blockers = external_review_control.repository_human_gate_blockers(repo)
+        if external_blockers:
+            next_action = (
+                "Do not enter the human checkpoint; continue the autonomous external "
+                "product-review loop. " + "; ".join(external_blockers)
+            )
+            active["status"] = "active"
+            update_state(repo, state, "REPAIRING", next_action)
+            return
         plan["status"] = "human_checkpoint_required"
         plan["active_milestone_id"] = None
         next_action = f"Human checkpoint {next_package.get('human_gate')} is required before {next_package.get('id')}."

@@ -13,6 +13,7 @@ from kgnote.review import build_practice_set, reveal_practice_answer, validate_a
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = json.loads((ROOT / "web/fixtures/os-overview-guided-map.json").read_text())
 OVERLAY = json.loads((ROOT / "web/fixtures/os-overview-claim-review-overlay.json").read_text())
+SUPPLEMENT = json.loads((ROOT / "web/fixtures/os-practice-supplement.json").read_text())
 
 
 class PracticePlannerTests(unittest.TestCase):
@@ -60,6 +61,27 @@ class PracticePlannerTests(unittest.TestCase):
         self.assertIsNone(validate_attempt_against_practice_set(MODEL, OVERLAY, request))
         request["evidence_refs"] = ["stale_evidence"]
         self.assertEqual(validate_attempt_against_practice_set(MODEL, OVERLAY, request), "stale_practice_item")
+
+    def test_supplement_item_ids_are_globally_unique(self) -> None:
+        supplement = copy.deepcopy(SUPPLEMENT)
+        supplement["items"][0]["item_id"] = "item_relation_edge_os_quantum_context"
+        result = build_practice_set(MODEL, OVERLAY, supplement)
+        self.assertEqual("rejected", result.status)
+        self.assertEqual("duplicate_practice_item_id", result.problem_code)
+
+    def test_supplement_unknown_or_cross_claim_evidence_is_rejected(self) -> None:
+        unknown = copy.deepcopy(SUPPLEMENT)
+        unknown["items"][0]["evidence_refs"] = ["evidence_does_not_exist"]
+        self.assertEqual(
+            "supplement_evidence_not_ready",
+            build_practice_set(MODEL, OVERLAY, unknown).problem_code,
+        )
+        cross_claim = copy.deepcopy(SUPPLEMENT)
+        cross_claim["items"][0]["evidence_refs"] = ["evidence_os_race"]
+        self.assertEqual(
+            "supplement_evidence_not_ready",
+            build_practice_set(MODEL, OVERLAY, cross_claim).problem_code,
+        )
 
 
 if __name__ == "__main__":
