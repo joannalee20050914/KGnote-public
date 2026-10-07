@@ -442,28 +442,52 @@ def _has_preceding_question_context(lines: list[str], line_number: int) -> bool:
     answer.  Broader or ambiguous context continues to fail through the ordinary
     assertion grammar.
     """
-    current_is_list_item = bool(
-        re.match(r"^(?:[-*+]\s+|\d+[.)]\s+)", lines[line_number - 1].strip())
+    list_pattern = re.compile(r"^(?P<indent>[ \t]*)(?:[-*+]|\d+[.)])\s+")
+    current_match = list_pattern.match(lines[line_number - 1])
+    current_is_list_item = current_match is not None
+    current_indent = (
+        len(current_match.group("indent").expandtabs(4)) if current_match else 0
     )
+    crossed_deeper_item = False
     for previous in range(line_number - 2, -1, -1):
-        candidate = lines[previous].strip()
+        raw_candidate = lines[previous]
+        candidate = raw_candidate.strip()
         if not candidate:
             continue
-        candidate_is_list_item = bool(
-            re.match(r"^(?:[-*+]\s+|\d+[.)]\s+)", candidate)
+        candidate_match = list_pattern.match(raw_candidate)
+        candidate_is_list_item = candidate_match is not None
+        candidate_indent = (
+            len(candidate_match.group("indent").expandtabs(4))
+            if candidate_match
+            else 0
         )
         candidate = re.sub(r"^#{1,6}\s+", "", candidate)
         candidate = re.sub(r"^(?:[-*+]\s+|\d+[.)]\s+)", "", candidate)
         candidate = re.sub(r"[*_~]", "", candidate).strip()
         normalized = unicodedata.normalize("NFKC", candidate).casefold()
         if normalized.endswith("?"):
-            return True
+            if not candidate_is_list_item:
+                return True
+            if candidate_indent < current_indent:
+                return True
+            if candidate_indent == current_indent:
+                return not crossed_deeper_item
+            return False
         if normalized.rstrip(":：") in {"question", "questions", "q", "問題", "提問"}:
-            return True
+            if not candidate_is_list_item:
+                return True
+            if candidate_indent < current_indent:
+                return True
+            if candidate_indent == current_indent:
+                return not crossed_deeper_item
+            return False
         # A list item inherits the bounded speech act of its enclosing prompt.
-        # Continue only across sibling/nested list items; a new heading or
-        # ordinary paragraph is a structural boundary and ends the scan.
+        # Retain list depth while walking backwards.  A question item at a
+        # shallower depth is an ancestor; a same-depth prompt applies only until
+        # traversal returns from a deeper child block.  Non-list question
+        # headings/labels apply to the entire following contiguous list block.
         if current_is_list_item and candidate_is_list_item:
+            crossed_deeper_item = crossed_deeper_item or candidate_indent > current_indent
             continue
         return False
     return False

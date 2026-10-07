@@ -36,6 +36,7 @@ Internal reviewer evidence and external product-review evidence are different ar
 4. `AWAITING_HUMAN_ACCEPTANCE`, `HUMAN_CHECKPOINT_REQUIRED`, `PA-HUMAN-1`, and `NS-HUMAN-SMOKE` are unreachable until a verified external artifact says PASS and contains no blocking finding for the exact current candidate.
 5. Goal completion is non-terminal while external review is pending or blocking findings remain.
 6. Context rollover and orchestrator restart recover these facts from repository state, not chat history.
+7. Event transport is part of exact candidate publication. The configured one-line comment trigger is `@kgnote-ai-review <current PR head SHA>`; its entire body must match the configured template byte-for-byte, its repository/PR/head must match the candidate, and its GitHub artifact URL must be read back before publication can progress. Extra explanatory text makes the event invalid and fails closed rather than silently waiting or routing to a human.
 
 ## External evidence boundary
 

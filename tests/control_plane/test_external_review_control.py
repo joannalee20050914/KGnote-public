@@ -23,6 +23,8 @@ class ExternalReviewControlTests(unittest.TestCase):
             "review_request_repository": repository,
             "archive_repository": "joannalee20050914/KGnote",
             "review_pr_number": 1,
+            "trigger_events": ["pull_request.synchronize", "issue_comment.created"],
+            "trigger_comment_template": "@kgnote-ai-review {candidate_commit}",
         }
         self.state = {
             **{field: repository for field in CONTROL.ACTIVE_REPOSITORY_FIELDS},
@@ -46,12 +48,20 @@ class ExternalReviewControlTests(unittest.TestCase):
             "candidate_fingerprint": "b" * 64,
             "request_marker": "REQUEST_V2",
             "artifact_url": "https://github.example/pr/1",
+            "trigger_comment": "@kgnote-ai-review " + "a" * 40,
+            "trigger_artifact_url": "https://github.example/pr/1#issuecomment-1",
         })
         self.config["request_marker"] = "REQUEST_V2"
 
     def test_wrong_repository_publication_fails_closed(self) -> None:
         config = {**self.config, "candidate_repository": "joannalee20050914/KGnote"}
         self.assertIn("must match", " ".join(CONTROL.repository_authority_errors(config)))
+
+    def test_trigger_payload_and_event_must_match_saved_task_contract(self) -> None:
+        wrong_payload = {**self.config, "trigger_comment_template": "@kgnote-ai-review {candidate_commit} extra"}
+        self.assertIn("trigger comment template", " ".join(CONTROL.repository_authority_errors(wrong_payload)))
+        missing_event = {**self.config, "trigger_events": ["pull_request.synchronize"]}
+        self.assertIn("issue-comment trigger", " ".join(CONTROL.repository_authority_errors(missing_event)))
 
     def test_missing_external_review_artifact_blocks_human_gate(self) -> None:
         state = copy.deepcopy(self.state)
@@ -93,12 +103,20 @@ class ExternalReviewControlTests(unittest.TestCase):
             ("remote_head", "c" * 40),
             ("candidate_fingerprint", "d" * 64),
             ("request_marker", None),
+            ("trigger_comment", "@kgnote-ai-review wrong"),
         ):
             with self.subTest(field=field):
                 state = copy.deepcopy(self.state)
                 state["publication"][field] = value
                 blockers = CONTROL.publication_progression_blockers(self.config, state)
                 self.assertTrue(any(field in blocker for blocker in blockers))
+
+        state = copy.deepcopy(self.state)
+        state["publication"]["trigger_artifact_url"] = None
+        self.assertIn(
+            "event-trigger artifact URL",
+            " ".join(CONTROL.publication_progression_blockers(self.config, state)),
+        )
 
     def test_pending_or_failed_publication_cannot_complete_milestone(self) -> None:
         state = copy.deepcopy(self.state)

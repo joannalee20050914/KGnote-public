@@ -30,8 +30,11 @@ withdrawn, and no native or subjective verdict was requested from the owner.
 
 The repair also exposed `KG-CTRL-ROUND-BUDGET-001`: this recovery PLAN and durable orchestrator state authorize eight
 cycles, while the external publication marker parser and product-review schema still capped round numbers at five.
-Those transport contracts are now aligned to the explicit eight-cycle envelope; the repository-wide default remains
-five unless an active PLAN supplies a narrower or broader explicit bound.
+Those transport contracts were aligned to the explicit eight-cycle envelope. After round 8 exposed a separate
+exact-event-payload transport regression while the product finding remained autonomously repairable, the owner
+explicitly directed the same review/repair loop to continue without another stepwise approval. The active recovery
+PLAN, schema, reviewer contract, and publisher are therefore aligned to a bounded twelve-cycle envelope; the
+repository-wide default remains five unless an active PLAN supplies a narrower or broader explicit bound.
 
 ## Repair and permanent invariant
 

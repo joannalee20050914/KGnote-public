@@ -200,7 +200,7 @@ class GitHubProductReviewConsumerTest(unittest.TestCase):
         self.assertEqual("CHANGES_REQUIRED", decision["status"])
         self.assertEqual([finding], decision["findings"])
 
-    def test_live_config_accepts_literal_documented_round_eight_pass(self):
+    def test_live_config_accepts_literal_documented_round_twelve_pass(self):
         config = json.loads((REPO / ".ai/github-product-reviewer.json").read_text())
         identity = CandidateIdentity(
             repository="joannalee20050914/KGnote-public",
@@ -209,14 +209,14 @@ class GitHubProductReviewConsumerTest(unittest.TestCase):
             goal_id="goal-1",
             candidate_fingerprint=FINGERPRINT,
             candidate_commit=COMMIT,
-            review_round=8,
+            review_round=12,
         )
         result = self.result()
         result.update({
             "repository": identity.repository,
             "pull_request": identity.pull_request,
             "program_id": identity.program_id,
-            "review_round": 8,
+            "review_round": 12,
         })
         decision = consume_records(
             config=config, schema=self.schema, identity=identity,

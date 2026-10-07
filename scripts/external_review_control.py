@@ -41,6 +41,11 @@ def repository_authority_errors(config: Mapping[str, Any]) -> list[str]:
         errors.append("external_review: archive repository cannot be an active review surface")
     if config.get("enabled") is not True:
         errors.append("external_review: transport must be enabled")
+    trigger_events = config.get("trigger_events")
+    if not isinstance(trigger_events, list) or "issue_comment.created" not in trigger_events:
+        errors.append("external_review: exact issue-comment trigger event must be configured")
+    if config.get("trigger_comment_template") != "@kgnote-ai-review {candidate_commit}":
+        errors.append("external_review: exact review trigger comment template is missing")
     return errors
 
 
@@ -117,6 +122,9 @@ def publication_progression_blockers(
         "remote_head": state.get("candidate_commit"),
         "candidate_fingerprint": state.get("candidate_fingerprint"),
         "request_marker": config.get("request_marker"),
+        "trigger_comment": str(config.get("trigger_comment_template", "")).format(
+            candidate_commit=state.get("candidate_commit")
+        ),
     }
     if publication.get("status") != "PUBLISHED":
         blockers.append("external_review: exact candidate is not published")
@@ -126,6 +134,9 @@ def publication_progression_blockers(
     artifact = publication.get("artifact_url")
     if not isinstance(artifact, str) or not artifact:
         blockers.append("external_review: publication artifact URL is missing")
+    trigger_artifact = publication.get("trigger_artifact_url")
+    if not isinstance(trigger_artifact, str) or not trigger_artifact:
+        blockers.append("external_review: exact event-trigger artifact URL is missing")
     return blockers
 
 

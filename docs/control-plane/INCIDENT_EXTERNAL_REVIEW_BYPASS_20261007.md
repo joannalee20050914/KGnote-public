@@ -37,3 +37,9 @@ Automated tests cover wrong-repository publication, migration split brain, missi
 ## Canonical lesson
 
 > Human gate 前必須先耗盡已授權的 autonomous AI review / repair 能力。Internal PASS 不代表可以叫 human。External review transport 沒有實際產生 review evidence，就視為 review 尚未發生。
+
+## Follow-up: exact event payload regression
+
+During round 8 recovery, the candidate was correctly published to the canonical PR, but the emitted review-request comment appended explanatory prose after `@kgnote-ai-review <HEAD>`. The saved ChatGPT Work task accepts that validation event only when the entire comment body is exactly the one-line trigger, so the event was ignored. Manual Work-conversation retries then disconnected before producing evidence, consuming time without changing the authoritative review state.
+
+The safeguard missed this because it compared repository identities and candidate markers but did not compare the actual event payload to the configured trigger grammar or require a read-back URL for the trigger artifact. The publisher now owns an idempotent exact-trigger step, rejects an unconfigured template, reads back the exact comment artifact, and records it with publication evidence. Authority validation requires `issue_comment.created` plus the canonical template, and regression tests cover extra-text payloads, missing trigger events, missing trigger evidence, and idempotent reuse. The explicitly authorized recovery envelope is extended through round 12 so the existing autonomous repair loop can finish without treating the round-8 transport defect as a product or human decision.

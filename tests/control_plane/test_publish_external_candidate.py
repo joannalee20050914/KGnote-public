@@ -20,7 +20,9 @@ class PublicationTransitionTests(unittest.TestCase):
             "candidate_repository": "owner/public", "trigger_repository": "owner/public",
             "review_request_repository": "owner/public", "archive_repository": "owner/archive",
             "review_pr_number": 1, "request_marker": "REQUEST_V2",
-            "max_product_review_rounds": 8,
+            "max_product_review_rounds": 12,
+            "trigger_events": ["pull_request.synchronize", "issue_comment.created"],
+            "trigger_comment_template": "@kgnote-ai-review {candidate_commit}",
         }
         self.state = {"candidate_commit": "a" * 40, "candidate_fingerprint": "b" * 64, "review_round": 2}
         marker = PUBLISH.request_marker(self.config, self.state)
@@ -46,11 +48,22 @@ class PublicationTransitionTests(unittest.TestCase):
             PUBLISH.resolve_pr_candidate(self.config, observed, "c" * 64)
 
     def test_configured_late_round_is_supported_and_round_over_budget_fails_closed(self):
-        late = {**self.state, "review_round": 8}
+        late = {**self.state, "review_round": 12}
         observed = {"headRefOid": "a" * 40, "body": PUBLISH.request_marker(self.config, late)}
         self.assertEqual(late, PUBLISH.resolve_pr_candidate(self.config, observed, "b" * 64))
         with self.assertRaisesRegex(PUBLISH.PublicationError, "authority envelope"):
-            PUBLISH.request_marker(self.config, {**late, "review_round": 9})
+            PUBLISH.request_marker(self.config, {**late, "review_round": 13})
+
+    def test_trigger_comment_is_exact_and_rejects_unconfigured_payload(self):
+        self.assertEqual(
+            "@kgnote-ai-review " + "a" * 40,
+            PUBLISH.review_trigger_comment(self.config, self.state),
+        )
+        with self.assertRaisesRegex(PUBLISH.PublicationError, "exact review trigger"):
+            PUBLISH.review_trigger_comment(
+                {**self.config, "trigger_comment_template": "@kgnote-ai-review {candidate_commit} extra"},
+                self.state,
+            )
 
     def test_stale_marker_cleanup_is_not_limited_by_current_round_budget(self):
         body = (
@@ -93,10 +106,16 @@ class PublicationTransitionTests(unittest.TestCase):
                 if command[:3] == ["git", "push", "origin"]: return ""
                 if command[:3] == ["gh", "pr", "view"]:
                     return json.dumps({"headRefOid": "a" * 40, "body": "PR\n" + marker, "state": "OPEN", "url": "https://example/pr/1"})
+                if command[:2] == ["gh", "api"] and command[-1] == "--paginate":
+                    return "[]"
+                if command[:2] == ["gh", "api"] and "body=@kgnote-ai-review " in command[-1]:
+                    return json.dumps({"html_url": "https://example/pr/1#issuecomment-1"})
                 raise AssertionError(command)
             with mock.patch.object(PUBLISH.codex_control, "repository_fingerprint", return_value={"value": "b" * 64}):
                 result = PUBLISH.publish(repo, runner)
             self.assertEqual("PUBLISHED", result["status"])
+            self.assertEqual("@kgnote-ai-review " + "a" * 40, result["trigger_comment"])
+            self.assertEqual("https://example/pr/1#issuecomment-1", result["trigger_artifact_url"])
             self.assertTrue(any(command[:3] == ["git", "push", "origin"] for command in calls))
             recorded = json.loads((repo / ".ai/external-review-state.json").read_text())
             self.assertEqual("AWAITING_EXTERNAL_PRODUCT_REVIEW", recorded["phase"])

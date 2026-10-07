@@ -52,6 +52,16 @@ def request_marker(config: dict[str, Any], state: dict[str, Any]) -> str:
     )
 
 
+def review_trigger_comment(config: dict[str, Any], state: dict[str, Any]) -> str:
+    template = config.get("trigger_comment_template")
+    if template != "@kgnote-ai-review {candidate_commit}":
+        raise PublicationError("exact review trigger comment template is missing")
+    commit = state.get("candidate_commit")
+    if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
+        raise PublicationError("candidate commit is invalid for the review trigger")
+    return template.format(candidate_commit=commit)
+
+
 def without_request_markers(config: dict[str, Any], body: str) -> str:
     pattern = re.compile(
         rf"\n?<!--\s*{re.escape(config['request_marker'])}\s+candidate_commit=[0-9a-f]{{40}}\s+"
@@ -149,10 +159,29 @@ def publish(repo: Path, runner: Callable[..., str] | None = None) -> dict[str, A
     errors = remote_snapshot_errors(config, state, snapshot)
     if errors:
         raise PublicationError("; ".join(errors))
+    trigger_body = review_trigger_comment(config, state)
+    comments_path = (
+        f"repos/{config['canonical_repository']}/issues/{config['review_pr_number']}/comments"
+    )
+    comments = json.loads(runner(["gh", "api", comments_path, "--paginate"], cwd=repo))
+    exact_comments = [
+        row for row in comments
+        if isinstance(row, dict) and row.get("body") == trigger_body
+    ]
+    if exact_comments:
+        trigger_artifact_url = exact_comments[-1].get("html_url")
+    else:
+        created = json.loads(
+            runner(["gh", "api", comments_path, "-f", f"body={trigger_body}"], cwd=repo)
+        )
+        trigger_artifact_url = created.get("html_url")
+    if not isinstance(trigger_artifact_url, str) or not trigger_artifact_url:
+        raise PublicationError("exact review trigger comment read-back failed")
     state["phase"] = "AWAITING_EXTERNAL_PRODUCT_REVIEW"
     state["publication"] = {"status": "PUBLISHED", **{k: snapshot[k] for k in (
         "repository", "pull_request", "remote_head", "candidate_fingerprint",
-        "request_marker", "artifact_url")}}
+        "request_marker", "artifact_url")}, "trigger_comment": trigger_body,
+        "trigger_artifact_url": trigger_artifact_url}
     temporary = repo / ".ai/external-review-state.json.tmp"
     temporary.write_text(json.dumps(state, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     os.replace(temporary, repo / external_review_control.STATE_PATH)

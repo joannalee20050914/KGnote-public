@@ -270,6 +270,63 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
         relations = [row["relation"] for row in preview.payload["relations"]]
         self.assertEqual(relations, [None, "requires"])
 
+    def test_nested_question_scope_ends_when_list_returns_to_outer_sibling(self):
+        cases = (
+            (
+                "- Question:\n  - **Client** requires **Server**.\n"
+                "- **Cache** requires **Database**.",
+                ("Client", "Server", "Cache", "Database"),
+            ),
+            (
+                "1. 問題：\n\n   - **客戶端**需要**伺服器**。\n\n"
+                "2. **快取**需要**資料庫**。",
+                ("客戶端", "伺服器", "快取", "資料庫"),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            for index, (statement, _names) in enumerate(cases):
+                source = Path(directory) / f"nested-question-{index}.md"
+                source.write_text(f"# Case\n\n{statement}\n", encoding="utf-8")
+                preview = build_learning_workspace_preview(source)
+                relations = preview.payload["relations"]
+                self.assertEqual(
+                    [row["relation"] for row in relations],
+                    [None, "requires"],
+                    statement,
+                )
+                self.assertEqual(relations[0]["edge_class"], "soft_association")
+                self.assertEqual(relations[1]["edge_class"], "canonical_candidate")
+
+    def test_nested_question_outer_sibling_materializes_only_typed_declarative(self):
+        statement = (
+            "- Question:\n  - **Client** requires **Server**.\n\n"
+            "- **Cache** requires **Database**."
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "nested-question-materialized.md"
+            source.write_text(f"# Case\n\n{statement}\n", encoding="utf-8")
+            vault = root / "vault"
+            vault.mkdir()
+            preview = build_learning_workspace_preview(source)
+            result = materialize_learning_workspace(preview, vault)
+            workspace = Path(result.workspace_path)
+            relationships = (workspace / "Relationships.md").read_text(encoding="utf-8")
+            rendered = "\n".join(
+                path.read_text(encoding="utf-8")
+                for path in [
+                    workspace / "Relationships.md",
+                    workspace / "Concepts" / "Index.md",
+                    *sorted((workspace / "Concepts").glob("*.md")),
+                ]
+            )
+        client_section, cache_section = relationships.split("## Cache ↔ Database", 1)
+        self.assertIn("leaves this unresolved", client_section)
+        self.assertNotIn("candidate phrase **requires**", client_section)
+        self.assertIn("candidate phrase **requires**", cache_section)
+        self.assertIn("still unreviewed", cache_section)
+        self.assertNotIn("[[Concepts/Client|Client]] **requires**", rendered)
+
     def test_qualified_relations_never_leak_into_materialized_learner_notes(self):
         statements = (
             "**Client** usually requires **Server**.",

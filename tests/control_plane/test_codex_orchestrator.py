@@ -276,7 +276,9 @@ class OrchestrationSimulationTests(unittest.TestCase):
                 "candidate_repository": "owner/public", "trigger_repository": "owner/public",
                 "review_request_repository": "owner/public", "archive_repository": "owner/archive",
                 "review_pr_number": 1, "request_marker": "REQUEST_V2",
-                "max_product_review_rounds": 8,
+                "max_product_review_rounds": 12,
+                "trigger_events": ["pull_request.synchronize", "issue_comment.created"],
+                "trigger_comment_template": "@kgnote-ai-review {candidate_commit}",
             }
             external = {
                 "canonical_repository": "owner/public", "candidate_repository": "owner/public",
@@ -313,6 +315,10 @@ class OrchestrationSimulationTests(unittest.TestCase):
                 if command[:3] == ["git", "push", "origin"]: return ""
                 if command[:3] == ["gh", "pr", "view"]:
                     return json.dumps({"headRefOid": "a" * 40, "body": "PR\n" + marker, "state": "OPEN", "url": "https://example/pr/1"})
+                if command[:2] == ["gh", "api"] and command[-1] == "--paginate":
+                    return "[]"
+                if command[:2] == ["gh", "api"] and "body=@kgnote-ai-review " in command[-1]:
+                    return json.dumps({"html_url": "https://example/pr/1#issuecomment-1"})
                 raise AssertionError(command)
 
             completed = mock.Mock(stdout=("a" * 40 + "\n").encode())
