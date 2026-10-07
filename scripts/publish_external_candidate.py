@@ -41,6 +41,14 @@ def request_marker(config: dict[str, Any], state: dict[str, Any]) -> str:
     )
 
 
+def without_request_markers(config: dict[str, Any], body: str) -> str:
+    pattern = re.compile(
+        rf"\n?<!--\s*{re.escape(config['request_marker'])}\s+candidate_commit=[0-9a-f]{{40}}\s+"
+        rf"candidate_fingerprint=[0-9a-f]{{64}}\s+review_round=[1-5]\s*-->\n?"
+    )
+    return pattern.sub("\n", body).rstrip()
+
+
 def remote_snapshot_errors(
     config: dict[str, Any], state: dict[str, Any], snapshot: dict[str, Any]
 ) -> list[str]:
@@ -91,7 +99,7 @@ def publish(repo: Path, runner: Callable[..., str] = _run) -> dict[str, Any]:
     marker = request_marker(config, state)
     if marker not in body:
         body_file = repo / ".git" / "kgnote-review-request-body.md"
-        body_file.write_text(body.rstrip() + "\n\n" + marker + "\n", encoding="utf-8")
+        body_file.write_text(without_request_markers(config, body) + "\n\n" + marker + "\n", encoding="utf-8")
         try:
             runner(["gh", "pr", "edit", str(config["review_pr_number"]), "--repo", config["canonical_repository"], "--body-file", str(body_file)], cwd=repo)
         finally:

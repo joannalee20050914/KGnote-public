@@ -38,6 +38,12 @@ class PublicationTransitionTests(unittest.TestCase):
         with self.assertRaises(PUBLISH.PublicationError):
             PUBLISH.resolve_pr_candidate(self.config, observed, "c" * 64)
 
+    def test_republication_replaces_stale_request_marker(self):
+        old_state = {**self.state, "candidate_commit": "c" * 40}
+        body = "PR\n\n" + PUBLISH.request_marker(self.config, old_state) + "\n"
+        cleaned = PUBLISH.without_request_markers(self.config, body)
+        self.assertEqual("PR", cleaned)
+
     def test_wrong_repo_stale_head_missing_marker_and_fingerprint_fail_closed(self):
         for field, value in (("repository", "owner/archive"), ("remote_head", "c" * 40),
                              ("candidate_fingerprint", "d" * 64), ("body", "no marker")):
