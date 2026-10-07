@@ -1,0 +1,371 @@
+{
+  "concepts": [
+    {
+      "aliases": [
+        "Flask route",
+        "route",
+        "routing table"
+      ],
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce"
+      ],
+      "group_id": "group_program_handling",
+      "id": "concept_010718e5930570467930dd014f2f36fe79423cc95f8280ae614738058887848c",
+      "label": "Flask 路由",
+      "status": "needs_review",
+      "summary": "Flask 用路徑把收到的 HTTP 請求交給對應 Python function 處理的規則。"
+    },
+    {
+      "aliases": [
+        "127.0.0.1",
+        "localhost",
+        "loopback address"
+      ],
+      "evidence_ids": [
+        "evidence_aec121284936da67958355799c00ecda1d0e2f4e521ddc26c1d66b8e0fadb0ab"
+      ],
+      "group_id": "group_addressing",
+      "id": "concept_29bc756291762577b4a5a056788f71b6fdb51df50792ba958cc8a49cccf3c563",
+      "label": "本機回環位址",
+      "status": "needs_review",
+      "summary": "指向發出連線的那台主機自己；不同裝置的 127.0.0.1 各自指向自己。"
+    },
+    {
+      "aliases": [
+        "HTTP response",
+        "response"
+      ],
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce"
+      ],
+      "group_id": "group_http_exchange",
+      "id": "concept_360e50eb00c9ea5f82793fa1d103b34ac2ce91d2e6d14f14459d89426fdbe8a5",
+      "label": "HTTP 回應",
+      "status": "needs_review",
+      "summary": "伺服器處理請求後傳回用戶端的結果。"
+    },
+    {
+      "aliases": [
+        "Server"
+      ],
+      "evidence_ids": [
+        "evidence_b1861d12c500f976ca0364f6ec0ac869851ab741a5cc2110cd5714c39d4f3bed"
+      ],
+      "group_id": "group_communication_roles",
+      "id": "concept_470e5cac522d492b99b5530a908c36b412ee3b1f5ebd219b65421375720d5ec1",
+      "label": "伺服器",
+      "status": "needs_review",
+      "summary": "等待請求、進行處理並回傳回應的一方；它描述程式角色，不是固定的電腦種類。"
+    },
+    {
+      "aliases": [
+        "ngrok",
+        "ngrok tunnel"
+      ],
+      "evidence_ids": [
+        "evidence_a0be170fb64697eda88e5ddaa74ef50ce40f2007b0f227cc9e8c1ca72c222939"
+      ],
+      "group_id": "group_public_entry",
+      "id": "concept_4979cd636c95b67d9e5b6db2cfb1f14fa06823cda1e0ddbc384d64f119c50704",
+      "label": "ngrok 通道",
+      "status": "needs_review",
+      "summary": "在這個 BitePacer 架構中，提供外界通往 Mac 本機 Flask 服務的公開路徑。"
+    },
+    {
+      "aliases": [
+        "HTTP request",
+        "request"
+      ],
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce"
+      ],
+      "group_id": "group_http_exchange",
+      "id": "concept_ac75ffef5130f55c93c86161757813ed3ad92aadf3dd5344d742737031de97e2",
+      "label": "HTTP 請求",
+      "status": "needs_review",
+      "summary": "用戶端傳給伺服器、用來要求某個資源或操作的訊息。"
+    },
+    {
+      "aliases": [
+        "IP",
+        "IP address"
+      ],
+      "evidence_ids": [
+        "evidence_86c0656b647b9501afd4dd7b807756584db51ea1114b6d68a75662209c0cc860"
+      ],
+      "group_id": "group_addressing",
+      "id": "concept_c1f041f6fb10bdfb212b04abdc7294c95e2adc5b99f39f568a89a2b102898feb",
+      "label": "IP 位址",
+      "status": "needs_review",
+      "summary": "在這份入門教材中，用來辨認要連線的主機。"
+    },
+    {
+      "aliases": [
+        "Client"
+      ],
+      "evidence_ids": [
+        "evidence_b1861d12c500f976ca0364f6ec0ac869851ab741a5cc2110cd5714c39d4f3bed"
+      ],
+      "group_id": "group_communication_roles",
+      "id": "concept_d18b2812af2ceef6d4d683eb766686b01b608336e89cc608b30c687218d858cf",
+      "label": "用戶端",
+      "status": "needs_review",
+      "summary": "主動向另一個程式提出請求的一方；Chrome、LINE server 或 curl 都可能扮演用戶端。"
+    },
+    {
+      "aliases": [
+        "port"
+      ],
+      "evidence_ids": [
+        "evidence_86c0656b647b9501afd4dd7b807756584db51ea1114b6d68a75662209c0cc860"
+      ],
+      "group_id": "group_addressing",
+      "id": "concept_ffaed4cca46d7aa7e4980dd7aa5509a73c69c46c6dfa6226b38a2d777e8632af",
+      "label": "連接埠",
+      "status": "needs_review",
+      "summary": "在一台主機上辨認要連到哪個網路服務的入口編號。"
+    }
+  ],
+  "evidence": [
+    {
+      "extraction_confidence": "high",
+      "extractor_version": "manual.zh-bitepacer.v1",
+      "id": "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce",
+      "label": "Evidence L51-L66",
+      "locator": {
+        "kind": "line_range",
+        "value": "L51-L66"
+      },
+      "observed_at": "2026-08-14T19:51:44+08:00",
+      "proposition": "用戶端送出 HTTP request；Flask 依 route 找到 Python handler 處理，再產生 HTTP response 回傳。",
+      "review_status": "accepted",
+      "source_id": "src_bitepacer_mini_network_lesson"
+    },
+    {
+      "extraction_confidence": "high",
+      "extractor_version": "manual.zh-bitepacer.v1",
+      "id": "evidence_86c0656b647b9501afd4dd7b807756584db51ea1114b6d68a75662209c0cc860",
+      "label": "Evidence L20-L36",
+      "locator": {
+        "kind": "line_range",
+        "value": "L20-L36"
+      },
+      "observed_at": "2026-08-14T19:51:44+08:00",
+      "proposition": "在這份 BitePacer 入門教材中，IP 或 hostname 用來找到主機，port 用來找到該主機上的特定網路服務。",
+      "review_status": "accepted",
+      "source_id": "src_bitepacer_mini_network_lesson"
+    },
+    {
+      "extraction_confidence": "high",
+      "extractor_version": "manual.zh-bitepacer.v1",
+      "id": "evidence_a0be170fb64697eda88e5ddaa74ef50ce40f2007b0f227cc9e8c1ca72c222939",
+      "label": "Evidence L68-L84",
+      "locator": {
+        "kind": "line_range",
+        "value": "L68-L84"
+      },
+      "observed_at": "2026-08-14T19:51:44+08:00",
+      "proposition": "因為 Internet 上的 LINE server 無法用 127.0.0.1 連到 product owner 的 Mac，ngrok tunnel 提供從公開網址通往 Mac 本機 Flask 服務的路徑。",
+      "review_status": "accepted",
+      "source_id": "src_bitepacer_mini_network_lesson"
+    },
+    {
+      "extraction_confidence": "high",
+      "extractor_version": "manual.zh-bitepacer.v1",
+      "id": "evidence_aec121284936da67958355799c00ecda1d0e2f4e521ddc26c1d66b8e0fadb0ab",
+      "label": "Evidence L38-L49",
+      "locator": {
+        "kind": "line_range",
+        "value": "L38-L49"
+      },
+      "observed_at": "2026-08-14T19:51:44+08:00",
+      "proposition": "127.0.0.1 是本機回環位址，永遠指向提出連線的裝置自己；因此 LINE server 的 127.0.0.1 不是 product owner 的 Mac。",
+      "review_status": "accepted",
+      "source_id": "src_bitepacer_mini_network_lesson"
+    },
+    {
+      "extraction_confidence": "high",
+      "extractor_version": "manual.zh-bitepacer.v1",
+      "id": "evidence_b1861d12c500f976ca0364f6ec0ac869851ab741a5cc2110cd5714c39d4f3bed",
+      "label": "Evidence L3-L18",
+      "locator": {
+        "kind": "line_range",
+        "value": "L3-L18"
+      },
+      "observed_at": "2026-08-14T19:51:44+08:00",
+      "proposition": "用戶端是主動提出 request 的程式，伺服器是等待 request、處理後回傳 response 的程式；兩者是互動角色，不是固定的電腦種類。",
+      "review_status": "accepted",
+      "source_id": "src_bitepacer_mini_network_lesson"
+    }
+  ],
+  "graph_snapshot_sha256": "9fe29c60b397fb78179a7d6c19be747b19b7d4bb1ec634b497f5b7c213046d68",
+  "groups": [
+    {
+      "concept_ids": [
+        "concept_470e5cac522d492b99b5530a908c36b412ee3b1f5ebd219b65421375720d5ec1",
+        "concept_d18b2812af2ceef6d4d683eb766686b01b608336e89cc608b30c687218d858cf"
+      ],
+      "id": "group_communication_roles",
+      "label": "誰在溝通",
+      "order": 1
+    },
+    {
+      "concept_ids": [
+        "concept_29bc756291762577b4a5a056788f71b6fdb51df50792ba958cc8a49cccf3c563",
+        "concept_c1f041f6fb10bdfb212b04abdc7294c95e2adc5b99f39f568a89a2b102898feb",
+        "concept_ffaed4cca46d7aa7e4980dd7aa5509a73c69c46c6dfa6226b38a2d777e8632af"
+      ],
+      "id": "group_addressing",
+      "label": "如何找到位置",
+      "order": 2
+    },
+    {
+      "concept_ids": [
+        "concept_360e50eb00c9ea5f82793fa1d103b34ac2ce91d2e6d14f14459d89426fdbe8a5",
+        "concept_ac75ffef5130f55c93c86161757813ed3ad92aadf3dd5344d742737031de97e2"
+      ],
+      "id": "group_http_exchange",
+      "label": "如何交換資料",
+      "order": 3
+    },
+    {
+      "concept_ids": [
+        "concept_010718e5930570467930dd014f2f36fe79423cc95f8280ae614738058887848c"
+      ],
+      "id": "group_program_handling",
+      "label": "程式如何處理",
+      "order": 4
+    },
+    {
+      "concept_ids": [
+        "concept_4979cd636c95b67d9e5b6db2cfb1f14fa06823cda1e0ddbc384d64f119c50704"
+      ],
+      "id": "group_public_entry",
+      "label": "外部如何進入",
+      "order": 5
+    }
+  ],
+  "learning_unit": {
+    "display_locale": "zh-Hant",
+    "focus_question": "一則 LINE 訊息如何抵達 product owner Mac 上的 BitePacer？",
+    "id": "guided_map_bitepacer_message_delivery",
+    "source_locator": {
+      "kind": "line_range",
+      "value": "L3-L84"
+    },
+    "title": "BitePacer 訊息傳遞導覽圖"
+  },
+  "projection_version": "manual.bitepacer.guided-map.v1",
+  "propositions": [
+    {
+      "canonical_relation": "related_to",
+      "edge_id": "edge_14416de645cb7f873be16c9a19ed021a7f2e61a1b57ac28c08bd49b59be70a23",
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce",
+        "evidence_86c0656b647b9501afd4dd7b807756584db51ea1114b6d68a75662209c0cc860"
+      ],
+      "linking_phrase": "把服務入口指向",
+      "object_concept_id": "concept_010718e5930570467930dd014f2f36fe79423cc95f8280ae614738058887848c",
+      "object_label": "Flask 路由",
+      "projection_version": "manual.bitepacer.guided-map.v1",
+      "review_status": "accepted",
+      "subject_concept_id": "concept_ffaed4cca46d7aa7e4980dd7aa5509a73c69c46c6dfa6226b38a2d777e8632af",
+      "subject_label": "連接埠"
+    },
+    {
+      "canonical_relation": "related_to",
+      "edge_id": "edge_33c3c2af37bc306d48f90d5bf6616edb6e5dc3de293d6ec52fc315c455613c86",
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce",
+        "evidence_b1861d12c500f976ca0364f6ec0ac869851ab741a5cc2110cd5714c39d4f3bed"
+      ],
+      "linking_phrase": "處理後回傳",
+      "object_concept_id": "concept_360e50eb00c9ea5f82793fa1d103b34ac2ce91d2e6d14f14459d89426fdbe8a5",
+      "object_label": "HTTP 回應",
+      "projection_version": "manual.bitepacer.guided-map.v1",
+      "review_status": "accepted",
+      "subject_concept_id": "concept_470e5cac522d492b99b5530a908c36b412ee3b1f5ebd219b65421375720d5ec1",
+      "subject_label": "伺服器"
+    },
+    {
+      "canonical_relation": "related_to",
+      "edge_id": "edge_3852d91a3eb001ad73300521137f7cb6f05b16ef6ffe287fdae9afc75c61fea2",
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce",
+        "evidence_a0be170fb64697eda88e5ddaa74ef50ce40f2007b0f227cc9e8c1ca72c222939"
+      ],
+      "linking_phrase": "把公開流量導向",
+      "object_concept_id": "concept_010718e5930570467930dd014f2f36fe79423cc95f8280ae614738058887848c",
+      "object_label": "Flask 路由",
+      "projection_version": "manual.bitepacer.guided-map.v1",
+      "review_status": "accepted",
+      "subject_concept_id": "concept_4979cd636c95b67d9e5b6db2cfb1f14fa06823cda1e0ddbc384d64f119c50704",
+      "subject_label": "ngrok 通道"
+    },
+    {
+      "canonical_relation": "related_to",
+      "edge_id": "edge_6626ad4038e07657f0b204df174eb58ddaee5739914e39dc7e0ec98d36042e97",
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce"
+      ],
+      "linking_phrase": "用來比對收到的",
+      "object_concept_id": "concept_ac75ffef5130f55c93c86161757813ed3ad92aadf3dd5344d742737031de97e2",
+      "object_label": "HTTP 請求",
+      "projection_version": "manual.bitepacer.guided-map.v1",
+      "review_status": "accepted",
+      "subject_concept_id": "concept_010718e5930570467930dd014f2f36fe79423cc95f8280ae614738058887848c",
+      "subject_label": "Flask 路由"
+    },
+    {
+      "canonical_relation": "related_to",
+      "edge_id": "edge_80042c4f448d92b2d8311f064b6189e7259615ff1c0babd38bb817adcf561c4a",
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce",
+        "evidence_b1861d12c500f976ca0364f6ec0ac869851ab741a5cc2110cd5714c39d4f3bed"
+      ],
+      "linking_phrase": "主動送出",
+      "object_concept_id": "concept_ac75ffef5130f55c93c86161757813ed3ad92aadf3dd5344d742737031de97e2",
+      "object_label": "HTTP 請求",
+      "projection_version": "manual.bitepacer.guided-map.v1",
+      "review_status": "accepted",
+      "subject_concept_id": "concept_d18b2812af2ceef6d4d683eb766686b01b608336e89cc608b30c687218d858cf",
+      "subject_label": "用戶端"
+    },
+    {
+      "canonical_relation": "is_a",
+      "edge_id": "edge_90a1b92e126e43975b3adcb9e9c54c8cf24d2f7e835784b793decb90435c75c8",
+      "evidence_ids": [
+        "evidence_aec121284936da67958355799c00ecda1d0e2f4e521ddc26c1d66b8e0fadb0ab"
+      ],
+      "linking_phrase": "是一種只指向本機的",
+      "object_concept_id": "concept_c1f041f6fb10bdfb212b04abdc7294c95e2adc5b99f39f568a89a2b102898feb",
+      "object_label": "IP 位址",
+      "projection_version": "manual.bitepacer.guided-map.v1",
+      "review_status": "accepted",
+      "subject_concept_id": "concept_29bc756291762577b4a5a056788f71b6fdb51df50792ba958cc8a49cccf3c563",
+      "subject_label": "本機回環位址"
+    },
+    {
+      "canonical_relation": "related_to",
+      "edge_id": "edge_aad5805e9a5690b8e3eef61e3a75c10ef74e0ecd90acfbfb1ec3d81886674cc3",
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce"
+      ],
+      "linking_phrase": "引導處理以產生",
+      "object_concept_id": "concept_360e50eb00c9ea5f82793fa1d103b34ac2ce91d2e6d14f14459d89426fdbe8a5",
+      "object_label": "HTTP 回應",
+      "projection_version": "manual.bitepacer.guided-map.v1",
+      "review_status": "accepted",
+      "subject_concept_id": "concept_010718e5930570467930dd014f2f36fe79423cc95f8280ae614738058887848c",
+      "subject_label": "Flask 路由"
+    }
+  ],
+  "schema_version": "kgnote.guided-map-read-model.v1",
+  "source": {
+    "captured_at": "2026-08-14T19:51:44+08:00",
+    "content_sha256": "bbef6549c2381ee729c355b69151777bbdbda459ca16079055316f52318792db",
+    "id": "src_bitepacer_mini_network_lesson",
+    "label": "BitePacer 驅動的迷你計網",
+    "source_kind": "chatgpt_conversation"
+  }
+}

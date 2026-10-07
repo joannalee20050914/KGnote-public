@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kgnote.review-request.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "protocol_version", "review_id", "goal_id", "milestone_id", "status",
+    "author_role", "base_revision", "candidate_revision", "candidate_fingerprint", "authoritative_specs",
+    "changed_areas", "acceptance_criteria", "negative_requirements", "validation_performed",
+    "validation_results", "known_deviations", "known_uncertainties", "reviewer_focus",
+    "preserved_human_gates", "requested_at", "authorized_human_decision_identities", "candidate_manifest"
+  ],
+  "properties": {
+    "schema_version": {"const": "kgnote.review-request.v1"},
+    "protocol_version": {"const": "kgnote.review-protocol.v1"},
+    "review_id": {"type": "string", "pattern": "^review-[a-z0-9-]+-[0-9]{3}$"},
+    "goal_id": {"type": "string", "minLength": 1},
+    "milestone_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["IMPLEMENTING", "READY_FOR_REVIEW", "UNDER_REVIEW", "CHANGES_REQUIRED", "PRODUCT_DECISION_REQUIRED", "PASS"]},
+    "author_role": {"const": "CODEX_IMPLEMENTER"},
+    "base_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "candidate_revision": {"type": ["string", "null"]},
+    "candidate_fingerprint": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "authoritative_specs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "changed_areas": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "acceptance_criteria": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "negative_requirements": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "validation_performed": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "validation_results": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["name", "status", "evidence"],
+        "properties": {"name": {"type": "string"}, "status": {"enum": ["PASS", "FAIL", "NOT_RUN"]}, "evidence": {"type": "string"}}
+      }
+    },
+    "known_deviations": {"type": "array", "items": {"type": "string"}},
+    "known_uncertainties": {"type": "array", "items": {"type": "string"}},
+    "reviewer_focus": {"type": "array", "items": {"type": "string"}},
+    "preserved_human_gates": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "authorized_human_decision_identities": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "candidate_manifest": {"type": ["object", "null"]},
+    "requested_at": {"type": ["string", "null"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"enum": ["READY_FOR_REVIEW", "UNDER_REVIEW", "CHANGES_REQUIRED", "PRODUCT_DECISION_REQUIRED", "PASS"]}}},
+      "then": {
+        "properties": {
+          "candidate_revision": {"type": "string", "pattern": "^[0-9a-f]{40}\\+worktree:[0-9a-f]{64}$"},
+          "candidate_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "requested_at": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  ]
+}

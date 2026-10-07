@@ -1,0 +1,7 @@
+{
+  "schema_version":"kgnote.reading-assist.v1","learning_unit_id":"guided_map_bitepacer_message_delivery","revision":1,
+  "glosses":[
+    {"id":"gloss_bp_hostname","term":"hostname","concept_ref":null,"source_id":"src_bitepacer_mini_network_lesson","locator":{"kind":"line_range","value":"L20-L24"},"required_depth":"recognize","minimum_explanation":"這裡只需要把 hostname 理解成可讀的主機名稱；它和 IP 位址一樣用來指出要連到哪台主機。","why_needed_here":"教材把 IP / hostname 並列，但沒有展開名稱解析。","defer_for_now":["DNS recursion","record types","resolver cache"],"detailed_explanation":"hostname 通常經名稱解析取得可連線的位址；目前只需辨認它負責『哪台主機』。","provenance":{"kind":"external_supplement","reviewer":"manual.context-gloss.v1","label":"外部補充 / contextual explanation"},"revision":1}
+  ],
+  "prior_knowledge":[]
+}

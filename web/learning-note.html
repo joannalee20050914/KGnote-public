@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KGnote · 整理理解</title>
+  <link rel="stylesheet" href="learning-note.css">
+</head>
+<body>
+  <main class="note-shell">
+    <header class="note-masthead">
+      <div>
+        <p class="note-kicker">ORGANIZE UNDERSTANDING</p>
+        <h1>把材料改寫成<br>自己的筆記</h1>
+        <p class="note-lede">這裡不需要先建立 Concept Graph。先留下可修訂的結構、自己的解釋，以及真的還不確定的地方。</p>
+      </div>
+      <nav aria-label="工作區">
+        <a href="/">探索圖</a>
+        <a href="/guided-map.html">舊三視圖</a>
+      </nav>
+    </header>
+
+    <section class="note-controls" aria-labelledby="identity-heading">
+      <h2 id="identity-heading">這份筆記</h2>
+      <div class="identity-grid">
+        <label>Note ID <input id="note-id" value="note_causality_baseline" autocomplete="off"></label>
+        <label>Notebook <input id="notebook-id" value="notebook_local" autocomplete="off"></label>
+        <label>Learning unit <input id="learning-unit-id" value="unit_causality" autocomplete="off"></label>
+        <label>標題 <input id="note-title" value="Correlation 與 causation" autocomplete="off"></label>
+      </div>
+      <div class="control-actions">
+        <button id="note-load" type="button">重開筆記</button>
+        <button id="note-new" type="button" class="secondary">清空成新稿</button>
+        <span id="note-status" role="status">尚未載入</span>
+      </div>
+    </section>
+
+    <section class="note-workspace">
+      <article class="editor-card">
+        <header>
+          <div><p>EDITABLE MARKDOWN</p><h2>你的結構與解釋</h2></div>
+          <span id="revision-label">未保存</span>
+        </header>
+        <p class="editor-help">可用標題、清單與段落。問題或不確定可留下，但不要求每篇都填滿固定欄位。</p>
+        <textarea id="note-markdown" spellcheck="true">## 我目前的解釋
+
+Correlation 表示兩個變數一起變動，但本身不能證明其中一個造成另一個。
+
+## 判斷時要注意
+
+- 是否有同時影響兩者的第三個變數？
+- 是否只有共同變動，還是有支持因果的設計？
+
+## 我還不確定
+
+Counterfactual 與 causal inference 的精確關係需要回來源或其他材料確認。
+</textarea>
+        <details class="anchor-editor">
+          <summary>來源入口</summary>
+          <div class="anchor-fields">
+            <label>Source ID <input id="anchor-source-id" value="src_synthetic_causality_chat"></label>
+            <label>Locator <input id="anchor-locator" value="L3-L13"></label>
+            <label>Label <input id="anchor-label" value="原始因果學習對話"></label>
+          </div>
+        </details>
+        <div class="save-row">
+          <button id="note-save" type="button">保存新 revision</button>
+          <button id="source-open" type="button" class="secondary">回到來源片段</button>
+        </div>
+        <div id="conflict-box" class="conflict-box" hidden>
+          <strong>伺服器已有較新版本。</strong>
+          <p>你的文字仍留在編輯器中。可先複製，再按「重開筆記」進行手動合併；系統不會 last-write-wins。</p>
+        </div>
+      </article>
+
+      <aside class="preview-card" aria-labelledby="preview-heading">
+        <header><p>SAFE PREVIEW</p><h2 id="preview-heading">目前預覽</h2></header>
+        <div id="note-preview" class="note-preview"></div>
+        <section id="source-panel" class="source-panel" hidden>
+          <p class="source-label">VERIFIED SOURCE EXCERPT</p>
+          <h3 id="source-title"></h3>
+          <pre id="source-excerpt"></pre>
+        </section>
+      </aside>
+    </section>
+
+    <section class="search-card" aria-labelledby="search-heading">
+      <div><p>NOTEBOOK LOOKUP</p><h2 id="search-heading">從這本 notebook 回找</h2></div>
+      <form id="note-search-form">
+        <label for="note-search">搜尋標題、heading、正文或來源標籤</label>
+        <div><input id="note-search" type="search" placeholder="例如 confounder"><button>搜尋</button></div>
+      </form>
+      <ol id="search-results"></ol>
+    </section>
+  </main>
+  <script type="module" src="learning-note.js"></script>
+</body>
+</html>

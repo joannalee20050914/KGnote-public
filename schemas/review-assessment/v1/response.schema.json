@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/review-assessment/v1/response.schema.json",
+  "title": "KGnote one-answer assessment response v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["outcome", "correction"],
+  "properties": {
+    "outcome": {"enum": ["CORRECT", "PARTIAL", "INCORRECT", "INSUFFICIENT_EVIDENCE"]},
+    "correction": {"type": "string", "maxLength": 500}
+  }
+}

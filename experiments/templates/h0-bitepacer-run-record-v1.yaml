@@ -1,0 +1,11 @@
+schema_version: kgnote.formative-run-record.v1
+run_id: run_h0_bitepacer_p4_backup_local_1
+manifest_id: experiment_h0_bitepacer_p4_backup_v1
+source_sha256: 1894be5e931ab49dba123d4a57f0ea2dbcd7bfe372faa5f3bd99bff70d385916
+participant_id: participant_local_1
+status: planned
+started_at: null
+completed_at: null
+pretest: null
+observations: []
+decision: null

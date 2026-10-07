@@ -1,0 +1,32 @@
+{
+  "schema_version": "kgnote.reading-assist.v1",
+  "learning_unit_id": "guided_map_pvz_easter_eggs",
+  "revision": 1,
+  "glosses": [
+    {
+      "id": "gloss_pvz_ds",
+      "term": "wind mode",
+      "concept_ref": null,
+      "source_id": "src_pvz_easter_eggs_excerpt",
+      "locator": {
+        "kind": "line_range",
+        "value": "L25-L38"
+      },
+      "required_depth": "recognize",
+      "minimum_explanation": "A synthetic mode that increases sampling while wind is detected.",
+      "why_needed_here": "The fixture uses this mode to demonstrate source-grounded behavior.",
+      "defer_for_now": [
+        "sensor calibration",
+        "deployment history"
+      ],
+      "detailed_explanation": "The learning goal is to follow how an input connects to behavior, not to memorize hardware specifications.",
+      "provenance": {
+        "kind": "synthetic_editorial_clarification",
+        "reviewer": "synthetic.fixture-review.v1",
+        "label": "Original synthetic fixture note"
+      },
+      "revision": 1
+    }
+  ],
+  "prior_knowledge": []
+}

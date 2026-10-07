@@ -1,0 +1,547 @@
+{
+  "schema_version": "kgnote.guided-map-read-model.v1",
+  "projection_version": "manual.os-review.guided-map.v1",
+  "graph_snapshot_sha256": "0f9d6d50f5c87e5b8eb16f5d187032d648a1eca652f6e78aaee96fd93f5d6f18",
+  "source": {
+    "id": "src_os_overview_review",
+    "label": "Synthetic operating-systems learning fixture",
+    "source_kind": "synthetic_lesson",
+    "captured_at": "2026-09-18T00:00:00+08:00",
+    "content_sha256": "528da29db32b9dd7f767c947da76fca13c1f5dca8ac77758ea62859cab5fe72e"
+  },
+  "learning_unit": {
+    "id": "guided_map_os_safety_efficiency_review",
+    "display_locale": "zh-Hant",
+    "title": "OS 安全與效率複習地圖",
+    "focus_question": "OS 如何在安全與效率之間管理程式、CPU 與硬體？",
+    "source_locator": {
+      "kind": "line_range",
+      "value": "L1-L150"
+    }
+  },
+  "groups": [
+    {
+      "id": "group_os_protection_boundary",
+      "label": "建立保護邊界",
+      "order": 1,
+      "concept_ids": [
+        "concept_application",
+        "concept_kernel_mode",
+        "concept_operating_system",
+        "concept_system_call"
+      ]
+    },
+    {
+      "id": "group_os_hardware_events",
+      "label": "回應硬體事件",
+      "order": 2,
+      "concept_ids": [
+        "concept_cpu",
+        "concept_dma",
+        "concept_driver",
+        "concept_interrupt"
+      ]
+    },
+    {
+      "id": "group_os_process_execution",
+      "label": "保存與切換執行現場",
+      "order": 3,
+      "concept_ids": [
+        "concept_context_switch",
+        "concept_pcb",
+        "concept_process",
+        "concept_quantum"
+      ]
+    },
+    {
+      "id": "group_os_scheduling_fairness",
+      "label": "平衡排程公平",
+      "order": 4,
+      "concept_ids": [
+        "concept_aging",
+        "concept_starvation"
+      ]
+    },
+    {
+      "id": "group_os_shared_state",
+      "label": "保護共享狀態",
+      "order": 5,
+      "concept_ids": [
+        "concept_lock",
+        "concept_race_condition"
+      ]
+    }
+  ],
+  "concepts": [
+    {
+      "id": "concept_aging",
+      "label": "老化技術",
+      "aliases": [
+        "Aging"
+      ],
+      "summary": "逐步提高等待已久之程序的優先等級，用來緩解低優先權程序長期得不到 CPU 的問題。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_scheduling"
+      ],
+      "group_id": "group_os_scheduling_fairness"
+    },
+    {
+      "id": "concept_application",
+      "label": "應用程式",
+      "aliases": [
+        "Application"
+      ],
+      "summary": "執行特定使用者邏輯、但不能直接執行高權限硬體操作的程式。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_protection"
+      ],
+      "group_id": "group_os_protection_boundary"
+    },
+    {
+      "id": "concept_context_switch",
+      "label": "內容切換",
+      "aliases": [
+        "Context Switch"
+      ],
+      "summary": "CPU 從一個程序切換到另一個程序時，保存舊執行現場並載入新執行現場的過程。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_process_context",
+        "evidence_os_scheduling"
+      ],
+      "group_id": "group_os_process_execution"
+    },
+    {
+      "id": "concept_cpu",
+      "label": "CPU",
+      "aliases": [
+        "中央處理器"
+      ],
+      "summary": "執行指令與回應中斷的處理器；可把大量資料搬運工作交給 DMA。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_dma",
+        "evidence_os_interrupt"
+      ],
+      "group_id": "group_os_hardware_events"
+    },
+    {
+      "id": "concept_dma",
+      "label": "直接記憶體存取",
+      "aliases": [
+        "DMA"
+      ],
+      "summary": "在磁碟與記憶體之間直接搬運資料，讓 CPU 主要處理初始設定與完成通知的機制。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_dma"
+      ],
+      "group_id": "group_os_hardware_events"
+    },
+    {
+      "id": "concept_driver",
+      "label": "驅動程式",
+      "aliases": [
+        "Driver"
+      ],
+      "summary": "對應特定硬體、負責處理其事件與操作細節的程式。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_interrupt"
+      ],
+      "group_id": "group_os_hardware_events"
+    },
+    {
+      "id": "concept_interrupt",
+      "label": "中斷",
+      "aliases": [
+        "Interrupt"
+      ],
+      "summary": "硬體元件向 CPU 發出的服務訊號，使 CPU 暫停目前任務、保存狀態並處理事件。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_interrupt"
+      ],
+      "group_id": "group_os_hardware_events"
+    },
+    {
+      "id": "concept_kernel_mode",
+      "label": "核心模式",
+      "aliases": [
+        "Kernel Mode"
+      ],
+      "summary": "允許核心執行受保護硬體操作的高權限處理器模式。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_protection"
+      ],
+      "group_id": "group_os_protection_boundary"
+    },
+    {
+      "id": "concept_lock",
+      "label": "鎖",
+      "aliases": [
+        "Lock"
+      ],
+      "summary": "限制共享資料同時被多個執行緒修改，以避免操作互相交錯。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_race"
+      ],
+      "group_id": "group_os_shared_state"
+    },
+    {
+      "id": "concept_operating_system",
+      "label": "作業系統",
+      "aliases": [
+        "OS",
+        "Operating System"
+      ],
+      "summary": "位於應用程式與硬體之間，兼具資源分配者與控制程式角色的核心軟體。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_role"
+      ],
+      "group_id": "group_os_protection_boundary"
+    },
+    {
+      "id": "concept_pcb",
+      "label": "程序控制區塊",
+      "aliases": [
+        "PCB",
+        "Process Control Block"
+      ],
+      "summary": "OS 為程序保存 PID、狀態、程式計數器、暫存器值與記憶體界限的紀錄。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_process_context"
+      ],
+      "group_id": "group_os_process_execution"
+    },
+    {
+      "id": "concept_process",
+      "label": "程序",
+      "aliases": [
+        "Process"
+      ],
+      "summary": "正在執行、擁有記憶體空間與 CPU 時間的程式實體。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_process_context"
+      ],
+      "group_id": "group_os_process_execution"
+    },
+    {
+      "id": "concept_quantum",
+      "label": "時間片",
+      "aliases": [
+        "Quantum"
+      ],
+      "summary": "Round Robin 中每次允許程序連續使用 CPU 的時間配額。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_process_states",
+        "evidence_os_scheduling"
+      ],
+      "group_id": "group_os_process_execution"
+    },
+    {
+      "id": "concept_race_condition",
+      "label": "競爭危害",
+      "aliases": [
+        "Race Condition"
+      ],
+      "summary": "多個執行緒同時存取共享變數時，結果因執行交錯順序不同而不一致的風險。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_race"
+      ],
+      "group_id": "group_os_shared_state"
+    },
+    {
+      "id": "concept_starvation",
+      "label": "飢餓",
+      "aliases": [
+        "Starvation"
+      ],
+      "summary": "程序因排程策略持續偏向其他程序，而長時間得不到執行機會。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_scheduling"
+      ],
+      "group_id": "group_os_scheduling_fairness"
+    },
+    {
+      "id": "concept_system_call",
+      "label": "系統呼叫",
+      "aliases": [
+        "System Call"
+      ],
+      "summary": "應用程式向核心請求受保護服務的正式入口。",
+      "status": "active",
+      "evidence_ids": [
+        "evidence_os_protection"
+      ],
+      "group_id": "group_os_protection_boundary"
+    }
+  ],
+  "propositions": [
+    {
+      "edge_id": "edge_os_aging_starvation",
+      "subject_concept_id": "concept_aging",
+      "subject_label": "老化技術",
+      "linking_phrase": "藉由逐步提高優先權來緩解",
+      "object_concept_id": "concept_starvation",
+      "object_label": "飢餓",
+      "canonical_relation": "related_to",
+      "evidence_ids": [
+        "evidence_os_scheduling"
+      ],
+      "review_status": "accepted",
+      "projection_version": "manual.os-review.guided-map.v1"
+    },
+    {
+      "edge_id": "edge_os_application_system_call",
+      "subject_concept_id": "concept_application",
+      "subject_label": "應用程式",
+      "linking_phrase": "向核心提出",
+      "object_concept_id": "concept_system_call",
+      "object_label": "系統呼叫",
+      "canonical_relation": "related_to",
+      "evidence_ids": [
+        "evidence_os_protection"
+      ],
+      "review_status": "accepted",
+      "projection_version": "manual.os-review.guided-map.v1"
+    },
+    {
+      "edge_id": "edge_os_context_pcb",
+      "subject_concept_id": "concept_context_switch",
+      "subject_label": "內容切換",
+      "linking_phrase": "會存入舊的並載入新的",
+      "object_concept_id": "concept_pcb",
+      "object_label": "程序控制區塊",
+      "canonical_relation": "related_to",
+      "evidence_ids": [
+        "evidence_os_process_context"
+      ],
+      "review_status": "accepted",
+      "projection_version": "manual.os-review.guided-map.v1"
+    },
+    {
+      "edge_id": "edge_os_dma_cpu",
+      "subject_concept_id": "concept_dma",
+      "subject_label": "直接記憶體存取",
+      "linking_phrase": "讓下列元件只處理設定與完成通知：",
+      "object_concept_id": "concept_cpu",
+      "object_label": "CPU",
+      "canonical_relation": "related_to",
+      "evidence_ids": [
+        "evidence_os_dma"
+      ],
+      "review_status": "accepted",
+      "projection_version": "manual.os-review.guided-map.v1"
+    },
+    {
+      "edge_id": "edge_os_interrupt_driver",
+      "subject_concept_id": "concept_interrupt",
+      "subject_label": "中斷",
+      "linking_phrase": "使 CPU 呼叫對應的",
+      "object_concept_id": "concept_driver",
+      "object_label": "驅動程式",
+      "canonical_relation": "causes",
+      "evidence_ids": [
+        "evidence_os_interrupt"
+      ],
+      "review_status": "accepted",
+      "projection_version": "manual.os-review.guided-map.v1"
+    },
+    {
+      "edge_id": "edge_os_lock_race",
+      "subject_concept_id": "concept_lock",
+      "subject_label": "鎖",
+      "linking_phrase": "藉由限制同時修改來防止",
+      "object_concept_id": "concept_race_condition",
+      "object_label": "競爭危害",
+      "canonical_relation": "related_to",
+      "evidence_ids": [
+        "evidence_os_race"
+      ],
+      "review_status": "accepted",
+      "projection_version": "manual.os-review.guided-map.v1"
+    },
+    {
+      "edge_id": "edge_os_os_hardware",
+      "subject_concept_id": "concept_operating_system",
+      "subject_label": "作業系統",
+      "linking_phrase": "包覆並管理",
+      "object_concept_id": "concept_cpu",
+      "object_label": "CPU",
+      "canonical_relation": "related_to",
+      "evidence_ids": [
+        "evidence_os_role"
+      ],
+      "review_status": "accepted",
+      "projection_version": "manual.os-review.guided-map.v1"
+    },
+    {
+      "edge_id": "edge_os_process_pcb",
+      "subject_concept_id": "concept_process",
+      "subject_label": "程序",
+      "linking_phrase": "的執行現場由 OS 記錄在",
+      "object_concept_id": "concept_pcb",
+      "object_label": "程序控制區塊",
+      "canonical_relation": "related_to",
+      "evidence_ids": [
+        "evidence_os_process_context"
+      ],
+      "review_status": "accepted",
+      "projection_version": "manual.os-review.guided-map.v1"
+    },
+    {
+      "edge_id": "edge_os_quantum_context",
+      "subject_concept_id": "concept_quantum",
+      "subject_label": "時間片",
+      "linking_phrase": "過短時會增加",
+      "object_concept_id": "concept_context_switch",
+      "object_label": "內容切換",
+      "canonical_relation": "causes",
+      "evidence_ids": [
+        "evidence_os_process_states",
+        "evidence_os_scheduling"
+      ],
+      "review_status": "accepted",
+      "projection_version": "manual.os-review.guided-map.v1"
+    },
+    {
+      "edge_id": "edge_os_system_call_kernel",
+      "subject_concept_id": "concept_system_call",
+      "subject_label": "系統呼叫",
+      "linking_phrase": "請求模式轉換進入",
+      "object_concept_id": "concept_kernel_mode",
+      "object_label": "核心模式",
+      "canonical_relation": "causes",
+      "evidence_ids": [
+        "evidence_os_protection"
+      ],
+      "review_status": "accepted",
+      "projection_version": "manual.os-review.guided-map.v1"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "evidence_os_dma",
+      "label": "原文 L43-L50",
+      "source_id": "src_os_overview_review",
+      "locator": {
+        "kind": "line_range",
+        "value": "L43-L50"
+      },
+      "proposition": "DMA 直接負責磁碟與記憶體間的傳輸，使 CPU 只需處理初始設定與完成通知。",
+      "observed_at": "2026-09-18T00:00:00+08:00",
+      "extractor_version": "manual.os-review.v1",
+      "extraction_confidence": "high",
+      "review_status": "accepted"
+    },
+    {
+      "id": "evidence_os_interrupt",
+      "label": "原文 L36-L39",
+      "source_id": "src_os_overview_review",
+      "locator": {
+        "kind": "line_range",
+        "value": "L36-L39"
+      },
+      "proposition": "硬體發出中斷後，CPU 暫停目前任務並保護現狀，再呼叫對應的驅動程式。",
+      "observed_at": "2026-09-18T00:00:00+08:00",
+      "extractor_version": "manual.os-review.v1",
+      "extraction_confidence": "high",
+      "review_status": "accepted"
+    },
+    {
+      "id": "evidence_os_process_context",
+      "label": "原文 L60-L77",
+      "source_id": "src_os_overview_review",
+      "locator": {
+        "kind": "line_range",
+        "value": "L60-L77"
+      },
+      "proposition": "程序是執行中的實體；OS 以 PCB 保存其執行現場，內容切換會存入舊 PCB 並載入新 PCB。",
+      "observed_at": "2026-09-18T00:00:00+08:00",
+      "extractor_version": "manual.os-review.v1",
+      "extraction_confidence": "high",
+      "review_status": "accepted"
+    },
+    {
+      "id": "evidence_os_process_states",
+      "label": "原文 L68-L73",
+      "source_id": "src_os_overview_review",
+      "locator": {
+        "kind": "line_range",
+        "value": "L68-L73"
+      },
+      "proposition": "程序的時間片用完時，會從 Running 返回 Ready，等待再次取得 CPU。",
+      "observed_at": "2026-09-18T00:00:00+08:00",
+      "extractor_version": "manual.os-review.v1",
+      "extraction_confidence": "high",
+      "review_status": "accepted"
+    },
+    {
+      "id": "evidence_os_protection",
+      "label": "原文 L22-L26",
+      "source_id": "src_os_overview_review",
+      "locator": {
+        "kind": "line_range",
+        "value": "L22-L26"
+      },
+      "proposition": "應用程式不得直接存取硬體；需要高權限服務時，須以系統呼叫請求進入 Kernel Mode，由核心代理操作。",
+      "observed_at": "2026-09-18T00:00:00+08:00",
+      "extractor_version": "manual.os-review.v1",
+      "extraction_confidence": "high",
+      "review_status": "accepted"
+    },
+    {
+      "id": "evidence_os_race",
+      "label": "原文 L108-L110",
+      "source_id": "src_os_overview_review",
+      "locator": {
+        "kind": "line_range",
+        "value": "L108-L110"
+      },
+      "proposition": "多執行緒同時存取共享變數可能產生競爭危害；缺少鎖時，內容切換可能造成資料不一致。",
+      "observed_at": "2026-09-18T00:00:00+08:00",
+      "extractor_version": "manual.os-review.v1",
+      "extraction_confidence": "high",
+      "review_status": "accepted"
+    },
+    {
+      "id": "evidence_os_role",
+      "label": "原文 L7-L16",
+      "source_id": "src_os_overview_review",
+      "locator": {
+        "kind": "line_range",
+        "value": "L7-L16"
+      },
+      "proposition": "OS 位於應用程式與硬體之間，作為資源分配者與控制程式，包覆並協調 CPU、記憶體與 I/O 裝置。",
+      "observed_at": "2026-09-18T00:00:00+08:00",
+      "extractor_version": "manual.os-review.v1",
+      "extraction_confidence": "high",
+      "review_status": "accepted"
+    },
+    {
+      "id": "evidence_os_scheduling",
+      "label": "原文 L120-L123",
+      "source_id": "src_os_overview_review",
+      "locator": {
+        "kind": "line_range",
+        "value": "L120-L123"
+      },
+      "proposition": "Round Robin 的時間片過短會增加內容切換開銷；Priority Scheduling 以 Aging 緩解 Starvation。",
+      "observed_at": "2026-09-18T00:00:00+08:00",
+      "extractor_version": "manual.os-review.v1",
+      "extraction_confidence": "high",
+      "review_status": "accepted"
+    }
+  ]
+}

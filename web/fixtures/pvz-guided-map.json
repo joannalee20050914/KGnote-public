@@ -1,0 +1,303 @@
+{
+  "schema_version": "kgnote.guided-map-read-model.v1",
+  "projection_version": "synthetic.sky-garden.guided-map.v1",
+  "graph_snapshot_sha256": "a69d3f86631cc8ce634ddcb3cb262e1dd530d7d26f1c290a65fac0d6daf918cc",
+  "learning_unit": {
+    "id": "guided_map_pvz_easter_eggs",
+    "title": "Sky Garden device-design notes",
+    "focus_question": "How can a synthetic design history preserve structure, provenance, and uncertainty without exposing private or third-party material?",
+    "display_locale": "zh-Hant",
+    "source_locator": {
+      "kind": "line_range",
+      "value": "L1-L62"
+    }
+  },
+  "source": {
+    "id": "src_pvz_easter_eggs_excerpt",
+    "label": "Sky Garden device-design notes",
+    "source_kind": "synthetic_lesson",
+    "captured_at": "2026-09-22T00:00:00+08:00",
+    "content_sha256": "5c076b49b0dc19bf51ab69eb0d5140ce68a3919e034c577d99a3a1559fd6d57f"
+  },
+  "groups": [
+    {
+      "id": "group_pvz_design",
+      "label": "Prototype evolution",
+      "order": 1,
+      "concept_ids": [
+        "concept_pvz_peashooter",
+        "concept_pvz_tomato_prototype",
+        "concept_pvz_transfer_potato",
+        "concept_pvz_garlic",
+        "concept_pvz_wallnut"
+      ]
+    },
+    {
+      "id": "group_pvz_platform",
+      "label": "Environmental input",
+      "order": 2,
+      "concept_ids": [
+        "concept_pvz_heatwave",
+        "concept_pvz_microphone"
+      ]
+    },
+    {
+      "id": "group_pvz_reference",
+      "label": "Explanatory metaphor",
+      "order": 3,
+      "concept_ids": [
+        "concept_pvz_twin_sunflower",
+        "concept_pvz_frankenstein"
+      ]
+    }
+  ],
+  "concepts": [
+    {
+      "id": "concept_pvz_peashooter",
+      "label": "Sensor pod",
+      "aliases": [
+        "prototype sensor"
+      ],
+      "summary": "A synthetic sensor whose enclosure changed during prototyping.",
+      "group_id": "group_pvz_design",
+      "status": "needs_review",
+      "evidence_ids": [
+        "evidence_pvz_peashooter"
+      ]
+    },
+    {
+      "id": "concept_pvz_tomato_prototype",
+      "label": "Round shell",
+      "aliases": [
+        "early enclosure"
+      ],
+      "summary": "The first synthetic enclosure form.",
+      "group_id": "group_pvz_design",
+      "status": "needs_review",
+      "evidence_ids": [
+        "evidence_pvz_peashooter"
+      ]
+    },
+    {
+      "id": "concept_pvz_heatwave",
+      "label": "Wind mode",
+      "aliases": [
+        "gust mode"
+      ],
+      "summary": "A synthetic operating mode driven by environmental input.",
+      "group_id": "group_pvz_platform",
+      "status": "needs_review",
+      "evidence_ids": [
+        "evidence_pvz_heatwave"
+      ]
+    },
+    {
+      "id": "concept_pvz_microphone",
+      "label": "Wind sensor",
+      "aliases": [
+        "airflow input"
+      ],
+      "summary": "The input used to change sampling behavior.",
+      "group_id": "group_pvz_platform",
+      "status": "needs_review",
+      "evidence_ids": [
+        "evidence_pvz_heatwave"
+      ]
+    },
+    {
+      "id": "concept_pvz_twin_sunflower",
+      "label": "Twin warning lamps",
+      "aliases": [
+        "dual indicator"
+      ],
+      "summary": "A redundant pair of synthetic status indicators.",
+      "group_id": "group_pvz_reference",
+      "status": "needs_review",
+      "evidence_ids": [
+        "evidence_pvz_sunflower"
+      ]
+    },
+    {
+      "id": "concept_pvz_frankenstein",
+      "label": "Storm metaphor",
+      "aliases": [
+        "weather analogy"
+      ],
+      "summary": "An explanatory metaphor used in the fixture.",
+      "group_id": "group_pvz_reference",
+      "status": "needs_review",
+      "evidence_ids": [
+        "evidence_pvz_sunflower"
+      ]
+    },
+    {
+      "id": "concept_pvz_transfer_potato",
+      "label": "Movable bracket",
+      "aliases": [
+        "prototype mount"
+      ],
+      "summary": "An early design whose characteristics were later split.",
+      "group_id": "group_pvz_design",
+      "status": "needs_review",
+      "evidence_ids": [
+        "evidence_pvz_reuse"
+      ]
+    },
+    {
+      "id": "concept_pvz_garlic",
+      "label": "Relocation controller",
+      "aliases": [
+        "position logic"
+      ],
+      "summary": "A later component that receives the relocation behavior.",
+      "group_id": "group_pvz_design",
+      "status": "needs_review",
+      "evidence_ids": [
+        "evidence_pvz_reuse"
+      ]
+    },
+    {
+      "id": "concept_pvz_wallnut",
+      "label": "Weatherproof housing",
+      "aliases": [
+        "sealed enclosure"
+      ],
+      "summary": "A later component that receives the mounting form.",
+      "group_id": "group_pvz_design",
+      "status": "needs_review",
+      "evidence_ids": [
+        "evidence_pvz_reuse"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "evidence_pvz_peashooter",
+      "label": "Synthetic notes 01:01–01:14",
+      "source_id": "src_pvz_easter_eggs_excerpt",
+      "locator": {
+        "kind": "line_range",
+        "value": "L11-L22"
+      },
+      "proposition": "The synthetic notes describe a round early sensor enclosure that later became narrow and weatherproof.",
+      "extraction_confidence": "high",
+      "extractor_version": "synthetic.sky-garden.v1",
+      "observed_at": "2026-09-22T00:00:00+08:00",
+      "review_status": "accepted"
+    },
+    {
+      "id": "evidence_pvz_heatwave",
+      "label": "Synthetic notes 02:01–02:14",
+      "source_id": "src_pvz_easter_eggs_excerpt",
+      "locator": {
+        "kind": "line_range",
+        "value": "L26-L36"
+      },
+      "proposition": "The synthetic notes describe wind input increasing the device sampling rate.",
+      "extraction_confidence": "high",
+      "extractor_version": "synthetic.sky-garden.v1",
+      "observed_at": "2026-09-22T00:00:00+08:00",
+      "review_status": "accepted"
+    },
+    {
+      "id": "evidence_pvz_sunflower",
+      "label": "Synthetic notes 03:01–03:14",
+      "source_id": "src_pvz_easter_eggs_excerpt",
+      "locator": {
+        "kind": "line_range",
+        "value": "L40-L52"
+      },
+      "proposition": "The synthetic notes use a storm metaphor to explain two warning lamps.",
+      "extraction_confidence": "high",
+      "extractor_version": "synthetic.sky-garden.v1",
+      "observed_at": "2026-09-22T00:00:00+08:00",
+      "review_status": "accepted"
+    },
+    {
+      "id": "evidence_pvz_reuse",
+      "label": "Synthetic notes 04:01–04:14",
+      "source_id": "src_pvz_easter_eggs_excerpt",
+      "locator": {
+        "kind": "line_range",
+        "value": "L56-L62"
+      },
+      "proposition": "The synthetic notes split an early bracket's relocation behavior and mounting form across two later components.",
+      "extraction_confidence": "high",
+      "extractor_version": "synthetic.sky-garden.v1",
+      "observed_at": "2026-09-22T00:00:00+08:00",
+      "review_status": "accepted"
+    }
+  ],
+  "propositions": [
+    {
+      "edge_id": "edge_pvz_peashooter_tomato",
+      "subject_concept_id": "concept_pvz_peashooter",
+      "subject_label": "Sensor pod",
+      "linking_phrase": "is described as first using",
+      "object_concept_id": "concept_pvz_tomato_prototype",
+      "object_label": "Round shell",
+      "canonical_relation": "related_to",
+      "evidence_ids": [
+        "evidence_pvz_peashooter"
+      ],
+      "review_status": "accepted",
+      "projection_version": "synthetic.sky-garden.guided-map.v1"
+    },
+    {
+      "edge_id": "edge_pvz_heatwave_microphone",
+      "subject_concept_id": "concept_pvz_heatwave",
+      "subject_label": "Wind mode",
+      "linking_phrase": "uses",
+      "object_concept_id": "concept_pvz_microphone",
+      "object_label": "Wind sensor",
+      "canonical_relation": "related_to",
+      "evidence_ids": [
+        "evidence_pvz_heatwave"
+      ],
+      "review_status": "accepted",
+      "projection_version": "synthetic.sky-garden.guided-map.v1"
+    },
+    {
+      "edge_id": "edge_pvz_sunflower_frankenstein",
+      "subject_concept_id": "concept_pvz_twin_sunflower",
+      "subject_label": "Twin warning lamps",
+      "linking_phrase": "are explained through",
+      "object_concept_id": "concept_pvz_frankenstein",
+      "object_label": "Storm metaphor",
+      "canonical_relation": "related_to",
+      "evidence_ids": [
+        "evidence_pvz_sunflower"
+      ],
+      "review_status": "accepted",
+      "projection_version": "synthetic.sky-garden.guided-map.v1"
+    },
+    {
+      "edge_id": "edge_pvz_transfer_garlic",
+      "subject_concept_id": "concept_pvz_transfer_potato",
+      "subject_label": "Movable bracket",
+      "linking_phrase": "passes its behavior to",
+      "object_concept_id": "concept_pvz_garlic",
+      "object_label": "Relocation controller",
+      "canonical_relation": "related_to",
+      "evidence_ids": [
+        "evidence_pvz_reuse"
+      ],
+      "review_status": "accepted",
+      "projection_version": "synthetic.sky-garden.guided-map.v1"
+    },
+    {
+      "edge_id": "edge_pvz_potato_wallnut",
+      "subject_concept_id": "concept_pvz_transfer_potato",
+      "subject_label": "Movable bracket",
+      "linking_phrase": "passes its form to",
+      "object_concept_id": "concept_pvz_wallnut",
+      "object_label": "Weatherproof housing",
+      "canonical_relation": "related_to",
+      "evidence_ids": [
+        "evidence_pvz_reuse"
+      ],
+      "review_status": "accepted",
+      "projection_version": "synthetic.sky-garden.guided-map.v1"
+    }
+  ]
+}

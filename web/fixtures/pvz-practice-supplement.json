@@ -1,0 +1,30 @@
+{
+  "schema_version": "kgnote.practice-supplement.v1",
+  "learning_unit_id": "guided_map_pvz_easter_eggs",
+  "items": [
+    {
+      "item_id": "item_distinguish_pvz_source_fact",
+      "revision": 1,
+      "activity_type": "distinction",
+      "label": "Distinguish source support from external verification",
+      "prompt": "The synthetic lesson says wind input changes sampling. What can KGnote claim from this fixture?",
+      "hint": "Use the source kind and provenance boundary.",
+      "claim_ref": {
+        "claim_id": "edge_pvz_heatwave_microphone",
+        "revision": 1
+      },
+      "source_refs": [
+        "src_pvz_easter_eggs_excerpt"
+      ],
+      "evidence_refs": [
+        "evidence_pvz_heatwave"
+      ],
+      "canonical_answer": "KGnote can say the synthetic fixture contains the claim; it cannot present the fixture as external empirical verification.",
+      "rubric": [
+        "identifies the fixture as evidence",
+        "does not invent external verification",
+        "preserves the possibility of later corroboration"
+      ]
+    }
+  ]
+}

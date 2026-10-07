@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f1e8">
+    <title>KGnote · Learn</title>
+    <link rel="stylesheet" href="./learn.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./home.html">KGnote</a>
+      <span id="load-status" role="status">正在載入教材…</span>
+      <a id="top-practice-link" class="primary compact" href="./practice.html">開始練習</a>
+    </header>
+    <main id="learn-root" class="learn-shell">
+      <section class="hero">
+        <p class="eyebrow">LEARN · 閱讀理解</p>
+        <p id="breadcrumb" class="breadcrumb">教材 / 主題</p>
+        <h1 id="source-title">作業系統教材</h1>
+        <p id="focus-question" class="lede"></p>
+        <div class="hero-actions">
+          <a id="practice-link" class="primary" href="./practice.html">我準備好了，開始練習</a>
+          <a id="note-link" class="secondary" href="./learning-note.html">留下可選筆記／疑問</a>
+        </div>
+        <p class="permission">你可以只閱讀、查看解說或先離開；筆記與練習都不是繼續閱讀的條件。</p>
+      </section>
+
+      <section class="workspace-grid">
+        <aside class="overview" aria-labelledby="overview-title">
+          <p class="eyebrow">LEARNING STRUCTURE · VIEW LEVEL</p>
+          <h2 id="overview-title">學習結構</h2>
+          <p class="mapping-note">依教材組織閱讀；階層不是 canonical knowledge edge。</p>
+          <div id="structure-tree" class="structure-tree"></div>
+        </aside>
+
+        <article class="reading" aria-labelledby="reading-title">
+          <div class="section-header">
+            <div><p class="eyebrow">SEMANTIC READING VIEW</p><h2 id="reading-title">原文閱讀</h2></div>
+            <span>Source bytes 未改寫</span>
+          </div>
+          <div id="claim-warning" class="warning" hidden></div>
+          <div id="source-body" class="source-body"></div>
+        </article>
+
+        <aside id="detail-panel" class="detail" aria-labelledby="detail-title">
+          <p class="eyebrow">READING ASSIST · 按需</p>
+          <h2 id="detail-title">閱讀輔助</h2>
+          <p>只有原文明確需要的 Context Gloss、先備連結，或你主動選取的 Concept／Claim 才會在這裡展開。</p>
+        </aside>
+      </section>
+      <section class="history" aria-labelledby="resume-question-title">
+        <p class="eyebrow">EXACT CONTINUATION · 可選</p>
+        <h2 id="resume-question-title">我現在卡在哪？</h2>
+        <p>可留下此閱讀位置的未解問題；不用先寫筆記，也不會被當成答錯。</p>
+        <label class="answer-label">未解問題<textarea id="resume-question" rows="3" maxlength="2000" placeholder="例如：branch 和 worktree 到底差在哪一層？"></textarea></label>
+        <div class="hero-actions"><button id="save-resume" class="secondary" type="button">保存這個續學點</button></div>
+        <p id="resume-status" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+    <script type="module" src="./learn-app.js"></script>
+  </body>
+</html>

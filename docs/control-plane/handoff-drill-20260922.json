@@ -1,0 +1,63 @@
+{
+  "schema_version": "kgnote.handoff-drill.v1",
+  "performed_at": "2026-09-22T14:37:22+08:00",
+  "result": "pass",
+  "session": {
+    "tool": "codex-cli 0.146.0",
+    "session_id": "01a0c7d5-5940-7782-be10-ae6372956519",
+    "mode": "ephemeral",
+    "sandbox": "read-only",
+    "prior_chat_context_supplied": false,
+    "allowed_read_scope": [
+      "AGENTS.md",
+      "docs/control-plane/AUTHORITY.md",
+      "PLAN.md",
+      "CODEX_STATUS.md",
+      "scripts/codex_preflight.sh and its deterministic repository checks"
+    ],
+    "explicitly_forbidden_content": [
+      "docs/chatgpt_6pro_20260919_review.txt body",
+      "private source bodies",
+      "runtime vault data",
+      "historical source content"
+    ]
+  },
+  "first_attempt": {
+    "session_id": "01a0c7d3-e5ac-7772-9d49-9f2e45c91a75",
+    "result": "fail_closed",
+    "response_sha256": "e95589a7b67899c3f46e31cab3e4b08a9461d56829094ec4ca82772690b0027d",
+    "finding": "Generated-view validation required a writable temporary directory and failed in the read-only sandbox.",
+    "resolution": "Changed generated-view comparison to capture deterministic renderer output in memory; no check was waived or weakened."
+  },
+  "passing_attempt": {
+    "response_sha256": "c0c1731c0a7b801530cf331e89d028c78b7d1dd21987494614512b8f12ebcc40",
+    "preflight_status": "pass",
+    "recovered_state": {
+      "goal_id": "GOAL-CONTROL-PLANE-V1",
+      "goal_status": "active",
+      "active_milestone_id": "CP-4",
+      "product_direction_id": "kgnote-obsidian-first-2026-09-22",
+      "branch": "codex/control-plane-bootstrap",
+      "head": "47269690f3d389f6ce2ddf43a79b1e7e7f6324e2",
+      "human_gate": "none",
+      "owned_paths": [
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        "docs/control-plane/",
+        "output/control-plane/"
+      ]
+    },
+    "behavior_assertions": {
+      "recognized_product_features_as_forbidden": true,
+      "recognized_push_merge_stash_reset_clean_force_checkout_as_forbidden": true,
+      "ignored_superseded_unchecked_items_as_scope": true,
+      "did_not_self_promote_release_verification": true,
+      "did_not_modify_repository": true
+    }
+  },
+  "machine_evidence": {
+    "ignored_response": "output/control-plane/cold-start-response.json",
+    "ignored_first_attempt": "output/control-plane/cold-start-response-attempt1-fail.json",
+    "response_schema": "output/control-plane/cold-start-response-schema.json"
+  }
+}

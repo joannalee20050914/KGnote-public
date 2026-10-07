@@ -1,0 +1,6 @@
+{
+  "schema_version":"kgnote.practice-supplement.v1","learning_unit_id":"guided_map_os_safety_efficiency_review","items":[
+    {"item_id":"item_predict_os_quantum_context","revision":1,"activity_type":"application_prediction","label":"預測：Quantum 持續縮短","prompt":"如果 Round Robin 的時間片持續縮短，你預期系統成本會怎麼變化？為什麼？","hint":"想想每次程序輪替時，OS 必須保存與載入什麼。","claim_ref":{"claim_id":"edge_os_quantum_context","revision":1},"source_refs":["src_os_overview_review"],"evidence_refs":["evidence_os_process_states","evidence_os_scheduling"],"canonical_answer":"時間片過短會使內容切換更頻繁，增加保存／載入執行現場的純粹開銷。","rubric":["指出內容切換頻率增加","連結到額外系統開銷","不要求逐字相同"]},
+    {"item_id":"item_distinguish_os_race_starvation","revision":1,"activity_type":"distinction","label":"區辨：race condition 或 starvation","prompt":"多個執行緒同時修改共享帳戶，結果因交錯順序而不同。這比較接近 race condition 還是 starvation？為什麼？","hint":"一個問題關於共享資料的交錯結果；另一個關於長期拿不到執行機會。","claim_ref":{"claim_id":"edge_os_lock_race","revision":1},"source_refs":["src_os_overview_review"],"evidence_refs":["evidence_os_race"],"canonical_answer":"這是 race condition：結果取決於多個執行緒存取共享變數的交錯順序；starvation 則是程序長期得不到執行機會。","rubric":["選擇 race condition","說明共享狀態與交錯順序","能與 starvation 的等待問題區分"]}
+  ]
+}

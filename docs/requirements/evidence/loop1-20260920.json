@@ -1,0 +1,15 @@
+{
+  "schema_version":"kgnote.requirements-run-evidence.v1",
+  "run_id":"loop1-20260920",
+  "repository_head":"7d1c8011619f5c87f8bf88d87f6cdcc5c0a1b4b1",
+  "branch":"main",
+  "working_tree":"dirty; existing changes preserved; no commit",
+  "runs":[
+    {"command":"python3 docs/requirements/requirements_guard.py check --repo .","result":"structural_traceability_pass","requirements":84,"scenarios":37},
+    {"command":"python -m unittest discover -s docs/requirements -p test_requirements_guard.py","result":"pass","tests":16,"scope":"requirements guard only"},
+    {"command":"python -m unittest discover -s tests -p test_*.py","result":"pass","tests":224,"scope":"product Python tests"},
+    {"command":"npm test","result":"pass","tests":47,"scope":"Web product/static tests"},
+    {"command":"in-app browser Journey C","result":"pass","scope":"Catalog → BitePacer Soak → reveal → skip → Practice; no saved Attempt; iPad-width no horizontal overflow; no console warnings/errors"}
+  ],
+  "limits":["Structural guard PASS is not semantic completeness.","Browser viewport emulation is not physical iPad acceptance.","No live AI or learning-effectiveness claim was tested."]
+}

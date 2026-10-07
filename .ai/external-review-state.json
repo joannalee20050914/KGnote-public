@@ -1,0 +1,25 @@
+{
+  "schema_version": "kgnote.external-product-review-state.v1",
+  "program_id": "program-kgnote-autonomous-external-review-v2",
+  "goal_id": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
+  "canonical_repository": "joannalee20050914/KGnote-public",
+  "candidate_repository": "joannalee20050914/KGnote-public",
+  "trigger_repository": "joannalee20050914/KGnote-public",
+  "review_request_repository": "joannalee20050914/KGnote-public",
+  "archive_repository": "joannalee20050914/KGnote",
+  "pull_request": 1,
+  "phase": "INTERNAL_VERIFY",
+  "review_round": 2,
+  "candidate_commit": null,
+  "candidate_fingerprint": null,
+  "internal_review": {"status": "PENDING", "artifact": null},
+  "publication": {"status": "PENDING", "remote_head": null},
+  "external_review": {
+    "status": "CHANGES_REQUIRED",
+    "reviewed_commit": "15d043c786a33e7a1a97c61519a49f6eb7c1091d",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/1#pullrequestreview-5411948557",
+    "blocking_findings": ["KG-SEM-001", "KG-ALPHA-RECOVERY-001", "KG-PRACTICE-001", "KG-PRACTICE-002", "KG-CTRL-001"]
+  },
+  "human_acceptance": {"eligible": false, "reason": "External blocking findings remain unresolved."},
+  "release_verified": false
+}

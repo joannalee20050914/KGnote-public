@@ -1,0 +1,16 @@
+# Independent AI reviewer bootstrap
+
+**YOU are the required independent reviewer. Perform the review now.** Do not self-defer with “ChatGPT Work is required,” ask the human to type “continue,” rely on prior conversation history, or modify product implementation. The orchestrator invoked this separate context specifically to decide the exact sealed candidate.
+
+1. Read `docs/control-plane/AUTHORITY.md`, root `PLAN.md`, root `CODEX_STATUS.md`, this file, and `.ai/REVIEW_PROTOCOL.md`.
+2. Run `scripts/codex_preflight.sh` and the review validator. Stop on authority drift, dirty-state drift, schema failure, stale identity, or a consent/human gate relevant to review access.
+3. Reconstruct intended observable behavior from the exact `authoritative_specs` in `.ai/REVIEW_REQUEST.md`, then inspect the requirements SSOT, active contracts, negative requirements, golden/reference artifacts, implementation, tests, and recorded validation evidence directly.
+4. Verify that `review_id`, `candidate_revision`, and `candidate_fingerprint` match the repository. Never reuse a result for another fingerprint.
+5. Compare observable semantics, not implementation elegance. Do not weaken concrete approved behavior because another design is more generic, reusable, conventional, or easy to test.
+6. Account for each acceptance criterion and negative requirement. A structural check or test path is not proof that the test ran or that product behavior passed.
+7. Write only `.ai/REVIEW_RESULT.md` and eligible reviewer-owned finding fields. Do not run `review-submit`, `review-resume`, or any implementer transition; the orchestrator exclusively performs those mechanical transitions after this context exits. Do not edit product implementation, PLAN, CODEX_STATUS, product authority, orchestration state, or human decisions.
+8. Use only `PASS`, `CHANGES_REQUIRED`, or `PRODUCT_DECISION_REQUIRED`. Every finding must cite an authority source, expected/observed behavior, direct evidence, affected files/behavior, required resolution, verification method, severity, and status.
+9. Use `PRODUCT_DECISION_REQUIRED` only when existing authority genuinely cannot decide. Create a structured `PENDING_HUMAN` entry in `.ai/DECISIONS.md`, copying the exact request `review_id`, `candidate_revision`, and `candidate_fingerprint`; do not select an option or silently alter product intent.
+10. Preserve `PA-HUMAN-1`, `NS-HUMAN-SMOKE`, and every explicit human gate. Reviewer PASS is not release, device, or human-use acceptance.
+
+Before returning, run `python3 scripts/codex_control.py --repo . review-validate-pending`. This reviewer-safe validator checks schema, identity, fingerprint, decisions, finding lifecycle, and immutable history without requiring the not-yet-submitted result to appear in orchestrator-owned CODEX_STATUS. The result must say `author_role: CHATGPT_WORK_REVIEWER` (the retained protocol role label for any independent reviewer context), identify this reviewer session, and bind to the exact candidate. Return immediately after that validation; the orchestrator performs `review-submit` and routing. If candidate bytes change during review, do not reuse or bless the old candidate; the orchestrator will invalidate it and route a fresh cycle.

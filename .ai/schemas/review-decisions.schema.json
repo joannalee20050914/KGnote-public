@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kgnote.review-decisions.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "protocol_version", "decisions"],
+  "properties": {
+    "schema_version": {"const": "kgnote.review-decisions.v1"},
+    "protocol_version": {"const": "kgnote.review-protocol.v1"},
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["decision_id", "question", "why_existing_authority_is_insufficient", "affected_requirements", "available_options", "observable_consequences", "blocking_scope", "linked_findings", "status", "review_id", "candidate_revision", "candidate_fingerprint", "selected_option", "decided_by", "decided_at", "authority_record"],
+        "properties": {
+          "decision_id": {"type": "string", "pattern": "^D-[0-9]{3,}$"},
+          "question": {"type": "string", "minLength": 1},
+          "why_existing_authority_is_insufficient": {"type": "string", "minLength": 1},
+          "affected_requirements": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "available_options": {"type": "array", "minItems": 2, "items": {"type": "string", "minLength": 1}},
+          "observable_consequences": {"type": "array", "minItems": 2, "items": {"type": "string", "minLength": 1}},
+          "blocking_scope": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "linked_findings": {"type": "array", "items": {"type": "string"}},
+          "status": {"enum": ["PENDING_HUMAN", "DECIDED"]},
+          "review_id": {"type": "string", "pattern": "^review-[a-z0-9-]+-[0-9]{3}$"},
+          "candidate_revision": {"type": "string", "minLength": 1},
+          "candidate_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "selected_option": {"type": ["string", "null"]},
+          "decided_by": {"type": ["string", "null"]},
+          "decided_at": {"type": ["string", "null"]},
+          "authority_record": {"type": ["string", "null"]}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"status": {"const": "PENDING_HUMAN"}}},
+            "then": {
+              "properties": {
+                "selected_option": {"const": null},
+                "decided_by": {"const": null},
+                "decided_at": {"const": null},
+                "authority_record": {"const": null}
+              }
+            }
+          },
+          {
+            "if": {"properties": {"status": {"const": "DECIDED"}}},
+            "then": {
+              "properties": {
+                "selected_option": {"type": "string", "minLength": 1},
+                "decided_by": {"type": "string", "minLength": 1},
+                "decided_at": {"type": "string", "minLength": 1},
+                "authority_record": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

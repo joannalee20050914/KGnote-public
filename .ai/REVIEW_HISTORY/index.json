@@ -1,0 +1,57 @@
+{
+  "schema_version": "kgnote.review-history-index.v1",
+  "protocol_version": "kgnote.review-protocol.v1",
+  "event_count": 9,
+  "last_event_id": "evt-0009",
+  "reviews": {
+    "review-external-review-recovery-v1-001": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-external-review-recovery-v1-001/request-f9ec66f92c2758a87e0e2fcb442c70d877ea75aba34a03a571481e9f6a932837.md",
+          "sha256": "f9ec66f92c2758a87e0e2fcb442c70d877ea75aba34a03a571481e9f6a932837",
+          "event_id": "evt-0001"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-external-review-recovery-v1-001/result-4780196c64f26b5ac801dc7aa2f88e4ef4d03173523478783a26908b0e977483.md",
+          "sha256": "4780196c64f26b5ac801dc7aa2f88e4ef4d03173523478783a26908b0e977483",
+          "event_id": "evt-0003"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-external-review-recovery-v1-001/resolution-a7706472de72c45de14233549368c58686c5b9c2b39a2ab9f8d512872fb9cfc6.md",
+          "sha256": "a7706472de72c45de14233549368c58686c5b9c2b39a2ab9f8d512872fb9cfc6",
+          "event_id": "evt-0005"
+        }
+      ],
+      "last_event_type": "FIXES_PROPOSED",
+      "candidate_fingerprint": "e27544c145684de1e09c6a8211af96cac2eb3be11f231439c75016ca016f53bb"
+    },
+    "review-external-review-recovery-v1-002": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-external-review-recovery-v1-002/request-81f821612ae2b8e239990e3be789901e7e09d86b658330e3946864f9b7f76cfd.md",
+          "sha256": "81f821612ae2b8e239990e3be789901e7e09d86b658330e3946864f9b7f76cfd",
+          "event_id": "evt-0006"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-external-review-recovery-v1-002/result-09dc8d80c843132001de15e633aa232d2d863cd4f0de4933489f6045abcfc959.md",
+          "sha256": "09dc8d80c843132001de15e633aa232d2d863cd4f0de4933489f6045abcfc959",
+          "event_id": "evt-0008"
+        }
+      ],
+      "last_event_type": "PASS_CONSUMED_FOR_PROGRESSION",
+      "candidate_fingerprint": "675d3eeb05fb763bb76417d4ebc707d45ce8bebaca0caf693d89112d9a09aa93"
+    }
+  },
+  "findings": {
+    "R-001": {
+      "status": "VERIFIED",
+      "review_id": "review-external-review-recovery-v1-002",
+      "last_event_id": "evt-0008"
+    },
+    "R-002": {
+      "status": "VERIFIED",
+      "review_id": "review-external-review-recovery-v1-002",
+      "last_event_id": "evt-0008"
+    }
+  }
+}

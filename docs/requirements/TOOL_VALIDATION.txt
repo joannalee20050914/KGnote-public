@@ -1,0 +1,38 @@
+HISTORICAL VALIDATION TRANSCRIPT — captured 2026-09-20; not a current test result or release gate. Re-run deterministic verification for current evidence.
+
+test_dangling_scenario_rejected (test_requirements_guard.GuardTests.test_dangling_scenario_rejected) ... ok
+test_dangling_source_rejected (test_requirements_guard.GuardTests.test_dangling_source_rejected) ... ok
+test_deletion_reported (test_requirements_guard.GuardTests.test_deletion_reported) ... ok
+test_duplicate_id_rejected (test_requirements_guard.GuardTests.test_duplicate_id_rejected) ... ok
+test_negative_acceptance_required (test_requirements_guard.GuardTests.test_negative_acceptance_required) ... ok
+test_no_original_hash_silent_rebase (test_requirements_guard.GuardTests.test_no_original_hash_silent_rebase) ... ok
+test_packet_hash_changes_when_scenario_changes (test_requirements_guard.GuardTests.test_packet_hash_changes_when_scenario_changes) ... ok
+test_packet_includes_global_constraints (test_requirements_guard.GuardTests.test_packet_includes_global_constraints) ... ok
+test_render_is_deterministic (test_requirements_guard.GuardTests.test_render_is_deterministic) ... ok
+test_scenario_run_without_binding_rejected (test_requirements_guard.GuardTests.test_scenario_run_without_binding_rejected) ... ok
+test_scenario_weakening_reported (test_requirements_guard.GuardTests.test_scenario_weakening_reported) ... ok
+test_sections_must_be_dispositioned (test_requirements_guard.GuardTests.test_sections_must_be_dispositioned) ... ok
+test_semantic_weakening_reported (test_requirements_guard.GuardTests.test_semantic_weakening_reported) ... ok
+test_valid_pack_is_only_structural_pass (test_requirements_guard.GuardTests.test_valid_pack_is_only_structural_pass) ... ok
+test_verified_claim_requires_refs (test_requirements_guard.GuardTests.test_verified_claim_requires_refs) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.041s
+
+OK
+{
+  "status": "structural_traceability_pass",
+  "requirements": 83,
+  "scenarios": 36,
+  "all_product_scenarios_unrun": true,
+  "warnings": [
+    "No repository supplied: product implementation/test artifact paths have NOT been inspected.",
+    "Structural traceability only: a PASS does NOT prove semantic completeness, real test execution, UI fitness, or learning effectiveness."
+  ]
+}
+EXAMPLE_TASK_PACKET.md
+{
+  "status": "no_semantic_delta",
+  "changes": [],
+  "warnings": []
+}

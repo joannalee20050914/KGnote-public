@@ -1,0 +1,6 @@
+{
+  "schema_version": "kgnote.reader-query.v1",
+  "snapshot_sha256": "63d15fb5ad8431b0ad49dd3f105067a33384bf4ab807205c1c6cc13fcbd9a8c3",
+  "source_id": "src_bitepacer_mini_network_lesson",
+  "locator": {"kind": "line_range", "value": "L3-L18"}
+}

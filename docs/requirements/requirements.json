@@ -1,0 +1,3943 @@
+{
+  "schema_version": "kgnote.requirements-ledger.v1",
+  "baseline_id": "kgnote-reconciliation-2026-09-27-r7",
+  "status": "personal_alpha_integrated_stage_active_human_review_pending",
+  "important_limit": "Delivery and scenario states reflect inspected local implementation and recorded runs; structural PASS is not human acceptance or learning-effectiveness evidence.",
+  "source_catalog": "sources.json",
+  "scenario_catalog": "scenarios.json",
+  "requirements": [
+    {
+      "id": "KG-WF-01",
+      "revision": 1,
+      "title": "陌生材料先閱讀與解說",
+      "source_refs": [
+        "B19-U",
+        "U-READ"
+      ],
+      "basis": "user_explicit",
+      "area": "workflow",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "新材料預設可直接讀原文、AI/系統導讀與解說，不要求先交出自己的筆記。",
+      "forbidden_substitute": "以空白編輯器、筆記數量或自我解釋作閱讀前置條件。",
+      "acceptance": {
+        "positive": "zero-note 帳態能讀完整單元、查看解說並自行結束。",
+        "negative": "以空白編輯器、筆記數量或自我解釋作閱讀前置條件。"
+      },
+      "scenario_ids": [
+        "SC-01"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "web/learn.html",
+          "web/home.html"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-WF-02",
+      "revision": 1,
+      "title": "輸出活動由使用者進入",
+      "source_refs": [
+        "B19-U",
+        "B26-U",
+        "U-READ"
+      ],
+      "basis": "user_explicit",
+      "area": "workflow",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "可在任意合適時點選擇模仿、提示練習、回憶或解釋，也可返回阅读。",
+      "forbidden_substitute": "強制立即測驗或用60/70/80%熟悉度解鎖。",
+      "acceptance": {
+        "positive": "不回答檢核也能繼續閱讀；熟悉者可直接進練習。",
+        "negative": "強制立即測驗或用60/70/80%熟悉度解鎖。"
+      },
+      "scenario_ids": [
+        "SC-01",
+        "SC-02"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "web/learn.html",
+          "web/home.html"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-WF-03",
+      "revision": 1,
+      "title": "系統化不等於使用者親自整理",
+      "source_refs": [
+        "B24-U",
+        "B25-U",
+        "U-READ"
+      ],
+      "basis": "user_explicit",
+      "area": "workflow",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "系統保存结构、來源與學習脈絡，使用者可選擇編輯但不負責維護全套台帳。",
+      "forbidden_substitute": "把低負擔工具做成每天維護學習表單。",
+      "acceptance": {
+        "positive": "無手動 NoteBlock 仍可建目標、儲存事件與再次使用。",
+        "negative": "把低負擔工具做成每天維護學習表單。"
+      },
+      "scenario_ids": [
+        "SC-01",
+        "SC-03"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "web/learn.html",
+          "web/home.html"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-WF-04",
+      "revision": 2,
+      "title": "操作任務與理解深挖可分開",
+      "source_refs": [
+        "B10-U",
+        "B15-A",
+        "B19-U",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "source_based",
+      "area": "workflow",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "使用者要完成當前實務問題時，保留最短安全操作路徑；理解教學可以另開且返回原任務。",
+      "forbidden_substitute": "把當前服務檢查變成先修完Git或計網。",
+      "acceptance": {
+        "positive": "所有檢查正常時可結束；待學內容不阻擋任務完成。",
+        "negative": "把當前服務檢查變成先修完Git或計網。"
+      },
+      "scenario_ids": [
+        "SC-04"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-WF-05",
+      "revision": 1,
+      "title": "低負擔而非短文一律優先",
+      "source_refs": [
+        "B26-U",
+        "U-GLOSS"
+      ],
+      "basis": "user_explicit",
+      "area": "workflow",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "允许完整長文；減少的是找上下文、無關展開與重複操作，而非一律把文字截短。",
+      "forbidden_substitute": "以使用者偏好低負擔為由只給卡片或隱藏完整原文。",
+      "acceptance": {
+        "positive": "可持續閱讀完整來源，輔助資訊預設按需展开。",
+        "negative": "以使用者偏好低負擔為由只給卡片或隱藏完整原文。"
+      },
+      "scenario_ids": [
+        "SC-05"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "web/learn.html",
+          "web/home.html"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-WF-06",
+      "revision": 1,
+      "title": "目標與記憶重要性可分用途",
+      "source_refs": [
+        "B08-U",
+        "B19-U",
+        "B19-A",
+        "R-PRODUCT"
+      ],
+      "basis": "source_based",
+      "area": "workflow",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "依使用者用途選需內化、可查閱、暫不處理；概念推理與精確語法記憶可分開。",
+      "forbidden_substitute": "所有concept自動入SRS或graph中央性決定重要性。",
+      "acceptance": {
+        "positive": "把精確指令設為lookup後仍可搜尋、不產生強制複習。",
+        "negative": "所有concept自動入SRS或graph中央性決定重要性。"
+      },
+      "scenario_ids": [
+        "SC-06"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-STR-01",
+      "revision": 1,
+      "title": "可遞迴架構與目前位置",
+      "source_refs": [
+        "B18-U",
+        "B19-U",
+        "U-STRUCT"
+      ],
+      "basis": "user_explicit",
+      "area": "structure",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "結構可表達主題、子主題、局部項目，並顯示當前位置。",
+      "forbidden_substitute": "平面group加顏色或卡片即聲稱完成hierarchy。",
+      "acceptance": {
+        "positive": "測試至少主題→子主題→項目三層；此深度是測試設計不是認知定律。",
+        "negative": "平面group加顏色或卡片即聲稱完成hierarchy。"
+      },
+      "scenario_ids": [
+        "SC-07"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/fixtures/os-learning-structure.json"
+        ],
+        "test_refs": [
+          "web/tests/learn-workspace.test.js",
+          "tests/test_guided_map_projector.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-STR-02",
+      "revision": 1,
+      "title": "組織關係必須可辨",
+      "source_refs": [
+        "B20-A",
+        "B21-A",
+        "U-STRUCT"
+      ],
+      "basis": "source_based",
+      "area": "structure",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "同層比較、替代方案、時序、問題／解法與例子可區分，不將所有線看成相同語意。",
+      "forbidden_substitute": "位置接近就自動判為對立、相似或因果。",
+      "acceptance": {
+        "positive": "同一比較組可說明比較維度；未確定關係明示未定。",
+        "negative": "位置接近就自動判為對立、相似或因果。"
+      },
+      "scenario_ids": [
+        "SC-08"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/fixtures/os-learning-structure.json"
+        ],
+        "test_refs": [
+          "web/tests/learn-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-STR-03",
+      "revision": 1,
+      "title": "導覽結構與事實斷言分開",
+      "source_refs": [
+        "R-DATA",
+        "U-STRUCT"
+      ],
+      "basis": "source_based",
+      "area": "structure",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "父子容器與membership不自動成為canonical Edge；若顯示因果／解決等事實仍須有支持。",
+      "forbidden_substitute": "把claim放在view metadata就免除查核。",
+      "acceptance": {
+        "positive": "重排／多重membership後canonical graph不變；無支持的problem-solution不出為事實。",
+        "negative": "把claim放在view metadata就免除查核。"
+      },
+      "scenario_ids": [
+        "SC-08",
+        "SC-09"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/fixtures/os-learning-structure.json"
+        ],
+        "test_refs": [
+          "web/tests/learn-workspace.test.js",
+          "tests/test_guided_map_projector.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-STR-04",
+      "revision": 1,
+      "title": "結構範圍忠於資料",
+      "source_refs": [
+        "R-DATA",
+        "R-READING",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      ],
+      "basis": "source_based",
+      "area": "structure",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "區分來源原章節與重組教學lens；未涵蓋主題只可標延伸，不假装教材有教。",
+      "forbidden_substitute": "為漂亮完整OS樹捏造未教的memory-management內容。",
+      "acceptance": {
+        "positive": "圖上可辨重組依據、來源範圍與未涵蓋項目。",
+        "negative": "為漂亮完整OS樹捏造未教的memory-management內容。"
+      },
+      "scenario_ids": [
+        "SC-07",
+        "SC-09"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/fixtures/os-learning-structure.json",
+          "src/kgnote/obsidian_native/spike.py",
+          "src/kgnote/obsidian_native/validator.py"
+        ],
+        "test_refs": [
+          "tests/test_obsidian_native_spike.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/obsidian-native-v3-20260923.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-STR-05",
+      "revision": 1,
+      "title": "左側以導覽為主",
+      "source_refs": [
+        "U-STRUCT",
+        "U-RECALL",
+        "R-READING"
+      ],
+      "basis": "source_based",
+      "area": "structure",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "點結構項目定位正文、更新breadcrumb；多個anchor可選且保持返回位置。",
+      "forbidden_substitute": "每點樹节点就強制打開重複小辭典。",
+      "acceptance": {
+        "positive": "點排程子題直接到相關段落；返回維持原閱讀位置。",
+        "negative": "每點樹节点就強制打開重複小辭典。"
+      },
+      "scenario_ids": [
+        "SC-07",
+        "SC-05"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/fixtures/os-learning-structure.json"
+        ],
+        "test_refs": [
+          "web/tests/learn-workspace.test.js",
+          "tests/test_guided_map_projector.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-STR-06",
+      "revision": 1,
+      "title": "來源座標與概念回找並存",
+      "source_refs": [
+        "B26-U",
+        "B27-A",
+        "U-STRUCT",
+        "U-RECALL"
+      ],
+      "basis": "user_explicit",
+      "area": "structure",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "閱讀當下可按段落定位；跨筆記尋找舊知可從概念／問題進入，不必記章節號。",
+      "forbidden_substitute": "把原始不想手找Ch11誤解成永遠不能跳來源段落。",
+      "acceptance": {
+        "positive": "從概念能找到舊例子，再一鍵看來源；左樹仍可定位当前正文。",
+        "negative": "把原始不想手找Ch11誤解成永遠不能跳來源段落。"
+      },
+      "scenario_ids": [
+        "SC-10"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/fixtures/os-learning-structure.json"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-STR-07",
+      "revision": 1,
+      "title": "窄側欄與大圖共用結構",
+      "source_refs": [
+        "U-STRUCT",
+        "R-READING"
+      ],
+      "basis": "source_based",
+      "area": "structure",
+      "priority_proposal": "extension",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "側欄可折疊；需要全局時可展開大架構，兩者共享同一revision與selection。",
+      "forbidden_substitute": "另維護一份mind map名稱或強塞横向巨圖进窄欄。",
+      "acceptance": {
+        "positive": "改一個結構項目後兩種視圖對應一致且無全頁溢位。",
+        "negative": "另維護一份mind map名稱或強塞横向巨圖进窄欄。"
+      },
+      "scenario_ids": [
+        "SC-07",
+        "SC-27"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/fixtures/os-learning-structure.json"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-CTX-01",
+      "revision": 1,
+      "title": "詞彙與句子都可發起閱讀協助",
+      "source_refs": [
+        "B05-U",
+        "B07-U",
+        "B16-A",
+        "U-GLOSS"
+      ],
+      "basis": "user_explicit",
+      "area": "context",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "可選取文本或標記不懂處，連同句子／段落與當前問題形成求助context。",
+      "forbidden_substitute": "只允許canonical keyword列表內的詞被提問。",
+      "acceptance": {
+        "positive": "PID或任意非canonical片語可發起求助並保存原位置。",
+        "negative": "只允許canonical keyword列表內的詞被提問。"
+      },
+      "scenario_ids": [
+        "SC-11"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/learn-app.js",
+          "web/fixtures/os-reading-assist.json"
+        ],
+        "test_refs": [
+          "web/tests/learn-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-CTX-02",
+      "revision": 1,
+      "title": "先補足當句最低必要概念",
+      "source_refs": [
+        "B01-U",
+        "B15-A",
+        "U-GLOSS"
+      ],
+      "basis": "user_explicit",
+      "area": "context",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "解說回答此處術語的角色以及如何幫助理解當句，深度依目的與語境。",
+      "forbidden_substitute": "預設列完整詞典、指令、內部機制。",
+      "acceptance": {
+        "positive": "overview的PID提示可使人理解識別用途，不自動展開操作手冊。",
+        "negative": "預設列完整詞典、指令、內部機制。"
+      },
+      "scenario_ids": [
+        "SC-11"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/fixtures/os-reading-assist.json"
+        ],
+        "test_refs": [
+          "web/tests/learn-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-CTX-03",
+      "revision": 1,
+      "title": "深度是context建議而非能力分數",
+      "source_refs": [
+        "B15-A",
+        "U-GLOSS",
+        "R-READING"
+      ],
+      "basis": "source_based",
+      "area": "context",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "保存當前理解目標、必要內容與暫缓範圍；若使用depth enum須版本化且可覆盖。",
+      "forbidden_substitute": "固定PID=define或把四級標籤當通用認知階梯。",
+      "acceptance": {
+        "positive": "同概念在overview與troubleshooting產生不同範圍且不改Concept。",
+        "negative": "固定PID=define或把四級標籤當通用認知階梯。"
+      },
+      "scenario_ids": [
+        "SC-12"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/learn-app.js",
+          "web/fixtures/os-reading-assist.json"
+        ],
+        "test_refs": [
+          "web/tests/learn-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-CTX-04",
+      "revision": 1,
+      "title": "補充來源與原文分明",
+      "source_refs": [
+        "R-DATA",
+        "R-READING"
+      ],
+      "basis": "source_based",
+      "area": "context",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "原文未定義時可用外部/預製補充，但標示來源與不確定；不可偽稱原文有說。",
+      "forbidden_substitute": "虛構Evidence或把模型常識貼成來源摘錄。",
+      "acceptance": {
+        "positive": "外部PID提示與Source定位分列；補充被移除時原文仍可读。",
+        "negative": "虛構Evidence或把模型常識貼成來源摘錄。"
+      },
+      "scenario_ids": [
+        "SC-11",
+        "SC-21"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/fixtures/os-reading-assist.json"
+        ],
+        "test_refs": [
+          "web/tests/learn-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-CTX-05",
+      "revision": 1,
+      "title": "範圍提醒不是鎖功能",
+      "source_refs": [
+        "B15-A",
+        "U-GLOSS"
+      ],
+      "basis": "source_based",
+      "area": "context",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "指出哪些延伸非當前必需，使用者仍可主动深入或存為稍後問題。",
+      "forbidden_substitute": "不懂前置就禁止閱讀，或禁止好奇心。",
+      "acceptance": {
+        "positive": "選擇深入可展開；返回時仍在原句且不產生補課債。",
+        "negative": "不懂前置就禁止閱讀，或禁止好奇心。"
+      },
+      "scenario_ids": [
+        "SC-12"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/fixtures/os-reading-assist.json"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-CTX-06",
+      "revision": 1,
+      "title": "避免同篇三次重複解釋",
+      "source_refs": [
+        "U-RECALL",
+        "U-GLOSS"
+      ],
+      "basis": "user_explicit",
+      "area": "context",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "未主動求助時不因keyword被選取而重複正文；主動求助可改用例子／對比。",
+      "forbidden_substitute": "Summary、Detailed、Evidence實際同一句卻宣稱更詳細。",
+      "acceptance": {
+        "positive": "讀DMA原段預設無重複字典；點不懂才出不同角度或誠實回指原段。",
+        "negative": "Summary、Detailed、Evidence實際同一句卻宣稱更詳細。"
+      },
+      "scenario_ids": [
+        "SC-05"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/fixtures/os-reading-assist.json"
+        ],
+        "test_refs": [
+          "web/tests/learn-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-CTX-07",
+      "revision": 1,
+      "title": "未知詞密度可觸發支援而非強制重開",
+      "source_refs": [
+        "B10-U",
+        "B16-U",
+        "B16-A"
+      ],
+      "basis": "source_based",
+      "area": "context",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "多處不懂時提供較簡模型、最小先備橋接或暫停選項；保留任務。",
+      "forbidden_substitute": "硬編3詞熔斷、80/20或因多問就鎖課。",
+      "acceptance": {
+        "positive": "多個不懂標記不一次噴多篇lecture，也不强制返回第一章。",
+        "negative": "硬編3詞熔斷、80/20或因多問就鎖課。"
+      },
+      "scenario_ids": [
+        "SC-13"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-CTX-08",
+      "revision": 1,
+      "title": "先備背景可修正",
+      "source_refs": [
+        "B02-U",
+        "B03-U",
+        "B07-U",
+        "B19-U"
+      ],
+      "basis": "source_based",
+      "area": "context",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "課名、過往使用與當前理解分開；以使用者澄清為準，必要時選擇快速複習或新知。",
+      "forbidden_substitute": "修過ASP.NET就視為懂Web；固定使用者能力／低吞吐人格。",
+      "acceptance": {
+        "positive": "修課紀錄與自述衝突時不直接跳過基礎，且可回退解說。",
+        "negative": "修過ASP.NET就視為懂Web；固定使用者能力／低吞吐人格。"
+      },
+      "scenario_ids": [
+        "SC-14"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-CTX-09",
+      "revision": 1,
+      "title": "類比有邊界且不加入新負擔",
+      "source_refs": [
+        "B07-U",
+        "B15-A"
+      ],
+      "basis": "source_based",
+      "area": "context",
+      "priority_proposal": "extension",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "可用已確認的C++等經驗連結新知，並保留類比適用範圍。",
+      "forbidden_substitute": "用使用者同樣不懂的東西解釋未知，或把類比當同一事實。",
+      "acceptance": {
+        "positive": "求助稿能分開真實關係與比喻；無先備證據不強行套用。",
+        "negative": "用使用者同樣不懂的東西解釋未知，或把類比當同一事實。"
+      },
+      "scenario_ids": [
+        "SC-13"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "web/learn-workspace.js",
+          "web/fixtures/os-reading-assist.json"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-MEM-01",
+      "revision": 2,
+      "title": "精確續學而非最近開過清單",
+      "source_refs": [
+        "B08-U",
+        "B24-U",
+        "B25-U",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "user_explicit",
+      "area": "memory",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "能回復上次問題、最後解說、使用者實際回答、未釐清處、閱讀anchor與暫緩支線。",
+      "forbidden_substitute": "只顯示last_seen或最後一張教材卡就宣稱記住上次學到哪。",
+      "acceptance": {
+        "positive": "新的session續Git时接回branch/worktree具体疑問，而非重教Git定义。",
+        "negative": "只顯示last_seen或最後一張教材卡就宣稱記住上次學到哪。"
+      },
+      "scenario_ids": [
+        "SC-03"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/learning/continuity.py",
+          "web/learn-app.js",
+          "web/home-app.js"
+        ],
+        "test_refs": [
+          "tests/test_resume_context.py",
+          "tests/test_learning_http.py",
+          "web/tests/continuity.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop2-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-MEM-02",
+      "revision": 1,
+      "title": "舊知重連必須有真實歷史",
+      "source_refs": [
+        "B24-U",
+        "B25-U",
+        "U-RECALL"
+      ],
+      "basis": "user_explicit",
+      "area": "memory",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "以concept/明確reference查到之前來源、問題和例子；無歷史則明示沒有可用紀錄。",
+      "forbidden_substitute": "概念存在於庫即寫你以前學過；用語意相似當同一概念。",
+      "acceptance": {
+        "positive": "兩來源同概念可跳舊段落；同名異義或只有AI提到不虛構學習史。",
+        "negative": "概念存在於庫即寫你以前學過；用語意相似當同一概念。"
+      },
+      "scenario_ids": [
+        "SC-10",
+        "SC-14"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/learning/prior.py",
+          "scripts/serve_graph_view.py",
+          "web/learn-app.js"
+        ],
+        "test_refs": [
+          "tests/test_prior_encounters.py",
+          "web/tests/learn-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-MEM-03",
+      "revision": 1,
+      "title": "區分誰說誰做與知識主張",
+      "source_refs": [
+        "B11-U",
+        "B25-A",
+        "R-DATA"
+      ],
+      "basis": "source_based",
+      "area": "memory",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "保存user/assistant/tool attribution；從AI摘要生成的行為claim須回查原始user/tool證據。",
+      "forbidden_substitute": "把AI解釋過或示範過當成使用者能獨立解釋/操作。",
+      "acceptance": {
+        "positive": "四PASS後仍嘗試restart的原紀錄不得被寫成已獨立判斷不需restart。",
+        "negative": "把AI解釋過或示範過當成使用者能獨立解釋/操作。"
+      },
+      "scenario_ids": [
+        "SC-15"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/review/context.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-MEM-04",
+      "revision": 1,
+      "title": "混淆紀錄保留具體配對與當時情境",
+      "source_refs": [
+        "B06-U",
+        "B20-U",
+        "B20-A",
+        "B25-U"
+      ],
+      "basis": "source_based",
+      "area": "memory",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "可保存實際表達的混淆、原回答、反饋及後續修正；不是只剩錯誤次數。",
+      "forbidden_substitute": "遇到兩個詞就推測confused_with。",
+      "acceptance": {
+        "positive": "branch/worktree confusion可回原句；後續釐清不抹去歷史。",
+        "negative": "遇到兩個詞就推測confused_with。"
+      },
+      "scenario_ids": [
+        "SC-16"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/context.py",
+          "src/kgnote/review/attempts.py"
+        ],
+        "test_refs": [
+          "tests/test_reviewer_context.py",
+          "tests/test_attempt_store.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-MEM-05",
+      "revision": 1,
+      "title": "無證據不等於未學過",
+      "source_refs": [
+        "B24-A",
+        "B25-U",
+        "R-DATA"
+      ],
+      "basis": "source_based",
+      "area": "memory",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "沒有學習紀錄時標未有紀錄／unknown，允許使用者說明既有背景。",
+      "forbidden_substitute": "資料庫缺一筆就斷言UNSEEN或沒學過。",
+      "acceptance": {
+        "positive": "新建unit不自动斷言所有概念陌生。",
+        "negative": "資料庫缺一筆就斷言UNSEEN或沒學過。"
+      },
+      "scenario_ids": [
+        "SC-14"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/context.py",
+          "src/kgnote/review/attempts.py"
+        ],
+        "test_refs": [
+          "tests/test_reviewer_context.py",
+          "tests/test_attempt_store.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-MEM-06",
+      "revision": 1,
+      "title": "保持可觀察事件而非全域熟練度",
+      "source_refs": [
+        "B25-U",
+        "B26-U",
+        "R-PRACTICE"
+      ],
+      "basis": "user_explicit",
+      "area": "memory",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "保存見過、提問、提示、回答、應用與時間，必要摘要附來源與條件。",
+      "forbidden_substitute": "自動紅綠燈／mastery百分比或看過就升級理解。",
+      "acceptance": {
+        "positive": "打開十次頁面不會生成理解事件；作答成果只對該任務。",
+        "negative": "自動紅綠燈／mastery百分比或看過就升級理解。"
+      },
+      "scenario_ids": [
+        "SC-14",
+        "SC-15"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/context.py",
+          "src/kgnote/review/attempts.py"
+        ],
+        "test_refs": [
+          "tests/test_reviewer_context.py",
+          "tests/test_attempt_store.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-MEM-07",
+      "revision": 2,
+      "title": "不用學習者維護狀態表",
+      "source_refs": [
+        "B24-U",
+        "B25-U",
+        "B24-A",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "source_based",
+      "area": "memory",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "正常閱讀、提問與作答可自動留可追溯紀錄；推定的觀察可更正而不要求逐項管理。",
+      "forbidden_substitute": "每日强制自評數十concept或寫心得才保存進度。",
+      "acceptance": {
+        "positive": "結束session無表單也保留問題與anchor；錯記可修正。",
+        "negative": "每日强制自評數十concept或寫心得才保存進度。"
+      },
+      "scenario_ids": [
+        "SC-03"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/learning/continuity.py",
+          "web/learn-app.js"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-MEM-08",
+      "revision": 2,
+      "title": "可攜續學context供不同導師使用",
+      "source_refs": [
+        "B24-U",
+        "B27-U",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "source_based",
+      "area": "memory",
+      "priority_proposal": "extension",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "能輸出有來源的局部續學包，不必每次重貼全部對話；不綁唯一AI。",
+      "forbidden_substitute": "只做漂亮history页面卻沒有可供續教的context。",
+      "acceptance": {
+        "positive": "export包包含當前問題、實際證據與未知處，無全域能力臆測。",
+        "negative": "只做漂亮history页面卻沒有可供續教的context。"
+      },
+      "scenario_ids": [
+        "SC-03"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-MEM-09",
+      "revision": 2,
+      "title": "操作時間線不虛構修復因果",
+      "source_refs": [
+        "B12-U",
+        "B13-U",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "user_explicit",
+      "area": "memory",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "學習紀錄區分唯讀查驗、實際變更操作、觀察到的恢復、使用者提出的原因與後續證據；因果未證實時保留為假說。",
+      "forbidden_substitute": "把查詢命令、時間上相鄰的對話或AI摘要寫成成功修復動作。",
+      "acceptance": {
+        "positive": "服務自行恢復的案例可重建查驗、未成功restart、網路恢復假說與證據，不冒稱由使用者修好。",
+        "negative": "把查詢命令、時間上相鄰的對話或AI摘要寫成成功修復動作。"
+      },
+      "scenario_ids": [
+        "SC-37"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": [
+        {
+          "revision": 1,
+          "source_ref": "U-LONGRUN",
+          "change": "Added during source reconciliation because §12–13 causal reconstruction was only context_only and not represented by attribution requirements."
+        }
+      ]
+    },
+    {
+      "id": "KG-SOAK-01",
+      "revision": 2,
+      "title": "不需作答的再曝光是獨立能力",
+      "source_refs": [
+        "B26-U",
+        "B23-U",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "user_explicit",
+      "area": "soak",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "提供能直接看熟悉概念／例子、可略過且无需提交答案的浸泡入口。",
+      "forbidden_substitute": "把Start Practice或due題目清單改名Soak就算完成。",
+      "acceptance": {
+        "positive": "啟動浸泡能看卡→滑走→結束；不建立答錯Attempt。",
+        "negative": "把Start Practice或due題目清單改名Soak就算完成。"
+      },
+      "scenario_ids": [
+        "SC-02"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/exposure.py",
+          "web/soak.html",
+          "web/soak-app.js"
+        ],
+        "test_refs": [
+          "tests/test_exposure_store.py",
+          "tests/test_learning_http.py",
+          "web/tests/soak-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop1-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-SOAK-02",
+      "revision": 1,
+      "title": "逐步降低外觀與提示依賴",
+      "source_refs": [
+        "B19-U",
+        "B26-U"
+      ],
+      "basis": "user_explicit",
+      "area": "soak",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "同一目標可先用熟悉context，再換提示、措辭或情境；用户可保留／增加提示。",
+      "forbidden_substitute": "每次重複同一標準答案或一開始就自由回憶。",
+      "acceptance": {
+        "positive": "至少兩種cue變體與可回到熟悉例子的路徑。",
+        "negative": "每次重複同一標準答案或一開始就自由回憶。"
+      },
+      "scenario_ids": [
+        "SC-17"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "web/soak-workspace.js",
+          "web/soak-app.js",
+          "web/fixtures/os-soak.json",
+          "web/fixtures/bitepacer-soak.json"
+        ],
+        "test_refs": [
+          "web/tests/soak-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-SOAK-03",
+      "revision": 1,
+      "title": "提示量與題型不綁成固定升級階梯",
+      "source_refs": [
+        "B21-A",
+        "B26-U",
+        "U-READ"
+      ],
+      "basis": "source_based",
+      "area": "soak",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "相似度、提示支援、輸出要求與間隔分別記錄並可選。",
+      "forbidden_substitute": "答對一次自動升級、七級逐關解鎖或固定一天升一級。",
+      "acceptance": {
+        "positive": "可用新例子加提示，也可在熟悉例子做無提示回想。",
+        "negative": "答對一次自動升級、七級逐關解鎖或固定一天升一級。"
+      },
+      "scenario_ids": [
+        "SC-17"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/learning/catalog.py",
+          "web/soak-workspace.js",
+          "web/soak-app.js"
+        ],
+        "test_refs": [
+          "tests/test_learning_catalog.py",
+          "web/tests/soak-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-SOAK-04",
+      "revision": 2,
+      "title": "低壓、無債務、可無限期暫停",
+      "source_refs": [
+        "B23-U",
+        "B26-U",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "user_explicit",
+      "area": "soak",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "允許跳過、答錯、今天零活動、暫停追蹤；不懲罰或強制補完積欠。",
+      "forbidden_substitute": "紅色欠卡、連續天數懲罰、答錯强制長篇檢討。",
+      "acceptance": {
+        "positive": "跳過數日後仍能自主看一則，不先清空due backlog。",
+        "negative": "紅色欠卡、連續天數懲罰、答錯强制長篇檢討。"
+      },
+      "scenario_ids": [
+        "SC-18"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/exposure.py",
+          "web/soak.html"
+        ],
+        "test_refs": [
+          "tests/test_learning_http.py",
+          "web/tests/soak-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop1-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-SOAK-05",
+      "revision": 1,
+      "title": "曝光不是提取成功",
+      "source_refs": [
+        "B25-U",
+        "B26-U",
+        "R-PRACTICE"
+      ],
+      "basis": "source_based",
+      "area": "soak",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "可記已呈現／曝光等可觀測狀態，但不得推斷真的看懂；Soak顯示答案是合法設計。",
+      "forbidden_substitute": "所有曝光都用answer-leak gate攔掉或算成功回憶。",
+      "acceptance": {
+        "positive": "同一卡曝光可顯示答案；Practice無輔助模式才隔離；兩者紀錄不同。",
+        "negative": "所有曝光都用answer-leak gate攔掉或算成功回憶。"
+      },
+      "scenario_ids": [
+        "SC-02",
+        "SC-19"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/exposure.py",
+          "web/soak.html",
+          "web/practice.html"
+        ],
+        "test_refs": [
+          "tests/test_exposure_store.py",
+          "tests/test_learning_http.py",
+          "web/tests/soak-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop1-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-SOAK-06",
+      "revision": 1,
+      "title": "局部關係與舊例子不被碎片化",
+      "source_refs": [
+        "B26-U",
+        "B26-A"
+      ],
+      "basis": "source_based",
+      "area": "soak",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "可複習概念、具體關係或小組概念，保留主題/舊例子來源。",
+      "forbidden_substitute": "僅有互不相連的一詞一答案卡。",
+      "acceptance": {
+        "positive": "小型關係練習可顯示必要context，但不洩漏待提取關係。",
+        "negative": "僅有互不相連的一詞一答案卡。"
+      },
+      "scenario_ids": [
+        "SC-17"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-SOAK-07",
+      "revision": 2,
+      "title": "複習不必先開全新聊天重建背景",
+      "source_refs": [
+        "B24-U",
+        "B26-U",
+        "B27-U",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "user_explicit",
+      "area": "soak",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "短時互動直接取得既有材料與局部歷史，真正新問題才開新的教學支線。",
+      "forbidden_substitute": "每日複習先要求描述過去學了什麼。",
+      "acceptance": {
+        "positive": "從浸泡入口可直接看既有例子；不要求空白chat起手。",
+        "negative": "每日複習先要求描述過去學了什麼。"
+      },
+      "scenario_ids": [
+        "SC-02",
+        "SC-03"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PRAC-01",
+      "revision": 1,
+      "title": "多種輸出形式與條件",
+      "source_refs": [
+        "B19-U",
+        "B20-U",
+        "U-READ"
+      ],
+      "basis": "source_based",
+      "area": "practice",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "保留模仿、填空、選擇／區辨、白紙回想、自己說一次與應用；分批交付不偷換成單一填詞。",
+      "forbidden_substitute": "把三種相同字串填空算三種活動。",
+      "acceptance": {
+        "positive": "題目目錄明示目前可用／未實作活動，能保存自由解釋。",
+        "negative": "把三種相同字串填空算三種活動。"
+      },
+      "scenario_ids": [
+        "SC-20"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/practice.py",
+          "src/kgnote/review/attempts.py",
+          "src/kgnote/review/feedback.py"
+        ],
+        "test_refs": [
+          "tests/test_practice_http.py",
+          "tests/test_attempt_store.py",
+          "tests/test_feedback_scheduling.py",
+          "web/tests/practice-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json",
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PRAC-02",
+      "revision": 1,
+      "title": "無輔助作答隔離答案",
+      "source_refs": [
+        "R-PRACTICE",
+        "U-READ"
+      ],
+      "basis": "source_based",
+      "area": "practice",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "無輔助模式在提交或主動揭露前不把答案放在可見UI、隱藏DOM或ARIA。",
+      "forbidden_substitute": "只用CSS遮住或selection bar暴露答案。",
+      "acceptance": {
+        "positive": "跨route、reload、stale selection仍無意外答案；主動提示另記錄。",
+        "negative": "只用CSS遮住或selection bar暴露答案。"
+      },
+      "scenario_ids": [
+        "SC-19"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/practice.py",
+          "src/kgnote/review/attempts.py"
+        ],
+        "test_refs": [
+          "tests/test_practice_http.py",
+          "tests/test_attempt_store.py",
+          "web/tests/practice-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json",
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PRAC-03",
+      "revision": 1,
+      "title": "原回答與追加式回饋",
+      "source_refs": [
+        "B20-U",
+        "B25-U",
+        "R-PRACTICE"
+      ],
+      "basis": "source_based",
+      "area": "practice",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "保存raw response、題目/rubric revision、提示、回饋與更正，重試另筆。",
+      "forbidden_substitute": "只保留成功或最後一次的改寫回答。",
+      "acceptance": {
+        "positive": "錯→部分→再次回答的三種資訊都能read-back。",
+        "negative": "只保留成功或最後一次的改寫回答。"
+      },
+      "scenario_ids": [
+        "SC-20"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/practice.py",
+          "src/kgnote/review/attempts.py",
+          "src/kgnote/review/feedback.py"
+        ],
+        "test_refs": [
+          "tests/test_practice_http.py",
+          "tests/test_attempt_store.py",
+          "tests/test_feedback_scheduling.py",
+          "web/tests/practice-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json",
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PRAC-04",
+      "revision": 1,
+      "title": "未評估與證據不足分離",
+      "source_refs": [
+        "R-PRACTICE"
+      ],
+      "basis": "proposed_safeguard",
+      "area": "practice",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "尚未有評估者時用unassessed；已評估但材料不足才用insufficient evidence；保留評估來源。",
+      "forbidden_substitute": "所有自由回答先當INSUFFICIENT_EVIDENCE或incorrect。",
+      "acceptance": {
+        "positive": "提交自由答案先显示待自評；對照rubric後另追加self assessment。",
+        "negative": "所有自由回答先當INSUFFICIENT_EVIDENCE或incorrect。"
+      },
+      "scenario_ids": [
+        "SC-20"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/review/practice.py",
+          "src/kgnote/review/attempts.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PRAC-05",
+      "revision": 1,
+      "title": "語意判準不等於逐字一致",
+      "source_refs": [
+        "B19-U",
+        "B20-U",
+        "R-PRACTICE"
+      ],
+      "basis": "source_based",
+      "area": "practice",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "依角色、條件、因果與重要區辨回饋；只有需精確記術語的目標才做字串判分。",
+      "forbidden_substitute": "合理同義答案因措辭不同一律錯。",
+      "acceptance": {
+        "positive": "同義正確答案與錯誤相似詞均有案例；評分限制可見。",
+        "negative": "合理同義答案因措辭不同一律錯。"
+      },
+      "scenario_ids": [
+        "SC-20"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/review/practice.py",
+          "src/kgnote/review/attempts.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PRAC-06",
+      "revision": 1,
+      "title": "不懂、跳過、取消與失敗分開",
+      "source_refs": [
+        "B23-U",
+        "R-PRACTICE"
+      ],
+      "basis": "source_based",
+      "area": "practice",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "未進入、草稿離開、滑過、不知道、有提示與錯誤各自記錄。",
+      "forbidden_substitute": "用空值統一當零分／incorrect。",
+      "acceptance": {
+        "positive": "只看題目不產生已提交結果；不知道可直接提交且保存。",
+        "negative": "用空值統一當零分／incorrect。"
+      },
+      "scenario_ids": [
+        "SC-02",
+        "SC-19"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/practice.py",
+          "src/kgnote/review/attempts.py"
+        ],
+        "test_refs": [
+          "tests/test_practice_http.py",
+          "web/tests/practice-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PRAC-07",
+      "revision": 1,
+      "title": "Attempt身分與寫入冪等",
+      "source_refs": [
+        "R-PRACTICE",
+        "R-RELIABILITY"
+      ],
+      "basis": "source_based",
+      "area": "practice",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "穩定client attempt ID；同提交重送回相同結果，不同payload同ID回conflict，retry新ID。",
+      "forbidden_substitute": "用server timestamp作attempt唯一身分或覆寫已交回答。",
+      "acceptance": {
+        "positive": "模擬寫成功response遺失、重送與不同payload皆可驗證。",
+        "negative": "用server timestamp作attempt唯一身分或覆寫已交回答。"
+      },
+      "scenario_ids": [
+        "SC-22"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/practice.py",
+          "src/kgnote/review/attempts.py"
+        ],
+        "test_refs": [
+          "tests/test_practice_http.py",
+          "tests/test_attempt_store.py",
+          "web/tests/practice-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json",
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PRAC-08",
+      "revision": 1,
+      "title": "能回饋具體缺口並接回解說",
+      "source_refs": [
+        "B19-U",
+        "B20-U",
+        "B26-U",
+        "U-GLOSS"
+      ],
+      "basis": "source_based",
+      "area": "practice",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "答後可看rubric、來源、缺少條件與短修正，再回相關解說；不必先重寫筆記。",
+      "forbidden_substitute": "只說不一致或答錯後強制寫反省。",
+      "acceptance": {
+        "positive": "選部分正確可指出哪一條待補，回原段不丟attempt。",
+        "negative": "只說不一致或答錯後強制寫反省。"
+      },
+      "scenario_ids": [
+        "SC-20"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/review/practice.py",
+          "src/kgnote/review/attempts.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-SRS-01",
+      "revision": 1,
+      "title": "到期資格與學習事件分開",
+      "source_refs": [
+        "B26-U",
+        "R-PRACTICE"
+      ],
+      "basis": "source_based",
+      "area": "review",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "時間安排只產生可選待複習項；開始活動與提交各有明確生命週期。",
+      "forbidden_substitute": "到期本身或snooze自動建立Attempt。",
+      "acceptance": {
+        "positive": "推進注入時鐘有due但無attempt；活動開始才按contract建立。",
+        "negative": "到期本身或snooze自動建立Attempt。"
+      },
+      "scenario_ids": [
+        "SC-23"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/scheduling.py"
+        ],
+        "test_refs": [
+          "tests/test_feedback_scheduling.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-SRS-02",
+      "revision": 1,
+      "title": "可解釋簡單排程非最佳遺忘曲線",
+      "source_refs": [
+        "B26-U",
+        "B26-A",
+        "R-EXPERIMENT"
+      ],
+      "basis": "source_based",
+      "area": "review",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "定義每段間隔的起算點、延期／停止規則及下一次原因，支持clock測試。",
+      "forbidden_substitute": "把1/3/7/21寫成對所有人的最佳公式。",
+      "acceptance": {
+        "positive": "schedule計算可重放；user能看懂下一次日期如何得來。",
+        "negative": "把1/3/7/21寫成對所有人的最佳公式。"
+      },
+      "scenario_ids": [
+        "SC-23"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/scheduling.py"
+        ],
+        "test_refs": [
+          "tests/test_feedback_scheduling.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-SRS-03",
+      "revision": 1,
+      "title": "自然接觸與真正提取採不同處理",
+      "source_refs": [
+        "B26-A",
+        "B25-U",
+        "R-PRACTICE"
+      ],
+      "basis": "source_based",
+      "area": "review",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "自然曝光可減少近期重複推送；只有有實際回答證據才記提取，排程影響可追溯。",
+      "forbidden_substitute": "Codex log提到POST就抵銷一個記憶評量。",
+      "acceptance": {
+        "positive": "只展示與自主正確解釋各有測試；不因曝光直接延長提取成功級別。",
+        "negative": "Codex log提到POST就抵銷一個記憶評量。"
+      },
+      "scenario_ids": [
+        "SC-24"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/review/exposure.py",
+          "src/kgnote/review/scheduling.py",
+          "scripts/serve_graph_view.py",
+          "web/review-app.js"
+        ],
+        "test_refs": [
+          "tests/test_exposure_store.py",
+          "tests/test_feedback_scheduling.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-SRS-04",
+      "revision": 1,
+      "title": "反覆混淆可提議對比不強制加量",
+      "source_refs": [
+        "B20-U",
+        "B21-A",
+        "B23-U"
+      ],
+      "basis": "source_based",
+      "area": "review",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "可推薦先前明確混淆的成對區辨，保留user opt-out與低負擔。",
+      "forbidden_substitute": "一次答錯全庫加量或無窮追問。",
+      "acceptance": {
+        "positive": "錯認port/localhost後可選短對比，也可滑走。",
+        "negative": "一次答錯全庫加量或無窮追問。"
+      },
+      "scenario_ids": [
+        "SC-16",
+        "SC-18"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/review/scheduling.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-SRS-05",
+      "revision": 1,
+      "title": "換情境應用與延遲回憶分別驗收",
+      "source_refs": [
+        "B19-U",
+        "B26-U",
+        "R-EXPERIMENT"
+      ],
+      "basis": "source_based",
+      "area": "review",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "題目與評量區分熟悉例子的回答、延遲提取與新案例應用。",
+      "forbidden_substitute": "一次答對就宣稱長期記得且能transfer。",
+      "acceptance": {
+        "positive": "至少一組匹配新案例與一個延遲測試計畫；未等到時間不報結果。",
+        "negative": "一次答對就宣稱長期記得且能transfer。"
+      },
+      "scenario_ids": [
+        "SC-25"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-KNOW-01",
+      "revision": 1,
+      "title": "Concept／Evidence／行為分層",
+      "source_refs": [
+        "B25-U",
+        "B25-A",
+        "R-DATA"
+      ],
+      "basis": "source_based",
+      "area": "knowledge",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "可重用concept identity、完整主張provenance與學習互動各有邊界。",
+      "forbidden_substitute": "把一次事件或完整長句都變成Concept。",
+      "acceptance": {
+        "positive": "同概念跨來源共用identity，事件不改概念的領域定義。",
+        "negative": "把一次事件或完整長句都變成Concept。"
+      },
+      "scenario_ids": [
+        "SC-15",
+        "SC-26"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/contracts/graph_read_model.py",
+          "src/kgnote/visualization/guided_map.py"
+        ],
+        "test_refs": [
+          "tests/test_graph_read_model_contract.py",
+          "tests/test_practice_planner.py",
+          "web/tests/learn-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-KNOW-02",
+      "revision": 2,
+      "title": "允許模糊關聯而不逼命名",
+      "source_refs": [
+        "B25-U",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "user_explicit",
+      "area": "knowledge",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "可存有來源的聯想、待釐清關係；不要求用戶填完整ontology。",
+      "forbidden_substitute": "保存創意之前先強制選精確relation。",
+      "acceptance": {
+        "positive": "創意類比可保存為soft association並回原話，不自動成為事實Edge。",
+        "negative": "保存創意之前先強制選精確relation。"
+      },
+      "scenario_ids": [
+        "SC-26"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/contracts/graph_read_model.py",
+          "src/kgnote/visualization/guided_map.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-KNOW-03",
+      "revision": 1,
+      "title": "Source忠實不等於教學答案正確",
+      "source_refs": [
+        "R-DATA",
+        "B25-A"
+      ],
+      "basis": "source_based",
+      "area": "knowledge",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "分開source support、fact review、teaching readiness；原文錯誤以erratum保存。",
+      "forbidden_substitute": "accepted source就自動當review標準答案。",
+      "acceptance": {
+        "positive": "有爭議主張仍可讀且有警告，但無法出標準答案題。",
+        "negative": "accepted source就自動當review標準答案。"
+      },
+      "scenario_ids": [
+        "SC-21"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/contracts/graph_read_model.py",
+          "src/kgnote/visualization/guided_map.py"
+        ],
+        "test_refs": [
+          "tests/test_graph_read_model_contract.py",
+          "tests/test_practice_planner.py",
+          "web/tests/learn-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-KNOW-04",
+      "revision": 1,
+      "title": "主張修訂傳播到下游",
+      "source_refs": [
+        "R-DATA",
+        "R-PRACTICE"
+      ],
+      "basis": "source_based",
+      "area": "knowledge",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "已排入的ReviewItem遇到依據撤回應阻擋或重新審核；歷史attempt保持舊判準。",
+      "forbidden_substitute": "只加警告卻繼續讓舊錯題到期出現。",
+      "acceptance": {
+        "positive": "claim改待修訂後既有due item blocked；過去回答仍可查。",
+        "negative": "只加警告卻繼續讓舊錯題到期出現。"
+      },
+      "scenario_ids": [
+        "SC-21"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/contracts/graph_read_model.py",
+          "src/kgnote/visualization/guided_map.py"
+        ],
+        "test_refs": [
+          "tests/test_graph_read_model_contract.py",
+          "tests/test_practice_planner.py",
+          "web/tests/learn-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-KNOW-05",
+      "revision": 1,
+      "title": "多對多Evidence選取不依順序",
+      "source_refs": [
+        "R-DATA"
+      ],
+      "basis": "source_based",
+      "area": "knowledge",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "一Evidence支持多Claim時保留自身焦點與候選；零Claim仍可閱讀。",
+      "forbidden_substitute": "find第一條作唯一真實對應。",
+      "acceptance": {
+        "positive": "反轉propositions陣列時候選集合／selection語意不變。",
+        "negative": "find第一條作唯一真實對應。"
+      },
+      "scenario_ids": [
+        "SC-28"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/contracts/graph_read_model.py",
+          "src/kgnote/visualization/guided_map.py"
+        ],
+        "test_refs": [
+          "tests/test_graph_read_model_contract.py",
+          "tests/test_practice_planner.py",
+          "web/tests/learn-workspace.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-KNOW-06",
+      "revision": 1,
+      "title": "語意一致不等於逐字與全集一致",
+      "source_refs": [
+        "R-DATA",
+        "U-GLOSS"
+      ],
+      "basis": "source_based",
+      "area": "knowledge",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "共享identity、claim方向、來源及審查狀態；允許contextual paraphrase和不同selection policy。",
+      "forbidden_substitute": "所有視圖全量等集合或所有解說必須同句。",
+      "acceptance": {
+        "positive": "短解說與展開解說同源不同細節；兩視圖局部集合可不同。",
+        "negative": "所有視圖全量等集合或所有解說必須同句。"
+      },
+      "scenario_ids": [
+        "SC-12",
+        "SC-29"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/contracts/graph_read_model.py",
+          "src/kgnote/visualization/guided_map.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-KNOW-07",
+      "revision": 2,
+      "title": "完整關係可含條件與多角色",
+      "source_refs": [
+        "R-DATA",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "source_based",
+      "area": "knowledge",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "generic Edge僅為索引；完整claim可帶條件、範圍、角色與例外。",
+      "forbidden_substitute": "related_to就支持causal inference；短linking phrase取代機制。",
+      "acceptance": {
+        "positive": "有條件句的條件不因轉圖消失，不明關係不可推論為因果。",
+        "negative": "related_to就支持causal inference；短linking phrase取代機制。"
+      },
+      "scenario_ids": [
+        "SC-08",
+        "SC-29"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/contracts/graph_read_model.py",
+          "src/kgnote/visualization/guided_map.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-KNOW-08",
+      "revision": 1,
+      "title": "歷史AI分析不是心理診斷或行為證據",
+      "source_refs": [
+        "B19-U",
+        "B20-A",
+        "B21-A",
+        "R-DATA"
+      ],
+      "basis": "source_based",
+      "area": "knowledge",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "保留使用者感受，不採納舊AI對智力、吞吐或能力的推斷作固定profile。",
+      "forbidden_substitute": "把AI安慰／推論寫成學習障礙或已學會的事實。",
+      "acceptance": {
+        "positive": "續學包只引可觀察紀錄與自述，無診斷與能力百分比。",
+        "negative": "把AI安慰／推論寫成學習障礙或已學會的事實。"
+      },
+      "scenario_ids": [
+        "SC-14",
+        "SC-15"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/review/context.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-GRAPH-01",
+      "revision": 1,
+      "title": "Graph保留為關係回找與探索工具",
+      "source_refs": [
+        "B25-U",
+        "B26-U",
+        "U-STRUCT",
+        "R-PRODUCT"
+      ],
+      "basis": "source_based",
+      "area": "graph",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "使用者需要時可從concept找局部關係與過去context；不將Graph全面刪除或強制首頁。",
+      "forbidden_substitute": "Graph optional被當成永遠不做；或每次都先看全圖。",
+      "acceptance": {
+        "positive": "閱讀路徑可完全不用圖；查關係時仍有graph或等價可驗證入口。",
+        "negative": "Graph optional被當成永遠不做；或每次都先看全圖。"
+      },
+      "scenario_ids": [
+        "SC-29"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/visualization/application.py",
+          "web/graph.js"
+        ],
+        "test_refs": [
+          "tests/test_graph_view_application.py",
+          "web/tests/graph.test.js"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-GRAPH-02",
+      "revision": 1,
+      "title": "範圍、群組與跨界連線可見",
+      "source_refs": [
+        "U-STRUCT",
+        "R-DATA"
+      ],
+      "basis": "source_based",
+      "area": "graph",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "按目前topic/概念與task選子圖，顯示scope、群組與被隱藏範圍。",
+      "forbidden_substitute": "無任務地平鋪整單元節點。",
+      "acceptance": {
+        "positive": "中斷/driver與lock/race不無邊界混合；無資料連線不推論現實無關。",
+        "negative": "無任務地平鋪整單元節點。"
+      },
+      "scenario_ids": [
+        "SC-29"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/visualization/application.py",
+          "web/graph.js"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-GRAPH-03",
+      "revision": 1,
+      "title": "局部展開有方向與Evidence",
+      "source_refs": [
+        "B26-U",
+        "B27-A",
+        "R-DATA"
+      ],
+      "basis": "source_based",
+      "area": "graph",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "hop/budget展開保留方向、跨主題context與就近Evidence。",
+      "forbidden_substitute": "為連通性補線或箭頭被节点遮住。",
+      "acceptance": {
+        "positive": "方向可判讀；show more與hidden count可驗證；圖故障Reader正常。",
+        "negative": "為連通性補線或箭頭被节点遮住。"
+      },
+      "scenario_ids": [
+        "SC-29",
+        "SC-30"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/visualization/application.py",
+          "web/graph.js"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-GRAPH-04",
+      "revision": 1,
+      "title": "顯示學習痕跡不等於能力視覺化",
+      "source_refs": [
+        "B25-U",
+        "B26-A"
+      ],
+      "basis": "source_based",
+      "area": "graph",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "可區分領域關係與明確學習／混淆事件，圖例說明來源。",
+      "forbidden_substitute": "實線/綠色默示已理解或不分soft與fact。",
+      "acceptance": {
+        "positive": "只曝光的節點不被標成已掌握，confusion有原始證據。",
+        "negative": "實線/綠色默示已理解或不分soft與fact。"
+      },
+      "scenario_ids": [
+        "SC-14",
+        "SC-16"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/visualization/application.py",
+          "web/graph.js"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-ING-01",
+      "revision": 1,
+      "title": "保留原始來源與精確定位",
+      "source_refs": [
+        "B24-U",
+        "B25-U",
+        "B27-U",
+        "R-DATA"
+      ],
+      "basis": "source_based",
+      "area": "ingestion",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "原始對話/文本不可覆寫，派生內容連回source revision與locator。",
+      "forbidden_substitute": "乾淨摘要替代原始對話或虛構細行號。",
+      "acceptance": {
+        "positive": "hash/read-back檢查及unknown locator合法降級。",
+        "negative": "乾淨摘要替代原始對話或虛構細行號。"
+      },
+      "scenario_ids": [
+        "SC-21",
+        "SC-28"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/ingestion/markdown_source.py",
+          "src/kgnote/extraction/run_adapter.py"
+        ],
+        "test_refs": [
+          "tests/test_markdown_source_importer.py",
+          "tests/test_extraction_run_adapter.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-ING-02",
+      "revision": 2,
+      "title": "匯出／單篇匯入是獨立長期能力",
+      "source_refs": [
+        "B27-U",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "user_explicit",
+      "area": "ingestion",
+      "priority_proposal": "extension",
+      "decision_state": "carried_user_intent",
+      "obligation": "支援低摩擦的選定材料進入學習庫；具體browser exporter可分期，不等於批量掃描。",
+      "forbidden_substitute": "永久只能開兩份手寫fixture卻稱已完成個人資料導入。",
+      "acceptance": {
+        "positive": "來源匯入驗收與renderer fixture驗收分列。",
+        "negative": "永久只能開兩份手寫fixture卻稱已完成個人資料導入。"
+      },
+      "scenario_ids": [
+        "SC-31"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/ingestion/markdown_source.py",
+          "src/kgnote/extraction/run_adapter.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-ING-03",
+      "revision": 2,
+      "title": "自動抽取只形成有來源候選",
+      "source_refs": [
+        "B25-U",
+        "B27-U",
+        "R-DATA",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "source_based",
+      "area": "ingestion",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "從對話候選概念、疑問與行為，保留speaker/review；允許automation但不替用戶造理解。",
+      "forbidden_substitute": "把AI對話所有coding詞都算使用者學過。",
+      "acceptance": {
+        "positive": "AI-only statement與user回答在抽取fixture得到不同事件。",
+        "negative": "把AI對話所有coding詞都算使用者學過。"
+      },
+      "scenario_ids": [
+        "SC-15",
+        "SC-31"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/ingestion/markdown_source.py",
+          "src/kgnote/extraction/run_adapter.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-ING-04",
+      "revision": 2,
+      "title": "使用者不用逐條審核所有機器紀錄",
+      "source_refs": [
+        "B25-U",
+        "B24-A",
+        "U-READ",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "source_based",
+      "area": "ingestion",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "讓安全的來源保存、閱讀與未審候選可先行；事實promote／標準答案才過適當審查。",
+      "forbidden_substitute": "以安全為由要求初學者先驗完整ontology才能閱讀。",
+      "acceptance": {
+        "positive": "候選待審不阻擋raw Reader，且不進可考集合。",
+        "negative": "以安全為由要求初學者先驗完整ontology才能閱讀。"
+      },
+      "scenario_ids": [
+        "SC-01",
+        "SC-21"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/ingestion/markdown_source.py",
+          "src/kgnote/extraction/run_adapter.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PLAT-01",
+      "revision": 2,
+      "title": "多Space共用engine與跨來源識別",
+      "source_refs": [
+        "B27-U",
+        "B25-U",
+        "U-ROADMAP-REINTEGRATION"
+      ],
+      "basis": "user_explicit",
+      "area": "platform",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "不同學科同一引擎與資料邊界；共享概念需可信識別，同名不强併。",
+      "forbidden_substitute": "OS專用hard-code或每個學科另App。",
+      "acceptance": {
+        "positive": "OS/BitePacer/合成資料共用renderer；同名異義反例不合併。",
+        "negative": "OS專用hard-code或每個學科另App。"
+      },
+      "scenario_ids": [
+        "SC-10",
+        "SC-31"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "scripts/serve_graph_view.py",
+          "src/kgnote/learning/catalog.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PLAT-02",
+      "revision": 1,
+      "title": "Mac／iPad／iPhone可用但非相同全圖",
+      "source_refs": [
+        "B27-U",
+        "U-STRUCT"
+      ],
+      "basis": "source_based",
+      "area": "platform",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "responsive主工作區；touch/highlight替代操作與键盘focus，原文仍可讀。",
+      "forbidden_substitute": "宣稱iPad實機驗收但只改viewport；桌面巨圖硬縮小。",
+      "acceptance": {
+        "positive": "桌面與iPad viewport可自動smoke，實機未測明示；文字選取與返回可操作。",
+        "negative": "宣稱iPad實機驗收但只改viewport；桌面巨圖硬縮小。"
+      },
+      "scenario_ids": [
+        "SC-27"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "scripts/serve_graph_view.py",
+          "src/kgnote/learning/catalog.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PLAT-03",
+      "revision": 1,
+      "title": "導師與複習provider可替換",
+      "source_refs": [
+        "B24-U",
+        "B26-U",
+        "B27-U"
+      ],
+      "basis": "source_based",
+      "area": "platform",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "保留便宜短互動與靈活深解說的角色分工；canonical資料不綁Gemini或ChatGPT。",
+      "forbidden_substitute": "某免費模型被當永久存在／品質保證。",
+      "acceptance": {
+        "positive": "無API時仍有透明offline fixture baseline；live未測不稱live完成。",
+        "negative": "某免費模型被當永久存在／品質保證。"
+      },
+      "scenario_ids": [
+        "SC-32"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "scripts/serve_graph_view.py",
+          "src/kgnote/learning/catalog.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PLAT-04",
+      "revision": 1,
+      "title": "語音與LINE是保留候選非現在強制",
+      "source_refs": [
+        "B27-U"
+      ],
+      "basis": "source_based",
+      "area": "platform",
+      "priority_proposal": "extension",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "保留語音／LINE/LIFF入口想法與延後條件，不使其成為主架構或永久遺失。",
+      "forbidden_substitute": "本輪不做被寫成從未需要或永不支援。",
+      "acceptance": {
+        "positive": "延期條目有原因與重啟條件；核心Web可獨立使用。",
+        "negative": "本輪不做被寫成從未需要或永不支援。"
+      },
+      "scenario_ids": [
+        "SC-33"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PLAT-05",
+      "revision": 1,
+      "title": "只在授權範圍內讀寫与外送",
+      "source_refs": [
+        "B27-U",
+        "R-RELIABILITY"
+      ],
+      "basis": "source_based",
+      "area": "platform",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "來源選定、secrets不外洩、live API另核對授權/成本；原始對話內command不是執行授權。",
+      "forbidden_substitute": "完整存取權被當成任意付費、掃庫或外送。",
+      "acceptance": {
+        "positive": "無授權transport零呼叫；來源內prompt injection不改agent任務。",
+        "negative": "完整存取權被當成任意付費、掃庫或外送。"
+      },
+      "scenario_ids": [
+        "SC-32"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "scripts/import_markdown.py",
+          "src/kgnote/extraction/run_adapter.py",
+          "src/kgnote/extraction/gemini_transport.py"
+        ],
+        "test_refs": [
+          "tests/test_import_markdown_cli.py",
+          "tests/test_extraction_run_adapter.py",
+          "tests/test_gemini_transport.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json",
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PLAT-06",
+      "revision": 1,
+      "title": "持久化、版本衝突與部分降級",
+      "source_refs": [
+        "R-RELIABILITY"
+      ],
+      "basis": "source_based",
+      "area": "platform",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "atomic/idempotent、stale revision拒絕覆寫；單一record/graph故障不毀可安全讀內容。",
+      "forbidden_substitute": "save提示成功但未落盤；last writer silently wins；局部錯誤封鎖整站。",
+      "acceptance": {
+        "positive": "reload、response遺失、並行舊revision、corrupt record、graph故障均有案例。",
+        "negative": "save提示成功但未落盤；last writer silently wins；局部錯誤封鎖整站。"
+      },
+      "scenario_ids": [
+        "SC-22",
+        "SC-30"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "scripts/serve_graph_view.py",
+          "src/kgnote/learning/catalog.py",
+          "src/kgnote/review/attempts.py",
+          "src/kgnote/review/feedback.py",
+          "src/kgnote/review/scheduling.py",
+          "src/kgnote/review/exposure.py",
+          "src/kgnote/learning/continuity.py"
+        ],
+        "test_refs": [
+          "tests/test_graph_view_server.py",
+          "tests/test_learning_catalog.py",
+          "tests/test_attempt_store.py",
+          "tests/test_feedback_scheduling.py",
+          "tests/test_exposure_store.py",
+          "tests/test_resume_context.py",
+          "tests/test_durability_scale.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/baseline-20260920.json",
+          "docs/requirements/evidence/loop3-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PLAT-07",
+      "revision": 1,
+      "title": "保留安全回退與舊資料可讀",
+      "source_refs": [
+        "R-RELIABILITY",
+        "U-NIGHT"
+      ],
+      "basis": "source_based",
+      "area": "platform",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "feature flag/adapter遷移、舊history不偽造無提示新attempt；不清理他人dirty changes。",
+      "forbidden_substitute": "reset/clean/stash他人工作或為commit覆寫既有歷史。",
+      "acceptance": {
+        "positive": "回退可讀舊資料，新record不刪；工作清單附修改來源清單。",
+        "negative": "reset/clean/stash他人工作或為commit覆寫既有歷史。"
+      },
+      "scenario_ids": [
+        "SC-30",
+        "SC-34"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "scripts/serve_graph_view.py",
+          "src/kgnote/learning/catalog.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-VAL-01",
+      "revision": 1,
+      "title": "工程通過與學習有效分開",
+      "source_refs": [
+        "R-EXPERIMENT",
+        "U-GOV"
+      ],
+      "basis": "source_based",
+      "area": "validation",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "區分implementation、unit/integration、browser、manual UX與learning-effectiveness證據。",
+      "forbidden_substitute": "測試數量當學習增益或AI代使用者簽認。",
+      "acceptance": {
+        "positive": "自動smoke僅標engineering verified；未測手動與延遲保留未驗證。",
+        "negative": "測試數量當學習增益或AI代使用者簽認。"
+      },
+      "scenario_ids": [
+        "SC-25",
+        "SC-35"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/experiments/manifest.py"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-VAL-02",
+      "revision": 1,
+      "title": "比較原有學法而非強制筆記baseline",
+      "source_refs": [
+        "B19-U",
+        "U-READ",
+        "R-EXPERIMENT"
+      ],
+      "basis": "source_based",
+      "area": "validation",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "比較閱讀+AI解說現行方式與KGnote；Graph條件同內容時間。",
+      "forbidden_substitute": "用使用者已拒絕的先寫筆記任務當唯一本位。",
+      "acceptance": {
+        "positive": "protocol包含可拒絕與中止原因，空白筆記不記理解零分。",
+        "negative": "用使用者已拒絕的先寫筆記任務當唯一本位。"
+      },
+      "scenario_ids": [
+        "SC-25"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-VAL-03",
+      "revision": 1,
+      "title": "熟悉度由任務當下判斷",
+      "source_refs": [
+        "R-EXPERIMENT",
+        "B03-U"
+      ],
+      "basis": "source_based",
+      "area": "validation",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "熟悉材料/OS/BitePacer是材料用途設計，不永久對應高/中/低能力。",
+      "forbidden_substitute": "不同教材分數差當先備知識因果；N=1泛化。",
+      "acceptance": {
+        "positive": "反覆BitePacer接觸會更新前測紀錄；matched task與限制可見。",
+        "negative": "不同教材分數差當先備知識因果；N=1泛化。"
+      },
+      "scenario_ids": [
+        "SC-25"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-GOV-01",
+      "revision": 1,
+      "title": "不可再以摘要取代需求來源",
+      "source_refs": [
+        "U-GOV",
+        "B24-U"
+      ],
+      "basis": "user_explicit",
+      "area": "governance",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "每項需求連到speaker、來源位置與理由；roadmap只能排程與引用。",
+      "forbidden_substitute": "再寫一份更長DEVELOPMENT_PLAIN作唯一真相。",
+      "acceptance": {
+        "positive": "需求→原話→正反驗收→implementation evidence可雙向查。",
+        "negative": "再寫一份更長DEVELOPMENT_PLAIN作唯一真相。"
+      },
+      "scenario_ids": [
+        "SC-35"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "docs/requirements/requirements_guard.py",
+          "docs/requirements/requirements.json"
+        ],
+        "test_refs": [
+          "docs/requirements/test_requirements_guard.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop1-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-GOV-02",
+      "revision": 1,
+      "title": "保留被延後與被取代的條目",
+      "source_refs": [
+        "U-GOV",
+        "N-GOV"
+      ],
+      "basis": "proposed_safeguard",
+      "area": "governance",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "需求有stable ID、revision、active/deferred/superseded處置與理由，不直接刪除。",
+      "forbidden_substitute": "optional/deferred等於遺忘；新總結抹去舊需求。",
+      "acceptance": {
+        "positive": "刪ID、弱化must或改defer須顯示delta與決策。",
+        "negative": "optional/deferred等於遺忘；新總結抹去舊需求。"
+      },
+      "scenario_ids": [
+        "SC-33",
+        "SC-36"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "docs/requirements/requirements_guard.py",
+          "docs/requirements/requirements.json",
+          "docs/obsidian/PERSONAL_ALPHA_INTEGRATED_TRIAL.md"
+        ],
+        "test_refs": [
+          "tests/test_obsidian_native_spike.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-rp-pa-3-20260927.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-GOV-03",
+      "revision": 1,
+      "title": "區分用戶意圖、AI提案與研究假說",
+      "source_refs": [
+        "U-GOV",
+        "R-EXPERIMENT",
+        "N-GOV"
+      ],
+      "basis": "proposed_safeguard",
+      "area": "governance",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "來源角色與adoption分開；本次合併不把所有AI說法默認批准。",
+      "forbidden_substitute": "原對話中AI的硬熔斷、學力推論或UI方案自動成contract。",
+      "acceptance": {
+        "positive": "提案有proposal狀態；真正衝突單列而不強行拼接。",
+        "negative": "原對話中AI的硬熔斷、學力推論或UI方案自動成contract。"
+      },
+      "scenario_ids": [
+        "SC-36"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "docs/requirements/requirements_guard.py",
+          "docs/requirements/requirements.json"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-GOV-04",
+      "revision": 1,
+      "title": "單一主台帳與機械可檢查映射",
+      "source_refs": [
+        "U-GOV",
+        "N-GOV",
+        "O-TRACE"
+      ],
+      "basis": "proposed_safeguard",
+      "area": "governance",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "以一份machine-readable ledger產生人類視圖；scenario/test/evidence有ID映射。",
+      "forbidden_substitute": "多份手改真相或填path就算測試通過。",
+      "acceptance": {
+        "positive": "checker檢查dangling/duplicate/未映射與過度宣稱，生成視圖可重建。",
+        "negative": "多份手改真相或填path就算測試通過。"
+      },
+      "scenario_ids": [
+        "SC-35"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "docs/requirements/requirements_guard.py",
+          "docs/requirements/requirements.json"
+        ],
+        "test_refs": [
+          "docs/requirements/test_requirements_guard.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/loop1-20260920.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-GOV-05",
+      "revision": 1,
+      "title": "每次任務使用可重建context packet",
+      "source_refs": [
+        "U-GOV",
+        "N-GOV",
+        "O-AGENTS",
+        "O-PLANS"
+      ],
+      "basis": "proposed_safeguard",
+      "area": "governance",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "任務載入相關需求、禁止替代、scenario、當前revision/未決項，session恢復可重建。",
+      "forbidden_substitute": "只說已讀過或要求每次憑聊天記憶補上下文。",
+      "acceptance": {
+        "positive": "新session僅靠packet仍能說出此切片不該做什麼。",
+        "negative": "只說已讀過或要求每次憑聊天記憶補上下文。"
+      },
+      "scenario_ids": [
+        "SC-35"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "docs/requirements/requirements_guard.py",
+          "docs/requirements/requirements.json"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-GOV-06",
+      "revision": 1,
+      "title": "讓漏項在使用者驗收前暴露",
+      "source_refs": [
+        "U-GOV",
+        "N-GOV",
+        "O-CI"
+      ],
+      "basis": "proposed_safeguard",
+      "area": "governance",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "定義負例測試、變更影響清單、CI gate与獨立對照；保護需求/測試不被同次弱化。",
+      "forbidden_substitute": "實作+測試同時改低標準後自稱全綠。",
+      "acceptance": {
+        "positive": "移除無輸出Soak、重複DMA辭典、強制寫筆記等mutant須被對應測試抓到。",
+        "negative": "實作+測試同時改低標準後自稱全綠。"
+      },
+      "scenario_ids": [
+        "SC-35",
+        "SC-36"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "docs/requirements/requirements_guard.py",
+          "docs/requirements/requirements.json"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-GOV-07",
+      "revision": 1,
+      "title": "產品範圍與本輪milestone分開",
+      "source_refs": [
+        "U-GOV",
+        "U-NIGHT",
+        "N-GOV"
+      ],
+      "basis": "proposed_safeguard",
+      "area": "governance",
+      "priority_proposal": "core",
+      "decision_state": "proposed_reconciliation",
+      "obligation": "整體需求完整保留，任務只承諾明確subset；完成subset不自稱產品完整。",
+      "forbidden_substitute": "把每個idea都當今晚必做或為耗满夜晚持續擴scope。",
+      "acceptance": {
+        "positive": "交付附已驗證／部分／deferred／待判斷矩陣與下一切片。",
+        "negative": "把每個idea都當今晚必做或為耗满夜晚持續擴scope。"
+      },
+      "scenario_ids": [
+        "SC-33",
+        "SC-35"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "docs/requirements/requirements_guard.py",
+          "docs/requirements/requirements.json"
+        ],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PLAT-08",
+      "revision": 1,
+      "title": "Obsidian-first 且優先重用原生能力",
+      "source_refs": [
+        "U-OBS-FIRST",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3",
+        "O-OBS-LINKS",
+        "O-OBS-CANVAS",
+        "O-OBS-MOBILE"
+      ],
+      "basis": "user_explicit",
+      "area": "platform",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "Markdown／LLM Wiki、一般閱讀、分類與連結以Obsidian為主要介面；先驗證原生或跨平台外掛，不足的學習能力才由KGnote plugin或optional sidecar補上。",
+      "forbidden_substitute": "另建第二套Web editor／Wiki／file tree，或只因存在外掛名稱便宣稱跨平台需求已滿足。",
+      "acceptance": {
+        "positive": "使用者可從既有Obsidian文章直接開始；plugin停用後Markdown／Canvas仍可讀；sidecar故障不阻塞文章。",
+        "negative": "另建第二套Web editor／Wiki／file tree，或只因存在外掛名稱便宣稱跨平台需求已滿足。"
+      },
+      "scenario_ids": [
+        "SC-38"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/personal_alpha/learner_projection.py",
+          "src/kgnote/personal_alpha/workspace.py",
+          "src/kgnote/obsidian_native/spike.py",
+          "src/kgnote/obsidian_native/validator.py",
+          "scripts/kgnote_obsidian_spike.py"
+        ],
+        "test_refs": [
+          "tests/test_personal_alpha_presentation.py",
+          "tests/test_personal_alpha_workspace.py",
+          "tests/test_obsidian_native_spike.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-v3-projection-20260923.json",
+          "docs/requirements/evidence/obsidian-native-v3-20260923.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-UI-01",
+      "revision": 2,
+      "title": "學習介面不暴露不必要的系統複雜度",
+      "source_refs": [
+        "U-OBS-FIRST",
+        "U-PA-HUMAN-FEEDBACK",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      ],
+      "basis": "user_explicit",
+      "area": "ui",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "日常入口只呈現當前主要工作；Source／Evidence／Claim／Lens／Attempt等內部模型按需或只在稽核層顯示，使用者不需先學系統才能讀文章。",
+      "forbidden_substitute": "把所有可追溯資料同時做成常駐面板，或以更多說明文字補償複雜工作流。",
+      "acceptance": {
+        "positive": "普通文章開啟時即能閱讀；未主動使用KGnote功能時沒有額外輸入、dashboard或術語門檻。",
+        "negative": "把所有可追溯資料同時做成常駐面板，或以更多說明文字補償複雜工作流。"
+      },
+      "scenario_ids": [
+        "SC-38"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/personal_alpha/learner_projection.py",
+          "src/kgnote/personal_alpha/workspace.py"
+        ],
+        "test_refs": [
+          "tests/test_personal_alpha_presentation.py",
+          "tests/test_personal_alpha_workspace.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-human-feedback-20260923.json",
+          "docs/requirements/evidence/personal-alpha-v3-projection-20260923.json"
+        ]
+      },
+      "change_history": [
+        {
+          "date": "2026-09-23",
+          "source_ref": "U-PA-HUMAN-FEEDBACK",
+          "before": "No Obsidian learner-facing implementation was credited.",
+          "after": "Personal Alpha Markdown is recorded as a partial implementation with a failed human presentation result.",
+          "reason": "product owner found that system classification/review metadata competes with the learning text and the entry reads like an index/debug report.",
+          "impact": "SC-38 is manual_fail; PA-HUMAN-1 remains pending remediation."
+        },
+        {
+          "date": "2026-09-23",
+          "source_ref": "U-OBSIDIAN-LEARNER-PROJECTION-V3",
+          "before": "The learner-facing projection had a confirmed human presentation regression.",
+          "after": "A Golden-first automated remediation candidate separates learner prose, on-demand Evidence, and debug metadata.",
+          "reason": "Start Here, Concept, Relationships, filenames, and continuation now follow product owner's concrete presentation specification.",
+          "impact": "Automated remediation evidence is green, but SC-38 and PA-HUMAN-1 remain pending a new human smoke."
+        }
+      ]
+    },
+    {
+      "id": "KG-STR-08",
+      "revision": 1,
+      "title": "教材結構圖與知識漫遊圖分開",
+      "source_refs": [
+        "U-OBS-FIRST",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3",
+        "O-OBS-CANVAS"
+      ],
+      "basis": "user_explicit",
+      "area": "structure",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "起始可見的領域tree表達主題／文章與typed組織關係，edge可查完整說明、節點回Markdown；熟悉後的Knowledge Roaming另用Concept graph，不混成同一畫面或語意。",
+      "forbidden_substitute": "用平面卡片冒充tree、把Canvas membership生成canonical Edge，或從一開始顯示整個漫遊圖。",
+      "acceptance": {
+        "positive": "三層tree、至少兩種typed組織edge、edge詳述與note anchor導覽可用；漫遊投影為另一個有資格條件的view。",
+        "negative": "用平面卡片冒充tree、把Canvas membership生成canonical Edge，或從一開始顯示整個漫遊圖。"
+      },
+      "scenario_ids": [
+        "SC-39",
+        "SC-43"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/personal_alpha/workspace.py",
+          "src/kgnote/obsidian_native/spike.py",
+          "src/kgnote/obsidian_native/validator.py",
+          "scripts/kgnote_obsidian_spike.py"
+        ],
+        "test_refs": [
+          "tests/test_personal_alpha_workspace.py",
+          "tests/test_personal_alpha_presentation.py",
+          "tests/test_obsidian_native_spike.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/obsidian-native-v3-20260923.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-CTX-10",
+      "revision": 1,
+      "title": "原句便利貼與inline最低必要解說",
+      "source_refs": [
+        "U-OBS-FIRST"
+      ],
+      "basis": "user_explicit",
+      "area": "context",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "反白目前不懂且尚無完整文章的詞，可保存一句context-local解釋並於原句inline展開／收合；annotation有anchor、revision與provenance，不自動成為Concept。",
+      "forbidden_substitute": "每個陌生詞都另開note／Concept，或AI解釋無preview覆寫source或可編輯文章。",
+      "acceptance": {
+        "positive": "建立、修改、取消、收合、展開、重開與stale anchor均可預期；source snapshot不變，正式寫入另有diff／revision。",
+        "negative": "每個陌生詞都另開note／Concept，或AI解釋無preview覆寫source或可編輯文章。"
+      },
+      "scenario_ids": [
+        "SC-40"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-PRAC-09",
+      "revision": 1,
+      "title": "由有選項辨認逐步到無提示回想",
+      "source_refs": [
+        "U-OBS-FIRST"
+      ],
+      "basis": "user_explicit",
+      "area": "practice",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "新Target先可用原文挖空＋選項或選擇／區辨，再依可說明evidence或使用者選擇進入提示與無提示回想；後期問法貼近原文，遠距transfer另標目的。",
+      "forbidden_substitute": "陌生內容第一題只給自由回想、把choice冒充unassisted，或以大幅換句增加無關記憶負擔。",
+      "acceptance": {
+        "positive": "同Target可建立choice/cloze與recall兩類item並分別保存support、prompt revision、answer visibility與Attempt。",
+        "negative": "陌生內容第一題只給自由回想、把choice冒充unassisted，或以大幅換句增加無關記憶負擔。"
+      },
+      "scenario_ids": [
+        "SC-41"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-AI-01",
+      "revision": 1,
+      "title": "提問先檢索來源再按複雜度升級AI",
+      "source_refs": [
+        "U-OBS-FIRST"
+      ],
+      "basis": "user_explicit",
+      "area": "teaching",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "閱讀／測驗問題先檢索目前文章與直接連結來源；來源不足、跨層或跨概念比較才升級AI，並建議當前最低必要深度、偏題／稍後探索與是否值得擴充文章。",
+      "forbidden_substitute": "所有問題一律外送、AI判斷不可申覆，或生成內容直接成為source／canonical fact。",
+      "acceptance": {
+        "positive": "source可回答時零live transport且回exact anchor；AI升級有理由、scope、限制與provenance，擴充需preview／accept。",
+        "negative": "所有問題一律外送、AI判斷不可申覆，或生成內容直接成為source／canonical fact。"
+      },
+      "scenario_ids": [
+        "SC-42"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-SRS-06",
+      "revision": 1,
+      "title": "Due清單與教材結構圖共用複習狀態",
+      "source_refs": [
+        "U-OBS-FIRST"
+      ],
+      "basis": "user_explicit",
+      "area": "review",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "任務清單與教材結構圖顏色投影同一Target／Due／Attempt history；顏色表示可解釋階段並有文字替代，七天規則標為使用者選定方案而非最佳曲線。",
+      "forbidden_substitute": "圖與清單各算一套狀態、只靠顏色、snooze／閱讀建立Attempt，或固定天數被宣稱個人最佳遺忘曲線。",
+      "acceptance": {
+        "positive": "同Target在queue與圖上狀態一致、可重放；點節點進review並回原結構位置，圖例與下一日期理由可見。",
+        "negative": "圖與清單各算一套狀態、只靠顏色、snooze／閱讀建立Attempt，或固定天數被宣稱個人最佳遺忘曲線。"
+      },
+      "scenario_ids": [
+        "SC-43"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-GRAPH-05",
+      "revision": 1,
+      "title": "Knowledge Roaming只投影可說明為熟悉的Concept",
+      "source_refs": [
+        "U-OBS-FIRST"
+      ],
+      "basis": "user_explicit",
+      "area": "graph",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "Knowledge Roaming用於認知範圍內聯想；預設只投影有可說明行為evidence或使用者override的roam-eligible Concept，遇到未知邊界提供提問而非展開整片陌生網路。",
+      "forbidden_substitute": "Concept存在、AI提及、閱讀次數或單次選擇題正確就自動等同熟悉／可漫遊。",
+      "acceptance": {
+        "positive": "eligibility理由、override、撤回與stale規則可查；未eligible節點不進預設漫遊但其Source仍可讀。",
+        "negative": "Concept存在、AI提及、閱讀次數或單次選擇題正確就自動等同熟悉／可漫遊。"
+      },
+      "scenario_ids": [
+        "SC-39",
+        "SC-43"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-KNOW-09",
+      "revision": 1,
+      "title": "同一Concept identity貫穿文章到漫遊",
+      "source_refs": [
+        "U-OBS-FIRST"
+      ],
+      "basis": "user_explicit",
+      "area": "knowledge",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "文章mention、便利貼、ReviewItem、Due、教材結構appearance與Knowledge Roaming node引用同一stable Concept identity／aliases；各階段record不重複定義Concept。",
+      "forbidden_substitute": "每個UI或每次問答依顯示文字新建同義節點，或為去重強併同名異義詞。",
+      "acceptance": {
+        "positive": "alias變更不分裂history；從任一階段可回同一Concept與source anchors；無Concept ref的純context便利貼仍合法。",
+        "negative": "每個UI或每次問答依顯示文字新建同義節點，或為去重強併同名異義詞。"
+      },
+      "scenario_ids": [
+        "SC-39",
+        "SC-40",
+        "SC-41",
+        "SC-42",
+        "SC-43"
+      ],
+      "delivery": {
+        "status": "not_implemented",
+        "implementation_refs": [],
+        "test_refs": [],
+        "evidence_refs": []
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-ALPHA-01",
+      "revision": 1,
+      "title": "單一日常 Markdown 導入工作流",
+      "source_refs": [
+        "U-PERSONAL-ALPHA"
+      ],
+      "basis": "user_explicit",
+      "area": "workflow",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "使用者明示選定一份 Markdown 後，以一個有文件的命令或同等簡單入口完成 preview 與安全 materialization；正常使用不需手改 JSON、Python、fixture、schema、ID 或逐一呼叫 pipeline internals。",
+      "forbidden_substitute": "把既有多階段開發者 CLI、手寫 extraction response 或請 Codex 告知下一條命令當成 daily-use workflow。",
+      "acceptance": {
+        "positive": "從空的允許目的地開始，單一入口產生可開啟的 workspace 並回報 entry note、來源 digest、操作摘要與明確錯誤；使用者不編輯內部格式。",
+        "negative": "把既有多階段開發者 CLI、手寫 extraction response 或請 Codex 告知下一條命令當成 daily-use workflow。"
+      },
+      "scenario_ids": [
+        "SC-44"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "scripts/kgnote_alpha.py",
+          "src/kgnote/personal_alpha/preview.py",
+          "src/kgnote/personal_alpha/workspace.py",
+          "docs/WORKFLOW.md"
+        ],
+        "test_refs": [
+          "tests/test_personal_alpha_analysis.py",
+          "tests/test_personal_alpha_workspace.py",
+          "tests/test_personal_alpha_cli.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-pa1-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa2-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa3-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa4-20260922.json",
+          "docs/requirements/evidence/personal-alpha-rp-pa-3-20260927.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-ALPHA-02",
+      "revision": 2,
+      "title": "coherent Obsidian learning workspace",
+      "source_refs": [
+        "U-PERSONAL-ALPHA",
+        "U-OBS-FIRST",
+        "U-PA-HUMAN-FEEDBACK",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      ],
+      "basis": "user_explicit",
+      "area": "ui",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "每份新來源產生一個人類可讀的學習入口，優先使用普通 Markdown／wikilink／heading anchor／properties，清楚呈現材料概要、主要結構、重要概念、可支持的關係、來源 Evidence 與待確認事項。",
+      "forbidden_substitute": "把使用者丟進 canonical record 目錄、平面全圖、內部 enum 清單，或只複製原文而不提供可導航的學習結構。",
+      "acceptance": {
+        "positive": "僅從 entry note 與原生連結即可回答材料主旨、主題、重要概念、關係理由、原文位置與不確定事項；派生 note 不冒充 immutable source。",
+        "negative": "把使用者丟進 canonical record 目錄、平面全圖、內部 enum 清單，或只複製原文而不提供可導航的學習結構。"
+      },
+      "scenario_ids": [
+        "SC-45"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/personal_alpha/preview.py",
+          "src/kgnote/personal_alpha/learner_projection.py",
+          "src/kgnote/personal_alpha/workspace.py"
+        ],
+        "test_refs": [
+          "tests/test_personal_alpha_analysis.py",
+          "tests/test_personal_alpha_presentation.py",
+          "tests/test_personal_alpha_workspace.py",
+          "tests/test_personal_alpha_cli.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-pa1-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa2-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa4-20260922.json",
+          "docs/requirements/evidence/personal-alpha-human-feedback-20260923.json",
+          "docs/requirements/evidence/personal-alpha-v3-projection-20260923.json",
+          "docs/requirements/evidence/personal-alpha-rp-pa-3-20260927.json"
+        ]
+      },
+      "change_history": [
+        {
+          "date": "2026-09-23",
+          "source_ref": "U-PA-HUMAN-FEEDBACK",
+          "before": "automated_verified engineering candidate; human usability pending",
+          "after": "partial; deterministic/provenance evidence retained but learner-facing coherence failed human review",
+          "reason": "The generated entry and concept/evidence surfaces foreground pipeline metadata and over-separate a short source.",
+          "impact": "SC-45 is manual_fail and a learner-facing projection repair is required before PA-HUMAN-1 can be retried."
+        },
+        {
+          "date": "2026-09-23",
+          "source_ref": "U-OBSIDIAN-LEARNER-PROJECTION-V3",
+          "before": "The deterministic workspace remained partial because its learner-facing projection failed human review.",
+          "after": "The repaired candidate passes Golden semantic tests, generated-byte checks, and three-source read-back.",
+          "reason": "Learner content now leads; Evidence and provenance are on demand; projected paths and continuation are learner-facing.",
+          "impact": "Delivery remains partial until product owner reruns PA-HUMAN-1; automated results do not erase the earlier manual failure."
+        }
+      ]
+    },
+    {
+      "id": "KG-ALPHA-03",
+      "revision": 1,
+      "title": "Personal Alpha 重跑與失敗安全",
+      "source_refs": [
+        "U-PERSONAL-ALPHA",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      ],
+      "basis": "user_explicit",
+      "area": "platform",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "workspace materialization 以 source identity、content digest 與 versioned rules 決定穩定輸出；相同輸入重跑不複製 canonical knowledge 或破壞人工內容，衝突與中斷 fail closed／rollback 並於成功後 read-back。",
+      "forbidden_substitute": "以每次執行時間產生新 ID、先刪目的地再重建、靜默覆寫人工檔案，或錯誤後留下半套可被誤認為成功的 state。",
+      "acceptance": {
+        "positive": "相同輸入第二次為 unchanged；注入寫入失敗後目的地回到先前一致狀態；source bytes、manifest、entry note 與 references read-back 相符。",
+        "negative": "以每次執行時間產生新 ID、先刪目的地再重建、靜默覆寫人工檔案，或錯誤後留下半套可被誤認為成功的 state。"
+      },
+      "scenario_ids": [
+        "SC-46"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "src/kgnote/personal_alpha/workspace.py",
+          "scripts/kgnote_alpha.py"
+        ],
+        "test_refs": [
+          "tests/test_personal_alpha_presentation.py",
+          "tests/test_personal_alpha_workspace.py",
+          "tests/test_personal_alpha_cli.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-pa2-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa3-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa4-20260922.json",
+          "docs/requirements/evidence/personal-alpha-v3-projection-20260923.json",
+          "docs/requirements/evidence/personal-alpha-rp-pa-3-20260927.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-ALPHA-04",
+      "revision": 1,
+      "title": "三種來源的 Personal Alpha 工程驗證",
+      "source_refs": [
+        "U-PERSONAL-ALPHA",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      ],
+      "basis": "user_explicit",
+      "area": "validation",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "candidate verification 至少使用三份內容與結構 materially different 的 Markdown，逐份驗證來源、結構、provenance、重開 read-back 與無人工內部格式介入，並通過完整 repository verifier。",
+      "forbidden_substitute": "以三份近乎相同 fixture、只檢查檔案存在、單一路徑 smoke 或 automated pass 冒充真人 Obsidian usability acceptance。",
+      "acceptance": {
+        "positive": "三份 fixture 各有可說明差異與端到端 run evidence；full verifier 綠燈後狀態只升為 candidate_verified，真人 usability 仍是外部 gate。",
+        "negative": "以三份近乎相同 fixture、只檢查檔案存在、單一路徑 smoke 或 automated pass 冒充真人 Obsidian usability acceptance。"
+      },
+      "scenario_ids": [
+        "SC-47"
+      ],
+      "delivery": {
+        "status": "automated_verified",
+        "implementation_refs": [
+          "scripts/kgnote_alpha.py",
+          "src/kgnote/personal_alpha/preview.py",
+          "src/kgnote/personal_alpha/learner_projection.py",
+          "src/kgnote/personal_alpha/workspace.py"
+        ],
+        "test_refs": [
+          "tests/test_personal_alpha_analysis.py",
+          "tests/test_personal_alpha_presentation.py",
+          "tests/test_personal_alpha_workspace.py",
+          "tests/test_personal_alpha_cli.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-pa1-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa2-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa3-20260922.json",
+          "docs/requirements/evidence/personal-alpha-pa4-20260922.json",
+          "docs/requirements/evidence/personal-alpha-v3-projection-20260923.json",
+          "docs/requirements/evidence/personal-alpha-rp-pa-3-20260927.json"
+        ]
+      },
+      "change_history": []
+    },
+    {
+      "id": "KG-ALPHA-05",
+      "revision": 1,
+      "title": "Obsidian Personal Alpha integrated reopenable learning flow",
+      "source_refs": [
+        "U-PERSONAL-ALPHA",
+        "U-OBSIDIAN-LEARNER-PROJECTION-V3",
+        "U-PERSONAL-ALPHA-INTEGRATED-STAGE"
+      ],
+      "basis": "user_explicit",
+      "area": "workflow",
+      "priority_proposal": "core",
+      "decision_state": "carried_user_intent",
+      "obligation": "使用者不依賴 Codex 對話或修改 Python／JSON，即可從 Start Here 進入教材、閱讀原文與概念解釋、區分並查看來源支持的教材階層與概念關係、按需核對具誠實定位精度的 Evidence、保留自己的筆記／未解問題／明示續讀位置，關閉後重新開啟並從 Start Here 經 Continue Here 回到記錄位置；Markdown 獨立可用，Canvas 只作可選增益。",
+      "forbidden_substitute": "以空白 Continue Here 模板、最近開檔、JSON／Markdown read-back、未開啟的 Canvas、聊天中的下一步指示、Web UI 或完整 plugin 冒充整合產品流程；也不得為圖面捏造階層、因果或外部知識。",
+      "acceptance": {
+        "positive": "同一 documented generation/preparation workflow 產生真正可作為 Obsidian vault 開啟的 disposable workspace；entry 可發現 Canvas 與手動續讀入口，source/heading/block locator 能力與限制如實呈現，user-owned notes/continuation 在 regeneration 後 byte-preserved，關閉重開的整段導航由實際產物 read-back 驗證，最後集中交付真人試用。",
+        "negative": "只驗證子資料夾、讓 Canvas 內路徑相對錯誤、把 Canvas 設為必經、frontmatter 壓過教材、覆寫人工內容、寫入假進度、用最近開檔代替 exact continuation、把文件 link 說成精準段落定位，或將 automated/native-static evidence 寫成人類 smoke PASS。"
+      },
+      "scenario_ids": [
+        "SC-48"
+      ],
+      "delivery": {
+        "status": "partial",
+        "implementation_refs": [
+          "src/kgnote/obsidian_native/spike.py",
+          "src/kgnote/obsidian_native/validator.py",
+          "scripts/kgnote_obsidian_spike.py",
+          "docs/WORKFLOW.md",
+          "docs/obsidian/PERSONAL_ALPHA_INTEGRATED_TRIAL.md"
+        ],
+        "test_refs": [
+          "tests/test_obsidian_native_spike.py"
+        ],
+        "evidence_refs": [
+          "docs/requirements/evidence/personal-alpha-v3-partial-feedback-20260927.json",
+          "docs/requirements/evidence/personal-alpha-rp-pa-1-20260927.json",
+          "docs/requirements/evidence/personal-alpha-rp-pa-2-20260927.json",
+          "docs/requirements/evidence/personal-alpha-rp-pa-3-20260927.json"
+        ]
+      },
+      "change_history": []
+    }
+  ],
+  "source_section_disposition": [
+    {
+      "section": 1,
+      "source_ids": [
+        "B01-U",
+        "B01-A"
+      ],
+      "requirement_ids": [
+        "KG-CTX-02"
+      ],
+      "disposition": "mapped",
+      "rationale": "按當前目的控制深度；歷史命令只作需求脈絡，不當可執行現行SOP。"
+    },
+    {
+      "section": 2,
+      "source_ids": [
+        "B02-U",
+        "B02-A"
+      ],
+      "requirement_ids": [
+        "KG-CTX-08"
+      ],
+      "disposition": "mapped",
+      "rationale": "背景自述與推斷區分；下一節修正舊推斷。"
+    },
+    {
+      "section": 3,
+      "source_ids": [
+        "B03-U",
+        "B03-A"
+      ],
+      "requirement_ids": [
+        "KG-CTX-08",
+        "KG-VAL-03"
+      ],
+      "disposition": "mapped",
+      "rationale": "修課名稱不能代替真實先備理解。"
+    },
+    {
+      "section": 4,
+      "source_ids": [
+        "B04-U",
+        "B04-A"
+      ],
+      "requirement_ids": [],
+      "disposition": "context_only",
+      "rationale": "希望自己理解實務操作；不是要求KGnote具備服務重啟權限。"
+    },
+    {
+      "section": 5,
+      "source_ids": [
+        "B05-U",
+        "B05-A"
+      ],
+      "requirement_ids": [
+        "KG-CTX-01"
+      ],
+      "disposition": "mapped",
+      "rationale": "術語造成當句阻塞。"
+    },
+    {
+      "section": 6,
+      "source_ids": [
+        "B06-U",
+        "B06-A"
+      ],
+      "requirement_ids": [
+        "KG-MEM-04"
+      ],
+      "disposition": "mapped",
+      "rationale": "跨層名稱混淆與實際輸出作錨點。"
+    },
+    {
+      "section": 7,
+      "source_ids": [
+        "B07-U",
+        "B07-A"
+      ],
+      "requirement_ids": [
+        "KG-CTX-01",
+        "KG-CTX-08",
+        "KG-CTX-09"
+      ],
+      "disposition": "mapped",
+      "rationale": "Python/Shell先備需按需補；類比有限度。"
+    },
+    {
+      "section": 8,
+      "source_ids": [
+        "B08-U",
+        "B08-A"
+      ],
+      "requirement_ids": [
+        "KG-MEM-01",
+        "KG-WF-06"
+      ],
+      "disposition": "mapped",
+      "rationale": "需要壓縮重點、分界、知道目前位置。"
+    },
+    {
+      "section": 9,
+      "source_ids": [
+        "B09-U",
+        "B09-A"
+      ],
+      "requirement_ids": [],
+      "disposition": "context_only",
+      "rationale": "查詢狀態不等於必須修改；歷史dirty output不是本專案狀態。"
+    },
+    {
+      "section": 10,
+      "source_ids": [
+        "B10-U",
+        "B10-A"
+      ],
+      "requirement_ids": [
+        "KG-CTX-07",
+        "KG-WF-04"
+      ],
+      "disposition": "mapped",
+      "rationale": "任務吞噬/三小時名詞鏈的失敗；不硬編80/20。"
+    },
+    {
+      "section": 11,
+      "source_ids": [
+        "B11-U",
+        "B11-A"
+      ],
+      "requirement_ids": [
+        "KG-MEM-03"
+      ],
+      "disposition": "mapped",
+      "rationale": "看PASS後仍操作且typo；不可合成獨立成功判斷或成功restart。"
+    },
+    {
+      "section": 12,
+      "source_ids": [
+        "B12-U",
+        "B12-A"
+      ],
+      "requirement_ids": [],
+      "disposition": "context_only",
+      "rationale": "觀察、假說、實際修復動作分開。"
+    },
+    {
+      "section": 13,
+      "source_ids": [
+        "B13-U",
+        "B13-A"
+      ],
+      "requirement_ids": [],
+      "disposition": "context_only",
+      "rationale": "補充環境時間線；不把已讀當process健康證據。"
+    },
+    {
+      "section": 14,
+      "source_ids": [
+        "B14-U",
+        "B14-A"
+      ],
+      "requirement_ids": [],
+      "disposition": "context_only",
+      "rationale": "被引用原stderr附件此包未提供；不把AI引用自動當已核實log。"
+    },
+    {
+      "section": 15,
+      "source_ids": [
+        "B15-U",
+        "B15-A"
+      ],
+      "requirement_ids": [
+        "KG-CTX-02",
+        "KG-CTX-03",
+        "KG-CTX-05",
+        "KG-CTX-09",
+        "KG-WF-04"
+      ],
+      "disposition": "mapped",
+      "rationale": "AI教學約束提案；保留意圖，數量上限不自動成通則。"
+    },
+    {
+      "section": 16,
+      "source_ids": [
+        "B16-U",
+        "B16-A"
+      ],
+      "requirement_ids": [
+        "KG-CTX-01",
+        "KG-CTX-07"
+      ],
+      "disposition": "mapped",
+      "rationale": "未知詞密度問題；硬熔斷/先備锁来自AI提案須修订。"
+    },
+    {
+      "section": 17,
+      "source_ids": [
+        "B17-U",
+        "B17-A"
+      ],
+      "requirement_ids": [],
+      "disposition": "context_only",
+      "rationale": "可以補基礎，但非把完整課程當目前任務前置。"
+    },
+    {
+      "section": 18,
+      "source_ids": [
+        "B18-U",
+        "B18-A"
+      ],
+      "requirement_ids": [
+        "KG-STR-01"
+      ],
+      "disposition": "mapped",
+      "rationale": "目錄式架構要求；八週課綱/畢業規則为AI教案，不全成產品義務。"
+    },
+    {
+      "section": 19,
+      "source_ids": [
+        "B19-U",
+        "B19-A"
+      ],
+      "requirement_ids": [
+        "KG-CTX-08",
+        "KG-KNOW-08",
+        "KG-PRAC-01",
+        "KG-PRAC-05",
+        "KG-PRAC-08",
+        "KG-SOAK-02",
+        "KG-SRS-05",
+        "KG-STR-01",
+        "KG-VAL-02",
+        "KG-WF-01",
+        "KG-WF-02",
+        "KG-WF-04",
+        "KG-WF-06"
+      ],
+      "disposition": "mapped",
+      "rationale": "直接說明先閱讀AI整理再輸出的自然流程；百分比為自述不是儀表門檻。"
+    },
+    {
+      "section": 20,
+      "source_ids": [
+        "B20-U",
+        "B20-A"
+      ],
+      "requirement_ids": [
+        "KG-KNOW-08",
+        "KG-MEM-04",
+        "KG-PRAC-01",
+        "KG-PRAC-03",
+        "KG-PRAC-05",
+        "KG-PRAC-08",
+        "KG-SRS-04",
+        "KG-STR-02"
+      ],
+      "disposition": "mapped",
+      "rationale": "原OS兩份筆記未隨本次提供；混淆分析是AI當時解讀，不是當前已核對行為。"
+    },
+    {
+      "section": 21,
+      "source_ids": [
+        "B21-U",
+        "B21-A"
+      ],
+      "requirement_ids": [
+        "KG-KNOW-08",
+        "KG-SOAK-03",
+        "KG-SRS-04",
+        "KG-STR-02"
+      ],
+      "disposition": "mapped",
+      "rationale": "低成本、提示支援、對比與外部記憶提案；固定天數/早考不自動接受。"
+    },
+    {
+      "section": 22,
+      "source_ids": [
+        "B22-U",
+        "B22-A"
+      ],
+      "requirement_ids": [],
+      "disposition": "context_only",
+      "rationale": "低壓重複與不同context的使用體驗，不把迷因比喻當學術證據。"
+    },
+    {
+      "section": 23,
+      "source_ids": [
+        "B23-U",
+        "B23-A"
+      ],
+      "requirement_ids": [
+        "KG-PRAC-06",
+        "KG-SOAK-01",
+        "KG-SOAK-04",
+        "KG-SRS-04"
+      ],
+      "disposition": "mapped",
+      "rationale": "使用者明確要無譴責試錯；不保留AI擬造stable熟練度。"
+    },
+    {
+      "section": 24,
+      "source_ids": [
+        "B24-U",
+        "B24-A"
+      ],
+      "requirement_ids": [
+        "KG-GOV-01",
+        "KG-ING-01",
+        "KG-ING-04",
+        "KG-MEM-01",
+        "KG-MEM-02",
+        "KG-MEM-05",
+        "KG-MEM-07",
+        "KG-MEM-08",
+        "KG-PLAT-03",
+        "KG-SOAK-07",
+        "KG-WF-03"
+      ],
+      "disposition": "mapped",
+      "rationale": "精確持久續學是產品缺口；五級scalar之後被§25修正。"
+    },
+    {
+      "section": 25,
+      "source_ids": [
+        "B25-U",
+        "B25-A"
+      ],
+      "requirement_ids": [
+        "KG-GRAPH-01",
+        "KG-GRAPH-04",
+        "KG-ING-01",
+        "KG-ING-03",
+        "KG-ING-04",
+        "KG-KNOW-01",
+        "KG-KNOW-02",
+        "KG-KNOW-03",
+        "KG-MEM-01",
+        "KG-MEM-02",
+        "KG-MEM-03",
+        "KG-MEM-04",
+        "KG-MEM-05",
+        "KG-MEM-06",
+        "KG-MEM-07",
+        "KG-PLAT-01",
+        "KG-PRAC-03",
+        "KG-SOAK-05",
+        "KG-SRS-03",
+        "KG-WF-03"
+      ],
+      "disposition": "mapped",
+      "rationale": "拒絕假量化/人工逐Edge；明確要partial knowledge/learning context。"
+    },
+    {
+      "section": 26,
+      "source_ids": [
+        "B26-U",
+        "B26-A"
+      ],
+      "requirement_ids": [
+        "KG-GRAPH-01",
+        "KG-GRAPH-03",
+        "KG-GRAPH-04",
+        "KG-MEM-06",
+        "KG-PLAT-03",
+        "KG-PRAC-08",
+        "KG-SOAK-01",
+        "KG-SOAK-02",
+        "KG-SOAK-03",
+        "KG-SOAK-04",
+        "KG-SOAK-05",
+        "KG-SOAK-06",
+        "KG-SOAK-07",
+        "KG-SRS-01",
+        "KG-SRS-02",
+        "KG-SRS-03",
+        "KG-SRS-05",
+        "KG-STR-06",
+        "KG-WF-02",
+        "KG-WF-05"
+      ],
+      "disposition": "mapped",
+      "rationale": "不必另開chat、先相似曝光再輸出、保留關係與間隔的直接需求。"
+    },
+    {
+      "section": 27,
+      "source_ids": [
+        "B27-U",
+        "B27-A"
+      ],
+      "requirement_ids": [
+        "KG-GRAPH-03",
+        "KG-ING-01",
+        "KG-ING-02",
+        "KG-ING-03",
+        "KG-MEM-08",
+        "KG-PLAT-01",
+        "KG-PLAT-02",
+        "KG-PLAT-03",
+        "KG-PLAT-04",
+        "KG-PLAT-05",
+        "KG-SOAK-07",
+        "KG-STR-06"
+      ],
+      "disposition": "mapped",
+      "rationale": "多學科Web/多端/匯出與低成本互動；具體provider/LINE方案为候選。"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": "kgnote.requirements-run-evidence.v1",
+  "run_id": "loop3-20260920",
+  "repository_head": "7d1c8011619f5c87f8bf88d87f6cdcc5c0a1b4b1",
+  "branch": "main",
+  "working_tree": "dirty; existing changes preserved; no commit",
+  "runs": [
+    {"command": "targeted Python catalog/exposure/resume tests", "result": "pass", "tests": 10, "scope": "degraded Reader availability and concurrent event identity"},
+    {"command": "targeted Python attempt/feedback/due/durability tests", "result": "pass", "tests": 13, "scope": "concurrent writers plus 500 Attempts, 100 Exposures, 100 Resume contexts, and 50 Due items read back"},
+    {"command": "./scripts/run_tests.sh", "result": "pass", "guard_tests": 16, "product_tests": 238, "requirements": 84, "scenarios": 37},
+    {"command": "npm test", "result": "pass", "tests": 54},
+    {"command": "git diff --check", "result": "pass"},
+    {"command": "in-app browser Journey B and restart read-back", "result": "pass", "scope": "BitePacer wrong answer -> feedback -> INCORRECT -> retry -> corrected answer -> CORRECT; both raw Attempts remain after server restart; answer/Evidence withheld until submit"},
+    {"command": "in-app browser updated Soak progression", "result": "pass", "scope": "fixture-specific five-stage progression reached application; presentation remained non-assessment"}
+  ],
+  "limits": [
+    "Reviewed offline content was used; live AI was not called or verified.",
+    "This is engineering evidence, not human acceptance or learning-effectiveness evidence.",
+    "Multi-process writers are outside the local beta storage contract.",
+    "Natural exposure is a non-scoring Due signal; adaptive policy remains intentionally deferred."
+  ]
+}

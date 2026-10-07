@@ -1,0 +1,131 @@
+{
+  "schema_version": "kgnote.learning-structure.v1",
+  "structure_id": "structure_pvz_easter_eggs",
+  "learning_unit_id": "guided_map_pvz_easter_eggs",
+  "revision": 1,
+  "title": "Sky Garden device-design structure",
+  "provenance": {
+    "basis": "synthetic_source_sections",
+    "author": "synthetic.sky-garden.v1"
+  },
+  "nodes": [
+    {
+      "id": "pvz_root",
+      "title": "Device, input, metaphor, and reuse",
+      "parent_id": null,
+      "order": 1,
+      "kind": "topic",
+      "organizing_relation": "topic",
+      "source_anchors": [
+        {
+          "source_id": "src_pvz_easter_eggs_excerpt",
+          "locator": {
+            "kind": "line_range",
+            "value": "L1-L62"
+          }
+        }
+      ],
+      "concept_refs": [],
+      "claim_refs": []
+    },
+    {
+      "id": "pvz_design",
+      "title": "Prototype enclosure evolution",
+      "parent_id": "pvz_root",
+      "order": 1,
+      "kind": "topic",
+      "organizing_relation": "evolution",
+      "source_anchors": [
+        {
+          "source_id": "src_pvz_easter_eggs_excerpt",
+          "locator": {
+            "kind": "line_range",
+            "value": "L9-L23"
+          }
+        }
+      ],
+      "concept_refs": [
+        "concept_pvz_peashooter",
+        "concept_pvz_tomato_prototype"
+      ],
+      "claim_refs": [
+        "edge_pvz_peashooter_tomato"
+      ]
+    },
+    {
+      "id": "pvz_versions",
+      "title": "Environmental input behavior",
+      "parent_id": "pvz_root",
+      "order": 2,
+      "kind": "topic",
+      "organizing_relation": "mechanism",
+      "source_anchors": [
+        {
+          "source_id": "src_pvz_easter_eggs_excerpt",
+          "locator": {
+            "kind": "line_range",
+            "value": "L25-L38"
+          }
+        }
+      ],
+      "concept_refs": [
+        "concept_pvz_heatwave",
+        "concept_pvz_microphone",
+        "concept_pvz_peashooter"
+      ],
+      "claim_refs": [
+        "edge_pvz_heatwave_microphone"
+      ]
+    },
+    {
+      "id": "pvz_references",
+      "title": "Explanatory metaphor",
+      "parent_id": "pvz_root",
+      "order": 3,
+      "kind": "topic",
+      "organizing_relation": "reference",
+      "source_anchors": [
+        {
+          "source_id": "src_pvz_easter_eggs_excerpt",
+          "locator": {
+            "kind": "line_range",
+            "value": "L40-L55"
+          }
+        }
+      ],
+      "concept_refs": [
+        "concept_pvz_twin_sunflower",
+        "concept_pvz_frankenstein"
+      ],
+      "claim_refs": [
+        "edge_pvz_sunflower_frankenstein"
+      ]
+    },
+    {
+      "id": "pvz_reused_ideas",
+      "title": "Split and reused design ideas",
+      "parent_id": "pvz_root",
+      "order": 4,
+      "kind": "topic",
+      "organizing_relation": "evolution",
+      "source_anchors": [
+        {
+          "source_id": "src_pvz_easter_eggs_excerpt",
+          "locator": {
+            "kind": "line_range",
+            "value": "L54-L62"
+          }
+        }
+      ],
+      "concept_refs": [
+        "concept_pvz_transfer_potato",
+        "concept_pvz_garlic",
+        "concept_pvz_wallnut"
+      ],
+      "claim_refs": [
+        "edge_pvz_transfer_garlic",
+        "edge_pvz_potato_wallnut"
+      ]
+    }
+  ]
+}

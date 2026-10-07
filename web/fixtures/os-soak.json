@@ -1,0 +1,22 @@
+{
+  "schema_version":"kgnote.soak-set.v1",
+  "learning_unit_id":"guided_map_os_safety_efficiency_review",
+  "items":[
+    {
+      "item_id":"soak_os_aging_starvation",
+      "concept_id":"concept_aging",
+      "label":"再次遇見：老化技術",
+      "familiar_context":"有些程序等了很久仍拿不到 CPU。排程器可以逐步提高它們的優先權。",
+      "answer":"這種逐步提高等待中程序優先權的做法稱為老化技術，用來緩解飢餓。",
+      "support_progression":[
+        {"stage":"high_similarity","label":"熟悉外觀","content":"再次看等待很久的程序逐步提高優先權的原例。","response_expected":false},
+        {"stage":"cued","label":"線索","content":"注意『等待越久』與『優先權逐步提高』兩個線索。","response_expected":false},
+        {"stage":"changed_context","label":"換情境","content":"想像低優先權背景工作長期被互動工作插隊。","response_expected":false},
+        {"stage":"explanation","label":"自己解釋","content":"用自己的話說明老化技術如何緩解飢餓。","response_expected":true},
+        {"stage":"application","label":"應用","content":"判斷一個會逐步提高等待者優先權的排程案例是否使用老化技術。","response_expected":true}
+      ],
+      "source_refs":["src_os_overview_review"],
+      "related_practice_item_id":"item_relation_edge_os_aging_starvation"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/guided-review/v1/request.schema.json",
+  "title": "KGnote guided edge review request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "learning_unit_id", "source_id", "graph_snapshot_sha256", "edge_id", "response", "hint_used"],
+  "properties": {
+    "schema_version": {"const": "kgnote.guided-review-request.v1"},
+    "learning_unit_id": {"type": "string", "pattern": "^guided_map_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+    "source_id": {"type": "string", "pattern": "^src_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+    "graph_snapshot_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "edge_id": {"type": "string", "pattern": "^edge_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+    "response": {"type": "string", "minLength": 1, "maxLength": 80, "pattern": "^(?=.*\\S)[^\\r\\n]+$"},
+    "hint_used": {"type": "boolean"}
+  }
+}
