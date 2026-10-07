@@ -23,7 +23,7 @@ import time
 from unittest.mock import patch
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 from zoneinfo import ZoneInfo
 
 
@@ -2009,7 +2009,7 @@ def repository_manifest(repo: Path) -> dict[str, Any]:
             }
         )
     payload = {
-        "algorithm": "sha256-canonical-json-v2-review-bus-exclusions",
+        "algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
         "branch": git_text(repo, "branch", "--show-current"),
         "head": git_text(repo, "rev-parse", "HEAD"),
         "excluded_paths": sorted(FINGERPRINT_EXCLUDES),
@@ -2025,7 +2025,12 @@ def fingerprint_from_manifest(manifest: dict[str, Any]) -> str | None:
         return None
     if not isinstance(manifest.get("entries"), list):
         return None
-    canonical = json.dumps(manifest, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    digest_manifest = dict(manifest)
+    if manifest.get("algorithm") == "sha256-canonical-json-v3-branch-independent-review-bus-exclusions":
+        digest_manifest.pop("branch", None)
+    canonical = json.dumps(
+        digest_manifest, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode()
     return sha256_bytes(canonical)
 
 
@@ -2131,6 +2136,73 @@ def is_clean_publication_adapter_checkout(
     return (repo / PUBLICATION_RECEIPT_PATH).is_file() and not dirty
 
 
+def validate_publication_adapter_identity(
+    repo: Path,
+    fingerprint: dict[str, Any],
+    head: str,
+    runner: Callable[[list[str]], str] | None = None,
+) -> tuple[list[str], dict[str, Any]]:
+    """Resolve the live canonical PR tuple required by PUBLICATION_RECEIPT."""
+    errors: list[str] = []
+    try:
+        config = json.loads((repo / ".ai/github-product-reviewer.json").read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        return [f"publication_adapter: cannot load reviewer config: {exc}"], {}
+    repositories = {
+        config.get(name)
+        for name in (
+            "canonical_repository", "candidate_repository", "trigger_repository",
+            "review_request_repository",
+        )
+    }
+    if len(repositories) != 1 or None in repositories:
+        errors.append("publication_adapter: active repository identities do not match")
+    repository = config.get("canonical_repository")
+    pull_request = config.get("review_pr_number")
+    marker = config.get("request_marker")
+    if not isinstance(repository, str) or not isinstance(pull_request, int) or not isinstance(marker, str):
+        errors.append("publication_adapter: canonical PR configuration is invalid")
+        return errors, {}
+    command = [
+        "gh", "pr", "view", str(pull_request), "--repo", repository,
+        "--json", "headRefOid,body,state,url",
+    ]
+    try:
+        if runner is None:
+            completed = subprocess.run(command, cwd=repo, text=True, capture_output=True)
+            if completed.returncode:
+                raise RuntimeError(completed.stderr.strip() or "gh pr view failed")
+            raw = completed.stdout
+        else:
+            raw = runner(command)
+        snapshot = json.loads(raw)
+    except (RuntimeError, json.JSONDecodeError) as exc:
+        return errors + [f"publication_adapter: cannot resolve live canonical PR: {exc}"], {}
+    pattern = re.compile(
+        rf"<!--\s*{re.escape(marker)}\s+candidate_commit=([0-9a-f]{{40}})\s+"
+        rf"candidate_fingerprint=([0-9a-f]{{64}})\s+review_round=([1-9][0-9]*)\s*-->"
+    )
+    matches = pattern.findall(str(snapshot.get("body", "")))
+    if len(matches) != 1:
+        errors.append("publication_adapter: live PR must contain exactly one request marker")
+        return errors, snapshot
+    marker_head, marker_fingerprint, marker_round = matches[0]
+    if snapshot.get("state") != "OPEN":
+        errors.append("publication_adapter: canonical PR is not open")
+    if snapshot.get("headRefOid") != head or marker_head != head:
+        errors.append("publication_adapter: live PR head/marker does not match checkout HEAD")
+    if marker_fingerprint != fingerprint.get("value"):
+        errors.append("publication_adapter: live marker fingerprint does not match checkout")
+    snapshot.update({
+        "repository": repository,
+        "pull_request": pull_request,
+        "marker_head": marker_head,
+        "marker_fingerprint": marker_fingerprint,
+        "review_round": int(marker_round),
+    })
+    return errors, snapshot
+
+
 def preflight(repo: Path) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -2160,10 +2232,6 @@ def preflight(repo: Path) -> dict[str, Any]:
             errors.extend(
                 item for item in plan_status_errors
                 if not item.startswith("status_drift:")
-            )
-            warnings.append(
-                "Clean publication-adapter checkout: mutable STATUS/review receipts are historical; "
-                "resolve exact external identity through .ai/PUBLICATION_RECEIPT.md and the live PR marker."
             )
         else:
             errors.extend(plan_status_errors)
@@ -2196,6 +2264,16 @@ def preflight(repo: Path) -> dict[str, Any]:
 
     worktrees = [line[9:] for line in git_text(repo, "worktree", "list", "--porcelain").splitlines() if line.startswith("worktree ")]
     fingerprint = repository_fingerprint(repo)
+    if publication_adapter_checkout:
+        adapter_errors, _ = validate_publication_adapter_identity(
+            repo, fingerprint, head
+        )
+        errors.extend(adapter_errors)
+        if not adapter_errors:
+            warnings.append(
+                "Clean publication-adapter checkout: live canonical PR head and marker fingerprint resolved exactly; "
+                "mutable STATUS/review receipts are historical."
+            )
     if not publication_adapter_checkout:
         errors.extend(validate_recorded_fingerprint(status, fingerprint))
     review_errors: list[str] = []

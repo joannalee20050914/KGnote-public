@@ -561,6 +561,12 @@ class RepositoryIntegrityTests(unittest.TestCase):
         if CONTROL.is_clean_publication_adapter_checkout(ROOT):
             self.assertTrue((ROOT / CONTROL.PUBLICATION_RECEIPT_PATH).is_file())
             self.assertEqual(plan["active_milestone_id"], "AR-EXTERNAL-REVIEW")
+            fingerprint = CONTROL.repository_fingerprint(ROOT)
+            head = CONTROL.git_text(ROOT, "rev-parse", "HEAD")
+            self.assertEqual(
+                CONTROL.validate_publication_adapter_identity(ROOT, fingerprint, head)[0],
+                [],
+            )
             return
         self.assertEqual(CONTROL.validate_orchestrator_state(ROOT, plan, request), [])
 
@@ -575,6 +581,52 @@ class RepositoryIntegrityTests(unittest.TestCase):
             self.assertTrue(CONTROL.is_clean_publication_adapter_checkout(repo, []))
             self.assertFalse(
                 CONTROL.is_clean_publication_adapter_checkout(repo, ["CODEX_STATUS.md"])
+            )
+
+    def test_branch_name_is_diagnostic_and_not_part_of_v3_fingerprint(self):
+        manifest = {
+            "algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
+            "branch": "codex/candidate",
+            "head": "a" * 40,
+            "excluded_paths": [],
+            "excluded_prefixes": [],
+            "entries": [{"path": "x", "kind": "file", "mode": "0o644", "sha256": "b" * 64}],
+        }
+        detached = {**manifest, "branch": ""}
+        self.assertEqual(
+            CONTROL.fingerprint_from_manifest(manifest),
+            CONTROL.fingerprint_from_manifest(detached),
+        )
+
+    def test_publication_adapter_requires_exact_live_marker_tuple(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            (repo / ".ai").mkdir()
+            config = {
+                "canonical_repository": "owner/public",
+                "candidate_repository": "owner/public",
+                "trigger_repository": "owner/public",
+                "review_request_repository": "owner/public",
+                "review_pr_number": 1,
+                "request_marker": "REQUEST_V2",
+            }
+            (repo / ".ai/github-product-reviewer.json").write_text(json.dumps(config))
+            head = "a" * 40
+            fingerprint = {"value": "b" * 64}
+            body = (
+                "<!-- REQUEST_V2 candidate_commit=" + head
+                + " candidate_fingerprint=" + "b" * 64 + " review_round=12 -->"
+            )
+            snapshot = {"headRefOid": head, "body": body, "state": "OPEN", "url": "https://example/pr/1"}
+            runner = lambda _command: json.dumps(snapshot)
+            self.assertEqual(
+                CONTROL.validate_publication_adapter_identity(repo, fingerprint, head, runner)[0],
+                [],
+            )
+            stale = lambda _command: json.dumps({**snapshot, "body": body.replace("b" * 64, "c" * 64)})
+            self.assertIn(
+                "marker fingerprint does not match",
+                " ".join(CONTROL.validate_publication_adapter_identity(repo, fingerprint, head, stale)[0]),
             )
 
     def test_external_review_wait_state_binds_current_review_identity(self):
@@ -623,6 +675,12 @@ class RepositoryIntegrityTests(unittest.TestCase):
             self.assertIn("live canonical PR", receipt)
             self.assertEqual(plan["active_milestone_id"], "AR-EXTERNAL-REVIEW")
             self.assertIn(".ai/PUBLICATION_RECEIPT.md", plan["authoritative_specs"])
+            fingerprint = CONTROL.repository_fingerprint(ROOT)
+            head = CONTROL.git_text(ROOT, "rev-parse", "HEAD")
+            self.assertEqual(
+                CONTROL.validate_publication_adapter_identity(ROOT, fingerprint, head)[0],
+                [],
+            )
             return
         self.assertEqual(plan["goal_id"], status["goal_id"])
         self.assertEqual(plan["active_milestone_id"], status["active_milestone_id"])

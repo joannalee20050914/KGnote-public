@@ -33,8 +33,10 @@ cycles, while the external publication marker parser and product-review schema s
 Those transport contracts were aligned to the explicit eight-cycle envelope. After round 8 exposed a separate
 exact-event-payload transport regression while the product finding remained autonomously repairable, the owner
 explicitly directed the same review/repair loop to continue without another stepwise approval. The active recovery
-PLAN, schema, reviewer contract, and publisher are therefore aligned to a bounded twelve-cycle envelope; the
-repository-wide default remains five unless an active PLAN supplies a narrower or broader explicit bound.
+external schema, reviewer contract, and publisher remain aligned to a bounded twelve-round envelope. The active
+PLAN permits sixteen internal review/repair cycles so exact-identity defects found by the external reviewer can be
+repaired and independently rechecked without bypassing review; the repository-wide default remains five unless an
+active PLAN supplies a narrower or broader explicit bound.
 
 ## Repair and permanent invariant
 
