@@ -8,6 +8,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from jsonschema import Draft202012Validator
+
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -263,6 +265,70 @@ class OrchestrationSimulationTests(unittest.TestCase):
             prepared = json.loads((root / ".ai/external-review-state.json").read_text())
             self.assertEqual(prepared["review_round"], 4)
             self.assertEqual(prepared["internal_review"]["status"], "PASS")
+
+    def test_real_loop_lock_publisher_and_schema_complete_machine_handoff(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".ai").mkdir()
+            (root / ".git").mkdir()
+            config = {
+                "enabled": True, "canonical_repository": "owner/public",
+                "candidate_repository": "owner/public", "trigger_repository": "owner/public",
+                "review_request_repository": "owner/public", "archive_repository": "owner/archive",
+                "review_pr_number": 1, "request_marker": "REQUEST_V2",
+            }
+            external = {
+                "canonical_repository": "owner/public", "candidate_repository": "owner/public",
+                "trigger_repository": "owner/public", "review_request_repository": "owner/public",
+                "archive_repository": "owner/archive", "pull_request": 1, "review_round": 3,
+                "external_review": {"status": "CHANGES_REQUIRED", "blocking_findings": ["R-004"]},
+            }
+            (root / ".ai/github-product-reviewer.json").write_text(json.dumps(config))
+            (root / ".ai/external-review-state.json").write_text(json.dumps(external))
+            state = self.base_state(review_cycle=1)
+            state["state"] = "VALIDATING"
+            state["candidate_fingerprint"] = "b" * 64
+            request = {"status": "PASS", "review_id": "review-011", "candidate_fingerprint": "b" * 64}
+            plan = {
+                "active_milestone_id": "AR-EXTERNAL-REVIEW",
+                "milestones": [{"id": "AR-EXTERNAL-REVIEW", "status": "active"}],
+            }
+            marker = (
+                "<!-- REQUEST_V2 candidate_commit=" + "a" * 40
+                + " candidate_fingerprint=" + "b" * 64 + " review_round=4 -->"
+            )
+            remote_commands = []
+
+            def remote_runner(command, *, cwd):
+                remote_commands.append(command)
+                if command[:3] == ["git", "rev-parse", "HEAD"]: return "a" * 40
+                if command[:3] == ["git", "status", "--porcelain"]:
+                    self.assertTrue((root / ".ai/ORCHESTRATOR.lock").exists())
+                    return "?? .ai/ORCHESTRATOR.lock"
+                if command[:4] == ["git", "remote", "get-url", "origin"]: return "https://github.com/owner/public.git"
+                if command[:3] == ["git", "branch", "--show-current"]: return "codex/candidate"
+                if command[:3] == ["gh", "pr", "view"] and command[-1] == "body": return json.dumps({"body": "PR"})
+                if command[:3] == ["gh", "pr", "edit"]: return ""
+                if command[:3] == ["git", "push", "origin"]: return ""
+                if command[:3] == ["gh", "pr", "view"]:
+                    return json.dumps({"headRefOid": "a" * 40, "body": "PR\n" + marker, "state": "OPEN", "url": "https://example/pr/1"})
+                raise AssertionError(command)
+
+            completed = mock.Mock(stdout=("a" * 40 + "\n").encode())
+            with mock.patch.object(ORCH, "recover_stale_candidate", return_value=False), \
+                 mock.patch.object(ORCH.control, "preflight", return_value={"status": "pass", "errors": []}), \
+                 mock.patch.object(ORCH.control, "load_review_artifacts", return_value=(request, {}, {})), \
+                 mock.patch.object(ORCH.control, "load_plan_status", return_value=(plan, {})), \
+                 mock.patch.object(ORCH.control, "repository_fingerprint", return_value={"value": "b" * 64}), \
+                 mock.patch.object(ORCH.control, "run_git", return_value=completed), \
+                 mock.patch.object(ORCH.publish_external_candidate, "_run", side_effect=remote_runner):
+                result = ORCH.run_loop(root, state, lambda *_args: self.fail("no agent should run"), max_steps=None)
+
+            self.assertEqual(result["state"], "AWAITING_EXTERNAL_PRODUCT_REVIEW")
+            self.assertFalse(result["human_action_required"])
+            self.assertTrue(any(command[:3] == ["git", "push", "origin"] for command in remote_commands))
+            schema = json.loads((ROOT / ".ai/schemas/orchestrator-state.schema.json").read_text())
+            Draft202012Validator(schema).validate(json.loads((root / ".ai/ORCHESTRATOR_STATE.json").read_text()))
 
 
 class OrchestratorDurabilityTests(unittest.TestCase):

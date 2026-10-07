@@ -77,7 +77,8 @@ def _run(command: list[str], *, cwd: Path) -> str:
     return completed.stdout.strip()
 
 
-def publish(repo: Path, runner: Callable[..., str] = _run) -> dict[str, Any]:
+def publish(repo: Path, runner: Callable[..., str] | None = None) -> dict[str, Any]:
+    runner = runner or _run
     config = external_review_control.load_json(repo / external_review_control.CONFIG_PATH)
     state = external_review_control.load_json(repo / external_review_control.STATE_PATH)
     authority = external_review_control.repository_authority_errors(config)
@@ -87,7 +88,7 @@ def publish(repo: Path, runner: Callable[..., str] = _run) -> dict[str, Any]:
     fingerprint = codex_control.repository_fingerprint(repo)["value"]
     status_rows = runner(["git", "status", "--porcelain"], cwd=repo).splitlines()
     mutable_exact = {
-        ".ai/ORCHESTRATOR_STATE.json", ".ai/REVIEW_REQUEST.md",
+        ".ai/ORCHESTRATOR.lock", ".ai/ORCHESTRATOR_STATE.json", ".ai/REVIEW_REQUEST.md",
         ".ai/REVIEW_RESULT.md", ".ai/external-review-state.json", "CODEX_STATUS.md",
     }
     mutable_prefixes = (".ai/ORCHESTRATION_HISTORY/", ".ai/REVIEW_HISTORY/")

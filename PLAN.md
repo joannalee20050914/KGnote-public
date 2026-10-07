@@ -82,7 +82,7 @@ This file contains exactly one active execution goal. It does not promote any hu
     "requires_dependencies_complete": true,
     "stop_on_human_gate": true,
     "external_review_required_before_human_gate": true,
-    "max_review_cycles_per_milestone": 5,
+    "max_review_cycles_per_milestone": 8,
     "stop_on_review_state": [
       "PRODUCT_DECISION_REQUIRED",
       "AUTHORITY_CONFLICT",

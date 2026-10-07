@@ -9,7 +9,7 @@
     "run_id": {"type": "string", "minLength": 1},
     "active_goal": {"type": ["string", "null"]},
     "work_package": {"type": ["string", "null"]},
-    "state": {"enum": ["IMPLEMENTING", "VALIDATING", "READY_FOR_AI_REVIEW", "REVIEWING", "REPAIRING", "HUMAN_CHECKPOINT_REQUIRED", "PRODUCT_DECISION_REQUIRED", "AUTHORITY_CONFLICT", "AUTOMATION_BLOCKED", "BUDGET_EXHAUSTED", "GOAL_COMPLETE", "STOPPED"]},
+    "state": {"enum": ["IMPLEMENTING", "VALIDATING", "READY_FOR_AI_REVIEW", "REVIEWING", "REPAIRING", "AWAITING_EXTERNAL_PRODUCT_REVIEW", "HUMAN_CHECKPOINT_REQUIRED", "PRODUCT_DECISION_REQUIRED", "AUTHORITY_CONFLICT", "AUTOMATION_BLOCKED", "BUDGET_EXHAUSTED", "GOAL_COMPLETE", "STOPPED"]},
     "current_agent": {"type": ["string", "null"]},
     "candidate_fingerprint": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
     "review_id": {"type": ["string", "null"]},

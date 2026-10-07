@@ -63,7 +63,7 @@ class PublicationTransitionTests(unittest.TestCase):
             def runner(command, *, cwd):
                 calls.append(command)
                 if command[:3] == ["git", "rev-parse", "HEAD"]: return "a" * 40
-                if command[:3] == ["git", "status", "--porcelain"]: return ""
+                if command[:3] == ["git", "status", "--porcelain"]: return "?? .ai/ORCHESTRATOR.lock"
                 if command[:4] == ["git", "remote", "get-url", "origin"]: return "https://github.com/owner/public.git"
                 if command[:3] == ["git", "branch", "--show-current"]: return "codex/candidate"
                 if command[:3] == ["gh", "pr", "view"] and command[-1] == "body": return json.dumps({"body": "PR"})

@@ -48,7 +48,7 @@ Allowed exceptional transition: `READY_FOR_REVIEW -> IMPLEMENTING` when Codex ru
 
 ## Autonomous orchestration state
 
-Canonical runtime states are `IMPLEMENTING`, `VALIDATING`, `READY_FOR_AI_REVIEW`, `REVIEWING`, `REPAIRING`, `HUMAN_CHECKPOINT_REQUIRED`, `PRODUCT_DECISION_REQUIRED`, `AUTHORITY_CONFLICT`, `AUTOMATION_BLOCKED`, `BUDGET_EXHAUSTED`, `GOAL_COMPLETE`, and operator-requested `STOPPED`. Normal human interruption is limited to:
+Canonical runtime states are `IMPLEMENTING`, `VALIDATING`, `READY_FOR_AI_REVIEW`, `REVIEWING`, `REPAIRING`, machine-owned `AWAITING_EXTERNAL_PRODUCT_REVIEW`, `HUMAN_CHECKPOINT_REQUIRED`, `PRODUCT_DECISION_REQUIRED`, `AUTHORITY_CONFLICT`, `AUTOMATION_BLOCKED`, `BUDGET_EXHAUSTED`, `GOAL_COMPLETE`, and operator-requested `STOPPED`. `AWAITING_EXTERNAL_PRODUCT_REVIEW` is valid only after exact publication plus remote read-back; it names the configured event transport as next actor and never requests owner continuation. Normal human interruption is limited to:
 
 - `HUMAN_CHECKPOINT_REQUIRED`: the next PLAN package explicitly names a coherent observable-product checkpoint.
 - `PRODUCT_DECISION_REQUIRED`: existing authority genuinely cannot select observable behavior.
