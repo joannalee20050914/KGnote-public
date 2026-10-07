@@ -165,6 +165,22 @@ class OrchestrationSimulationTests(unittest.TestCase):
             self.assertEqual(state["review_cycle"], 2)
             self.assertFalse(any(item.get("type") == "human_continue" for item in state["blockers"]))
 
+    def test_changes_required_releases_reviewer_custody_before_repair(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.base_state()
+            _, _, _, runner = self.harness(root, ["CHANGES_REQUIRED"])
+            for _ in range(6):
+                ORCH.orchestrate_step(root, state, runner)
+                if state["state"] == "REPAIRING" and state["review_cycle"] == 1:
+                    break
+            self.assertEqual(state["state"], "REPAIRING")
+            self.assertIsNone(state["review_id"])
+            self.assertEqual(
+                state["candidate_custody"],
+                {"status": "NONE", "owner": None, "review_id": None, "fingerprint": None},
+            )
+
     def test_3_multiple_repair_cycles(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

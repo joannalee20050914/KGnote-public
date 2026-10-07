@@ -752,7 +752,14 @@ def orchestrate_step(repo: Path, state: dict[str, Any], runner: AgentRunner = ru
             update_state(repo, state, "AUTOMATION_BLOCKED", "Review/repair budget exhausted with unresolved findings.")
             return
         control.resume_implementation(repo)
-        update_state(repo, state, "REPAIRING", "Automatically return reviewer findings to a fresh implementer context.")
+        update_state(
+            repo,
+            state,
+            "REPAIRING",
+            "Automatically return reviewer findings to a fresh implementer context.",
+            review_id=None,
+            candidate_custody={"status": "NONE", "owner": None, "review_id": None, "fingerprint": None},
+        )
         return
 
     if review_state == "PRODUCT_DECISION_REQUIRED":
