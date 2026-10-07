@@ -87,6 +87,40 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
             "/Start Here.md"
         ) for preview in previews))
 
+    def test_explicit_source_key_is_portable_across_machine_paths(self):
+        with tempfile.TemporaryDirectory() as first_dir, tempfile.TemporaryDirectory() as second_dir:
+            first = Path(first_dir) / "network-path.md"
+            second = Path(second_dir) / "network-path.md"
+            content = self.fixture("hierarchical", "network-path.md").read_bytes()
+            first.write_bytes(content)
+            second.write_bytes(content)
+
+            path_bound_first = build_learning_workspace_preview(first)
+            path_bound_second = build_learning_workspace_preview(second)
+            portable_first = build_learning_workspace_preview(
+                first, source_key="kgnote-fixture:personal-alpha/network-path"
+            )
+            portable_second = build_learning_workspace_preview(
+                second, source_key="kgnote-fixture:personal-alpha/network-path"
+            )
+
+        self.assertNotEqual(
+            path_bound_first.payload["source"]["id"], path_bound_second.payload["source"]["id"]
+        )
+        self.assertEqual(portable_first.payload["source"]["id"], portable_second.payload["source"]["id"])
+        self.assertEqual(
+            portable_first.payload["planned_artifacts"]["workspace_root"],
+            portable_second.payload["planned_artifacts"]["workspace_root"],
+        )
+        self.assertEqual(portable_first.payload["source"]["identity_basis"], "stable_external_id")
+
+    def test_source_key_rejects_file_paths_and_unscoped_values(self):
+        source = self.fixture("hierarchical", "network-path.md")
+        for invalid in ("network-path", "/absolute/source.md", "file:source.md"):
+            with self.subTest(source_key=invalid), self.assertRaises(PersonalAlphaPreviewError) as error:
+                build_learning_workspace_preview(source, source_key=invalid)
+            self.assertEqual(error.exception.code, "source_key_invalid")
+
     def test_every_concept_and_relation_resolves_to_exact_source_evidence(self):
         source = self.fixture("procedural", "seed-starting.md")
         lines = source.read_text(encoding="utf-8").splitlines()

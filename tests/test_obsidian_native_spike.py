@@ -87,6 +87,49 @@ class ObsidianNativeArtifactTests(unittest.TestCase):
         self.assertTrue(all("kgnoteOrganizationKind" not in edge for edge in canvas["edges"]))
         self.assertTrue(all(edge["toEnd"] == "arrow" for edge in canvas["edges"]))
 
+    def test_native_cli_source_key_keeps_vault_identity_across_worktrees(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            outputs: list[str] = []
+            workspaces: list[str] = []
+            source_ids: list[str] = []
+            for name in ("worktree-a", "worktree-b"):
+                source = root / name / "tests" / "network-path.md"
+                source.parent.mkdir(parents=True)
+                shutil.copyfile(HIERARCHICAL, source)
+                destination = root / f"{name}-vault"
+                destination.mkdir()
+                stdout = io.StringIO()
+                self.assertEqual(
+                    native_main(
+                        [
+                            str(source),
+                            "--vault",
+                            str(destination),
+                            "--space",
+                            "personal-alpha-trial",
+                            "--source-key",
+                            "kgnote-fixture:personal-alpha/network-path",
+                        ],
+                        stdout=stdout,
+                        stderr=io.StringIO(),
+                    ),
+                    0,
+                )
+                outputs.append(stdout.getvalue())
+                workspace = next(destination.glob("KGnote Alpha/*"))
+                workspaces.append(workspace.name)
+                manifest = json.loads(
+                    (workspace / ".kgnote" / "manifest.json").read_text(encoding="utf-8")
+                )
+                self.assertEqual(manifest["source"]["identity_basis"], "stable_external_id")
+                source_ids.append(manifest["source"]["id"])
+
+        self.assertEqual(workspaces[0], workspaces[1])
+        self.assertEqual(source_ids[0], source_ids[1])
+        self.assertNotIn(str(root), "\n".join(workspaces))
+        self.assertTrue(all("Read-back: passed" in output for output in outputs))
+
     def test_heading_free_glossary_stays_flat_without_invented_hierarchy(self):
         model = build_native_canvas(self.preview(GLOSSARY, "music").payload)
         self.assertEqual(model["source_shape"], "heading_free")

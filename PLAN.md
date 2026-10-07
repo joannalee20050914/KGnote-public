@@ -60,6 +60,9 @@ This file contains exactly one active execution goal. It does not promote any hu
       "KG-PRACTICE-002",
       "KG-CTRL-001"
     ],
+    "completion_audit_finding_ids": [
+      "KG-ALPHA-PORTABILITY-001"
+    ],
     "forbidden_substitutes": [
       "treating internal reviewer PASS as external product-review PASS",
       "publishing to the archival KGnote repository or any repository other than KGnote-public",
@@ -94,13 +97,13 @@ This file contains exactly one active execution goal. It does not promote any hu
   "preserved_human_gates": [
     {
       "id": "PA-HUMAN-1",
-      "status": "not_eligible_external_review_pending",
+      "status": "not_eligible_candidate_repair_pending",
       "release_verified": false,
       "rule": "Eligible only after exact external product-review PASS with no blocking findings."
     },
     {
       "id": "NS-HUMAN-SMOKE",
-      "status": "not_eligible_external_review_pending",
+      "status": "not_eligible_candidate_repair_pending",
       "release_verified": false,
       "rule": "Eligible only after exact external product-review PASS with no blocking findings."
     }
@@ -184,12 +187,18 @@ This file contains exactly one active execution goal. It does not promote any hu
         "PLAN.md",
         "CODEX_STATUS.md",
         "docs/control-plane/",
+        "docs/DATA_MODEL.md",
+        "DEVELOPMENT_PLAIN.md",
+        "docs/obsidian/",
+        "docs/requirements/evidence/",
         "scripts/",
         "src/",
         "tests/"
       ],
       "acceptance": [
-        "an actual canonical-PR external artifact binds the exact head and fingerprint and reports PASS with zero blocking findings"
+        "an actual canonical-PR external artifact binds the exact head and fingerprint and reports PASS with zero blocking findings",
+        "the documented concentrated-trial command regenerates the same source/workspace identity from a different repository worktree without embedding an absolute machine path in that identity",
+        "the exact trial handoff path matches the generator's authoritative read-back before human eligibility"
       ]
     },
     {
@@ -217,5 +226,5 @@ This file contains exactly one active execution goal. It does not promote any hu
 ## Current recovery note
 
 Autonomous orchestration state: `IMPLEMENTING`. Active work package: `AR-EXTERNAL-REVIEW`.
-Next action: Automatically begin authorized work package AR-EXTERNAL-REVIEW.
+Next action: repair `KG-ALPHA-PORTABILITY-001`, regenerate the exact concentrated-trial handoff, verify, publish a new exact candidate, and obtain a fresh external product-review artifact.
 Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.

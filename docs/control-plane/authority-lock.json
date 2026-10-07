@@ -67,7 +67,7 @@
     {
       "path": "docs/DATA_MODEL.md",
       "role": "active_data_contract",
-      "sha256": "3f413cd6504340ffa67897fec30764a5c57934499355a6e058b07f8b0dc3757a",
+      "sha256": "fad89739d1eb1fed6342c6367383ab0e2cdebaab0f8ea605aed181ecec34b7b2",
       "required_marker": "kgnote-obsidian-first-2026-09-22"
     },
     {
@@ -79,7 +79,7 @@
     {
       "path": "DEVELOPMENT_PLAIN.md",
       "role": "active_roadmap",
-      "sha256": "06e50f107b21644cb8a87995e062ef87a26081722c6d794c09a21d91b9dab7d9",
+      "sha256": "b609852d9323f3379fd54438e57bee0711f621986c6b5ed1aeb7368528d4be29",
       "required_marker": "Obsidian-first learning layer"
     }
   ],

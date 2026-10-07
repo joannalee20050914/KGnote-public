@@ -753,6 +753,7 @@ def _manifest_bytes(
         "source": {
             "id": payload["source"]["id"],
             "content_sha256": payload["source"]["content_sha256"],
+            "identity_basis": payload["source"]["identity_basis"],
             "immutable_source": str(
                 PurePosixPath(str(payload["planned_artifacts"]["immutable_source"])).relative_to(
                     PurePosixPath(str(payload["planned_artifacts"]["workspace_root"]))

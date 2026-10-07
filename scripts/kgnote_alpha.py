@@ -39,6 +39,13 @@ def _parser() -> argparse.ArgumentParser:
         help="Short learning-space name used only in candidate identity (default: personal)",
     )
     parser.add_argument(
+        "--source-key",
+        help=(
+            "Optional stable namespaced external identifier used instead of the absolute "
+            "source path for portable source/workspace identity"
+        ),
+    )
+    parser.add_argument(
         "--preview-only",
         action="store_true",
         help="Print the exact learning preview and perform zero destination writes",
@@ -62,7 +69,9 @@ def main(
 ) -> int:
     args = _parser().parse_args(argv)
     try:
-        preview = build_learning_workspace_preview(args.source, space=args.space)
+        preview = build_learning_workspace_preview(
+            args.source, space=args.space, source_key=args.source_key
+        )
     except PersonalAlphaPreviewError as error:
         _error(error, stderr)
         return 2

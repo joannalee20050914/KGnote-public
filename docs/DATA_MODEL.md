@@ -213,6 +213,7 @@ snapshot 的 view artifact，只 reference canonical IDs 並增加 focus、group
 ## 3. Stable ID 原則
 
 - Source ID 由 source kind＋穩定外部 ID／canonical path 決定；content hash 用來偵測內容改變，不應每次改動就產生新 source identity。
+- 可攜、可重建的 review／handoff candidate 必須明示 stable external source key；不得把 worktree root、使用者 home 或其他機器絕對路徑當成跨 repository migration 的 canonical path。未明示 key 的單機 local workflow 仍可使用 canonical path identity，但不得宣稱跨機器／跨 worktree 穩定。
 - Concept ID 由經人工可檢查的 normalized canonical name＋space/namespace 決定。Alias 不直接產生新 Concept。
 - Evidence ID 由 source ID＋locator＋normalized proposition＋record `schema_version` 決定。
 - Event ID 由 `source_ids` 中的主 source ID＋穩定事件 locator＋`event_type` 決定，不使用每次執行時間作唯一身分；事件 locator 在 v0 可記入 `context`，Phase 1 schema 應將其結構化。

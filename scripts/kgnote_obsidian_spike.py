@@ -48,6 +48,13 @@ def _parser() -> argparse.ArgumentParser:
         default="personal",
         help="Short learning-space name used in candidate identity",
     )
+    parser.add_argument(
+        "--source-key",
+        help=(
+            "Optional stable namespaced external identifier used instead of the absolute "
+            "source path for portable source/workspace identity"
+        ),
+    )
     return parser
 
 
@@ -93,7 +100,9 @@ def main(
 ) -> int:
     args = _parser().parse_args(argv)
     try:
-        preview = build_learning_workspace_preview(args.source, space=args.space)
+        preview = build_learning_workspace_preview(
+            args.source, space=args.space, source_key=args.source_key
+        )
         markdown = _materialize_or_reuse(preview, args.vault)
         native = augment_native_workspace(preview, markdown.workspace_path)
         audit = validate_native_workspace(preview, markdown.workspace_path)

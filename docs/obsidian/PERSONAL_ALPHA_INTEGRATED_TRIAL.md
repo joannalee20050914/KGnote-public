@@ -4,21 +4,27 @@ Status: candidate prepared for one concentrated human trial after deterministic 
 
 ## Exact candidate
 
-- Obsidian vault root: `output/personal-alpha/rp-pa-3-integrated-candidate/KGnote Alpha/network-path-a178f811`
-- Entry: `output/personal-alpha/rp-pa-3-integrated-candidate/KGnote Alpha/network-path-a178f811/Start Here.md`
-- Optional Canvas: `output/personal-alpha/rp-pa-3-integrated-candidate/KGnote Alpha/network-path-a178f811/Learning Structure.canvas`
-- Immutable source: `output/personal-alpha/rp-pa-3-integrated-candidate/KGnote Alpha/network-path-a178f811/Source/network-path.md`
+- Obsidian vault root: `output/personal-alpha/rp-pa-3-integrated-candidate-portable/KGnote Alpha/network-path-8f242796`
+- Entry: `output/personal-alpha/rp-pa-3-integrated-candidate-portable/KGnote Alpha/network-path-8f242796/Start Here.md`
+- Optional Canvas: `output/personal-alpha/rp-pa-3-integrated-candidate-portable/KGnote Alpha/network-path-8f242796/Learning Structure.canvas`
+- Immutable source: `output/personal-alpha/rp-pa-3-integrated-candidate-portable/KGnote Alpha/network-path-8f242796/Source/network-path.md`
 - Source SHA-256: `2df7ea0ff998afb4afe369b38d5a3b5830e8f24397091a083e5cf15364078e2a`
+- Stable source key: `kgnote-fixture:personal-alpha/network-path`
 
 From the repository root, the documented preparation entry is:
 
 ```bash
-mkdir -p output/personal-alpha/rp-pa-3-integrated-candidate
+mkdir -p output/personal-alpha/rp-pa-3-integrated-candidate-portable
 python3 scripts/kgnote_obsidian_spike.py \
   tests/fixtures/personal-alpha/hierarchical/network-path.md \
-  --vault output/personal-alpha/rp-pa-3-integrated-candidate \
-  --space personal-alpha-trial
+  --vault output/personal-alpha/rp-pa-3-integrated-candidate-portable \
+  --space personal-alpha-trial \
+  --source-key kgnote-fixture:personal-alpha/network-path
 ```
+
+The explicit source key is the canonical identity for this portable review candidate. It prevents a repository
+migration or a different worktree root from changing the source ID and workspace suffix. The source content digest
+still detects byte changes; the key does not replace immutable-source verification.
 
 Open the printed `Obsidian vault root` with **Open folder as vault**. Do not open its parent. No Python, JSON, fixture, or generated file needs manual editing. `Continue Here.md` and `My Notes.md` are intentionally learner-owned Markdown and are the only files this trial asks the learner to edit.
 

@@ -34,6 +34,7 @@ _DEFINITION = re.compile(
 )
 _FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
 _SPACE = re.compile(r"\s+")
+_SOURCE_KEY = re.compile(r"^[a-z][a-z0-9+.-]{1,31}:[^\s\x00-\x1f\x7f]{1,223}$")
 
 _GENERIC_LABELS = {
     "introduction",
@@ -191,6 +192,19 @@ def _read_source(path: str | Path) -> tuple[Path, bytes, str]:
             "Choose a non-empty learning Markdown file.",
         )
     return source_path.resolve(), source_bytes, content
+
+
+def _source_identity_locator(selected_path: Path, source_key: str | None) -> tuple[str, str]:
+    if source_key is None:
+        return str(selected_path), "canonical_path"
+    normalized = unicodedata.normalize("NFKC", source_key).strip()
+    if not _SOURCE_KEY.fullmatch(normalized) or normalized.casefold().startswith("file:"):
+        raise PersonalAlphaPreviewError(
+            "source_key_invalid",
+            "The explicit source key must be a non-file stable external identifier.",
+            "Use a stable namespaced key such as kgnote-fixture:personal-alpha/network-path.",
+        )
+    return normalized, "stable_external_id"
 
 
 def _markdown_lines(content: str) -> tuple[list[str], set[int], set[int]]:
@@ -644,7 +658,7 @@ def _render_markdown(payload: Mapping[str, Any]) -> str:
 
 
 def build_learning_workspace_preview(
-    source_path: str | Path, *, space: str = "personal"
+    source_path: str | Path, *, space: str = "personal", source_key: str | None = None
 ) -> PersonalAlphaPreview:
     """Read one explicit Markdown file and return a deterministic, zero-write preview."""
 
@@ -656,8 +670,8 @@ def build_learning_workspace_preview(
         )
     selected_path, source_bytes, content = _read_source(source_path)
     content_sha256 = hashlib.sha256(source_bytes).hexdigest()
-    canonical_path = str(selected_path)
-    source_id = "src_" + _digest("document", canonical_path, length=32)
+    identity_locator, identity_basis = _source_identity_locator(selected_path, source_key)
+    source_id = "src_" + _digest("document", identity_locator, length=32)
     lines, ignored, code_lines = _markdown_lines(content)
     structure, heading_title = _extract_structure(source_id, lines, ignored, code_lines)
     title = heading_title or selected_path.stem
@@ -719,7 +733,8 @@ def build_learning_workspace_preview(
             "id": source_id,
             "source_kind": "document",
             "title": title,
-            "selected_path": canonical_path,
+            "selected_path": str(selected_path),
+            "identity_basis": identity_basis,
             "content_sha256": content_sha256,
             "byte_count": len(source_bytes),
             "line_count": len(lines),

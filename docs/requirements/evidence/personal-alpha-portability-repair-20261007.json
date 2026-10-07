@@ -1,0 +1,64 @@
+{
+  "schema_version": "kgnote.actual-run-evidence.v1",
+  "evidence_id": "RUN-PERSONAL-ALPHA-PORTABILITY-REPAIR-20261007",
+  "recorded_at": "2026-10-07T21:03:11+08:00",
+  "goal_id": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
+  "milestone_id": "AR-EXTERNAL-REVIEW",
+  "finding_id": "KG-ALPHA-PORTABILITY-001",
+  "result": "deterministic_pass_pending_internal_and_external_review",
+  "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
+  "requirement_ids": [
+    "KG-ALPHA-02",
+    "KG-ALPHA-03",
+    "KG-ALPHA-05",
+    "KG-GOV-07"
+  ],
+  "scenario_ids": [
+    "SC-38",
+    "SC-45",
+    "SC-47"
+  ],
+  "portable_identity": {
+    "source_key": "kgnote-fixture:personal-alpha/network-path",
+    "source_sha256": "2df7ea0ff998afb4afe369b38d5a3b5830e8f24397091a083e5cf15364078e2a",
+    "workspace_name": "network-path-8f242796",
+    "canonical_digest": "8d03b1dc0c01b83accf3c521c20573d9c013cae1abebd706a21d7cff623f2dec",
+    "markdown_digest": "29c1a138e3ac2db8be034a0242556ada573a89f657645737fe117111446c932e",
+    "identity_basis": "stable_external_id",
+    "path_variants_exercised": [
+      "canonical review worktree source path",
+      "archival worktree source path",
+      "two isolated simulated worktree source paths"
+    ],
+    "path_variant_result": "same workspace name and digests"
+  },
+  "exact_handoff": {
+    "path": "docs/obsidian/PERSONAL_ALPHA_INTEGRATED_TRIAL.md",
+    "vault_root": "output/personal-alpha/rp-pa-3-integrated-candidate-portable/KGnote Alpha/network-path-8f242796",
+    "first_run": "applied_and_read_back_passed",
+    "same_input_rerun": "unchanged_and_read_back_passed"
+  },
+  "regressions": {
+    "portable_preview_identity": "pass",
+    "invalid_source_keys_fail_closed": "pass",
+    "native_cli_cross_worktree_identity": "pass",
+    "focused_personal_alpha_and_native_tests": 29
+  },
+  "repository_verification": {
+    "evidence": "output/control-plane/verification-20261007T210311+0800.json",
+    "requirements_guard_tests": 16,
+    "control_plane_tests": 80,
+    "python_product_tests": 308,
+    "node_tests": 54,
+    "git_diff_check": "pass",
+    "untracked_whitespace": "pass",
+    "fingerprint_stable": true
+  },
+  "claims": {
+    "candidate_verified": true,
+    "external_product_review": "pending_fresh_review",
+    "pa_human_1": "not_eligible_candidate_review_pending",
+    "ns_human_smoke": "not_eligible_candidate_review_pending",
+    "release_verified": false
+  }
+}
