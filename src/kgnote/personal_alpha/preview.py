@@ -401,7 +401,11 @@ def _asserted_relation(line: str, left: _Mention, right: _Mention) -> str | None
     suffix = line[right.end:].strip()
     if not re.fullmatch(r"(?:[-*+]\s*|\d+[.)]\s*)?", prefix):
         return None
-    if not re.fullmatch(r"[.。!！?？,，;；:：]*", suffix):
+    # A trailing question mark changes the speech act: the source is asking
+    # whether the relation holds, not asserting that it does.  Keep question
+    # punctuation outside this assertion allowlist so interrogatives fall back
+    # to a source-grounded unresolved association.
+    if not re.fullmatch(r"[.。!！,，;；:：]*", suffix):
         return None
     tests = (
         ("is part of", "part_of"),

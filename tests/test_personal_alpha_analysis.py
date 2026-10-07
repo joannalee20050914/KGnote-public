@@ -209,6 +209,32 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
                 preview = build_learning_workspace_preview(source)
                 self.assertTrue(all(row["relation"] is None for row in preview.payload["relations"]), statement)
 
+    def test_multilingual_interrogative_relations_fail_closed(self):
+        cases = (
+            "**Client** requires **Server**?",
+            "**Client** requires **Server**？",
+            "- **Client** requires **Server**?",
+            "1. **Client** requires **Server**？",
+            "Does **Client** require **Server**?",
+            "Question: **Client** requires **Server**?",
+            "**客戶端**需要**伺服器**？",
+            "問題：**客戶端**需要**伺服器**？",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            for index, statement in enumerate(cases):
+                source = Path(directory) / f"question-{index}.md"
+                source.write_text(f"# Case\n\n{statement}\n", encoding="utf-8")
+                preview = build_learning_workspace_preview(source)
+                self.assertTrue(preview.payload["relations"], statement)
+                self.assertTrue(
+                    all(row["relation"] is None for row in preview.payload["relations"]),
+                    statement,
+                )
+                self.assertTrue(
+                    all(row["edge_class"] == "soft_association" for row in preview.payload["relations"]),
+                    statement,
+                )
+
     def test_only_complete_unqualified_assertions_create_typed_relations(self):
         cases = (
             ("**Client** requires **Server**.", "requires"),
@@ -229,6 +255,10 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
             "**Client** usually requires **Server**.",
             "When recovery mode is enabled, **Client** requires **Server**.",
             "**Client** 未依賴 **Server**。",
+            "**Client** requires **Server**?",
+            "- **Client** requires **Server**？",
+            "Question: **Client** requires **Server**?",
+            "問題：**客戶端**需要**伺服器**？",
         )
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
