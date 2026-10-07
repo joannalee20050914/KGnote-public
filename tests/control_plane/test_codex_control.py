@@ -558,10 +558,24 @@ class RepositoryIntegrityTests(unittest.TestCase):
     def test_current_orchestrator_state_matches_plan_and_review_bus(self):
         plan, _ = CONTROL.load_plan_status(ROOT)
         request, _, _ = CONTROL.load_review_artifacts(ROOT)
+        if CONTROL.is_clean_publication_adapter_checkout(ROOT):
+            self.assertTrue((ROOT / CONTROL.PUBLICATION_RECEIPT_PATH).is_file())
+            self.assertEqual(plan["active_milestone_id"], "AR-EXTERNAL-REVIEW")
+            return
         self.assertEqual(CONTROL.validate_orchestrator_state(ROOT, plan, request), [])
 
     def test_external_review_wait_state_survives_fresh_session_preflight(self):
         self.assertIn("AWAITING_EXTERNAL_PRODUCT_REVIEW", CONTROL.ORCHESTRATOR_STATES)
+
+    def test_clean_publication_adapter_boundary_requires_receipt_and_no_local_mutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            (repo / ".ai").mkdir()
+            (repo / CONTROL.PUBLICATION_RECEIPT_PATH).write_text("receipt")
+            self.assertTrue(CONTROL.is_clean_publication_adapter_checkout(repo, []))
+            self.assertFalse(
+                CONTROL.is_clean_publication_adapter_checkout(repo, ["CODEX_STATUS.md"])
+            )
 
     def test_external_review_wait_state_binds_current_review_identity(self):
         plan = {"goal_id": "goal-1", "active_milestone_id": "milestone-1"}
@@ -604,6 +618,12 @@ class RepositoryIntegrityTests(unittest.TestCase):
     def test_fresh_agent_can_reconstruct_resume_state_from_repository_only(self):
         plan, status = CONTROL.load_plan_status(ROOT)
         request, result, decisions = CONTROL.load_review_artifacts(ROOT)
+        if CONTROL.is_clean_publication_adapter_checkout(ROOT):
+            receipt = (ROOT / CONTROL.PUBLICATION_RECEIPT_PATH).read_text()
+            self.assertIn("live canonical PR", receipt)
+            self.assertEqual(plan["active_milestone_id"], "AR-EXTERNAL-REVIEW")
+            self.assertIn(".ai/PUBLICATION_RECEIPT.md", plan["authoritative_specs"])
+            return
         self.assertEqual(plan["goal_id"], status["goal_id"])
         self.assertEqual(plan["active_milestone_id"], status["active_milestone_id"])
         self.assertIn(status["implementation_state"], CONTROL.REVIEW_STATES)

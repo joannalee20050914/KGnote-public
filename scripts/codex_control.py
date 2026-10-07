@@ -74,6 +74,7 @@ FINGERPRINT_EXCLUDES = {
     ".ai/external-review-state.json",
 }
 FINGERPRINT_EXCLUDE_PREFIXES = (".ai/REVIEW_HISTORY/", ".ai/ORCHESTRATION_HISTORY/")
+PUBLICATION_RECEIPT_PATH = Path(".ai/PUBLICATION_RECEIPT.md")
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -2115,6 +2116,21 @@ def validate_recorded_fingerprint(status: dict[str, Any], fingerprint: dict[str,
     return []
 
 
+def is_clean_publication_adapter_checkout(
+    repo: Path, dirty_paths: list[str] | None = None
+) -> bool:
+    """Recognize a clean exact-candidate checkout without local execution state.
+
+    Mutable review/status receipts cannot embed their containing commit's final
+    SHA and are deliberately excluded from the candidate fingerprint.  A clean
+    checkout therefore recovers external identity through the tracked
+    PUBLICATION_RECEIPT contract and live PR marker, while a worktree with local
+    receipt mutations remains subject to the ordinary strict drift checks.
+    """
+    dirty = changed_paths(repo) if dirty_paths is None else dirty_paths
+    return (repo / PUBLICATION_RECEIPT_PATH).is_file() and not dirty
+
+
 def preflight(repo: Path) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -2134,13 +2150,26 @@ def preflight(repo: Path) -> dict[str, Any]:
     head = git_text(repo, "rev-parse", "HEAD")
     authority_errors, lock = validate_authority(repo)
     errors.extend(authority_errors)
+    publication_adapter_checkout = False
     try:
         plan, status = load_plan_status(repo)
-        errors.extend(validate_plan_status(plan, status, branch=branch, head=head))
-        errors.extend(validate_status_handoff(repo, status))
+        dirty = changed_paths(repo)
+        publication_adapter_checkout = is_clean_publication_adapter_checkout(repo, dirty)
+        plan_status_errors = validate_plan_status(plan, status, branch=branch, head=head)
+        if publication_adapter_checkout:
+            errors.extend(
+                item for item in plan_status_errors
+                if not item.startswith("status_drift:")
+            )
+            warnings.append(
+                "Clean publication-adapter checkout: mutable STATUS/review receipts are historical; "
+                "resolve exact external identity through .ai/PUBLICATION_RECEIPT.md and the live PR marker."
+            )
+        else:
+            errors.extend(plan_status_errors)
+            errors.extend(validate_status_handoff(repo, status))
         if lock and plan.get("product_direction_id") != lock.get("product_direction_id"):
             errors.append("authority_drift: PLAN direction differs from authority lock")
-        dirty = changed_paths(repo)
         unexpected = unexpected_dirty_paths(dirty, plan)
         if unexpected:
             errors.append(f"dirty_state: unexpected paths {unexpected}")
@@ -2167,23 +2196,27 @@ def preflight(repo: Path) -> dict[str, Any]:
 
     worktrees = [line[9:] for line in git_text(repo, "worktree", "list", "--porcelain").splitlines() if line.startswith("worktree ")]
     fingerprint = repository_fingerprint(repo)
-    errors.extend(validate_recorded_fingerprint(status, fingerprint))
+    if not publication_adapter_checkout:
+        errors.extend(validate_recorded_fingerprint(status, fingerprint))
     review_errors: list[str] = []
     review_blockers: list[str] = []
     review_state: str | None = None
     if (repo / ".ai/REVIEW_PROTOCOL.md").is_file():
-        review_errors, review_artifacts = validate_review_artifacts(repo, fingerprint=fingerprint)
-        errors.extend(review_errors)
-        request = review_artifacts.get("request", {})
-        result = review_artifacts.get("result", {})
-        decisions = review_artifacts.get("decisions", {})
-        orchestration_errors = validate_orchestrator_state(repo, plan, request)
-        review_errors.extend(orchestration_errors)
-        errors.extend(orchestration_errors)
-        review_state = request.get("status")
-        review_blockers = review_progression_blockers(
-            request, result, decisions, plan, fingerprint
-        )
+        if publication_adapter_checkout:
+            review_state = "EXTERNAL_ADAPTER_CHECKOUT"
+        else:
+            review_errors, review_artifacts = validate_review_artifacts(repo, fingerprint=fingerprint)
+            errors.extend(review_errors)
+            request = review_artifacts.get("request", {})
+            result = review_artifacts.get("result", {})
+            decisions = review_artifacts.get("decisions", {})
+            orchestration_errors = validate_orchestrator_state(repo, plan, request)
+            review_errors.extend(orchestration_errors)
+            errors.extend(orchestration_errors)
+            review_state = request.get("status")
+            review_blockers = review_progression_blockers(
+                request, result, decisions, plan, fingerprint
+            )
     return {
         "schema_version": "kgnote.preflight-result.v1",
         "status": "pass" if not errors else "fail",

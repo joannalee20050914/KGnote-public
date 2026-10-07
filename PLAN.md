@@ -24,6 +24,7 @@ This file contains exactly one active execution goal. It does not promote any hu
     "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
     "docs/control-plane/INCIDENT_EXTERNAL_REVIEW_BYPASS_20261007.md",
     ".ai/GITHUB_WORK_PRODUCT_REVIEWER.md",
+    ".ai/PUBLICATION_RECEIPT.md",
     ".ai/REVIEW_PROTOCOL.md",
     "docs/PRODUCT_CONTRACT.md",
     "docs/REPRESENTATION_CONSISTENCY_CONTRACT.md",
