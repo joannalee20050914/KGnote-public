@@ -2141,8 +2141,15 @@ def validate_publication_adapter_identity(
     fingerprint: dict[str, Any],
     head: str,
     runner: Callable[[list[str]], str] | None = None,
+    verified_snapshot_json: str | None = None,
 ) -> tuple[list[str], dict[str, Any]]:
-    """Resolve the live canonical PR tuple required by PUBLICATION_RECEIPT."""
+    """Resolve the live canonical PR tuple required by PUBLICATION_RECEIPT.
+
+    A connected-GitHub runtime may inject a snapshot it has already fetched via
+    its authenticated connector.  Local runtimes otherwise use ``gh``.  Both
+    acquisition paths feed the same exact repository/PR/head/marker/fingerprint
+    validator; unavailable tooling is a structured fail-closed result.
+    """
     errors: list[str] = []
     try:
         config = json.loads((repo / ".ai/github-product-reviewer.json").read_text())
@@ -2163,20 +2170,28 @@ def validate_publication_adapter_identity(
     if not isinstance(repository, str) or not isinstance(pull_request, int) or not isinstance(marker, str):
         errors.append("publication_adapter: canonical PR configuration is invalid")
         return errors, {}
-    command = [
-        "gh", "pr", "view", str(pull_request), "--repo", repository,
-        "--json", "headRefOid,body,state,url",
-    ]
+    command = ["gh", "pr", "view", str(pull_request), "--repo", repository,
+               "--json", "headRefOid,body,state,url"]
+    injected = verified_snapshot_json
+    if injected is None:
+        injected = os.environ.get("KGNOTE_VERIFIED_PR_SNAPSHOT_JSON")
     try:
-        if runner is None:
+        if injected is not None:
+            snapshot = json.loads(injected)
+            if snapshot.get("transport") != "connected_github":
+                errors.append("publication_adapter: injected snapshot transport is not connected_github")
+            if snapshot.get("repository") != repository or snapshot.get("pull_request") != pull_request:
+                errors.append("publication_adapter: injected snapshot repository/PR does not match configuration")
+        elif runner is None:
             completed = subprocess.run(command, cwd=repo, text=True, capture_output=True)
             if completed.returncode:
                 raise RuntimeError(completed.stderr.strip() or "gh pr view failed")
-            raw = completed.stdout
+            snapshot = json.loads(completed.stdout)
         else:
-            raw = runner(command)
-        snapshot = json.loads(raw)
-    except (RuntimeError, json.JSONDecodeError) as exc:
+            snapshot = json.loads(runner(command))
+        if not isinstance(snapshot, dict):
+            raise ValueError("snapshot root must be an object")
+    except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
         return errors + [f"publication_adapter: cannot resolve live canonical PR: {exc}"], {}
     pattern = re.compile(
         rf"<!--\s*{re.escape(marker)}\s+candidate_commit=([0-9a-f]{{40}})\s+"

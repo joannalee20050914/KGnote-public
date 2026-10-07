@@ -629,6 +629,69 @@ class RepositoryIntegrityTests(unittest.TestCase):
                 " ".join(CONTROL.validate_publication_adapter_identity(repo, fingerprint, head, stale)[0]),
             )
 
+    def test_publication_adapter_missing_gh_fails_closed_without_traceback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            (repo / ".ai").mkdir()
+            config = {
+                "canonical_repository": "owner/public",
+                "candidate_repository": "owner/public",
+                "trigger_repository": "owner/public",
+                "review_request_repository": "owner/public",
+                "review_pr_number": 1,
+                "request_marker": "REQUEST_V2",
+            }
+            (repo / ".ai/github-product-reviewer.json").write_text(json.dumps(config))
+            unavailable = lambda _command: (_ for _ in ()).throw(FileNotFoundError("gh"))
+            errors, snapshot = CONTROL.validate_publication_adapter_identity(
+                repo, {"value": "b" * 64}, "a" * 40, unavailable
+            )
+            self.assertEqual(snapshot, {})
+            self.assertIn("cannot resolve live canonical PR", " ".join(errors))
+
+    def test_publication_adapter_accepts_exact_connected_github_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            (repo / ".ai").mkdir()
+            config = {
+                "canonical_repository": "owner/public",
+                "candidate_repository": "owner/public",
+                "trigger_repository": "owner/public",
+                "review_request_repository": "owner/public",
+                "review_pr_number": 1,
+                "request_marker": "REQUEST_V2",
+            }
+            (repo / ".ai/github-product-reviewer.json").write_text(json.dumps(config))
+            head = "a" * 40
+            body = (
+                "<!-- REQUEST_V2 candidate_commit=" + head
+                + " candidate_fingerprint=" + "b" * 64 + " review_round=13 -->"
+            )
+            snapshot = json.dumps({
+                "transport": "connected_github",
+                "repository": "owner/public",
+                "pull_request": 1,
+                "headRefOid": head,
+                "body": body,
+                "state": "OPEN",
+                "url": "https://example/pr/1",
+            })
+            self.assertEqual(
+                CONTROL.validate_publication_adapter_identity(
+                    repo, {"value": "b" * 64}, head,
+                    verified_snapshot_json=snapshot,
+                )[0],
+                [],
+            )
+            wrong_repo = snapshot.replace('"owner/public"', '"owner/archive"', 1)
+            self.assertIn(
+                "repository/PR does not match",
+                " ".join(CONTROL.validate_publication_adapter_identity(
+                    repo, {"value": "b" * 64}, head,
+                    verified_snapshot_json=wrong_repo,
+                )[0]),
+            )
+
     def test_external_review_wait_state_binds_current_review_identity(self):
         plan = {"goal_id": "goal-1", "active_milestone_id": "milestone-1"}
         request = {
