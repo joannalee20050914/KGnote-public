@@ -56,7 +56,7 @@ class ControlPlaneNegativeTests(unittest.TestCase):
             "product_direction_id": "D",
             "milestones": [
                 {"id": "M1", "status": "complete", "dependencies": [], "human_gate": "none", "owned_paths": ["a.txt"]},
-                {"id": "M2", "status": "active", "dependencies": ["M1"], "human_gate": "none", "owned_paths": ["work/"]},
+                {"id": "M2", "status": "active", "dependencies": ["M1"], "human_gate": "none", "owned_paths": ["work/"], "acceptance": ["current milestone exact"]},
             ],
         }
 
@@ -475,6 +475,14 @@ class ControlPlaneNegativeTests(unittest.TestCase):
         self.assertEqual(output["review_id"], "review-example-002")
         self.assertEqual(captured["review"]["unresolved_findings"], ["R-001"])
         self.assertTrue(any("R-001" in item for item in request["reviewer_focus"]))
+        self.assertEqual(request["acceptance_criteria"], ["current milestone exact"])
+
+    def test_verification_command_is_repository_relative(self):
+        repo = Path("/private/example/KGnote")
+        rendered = CONTROL.repository_relative_command(
+            repo, ["/private/example/KGnote/.venv/bin/python", "verify.py"]
+        )
+        self.assertEqual(rendered, "./.venv/bin/python verify.py")
 
     def test_pre_custody_invalidation_allocates_new_review_and_audits_reason(self):
         request = self.base_review_request()

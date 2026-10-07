@@ -1285,6 +1285,12 @@ def load_verification_evidence(repo: Path, relative: str, fingerprint: dict[str,
     return evidence
 
 
+def repository_relative_command(repo: Path, command: list[Any]) -> str:
+    """Render verification commands without persisting host-specific repo paths."""
+    repo_prefix = str(repo.resolve())
+    return " ".join(str(part).replace(repo_prefix, ".") for part in command)
+
+
 def empty_review_result() -> dict[str, Any]:
     return {
         "schema_version": "kgnote.review-result.v1",
@@ -1379,13 +1385,20 @@ def prepare_review_request(
         raise ValueError("; ".join(identity_errors))
     request["authorized_human_decision_identities"] = sorted(identities)
     request["changed_areas"] = changed_areas
-    request["acceptance_criteria"] = [
-        criterion
-        for item in plan.get("milestones", [])
-        if str(item.get("id", "")).startswith("RP-") and item.get("status") in {"complete", "active"}
-        for criterion in item.get("acceptance", [])
+    active_milestone = next(
+        (
+            item for item in plan.get("milestones", [])
+            if item.get("id") == plan.get("active_milestone_id")
+        ),
+        None,
+    )
+    request["acceptance_criteria"] = list(
+        active_milestone.get("acceptance", []) if active_milestone else []
+    )
+    request["validation_performed"] = [
+        repository_relative_command(repo, gate.get("command", []))
+        for gate in evidence.get("gates", [])
     ]
-    request["validation_performed"] = [" ".join(gate.get("command", [])) for gate in evidence.get("gates", [])]
     request["validation_results"] = [
         {
             "name": gate.get("name", "unknown"),
@@ -1476,6 +1489,7 @@ def accept_review_custody(repo: Path, reviewer_identity: str) -> None:
 
 def invalidate_ready_request(repo: Path, reason: str) -> dict[str, Any]:
     request, result, _ = load_review_artifacts(repo)
+    plan, status = load_plan_status(repo)
     if not reason.strip():
         raise ValueError("review_invalidate: a concrete reason is required")
     errors = validate_review_transition(request.get("status"), "IMPLEMENTING", "CODEX_IMPLEMENTER")
@@ -1490,8 +1504,14 @@ def invalidate_ready_request(repo: Path, reason: str) -> dict[str, Any]:
     request["candidate_revision"] = None
     request["candidate_fingerprint"] = None
     request["requested_at"] = None
+    active = next(
+        (item for item in plan.get("milestones", []) if item.get("id") == plan.get("active_milestone_id")),
+        None,
+    )
+    if active is not None:
+        request["milestone_id"] = active["id"]
+        request["acceptance_criteria"] = list(active.get("acceptance", []))
     write_review_request(repo, request)
-    _, status = load_plan_status(repo)
     now = datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds")
     status["updated_at"] = now
     status["implementation_state"] = "IMPLEMENTING"
@@ -1540,6 +1560,7 @@ def invalidate_stale_review(repo: Path, reason: str) -> dict[str, Any]:
     autonomous loop or tempt it to reuse a stale verdict.
     """
     request, result, _ = load_review_artifacts(repo)
+    plan, status = load_plan_status(repo)
     if request.get("status") not in {"READY_FOR_REVIEW", "UNDER_REVIEW"}:
         raise ValueError("stale_review_invalidate: candidate is not sealed or in reviewer custody")
     if not reason.strip():
@@ -1561,11 +1582,17 @@ def invalidate_stale_review(repo: Path, reason: str) -> dict[str, Any]:
     request["candidate_revision"] = None
     request["candidate_fingerprint"] = None
     request["requested_at"] = None
+    active = next(
+        (item for item in plan.get("milestones", []) if item.get("id") == plan.get("active_milestone_id")),
+        None,
+    )
+    if active is not None:
+        request["milestone_id"] = active["id"]
+        request["acceptance_criteria"] = list(active.get("acceptance", []))
     write_review_request(repo, request)
     replace_embedded_json(
         repo / ".ai/REVIEW_RESULT.md", REVIEW_RESULT_BEGIN, REVIEW_RESULT_END, empty_review_result()
     )
-    _, status = load_plan_status(repo)
     now = datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds")
     fingerprint = repository_fingerprint(repo)
     status["updated_at"] = now
