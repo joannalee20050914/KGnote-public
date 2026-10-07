@@ -26,7 +26,7 @@ Codex implementation
 → PA-HUMAN-1 / NS-HUMAN-SMOKE eligibility
 ```
 
-Internal reviewer evidence and external product-review evidence are different artifacts. An internal PASS never satisfies the external gate. The external artifact must be an actual GitHub PR review or top-level PR comment on the canonical pull request, name the exact repository, PR, head commit, and candidate fingerprint, and carry a parseable verdict and findings. Absence, ambiguity, stale identity, wrong repository, or a local role assertion means the external review has not happened.
+Internal reviewer evidence and external product-review evidence are different artifacts. An internal PASS never satisfies the external gate. The external artifact must be an actual GitHub PR review or top-level PR comment on the canonical pull request, name the exact repository, PR, head commit, and candidate fingerprint, and carry a parseable verdict and findings. Exact candidate identity is resolved by `.ai/PUBLICATION_RECEIPT.md`; mutable local execution receipts are not competing identity authorities. Absence, ambiguity, stale identity, wrong repository, or a local role assertion means the external review has not happened.
 
 ## State invariants
 

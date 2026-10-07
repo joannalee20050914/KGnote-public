@@ -379,7 +379,10 @@ def _relation_between(text: str) -> str | None:
     blockers = (
         " no longer ", " not ", " never ", " doesn't ", " does not ",
         " without ", " may ", " might ", " could ", " sometimes ",
-        "不再", "不是", "不需要", "不依賴", "可能", "未必",
+        " rarely ", " seldom ", " hardly ", " only if ", " unless ",
+        " except ", " if ", " conditional ",
+        "不再", "不是", "不會", "並非", "不需要", "不依賴", "可能", "未必",
+        "很少", "幾乎不", "除非", "如果", "若", "僅在",
     )
     padded = f" {normalized} "
     if any(blocker in padded for blocker in blockers):
@@ -431,7 +434,12 @@ def _build_relations(
         for left, right in zip(ordered, ordered[1:]):
             left_concept = concepts_by_name[left.normalized_name]
             right_concept = concepts_by_name[right.normalized_name]
-            relation = _relation_between(lines[line_number - 1][left.end:right.start])
+            full_line_relation = _relation_between(lines[line_number - 1])
+            relation = (
+                _relation_between(lines[line_number - 1][left.end:right.start])
+                if full_line_relation is not None
+                else None
+            )
             edge_class = "canonical_candidate" if relation else "soft_association"
             key = (str(left_concept["id"]), str(right_concept["id"]), relation, line_number)
             if key in seen:

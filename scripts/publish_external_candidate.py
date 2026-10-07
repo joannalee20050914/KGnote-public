@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 from typing import Any, Callable
@@ -16,6 +17,20 @@ import external_review_control
 
 class PublicationError(RuntimeError):
     pass
+
+
+def resolve_pr_candidate(config: dict[str, Any], snapshot: dict[str, Any], recomputed_fingerprint: str) -> dict[str, Any]:
+    pattern = re.compile(
+        rf"<!--\s*{re.escape(config['request_marker'])}\s+candidate_commit=([0-9a-f]{{40}})\s+"
+        rf"candidate_fingerprint=([0-9a-f]{{64}})\s+review_round=([1-5])\s*-->"
+    )
+    matches = pattern.findall(str(snapshot.get("body", "")))
+    if len(matches) != 1:
+        raise PublicationError("candidate resolver requires exactly one request marker")
+    commit, fingerprint, review_round = matches[0]
+    if commit != snapshot.get("headRefOid") or fingerprint != recomputed_fingerprint:
+        raise PublicationError("candidate resolver identity mismatch")
+    return {"candidate_commit": commit, "candidate_fingerprint": fingerprint, "review_round": int(review_round)}
 
 
 def request_marker(config: dict[str, Any], state: dict[str, Any]) -> str:
@@ -86,6 +101,7 @@ def publish(repo: Path, runner: Callable[..., str] = _run) -> dict[str, Any]:
         ["gh", "pr", "view", str(config["review_pr_number"]), "--repo", config["canonical_repository"], "--json", "headRefOid,body,state,url"],
         cwd=repo,
     ))
+    resolve_pr_candidate(config, observed, fingerprint)
     snapshot = {
         "repository": config["canonical_repository"], "pull_request": config["review_pr_number"],
         "remote_head": observed.get("headRefOid"), "candidate_fingerprint": fingerprint,

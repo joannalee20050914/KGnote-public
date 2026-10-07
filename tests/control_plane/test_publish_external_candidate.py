@@ -32,6 +32,12 @@ class PublicationTransitionTests(unittest.TestCase):
     def test_exact_remote_snapshot_passes(self):
         self.assertEqual([], PUBLISH.remote_snapshot_errors(self.config, self.state, self.snapshot))
 
+    def test_fresh_process_resolves_exact_candidate_only_from_pr_and_recomputed_fingerprint(self):
+        observed = {"headRefOid": "a" * 40, "body": self.snapshot["body"]}
+        self.assertEqual(self.state, PUBLISH.resolve_pr_candidate(self.config, observed, "b" * 64))
+        with self.assertRaises(PUBLISH.PublicationError):
+            PUBLISH.resolve_pr_candidate(self.config, observed, "c" * 64)
+
     def test_wrong_repo_stale_head_missing_marker_and_fingerprint_fail_closed(self):
         for field, value in (("repository", "owner/archive"), ("remote_head", "c" * 40),
                              ("candidate_fingerprint", "d" * 64), ("body", "no marker")):

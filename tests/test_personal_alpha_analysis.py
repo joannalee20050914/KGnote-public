@@ -153,6 +153,19 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
         self.assertTrue(all(item["relation"] is None for item in relations))
         self.assertTrue(all(item["edge_class"] == "soft_association" for item in relations))
 
+    def test_multilingual_qualified_relations_fail_closed(self):
+        cases = (
+            "**Client** 不會需要 **Server**。", "**Client** 並非依賴 **Server**。",
+            "**Client** rarely requires **Server**.", "**Client** hardly ever requires **Server**.",
+            "**Client** requires **Server** only if enabled.", "Unless enabled, **Client** requires **Server**.",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            for index, statement in enumerate(cases):
+                source = Path(directory) / f"case-{index}.md"
+                source.write_text(f"# Case\n\n{statement}\n", encoding="utf-8")
+                preview = build_learning_workspace_preview(source)
+                self.assertTrue(all(row["relation"] is None for row in preview.payload["relations"]), statement)
+
 
 if __name__ == "__main__":
     unittest.main()
