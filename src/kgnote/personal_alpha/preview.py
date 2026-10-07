@@ -372,20 +372,22 @@ def _build_concepts(
     return concepts, by_name, evidence
 
 
-def _relation_between(text: str) -> str | None:
-    normalized = _SPACE.sub(" ", text.casefold())
-    # Relation extraction is deliberately conservative.  A lexical trigger inside
-    # a negated or modal clause is not affirmative evidence for a canonical edge.
-    blockers = (
-        " no longer ", " not ", " never ", " doesn't ", " does not ",
-        " without ", " may ", " might ", " could ", " sometimes ",
-        " rarely ", " seldom ", " hardly ", " only if ", " unless ",
-        " except ", " if ", " conditional ",
-        "不再", "不是", "不會", "並非", "不需要", "不依賴", "可能", "未必",
-        "很少", "幾乎不", "除非", "如果", "若", "僅在",
-    )
-    padded = f" {normalized} "
-    if any(blocker in padded for blocker in blockers):
+def _asserted_relation(line: str, left: _Mention, right: _Mention) -> str | None:
+    """Return a relation only for one complete, unqualified assertion.
+
+    This is an allowlist grammar, not a denylist.  The marked concepts must be the
+    whole subject and object, the text between them must be exactly one supported
+    predicate, and everything outside the assertion must be Markdown list syntax
+    or punctuation.  Unknown modifiers, negation, conditions, frequency, scope,
+    extra clauses, and reversed syntax therefore fail closed without needing to
+    enumerate every language-specific qualifier.
+    """
+    prefix = line[:left.start].strip()
+    predicate = _SPACE.sub(" ", line[left.end:right.start].strip().casefold())
+    suffix = line[right.end:].strip()
+    if not re.fullmatch(r"(?:[-*+]\s*|\d+[.)]\s*)?", prefix):
+        return None
+    if not re.fullmatch(r"[.。!！?？,，;；:：]*", suffix):
         return None
     tests = (
         ("is part of", "part_of"),
@@ -404,11 +406,11 @@ def _relation_between(text: str) -> str | None:
         ("maps to", "maps_to"),
         ("corresponds to", "maps_to"),
         ("對應", "maps_to"),
-        (" is a ", "is_a"),
+        ("is a", "is_a"),
         ("是一種", "is_a"),
     )
     for phrase, relation in tests:
-        if phrase in padded:
+        if predicate == phrase:
             return relation
     return None
 
@@ -434,12 +436,7 @@ def _build_relations(
         for left, right in zip(ordered, ordered[1:]):
             left_concept = concepts_by_name[left.normalized_name]
             right_concept = concepts_by_name[right.normalized_name]
-            full_line_relation = _relation_between(lines[line_number - 1])
-            relation = (
-                _relation_between(lines[line_number - 1][left.end:right.start])
-                if full_line_relation is not None
-                else None
-            )
+            relation = _asserted_relation(lines[line_number - 1], left, right)
             edge_class = "canonical_candidate" if relation else "soft_association"
             key = (str(left_concept["id"]), str(right_concept["id"]), relation, line_number)
             if key in seen:

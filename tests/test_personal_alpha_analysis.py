@@ -9,6 +9,7 @@ from kgnote.personal_alpha import (
     PERSONAL_ALPHA_PREVIEW_VERSION,
     PersonalAlphaPreviewError,
     build_learning_workspace_preview,
+    materialize_learning_workspace,
 )
 
 
@@ -49,9 +50,7 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
 
         relations = first.payload["relations"]
         relation_types = {item["relation"] for item in relations}
-        self.assertIn("requires", relation_types)
-        self.assertIn("maps_to", relation_types)
-        self.assertIn(None, relation_types)
+        self.assertEqual(relation_types, {None})
         self.assertTrue(all(item["review_status"] == "unreviewed" for item in relations))
         self.assertIn("Preview only", first.markdown)
         self.assertIn("Major topics and sections", first.markdown)
@@ -155,9 +154,19 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
 
     def test_multilingual_qualified_relations_fail_closed(self):
         cases = (
-            "**Client** 不會需要 **Server**。", "**Client** 並非依賴 **Server**。",
-            "**Client** rarely requires **Server**.", "**Client** hardly ever requires **Server**.",
-            "**Client** requires **Server** only if enabled.", "Unless enabled, **Client** requires **Server**.",
+            "**Client** 不會需要 **Server**。",
+            "**Client** 並非依賴 **Server**。",
+            "**Client** 未依賴 **Server**。",
+            "**Client** 通常需要 **Server**。",
+            "**Client** rarely requires **Server**.",
+            "**Client** usually requires **Server**.",
+            "**Client** hardly ever requires **Server**.",
+            "**Client** requires **Server** only if enabled.",
+            "Unless enabled, **Client** requires **Server**.",
+            "When recovery mode is enabled, **Client** requires **Server**.",
+            "**Client** requires **Server** during recovery.",
+            "**Client** does not require **Server**.",
+            "**Client** may require **Server**.",
         )
         with tempfile.TemporaryDirectory() as directory:
             for index, statement in enumerate(cases):
@@ -165,6 +174,43 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
                 source.write_text(f"# Case\n\n{statement}\n", encoding="utf-8")
                 preview = build_learning_workspace_preview(source)
                 self.assertTrue(all(row["relation"] is None for row in preview.payload["relations"]), statement)
+
+    def test_only_complete_unqualified_assertions_create_typed_relations(self):
+        cases = (
+            ("**Client** requires **Server**.", "requires"),
+            ("- **Port** maps to **Service**。", "maps_to"),
+            ("**種子**需要**水分**。", "requires"),
+            ("**TCP** is part of **Protocol suite**!", "part_of"),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            for index, (statement, expected) in enumerate(cases):
+                source = Path(directory) / f"assertion-{index}.md"
+                source.write_text(f"# Case\n\n{statement}\n", encoding="utf-8")
+                preview = build_learning_workspace_preview(source)
+                typed = [row["relation"] for row in preview.payload["relations"]]
+                self.assertEqual(typed, [expected], statement)
+
+    def test_qualified_relations_never_leak_into_materialized_learner_notes(self):
+        statements = (
+            "**Client** usually requires **Server**.",
+            "When recovery mode is enabled, **Client** requires **Server**.",
+            "**Client** 未依賴 **Server**。",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for index, statement in enumerate(statements):
+                source = root / f"materialized-{index}.md"
+                source.write_text(f"# Case\n\n{statement}\n", encoding="utf-8")
+                vault = root / f"vault-{index}"
+                vault.mkdir()
+                preview = build_learning_workspace_preview(source)
+                result = materialize_learning_workspace(preview, vault)
+                workspace = Path(result.workspace_path)
+                learner_files = [workspace / "Relationships.md", *sorted((workspace / "Concepts").glob("*.md"))]
+                rendered = "\n".join(path.read_text(encoding="utf-8") for path in learner_files)
+                self.assertNotIn("**requires**", rendered, statement)
+                self.assertNotIn("**is required by**", rendered, statement)
+                self.assertIn("leaves this unresolved", rendered, statement)
 
 
 if __name__ == "__main__":

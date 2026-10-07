@@ -219,6 +219,51 @@ class OrchestrationSimulationTests(unittest.TestCase):
             self.assertEqual(state["blockers"][0]["type"], "repair_budget_exhausted")
             self.assertEqual(state["blockers"][0]["review_cycle"], 5)
 
+    def test_external_review_handoff_is_machine_owned_and_does_not_busy_loop(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.base_state(review_cycle=1)
+            state["state"] = "AWAITING_EXTERNAL_PRODUCT_REVIEW"
+            with mock.patch.object(ORCH, "acquire_lock", return_value={}), \
+                 mock.patch.object(ORCH, "release_lock"), \
+                 mock.patch.object(ORCH, "orchestrate_step") as step:
+                result = ORCH.run_loop(root, state, lambda *_args: {}, max_steps=None)
+            step.assert_not_called()
+            self.assertFalse(result["human_action_required"])
+            self.assertEqual(result["state"], "AWAITING_EXTERNAL_PRODUCT_REVIEW")
+
+    def test_internal_pass_executes_exact_publication_before_external_wait(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".ai").mkdir()
+            state = self.base_state(review_cycle=1)
+            plan = {
+                "active_milestone_id": "AR-EXTERNAL-REVIEW",
+                "milestones": [
+                    {"id": "AR-EXTERNAL-REVIEW", "status": "active", "dependencies": [], "human_gate": "none"},
+                    {"id": "AR-HUMAN-ELIGIBILITY", "status": "pending", "dependencies": ["AR-EXTERNAL-REVIEW"], "human_gate": "PA-HUMAN-1"},
+                ],
+            }
+            external = {
+                "canonical_repository": "owner/repo", "pull_request": 1,
+                "review_round": 3, "external_review": {"status": "CHANGES_REQUIRED"},
+            }
+            completed = mock.Mock(stdout=("a" * 40 + "\n").encode())
+            with mock.patch.object(ORCH.control, "load_plan_status", return_value=(plan, {})), \
+                 mock.patch.object(ORCH.external_review_control, "load_json", return_value=external), \
+                 mock.patch.object(ORCH.control, "load_review_artifacts", return_value=({"review_id": "review-010"}, {}, {})), \
+                 mock.patch.object(ORCH.control, "repository_fingerprint", return_value={"value": "b" * 64}), \
+                 mock.patch.object(ORCH.control, "run_git", return_value=completed), \
+                 mock.patch.object(ORCH.publish_external_candidate, "publish", return_value={"artifact_url": "https://example.test/pr/1"}) as publish:
+                ORCH.advance_after_pass(root, state)
+
+            publish.assert_called_once_with(root)
+            self.assertEqual(state["state"], "AWAITING_EXTERNAL_PRODUCT_REVIEW")
+            self.assertFalse(state["human_action_required"])
+            prepared = json.loads((root / ".ai/external-review-state.json").read_text())
+            self.assertEqual(prepared["review_round"], 4)
+            self.assertEqual(prepared["internal_review"]["status"], "PASS")
+
 
 class OrchestratorDurabilityTests(unittest.TestCase):
     def copy_repository_snapshot(self, source_root, root):

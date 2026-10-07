@@ -63,6 +63,7 @@ class PublicationTransitionTests(unittest.TestCase):
             def runner(command, *, cwd):
                 calls.append(command)
                 if command[:3] == ["git", "rev-parse", "HEAD"]: return "a" * 40
+                if command[:3] == ["git", "status", "--porcelain"]: return ""
                 if command[:4] == ["git", "remote", "get-url", "origin"]: return "https://github.com/owner/public.git"
                 if command[:3] == ["git", "branch", "--show-current"]: return "codex/candidate"
                 if command[:3] == ["gh", "pr", "view"] and command[-1] == "body": return json.dumps({"body": "PR"})
@@ -85,6 +86,7 @@ class PublicationTransitionTests(unittest.TestCase):
             (repo / ".ai/external-review-state.json").write_text(json.dumps({**self.state, "publication": {"status": "PENDING"}}))
             def runner(command, *, cwd):
                 if command[:3] == ["git", "rev-parse", "HEAD"]: return "a" * 40
+                if command[:3] == ["git", "status", "--porcelain"]: return ""
                 if command[:4] == ["git", "remote", "get-url", "origin"]: return "https://github.com/owner/public.git"
                 if command[:3] == ["git", "branch", "--show-current"]: return "codex/candidate"
                 if command[:3] == ["gh", "pr", "view"]: return json.dumps({"body": PUBLISH.request_marker(self.config, self.state)})
@@ -94,6 +96,22 @@ class PublicationTransitionTests(unittest.TestCase):
                 PUBLISH.publish(repo, runner)
             recorded = json.loads((repo / ".ai/external-review-state.json").read_text())
             self.assertEqual("PENDING", recorded["publication"]["status"])
+
+    def test_uncommitted_candidate_files_fail_before_remote_mutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory); (repo / ".ai").mkdir(); (repo / ".git").mkdir()
+            (repo / ".ai/github-product-reviewer.json").write_text(json.dumps(self.config))
+            (repo / ".ai/external-review-state.json").write_text(json.dumps(self.state))
+            commands = []
+            def runner(command, *, cwd):
+                commands.append(command)
+                if command[:3] == ["git", "rev-parse", "HEAD"]: return "a" * 40
+                if command[:3] == ["git", "status", "--porcelain"]:
+                    return " M src/product.py\n M CODEX_STATUS.md\n?? .ai/REVIEW_HISTORY/review-001/result.md"
+                raise AssertionError(command)
+            with mock.patch.object(PUBLISH.codex_control, "repository_fingerprint", return_value={"value": "b" * 64}), self.assertRaisesRegex(PUBLISH.PublicationError, "src/product.py"):
+                PUBLISH.publish(repo, runner)
+            self.assertFalse(any(command[:2] == ["git", "push"] for command in commands))
 
 
 if __name__ == "__main__":

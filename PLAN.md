@@ -9,7 +9,7 @@ This file contains exactly one active execution goal. It does not promote any hu
   "goal_id": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
   "objective": "Repair the canonical-review split brain, consume every blocking finding from KGnote-public#1, publish an exact verified candidate to the one canonical ChatGPT Work review surface, and continue autonomous repair/re-review until external product review has no blocking findings before any human acceptance gate becomes eligible.",
   "status": "active",
-  "active_milestone_id": "AR-PUBLISH",
+  "active_milestone_id": "AR-EXTERNAL-REVIEW",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
   "explicit_direction": {
@@ -155,7 +155,7 @@ This file contains exactly one active execution goal. It does not promote any hu
     {
       "id": "AR-PUBLISH",
       "title": "Exact candidate publication to canonical PR",
-      "status": "active",
+      "status": "complete",
       "dependencies": [
         "AR-INTERNAL-VERIFY"
       ],
@@ -174,7 +174,7 @@ This file contains exactly one active execution goal. It does not promote any hu
     {
       "id": "AR-EXTERNAL-REVIEW",
       "title": "ChatGPT Work external product-review and autonomous repair loop",
-      "status": "pending",
+      "status": "active",
       "dependencies": [
         "AR-PUBLISH"
       ],
@@ -216,6 +216,6 @@ This file contains exactly one active execution goal. It does not promote any hu
 
 ## Current recovery note
 
-Autonomous orchestration state: `IMPLEMENTING`. Active work package: `AR-PUBLISH`.
-Next action: Automatically begin authorized work package AR-PUBLISH.
+Autonomous orchestration state: `IMPLEMENTING`. Active work package: `AR-EXTERNAL-REVIEW`.
+Next action: Automatically begin authorized work package AR-EXTERNAL-REVIEW.
 Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.

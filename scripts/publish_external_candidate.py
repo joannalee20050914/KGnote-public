@@ -85,6 +85,21 @@ def publish(repo: Path, runner: Callable[..., str] = _run) -> dict[str, Any]:
         raise PublicationError("; ".join(authority))
     head = runner(["git", "rev-parse", "HEAD"], cwd=repo)
     fingerprint = codex_control.repository_fingerprint(repo)["value"]
+    status_rows = runner(["git", "status", "--porcelain"], cwd=repo).splitlines()
+    mutable_exact = {
+        ".ai/ORCHESTRATOR_STATE.json", ".ai/REVIEW_REQUEST.md",
+        ".ai/REVIEW_RESULT.md", ".ai/external-review-state.json", "CODEX_STATUS.md",
+    }
+    mutable_prefixes = (".ai/ORCHESTRATION_HISTORY/", ".ai/REVIEW_HISTORY/")
+    unpublished = []
+    for row in status_rows:
+        path = row[3:].split(" -> ")[-1]
+        if path not in mutable_exact and not path.startswith(mutable_prefixes):
+            unpublished.append(path)
+    if unpublished:
+        raise PublicationError(
+            "candidate contains unpublished files: " + ", ".join(sorted(unpublished))
+        )
     if state.get("candidate_commit") != head or state.get("candidate_fingerprint") != fingerprint:
         raise PublicationError("local candidate identity is stale")
     origin = runner(["git", "remote", "get-url", "origin"], cwd=repo)

@@ -145,11 +145,11 @@ class PersonalAlphaPresentationTests(unittest.TestCase):
         body = primary_body(text)
         self.assertIn("# Key relationships", body)
         self.assertIn("HTTP request", body)
-        self.assertIn("requires", body)
         self.assertIn("network connection", body)
         self.assertIn("Port", body)
-        self.assertIn("maps to", body)
         self.assertIn("service endpoint", body)
+        self.assertNotIn("**requires**", body)
+        self.assertNotIn("**maps to**", body)
         self.assertIn(
             "does not establish a more precise relationship", body.replace("**", "")
         )

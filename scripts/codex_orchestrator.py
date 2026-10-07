@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 
 import codex_control as control
 import external_review_control
+import publish_external_candidate
 
 
 STATE_PATH = ".ai/ORCHESTRATOR_STATE.json"
@@ -37,6 +38,7 @@ TERMINAL_STATES = {
     "GOAL_COMPLETE",
     "STOPPED",
 }
+MACHINE_HANDOFF_STATES = {"AWAITING_EXTERNAL_PRODUCT_REVIEW"}
 MACHINE_STATES = {
     "IMPLEMENTING",
     "VALIDATING",
@@ -476,6 +478,74 @@ def advance_after_pass(repo: Path, state: dict[str, Any]) -> None:
     if active is None:
         update_state(repo, state, "AUTOMATION_BLOCKED", "PASS exists but PLAN has no active work package.")
         return
+    if active.get("id") == "AR-EXTERNAL-REVIEW":
+        external_state = external_review_control.load_json(
+            repo / external_review_control.STATE_PATH
+        )
+        external_result = external_state.get("external_review", {})
+        if not (
+            external_result.get("status") == "PASS"
+            and not external_result.get("blocking_findings")
+        ):
+            request, _, _ = control.load_review_artifacts(repo)
+            fingerprint = control.repository_fingerprint(repo)["value"]
+            head = control.run_git(repo, "rev-parse", "HEAD").stdout.decode().strip()
+            external_state.update({
+                "phase": "READY_FOR_PUBLICATION",
+                "review_round": int(external_state.get("review_round", 0)) + 1,
+                "candidate_commit": head,
+                "candidate_fingerprint": fingerprint,
+                "internal_review": {
+                    "status": "PASS",
+                    "artifact": f".ai/REVIEW_RESULT.md#{request.get('review_id')}",
+                },
+                "publication": {
+                    "status": "PENDING",
+                    "repository": external_state.get("canonical_repository"),
+                    "pull_request": external_state.get("pull_request"),
+                    "remote_head": None,
+                    "candidate_fingerprint": fingerprint,
+                    "request_marker": None,
+                    "artifact_url": None,
+                },
+                "external_review": {
+                    "status": "PENDING",
+                    "reviewed_commit": None,
+                    "reviewed_fingerprint": None,
+                    "artifact_url": None,
+                    "blocking_findings": [],
+                },
+                "human_acceptance": {
+                    "eligible": False,
+                    "reason": "Exact external product review is pending.",
+                },
+                "release_verified": False,
+            })
+            external_path = repo / external_review_control.STATE_PATH
+            temporary = external_path.with_suffix(".json.tmp")
+            temporary.write_text(
+                json.dumps(external_state, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            os.replace(temporary, external_path)
+            try:
+                publication = publish_external_candidate.publish(repo)
+            except publish_external_candidate.PublicationError as exc:
+                state["blockers"] = [{"type": "external_publication_failed", "reason": str(exc)}]
+                update_state(
+                    repo,
+                    state,
+                    "AUTOMATION_BLOCKED",
+                    "Exact candidate publication failed closed; preserve review evidence and repair the machine transition.",
+                )
+                return
+            update_state(
+                repo,
+                state,
+                "AWAITING_EXTERNAL_PRODUCT_REVIEW",
+                f"Exact candidate published at {publication['artifact_url']}; await and consume the configured ChatGPT Work event result automatically.",
+            )
+            return
     if active.get("id") == "AR-PUBLISH":
         publication_blockers = (
             external_review_control.repository_publication_progression_blockers(repo)
@@ -708,7 +778,7 @@ def run_loop(repo: Path, state: dict[str, Any], runner: AgentRunner, max_steps: 
     descriptor = acquire_lock(repo, state)
     try:
         steps = 0
-        while state["state"] not in TERMINAL_STATES:
+        while state["state"] not in TERMINAL_STATES | MACHINE_HANDOFF_STATES:
             if (repo / STOP_PATH).exists():
                 (repo / STOP_PATH).unlink()
                 update_state(repo, state, "STOPPED", "Operator requested a safe stop; run resume to continue.")
