@@ -433,6 +433,29 @@ def _asserted_relation(line: str, left: _Mention, right: _Mention) -> str | None
     return None
 
 
+def _has_preceding_question_context(lines: list[str], line_number: int) -> bool:
+    """Recognize one bounded Markdown prompt immediately before a relation line.
+
+    The deterministic extractor has no discourse model.  It therefore treats a
+    directly preceding question heading/label (allowing intervening blank lines)
+    as an uncertainty boundary instead of guessing that the next sentence is an
+    answer.  Broader or ambiguous context continues to fail through the ordinary
+    assertion grammar.
+    """
+    for previous in range(line_number - 2, -1, -1):
+        candidate = lines[previous].strip()
+        if not candidate:
+            continue
+        candidate = re.sub(r"^#{1,6}\s+", "", candidate)
+        candidate = re.sub(r"^(?:[-*+]\s+|\d+[.)]\s+)", "", candidate)
+        candidate = re.sub(r"[*_~]", "", candidate).strip()
+        normalized = unicodedata.normalize("NFKC", candidate).casefold()
+        if normalized.endswith("?"):
+            return True
+        return normalized.rstrip(":：") in {"question", "questions", "q", "問題", "提問"}
+    return False
+
+
 def _build_relations(
     source_id: str,
     lines: list[str],
@@ -454,7 +477,9 @@ def _build_relations(
         for left, right in zip(ordered, ordered[1:]):
             left_concept = concepts_by_name[left.normalized_name]
             right_concept = concepts_by_name[right.normalized_name]
-            relation = _asserted_relation(lines[line_number - 1], left, right)
+            relation = None
+            if not _has_preceding_question_context(lines, line_number):
+                relation = _asserted_relation(lines[line_number - 1], left, right)
             edge_class = "canonical_candidate" if relation else "soft_association"
             key = (str(left_concept["id"]), str(right_concept["id"]), relation, line_number)
             if key in seen:

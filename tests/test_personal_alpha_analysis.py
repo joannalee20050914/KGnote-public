@@ -219,6 +219,10 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
             "Question: **Client** requires **Server**?",
             "**客戶端**需要**伺服器**？",
             "問題：**客戶端**需要**伺服器**？",
+            "## Question\n\n- **Client** requires **Server**.",
+            "Question:\n\n- **Client** requires **Server**.",
+            "## 問題\n\n- **客戶端**需要**伺服器**。",
+            "這是否成立？\n\n- **Client** requires **Server**.",
         )
         with tempfile.TemporaryDirectory() as directory:
             for index, statement in enumerate(cases):
@@ -259,6 +263,9 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
             "- **Client** requires **Server**？",
             "Question: **Client** requires **Server**?",
             "問題：**客戶端**需要**伺服器**？",
+            "## Question\n\n- **Client** requires **Server**.",
+            "Question:\n\n- **Client** requires **Server**.",
+            "## 問題\n\n- **客戶端**需要**伺服器**。",
         )
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
