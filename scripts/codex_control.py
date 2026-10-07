@@ -1561,7 +1561,7 @@ def invalidate_stale_review(repo: Path, reason: str) -> dict[str, Any]:
     """
     request, result, _ = load_review_artifacts(repo)
     plan, status = load_plan_status(repo)
-    if request.get("status") not in {"READY_FOR_REVIEW", "UNDER_REVIEW"}:
+    if request.get("status") not in {"READY_FOR_REVIEW", "UNDER_REVIEW", "PASS"}:
         raise ValueError("stale_review_invalidate: candidate is not sealed or in reviewer custody")
     if not reason.strip():
         raise ValueError("stale_review_invalidate: a concrete reason is required")
