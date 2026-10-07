@@ -223,6 +223,10 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
             "Question:\n\n- **Client** requires **Server**.",
             "## 問題\n\n- **客戶端**需要**伺服器**。",
             "這是否成立？\n\n- **Client** requires **Server**.",
+            "## Questions\n\n- **Client** requires **Server**.\n- **Cache** requires **Database**.",
+            "## 問題\n\n1. **客戶端**需要**伺服器**。\n\n2. **快取**需要**資料庫**。",
+            "Question:\n\n- **Client** requires **Server**.\n  - **Cache** requires **Database**.",
+            "以下是否成立？\n\n- **客戶端**需要**伺服器**。\n- **快取**需要**資料庫**。",
         )
         with tempfile.TemporaryDirectory() as directory:
             for index, statement in enumerate(cases):
@@ -254,6 +258,18 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
                 typed = [row["relation"] for row in preview.payload["relations"]]
                 self.assertEqual(typed, [expected], statement)
 
+    def test_new_markdown_boundary_ends_question_scope(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "question-then-answer.md"
+            source.write_text(
+                "# Case\n\n## Questions\n\n- **Client** requires **Server**.\n\n"
+                "## Answer\n\n- **Cache** requires **Database**.\n",
+                encoding="utf-8",
+            )
+            preview = build_learning_workspace_preview(source)
+        relations = [row["relation"] for row in preview.payload["relations"]]
+        self.assertEqual(relations, [None, "requires"])
+
     def test_qualified_relations_never_leak_into_materialized_learner_notes(self):
         statements = (
             "**Client** usually requires **Server**.",
@@ -266,6 +282,9 @@ class PersonalAlphaAnalysisTests(unittest.TestCase):
             "## Question\n\n- **Client** requires **Server**.",
             "Question:\n\n- **Client** requires **Server**.",
             "## 問題\n\n- **客戶端**需要**伺服器**。",
+            "## Questions\n\n- **Client** requires **Server**.\n- **Cache** requires **Database**.",
+            "## 問題\n\n1. **客戶端**需要**伺服器**。\n\n2. **快取**需要**資料庫**。",
+            "Question:\n\n- **Client** requires **Server**.\n  - **Cache** requires **Database**.",
         )
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

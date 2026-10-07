@@ -227,5 +227,5 @@ This file contains exactly one active execution goal. It does not promote any hu
 ## Current recovery note
 
 Autonomous orchestration state: `VALIDATING`. Active work package: `AR-EXTERNAL-REVIEW`.
-Next action: seal the interrogative fail-closed repair for reopened `KG-SEM-001`, publish round 7, and obtain a fresh exact external product-review artifact.
+Next action: seal the multi-item question-block scope repair for `KG-SEM-001`, publish authorized round 8, and obtain a fresh exact external product-review artifact.
 Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.
