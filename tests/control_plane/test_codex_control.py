@@ -692,6 +692,46 @@ class RepositoryIntegrityTests(unittest.TestCase):
                 )[0]),
             )
 
+    def test_explicit_runner_precedes_ambient_connected_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            (repo / ".ai").mkdir()
+            config = {
+                "canonical_repository": "owner/public",
+                "candidate_repository": "owner/public",
+                "trigger_repository": "owner/public",
+                "review_request_repository": "owner/public",
+                "review_pr_number": 1,
+                "request_marker": "REQUEST_V2",
+            }
+            (repo / ".ai/github-product-reviewer.json").write_text(json.dumps(config))
+            head = "a" * 40
+            fingerprint = {"value": "b" * 64}
+            exact = {
+                "headRefOid": head,
+                "body": (
+                    "<!-- REQUEST_V2 candidate_commit=" + head
+                    + " candidate_fingerprint=" + "b" * 64 + " review_round=14 -->"
+                ),
+                "state": "OPEN",
+                "url": "https://example/pr/1",
+            }
+            ambient_stale = json.dumps({
+                "transport": "connected_github",
+                "repository": "owner/public",
+                "pull_request": 1,
+                **exact,
+                "headRefOid": "c" * 40,
+            })
+            with mock.patch.dict(
+                "os.environ", {"KGNOTE_VERIFIED_PR_SNAPSHOT_JSON": ambient_stale}
+            ):
+                errors, observed = CONTROL.validate_publication_adapter_identity(
+                    repo, fingerprint, head, lambda _command: json.dumps(exact)
+                )
+            self.assertEqual(errors, [])
+            self.assertEqual(observed["headRefOid"], head)
+
     def test_external_review_wait_state_binds_current_review_identity(self):
         plan = {"goal_id": "goal-1", "active_milestone_id": "milestone-1"}
         request = {

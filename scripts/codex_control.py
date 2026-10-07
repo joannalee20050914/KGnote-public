@@ -2172,23 +2172,27 @@ def validate_publication_adapter_identity(
         return errors, {}
     command = ["gh", "pr", "view", str(pull_request), "--repo", repository,
                "--json", "headRefOid,body,state,url"]
-    injected = verified_snapshot_json
-    if injected is None:
-        injected = os.environ.get("KGNOTE_VERIFIED_PR_SNAPSHOT_JSON")
+    ambient_snapshot = os.environ.get("KGNOTE_VERIFIED_PR_SNAPSHOT_JSON")
     try:
-        if injected is not None:
-            snapshot = json.loads(injected)
+        if verified_snapshot_json is not None:
+            snapshot = json.loads(verified_snapshot_json)
             if snapshot.get("transport") != "connected_github":
                 errors.append("publication_adapter: injected snapshot transport is not connected_github")
             if snapshot.get("repository") != repository or snapshot.get("pull_request") != pull_request:
                 errors.append("publication_adapter: injected snapshot repository/PR does not match configuration")
-        elif runner is None:
+        elif runner is not None:
+            snapshot = json.loads(runner(command))
+        elif ambient_snapshot is not None:
+            snapshot = json.loads(ambient_snapshot)
+            if snapshot.get("transport") != "connected_github":
+                errors.append("publication_adapter: injected snapshot transport is not connected_github")
+            if snapshot.get("repository") != repository or snapshot.get("pull_request") != pull_request:
+                errors.append("publication_adapter: injected snapshot repository/PR does not match configuration")
+        else:
             completed = subprocess.run(command, cwd=repo, text=True, capture_output=True)
             if completed.returncode:
                 raise RuntimeError(completed.stderr.strip() or "gh pr view failed")
             snapshot = json.loads(completed.stdout)
-        else:
-            snapshot = json.loads(runner(command))
         if not isinstance(snapshot, dict):
             raise ValueError("snapshot root must be an object")
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
