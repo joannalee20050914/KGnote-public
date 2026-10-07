@@ -28,6 +28,11 @@ Opening the regenerated directory would have tested a candidate whose identity d
 The prior internal and external PASS artifacts were therefore archived as historical/stale, human eligibility was
 withdrawn, and no native or subjective verdict was requested from the owner.
 
+The repair also exposed `KG-CTRL-ROUND-BUDGET-001`: this recovery PLAN and durable orchestrator state authorize eight
+cycles, while the external publication marker parser and product-review schema still capped round numbers at five.
+Those transport contracts are now aligned to the explicit eight-cycle envelope; the repository-wide default remains
+five unless an active PLAN supplies a narrower or broader explicit bound.
+
 ## Repair and permanent invariant
 
 Portable review/handoff candidates now bind source identity to an explicit namespaced stable external source key.
@@ -46,5 +51,7 @@ handoff path must match generator read-back before a human gate becomes eligible
   read-back;
 - the real canonical and archival worktree source paths are exercised with the same key and must emit
   `network-path-8f242796` with identical canonical and Markdown digests.
+- publication accepts the configured last round, rejects a round outside the configured envelope, and removes stale
+  request markers independently of the current maximum.
 
 Durable run evidence: `docs/requirements/evidence/personal-alpha-portability-repair-20261007.json`.

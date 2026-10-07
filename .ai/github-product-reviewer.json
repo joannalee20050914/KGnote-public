@@ -14,5 +14,5 @@
   "trusted_reviewer_author_login": "joannalee20050914",
   "trigger_events": ["pull_request.ready_for_review", "pull_request.synchronize"],
   "last_reviewed_candidate_fingerprint": null,
-  "max_product_review_rounds": 5
+  "max_product_review_rounds": 8
 }

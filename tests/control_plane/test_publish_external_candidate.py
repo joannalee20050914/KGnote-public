@@ -20,6 +20,7 @@ class PublicationTransitionTests(unittest.TestCase):
             "candidate_repository": "owner/public", "trigger_repository": "owner/public",
             "review_request_repository": "owner/public", "archive_repository": "owner/archive",
             "review_pr_number": 1, "request_marker": "REQUEST_V2",
+            "max_product_review_rounds": 8,
         }
         self.state = {"candidate_commit": "a" * 40, "candidate_fingerprint": "b" * 64, "review_round": 2}
         marker = PUBLISH.request_marker(self.config, self.state)
@@ -43,6 +44,20 @@ class PublicationTransitionTests(unittest.TestCase):
         self.assertEqual(self.state, PUBLISH.resolve_pr_candidate(self.config, observed, "b" * 64))
         with self.assertRaises(PUBLISH.PublicationError):
             PUBLISH.resolve_pr_candidate(self.config, observed, "c" * 64)
+
+    def test_configured_late_round_is_supported_and_round_over_budget_fails_closed(self):
+        late = {**self.state, "review_round": 8}
+        observed = {"headRefOid": "a" * 40, "body": PUBLISH.request_marker(self.config, late)}
+        self.assertEqual(late, PUBLISH.resolve_pr_candidate(self.config, observed, "b" * 64))
+        with self.assertRaisesRegex(PUBLISH.PublicationError, "authority envelope"):
+            PUBLISH.request_marker(self.config, {**late, "review_round": 9})
+
+    def test_stale_marker_cleanup_is_not_limited_by_current_round_budget(self):
+        body = (
+            "PR\n\n<!-- REQUEST_V2 candidate_commit=" + "c" * 40
+            + " candidate_fingerprint=" + "d" * 64 + " review_round=99 -->\n"
+        )
+        self.assertEqual("PR", PUBLISH.without_request_markers(self.config, body))
 
     def test_republication_replaces_stale_request_marker(self):
         old_state = {**self.state, "candidate_commit": "c" * 40}

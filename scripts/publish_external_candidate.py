@@ -19,10 +19,19 @@ class PublicationError(RuntimeError):
     pass
 
 
+def validated_review_round(config: dict[str, Any], value: Any) -> int:
+    maximum = config.get("max_product_review_rounds")
+    if not isinstance(maximum, int) or maximum < 1:
+        raise PublicationError("review round policy is missing or invalid")
+    if not isinstance(value, int) or isinstance(value, bool) or not 1 <= value <= maximum:
+        raise PublicationError("review round is outside the configured authority envelope")
+    return value
+
+
 def resolve_pr_candidate(config: dict[str, Any], snapshot: dict[str, Any], recomputed_fingerprint: str) -> dict[str, Any]:
     pattern = re.compile(
         rf"<!--\s*{re.escape(config['request_marker'])}\s+candidate_commit=([0-9a-f]{{40}})\s+"
-        rf"candidate_fingerprint=([0-9a-f]{{64}})\s+review_round=([1-5])\s*-->"
+        rf"candidate_fingerprint=([0-9a-f]{{64}})\s+review_round=([1-9][0-9]*)\s*-->"
     )
     matches = pattern.findall(str(snapshot.get("body", "")))
     if len(matches) != 1:
@@ -30,21 +39,23 @@ def resolve_pr_candidate(config: dict[str, Any], snapshot: dict[str, Any], recom
     commit, fingerprint, review_round = matches[0]
     if commit != snapshot.get("headRefOid") or fingerprint != recomputed_fingerprint:
         raise PublicationError("candidate resolver identity mismatch")
-    return {"candidate_commit": commit, "candidate_fingerprint": fingerprint, "review_round": int(review_round)}
+    round_number = validated_review_round(config, int(review_round))
+    return {"candidate_commit": commit, "candidate_fingerprint": fingerprint, "review_round": round_number}
 
 
 def request_marker(config: dict[str, Any], state: dict[str, Any]) -> str:
+    round_number = validated_review_round(config, state.get("review_round"))
     return (
         f"<!-- {config['request_marker']} candidate_commit={state['candidate_commit']} "
         f"candidate_fingerprint={state['candidate_fingerprint']} "
-        f"review_round={state['review_round']} -->"
+        f"review_round={round_number} -->"
     )
 
 
 def without_request_markers(config: dict[str, Any], body: str) -> str:
     pattern = re.compile(
         rf"\n?<!--\s*{re.escape(config['request_marker'])}\s+candidate_commit=[0-9a-f]{{40}}\s+"
-        rf"candidate_fingerprint=[0-9a-f]{{64}}\s+review_round=[1-5]\s*-->\n?"
+        rf"candidate_fingerprint=[0-9a-f]{{64}}\s+review_round=[1-9][0-9]*\s*-->\n?"
     )
     return pattern.sub("\n", body).rstrip()
 

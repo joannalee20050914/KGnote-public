@@ -5,6 +5,7 @@
   "goal_id": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
   "milestone_id": "AR-EXTERNAL-REVIEW",
   "finding_id": "KG-ALPHA-PORTABILITY-001",
+  "related_control_plane_finding_id": "KG-CTRL-ROUND-BUDGET-001",
   "result": "deterministic_pass_pending_internal_and_external_review",
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
   "requirement_ids": [

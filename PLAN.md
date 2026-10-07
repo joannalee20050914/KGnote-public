@@ -61,7 +61,8 @@ This file contains exactly one active execution goal. It does not promote any hu
       "KG-CTRL-001"
     ],
     "completion_audit_finding_ids": [
-      "KG-ALPHA-PORTABILITY-001"
+      "KG-ALPHA-PORTABILITY-001",
+      "KG-CTRL-ROUND-BUDGET-001"
     ],
     "forbidden_substitutes": [
       "treating internal reviewer PASS as external product-review PASS",
