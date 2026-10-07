@@ -560,6 +560,9 @@ class RepositoryIntegrityTests(unittest.TestCase):
         request, _, _ = CONTROL.load_review_artifacts(ROOT)
         self.assertEqual(CONTROL.validate_orchestrator_state(ROOT, plan, request), [])
 
+    def test_external_review_wait_state_survives_fresh_session_preflight(self):
+        self.assertIn("AWAITING_EXTERNAL_PRODUCT_REVIEW", CONTROL.ORCHESTRATOR_STATES)
+
     def test_fresh_agent_can_reconstruct_resume_state_from_repository_only(self):
         plan, status = CONTROL.load_plan_status(ROOT)
         request, result, decisions = CONTROL.load_review_artifacts(ROOT)
