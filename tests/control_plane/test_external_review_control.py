@@ -40,6 +40,14 @@ class ExternalReviewControlTests(unittest.TestCase):
                 "blocking_findings": [],
             },
         }
+        self.state["publication"].update({
+            "repository": repository,
+            "pull_request": 1,
+            "candidate_fingerprint": "b" * 64,
+            "request_marker": "REQUEST_V2",
+            "artifact_url": "https://github.example/pr/1",
+        })
+        self.config["request_marker"] = "REQUEST_V2"
 
     def test_wrong_repository_publication_fails_closed(self) -> None:
         config = {**self.config, "candidate_repository": "joannalee20050914/KGnote"}
@@ -75,6 +83,27 @@ class ExternalReviewControlTests(unittest.TestCase):
     def test_exact_external_pass_allows_real_human_checkpoint(self) -> None:
         self.assertEqual([], CONTROL.human_gate_blockers(self.config, self.state))
         self.assertEqual("HUMAN_CHECKPOINT_REQUIRED", CONTROL.next_machine_state(self.config, self.state))
+
+    def test_exact_publication_readback_allows_publish_progression(self) -> None:
+        self.assertEqual([], CONTROL.publication_progression_blockers(self.config, self.state))
+
+    def test_publication_readback_fails_for_wrong_repo_stale_head_or_missing_marker(self) -> None:
+        for field, value in (
+            ("repository", "joannalee20050914/KGnote"),
+            ("remote_head", "c" * 40),
+            ("candidate_fingerprint", "d" * 64),
+            ("request_marker", None),
+        ):
+            with self.subTest(field=field):
+                state = copy.deepcopy(self.state)
+                state["publication"][field] = value
+                blockers = CONTROL.publication_progression_blockers(self.config, state)
+                self.assertTrue(any(field in blocker for blocker in blockers))
+
+    def test_pending_or_failed_publication_cannot_complete_milestone(self) -> None:
+        state = copy.deepcopy(self.state)
+        state["publication"]["status"] = "PENDING"
+        self.assertIn("not published", " ".join(CONTROL.publication_progression_blockers(self.config, state)))
 
 
 if __name__ == "__main__":

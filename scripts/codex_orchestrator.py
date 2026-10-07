@@ -476,6 +476,19 @@ def advance_after_pass(repo: Path, state: dict[str, Any]) -> None:
     if active is None:
         update_state(repo, state, "AUTOMATION_BLOCKED", "PASS exists but PLAN has no active work package.")
         return
+    if active.get("id") == "AR-PUBLISH":
+        publication_blockers = (
+            external_review_control.repository_publication_progression_blockers(repo)
+        )
+        if publication_blockers:
+            update_state(
+                repo,
+                state,
+                "REPAIRING",
+                "AR-PUBLISH cannot complete before exact canonical remote read-back: "
+                + "; ".join(publication_blockers),
+            )
+            return
     active["status"] = "complete"
     completed = {item.get("id") for item in plan.get("milestones", []) if item.get("status") == "complete"}
     ready = [

@@ -103,6 +103,41 @@ def next_machine_state(config: Mapping[str, Any], state: Mapping[str, Any]) -> s
     return "WAITING_FOR_EXTERNAL_REVIEW"
 
 
+def publication_progression_blockers(
+    config: Mapping[str, Any], state: Mapping[str, Any]
+) -> list[str]:
+    """Require authoritative exact-candidate remote read-back before progression."""
+    blockers = repository_authority_errors(config)
+    publication = state.get("publication")
+    if not isinstance(publication, Mapping):
+        return blockers + ["external_review: publication evidence is missing"]
+    expected = {
+        "repository": config.get("canonical_repository"),
+        "pull_request": config.get("review_pr_number"),
+        "remote_head": state.get("candidate_commit"),
+        "candidate_fingerprint": state.get("candidate_fingerprint"),
+        "request_marker": config.get("request_marker"),
+    }
+    if publication.get("status") != "PUBLISHED":
+        blockers.append("external_review: exact candidate is not published")
+    for field, value in expected.items():
+        if not value or publication.get(field) != value:
+            blockers.append(f"external_review: publication read-back mismatch for {field}")
+    artifact = publication.get("artifact_url")
+    if not isinstance(artifact, str) or not artifact:
+        blockers.append("external_review: publication artifact URL is missing")
+    return blockers
+
+
+def repository_publication_progression_blockers(repo: Path) -> list[str]:
+    try:
+        config = load_json(repo / CONFIG_PATH)
+        state = load_json(repo / STATE_PATH)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        return [f"external_review: cannot load publication state: {exc}"]
+    return publication_progression_blockers(config, state)
+
+
 def repository_human_gate_blockers(repo: Path) -> list[str]:
     try:
         config = load_json(repo / CONFIG_PATH)
@@ -116,6 +151,8 @@ __all__ = [
     "ACTIVE_REPOSITORY_FIELDS",
     "human_gate_blockers",
     "next_machine_state",
+    "publication_progression_blockers",
     "repository_authority_errors",
     "repository_human_gate_blockers",
+    "repository_publication_progression_blockers",
 ]
