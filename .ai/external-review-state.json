@@ -1,54 +1,46 @@
 {
   "schema_version": "kgnote.external-product-review-state.v1",
   "program_id": "program-kgnote-autonomous-external-review-v2",
-  "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
+  "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "canonical_repository": "joannalee20050914/KGnote-public",
   "candidate_repository": "joannalee20050914/KGnote-public",
   "trigger_repository": "joannalee20050914/KGnote-public",
   "review_request_repository": "joannalee20050914/KGnote-public",
   "archive_repository": "joannalee20050914/KGnote",
-  "pull_request": 22,
-  "phase": "EXTERNAL_PRODUCT_REVIEW_ACCEPTED",
-  "review_round": 2,
-  "candidate_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
-  "candidate_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
+  "pull_request": 23,
+  "phase": "IMPLEMENTING",
+  "review_round": 0,
+  "candidate_commit": null,
+  "candidate_fingerprint": null,
   "internal_review": {
-    "status": "PASS",
-    "artifact": "output/control-plane/verification-20261016T152918+0800.json"
+    "status": "NOT_RUN_FOR_CURRENT_CANDIDATE",
+    "artifact": null
   },
   "publication": {
-    "status": "PUBLISHED",
+    "status": "NOT_PUBLISHED",
     "repository": "joannalee20050914/KGnote-public",
-    "pull_request": 22,
-    "remote_head": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
-    "candidate_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
+    "pull_request": 23,
+    "remote_head": null,
+    "candidate_fingerprint": null,
     "request_marker": "KGNOTE_PRODUCT_REVIEW_REQUEST_V2",
-    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22",
-    "trigger_comment": "@kgnote-ai-review f35669e11970e42f6a3d0a9fe218fb2b904ed835",
-    "trigger_artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#issuecomment-6210434280"
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/23",
+    "trigger_comment": null,
+    "trigger_artifact_url": null
   },
   "external_review": {
-    "status": "PASS",
-    "reviewed_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
-    "reviewed_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
-    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#pullrequestreview-5544513834",
-    "review_author": "joannalee20050914",
-    "review_source": "pull_request_review",
-    "record_id": 5544513834,
+    "status": "NOT_RUN",
+    "reviewed_commit": null,
+    "reviewed_fingerprint": null,
+    "artifact_url": null,
+    "review_author": null,
+    "review_source": null,
+    "record_id": null,
     "native_ui_observed": false,
     "blocking_findings": [],
-    "consumer_accepted": true,
-    "consumer_reason": "The existing Consumer accepted exactly one Round 2 formal review after validating the trusted author, result marker, schema, repository, PR, program, goal, HEAD, fingerprint, round, and COMMENTED review state. The Round 1 artifact was rejected for result_marker_commit_mismatch against the Round 2 candidate.",
+    "consumer_accepted": false,
+    "consumer_reason": "No external result exists for the Issue #8 exact candidate.",
     "schema": "schemas/product-review/v1/review-result.schema.json",
-    "trigger_linkage": {
-      "comment_id": 6210434280,
-      "comment_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#issuecomment-6210434280",
-      "github_artifact_evidence": "The Round 2 review body explicitly identifies comment 6210434280, its author, timestamp, exact body, PR, and matching HEAD.",
-      "scheduled_run_linkage": "not_independently_verified",
-      "scheduled_run_reason": "The current Codex/CLI environment cannot read the ChatGPT Scheduled run record or a platform event-to-run ID. GitHub exposes no native trigger-comment field on the review object.",
-      "unattended_writeback": "not_verified_human_approval_was_still_required",
-      "platform_authorization_limit": "pending_confirmation"
-    }
+    "trigger_linkage": null
   },
   "previous_external_review": {
     "review_round": 1,
@@ -64,9 +56,21 @@
     ],
     "consumer_accepted": true
   },
+  "historical_issue_19_review": {
+    "pull_request": 22,
+    "review_round": 2,
+    "status": "PASS",
+    "reviewed_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
+    "reviewed_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#pullrequestreview-5544513834",
+    "consumer_accepted": true,
+    "applies_to_current_candidate": false,
+    "scheduled_run_linkage": "not_independently_verified",
+    "unattended_writeback": "not_verified_human_approval_was_still_required"
+  },
   "human_acceptance": {
     "eligible": false,
-    "reason": "The exact-review integration slice passed, but it cannot promote product or human acceptance gates. Work write-back still required human approval during this run, so unattended automatic publication remains an unverified platform authorization capability."
+    "reason": "Issue #8 has no accepted exact-candidate external review, and no local or AI result may promote the preserved human product gates."
   },
   "release_verified": false
 }

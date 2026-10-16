@@ -6,7 +6,7 @@ This file records facts and recovery state; it does not define product requireme
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-16T16:32:12+08:00",
+  "updated_at": "2026-10-16T16:35:03+08:00",
   "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "goal_status": "active",
   "active_milestone_id": "D2-T01-SOURCE-LIBRARY",
@@ -15,7 +15,7 @@ This file records facts and recovery state; it does not define product requireme
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/issue-8-source-library",
-    "head": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
+    "head": "a560bd9cecab20b3e5dda3be9e9274aa82d16f6e",
     "base_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
     "base_pull_request": 22,
     "base_pull_request_state": "OPEN_DRAFT_UNMERGED",
@@ -23,7 +23,7 @@ This file records facts and recovery state; it does not define product requireme
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "d78fc639361d326a9e69313831e3d3bacf0c57c850141d2372cfc3852e156b64",
+    "fingerprint": "09d9444084d489ebddbd4713875fb5b8b9bfe382de4bb5de8e3210df28e39569",
     "starting_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
     "expected_dirty_policy": "Issue #8 may change only its product import/source-library/UI paths, bounded tests, requirement delivery evidence, and necessary control/review state. Existing Issue #19 closure receipts are preserved; unrelated changes are forbidden.",
     "preserved_preexisting_dirty_paths": [
@@ -44,7 +44,7 @@ This file records facts and recovery state; it does not define product requireme
   },
   "external_review": {
     "repository": "joannalee20050914/KGnote-public",
-    "pull_request": null,
+    "pull_request": 23,
     "status": "NOT_RUN_FOR_ISSUE_8",
     "review_round": null,
     "reviewed_commit": null,
@@ -74,7 +74,7 @@ This file records facts and recovery state; it does not define product requireme
     "last_green_milestone": "S2B-REVIEW-INTEGRATION-TASK",
     "last_candidate_evidence": "output/control-plane/verification-20261016T152918+0800.json",
     "last_verified_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
-    "last_result": "Authorized Issue #8 candidate and bounded review-control fixture updates changed bytes."
+    "last_result": "Issue #8 Draft PR #23 and exact external-review target configured."
   },
   "next_action": "Run deterministic validation; on success create the next fingerprint-bound review request.",
   "external_or_human_gates": [

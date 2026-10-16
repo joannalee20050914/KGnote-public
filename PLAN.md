@@ -58,7 +58,7 @@ This file contains exactly one active execution goal. It does not promote any hu
     "review_request_repository": "joannalee20050914/KGnote-public",
     "archive_repository": "joannalee20050914/KGnote",
     "base_pull_request": 22,
-    "candidate_pull_request": null
+    "candidate_pull_request": 23
   },
   "previous_goal_disposition": {
     "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
