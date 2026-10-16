@@ -142,12 +142,17 @@ class ExactReviewIntegrationTests(unittest.TestCase):
             if command[:3] == ["git", "push", "origin"]:
                 return ""
             if command[:3] == ["gh", "pr", "view"]:
+                if command[3] == str(self.live_config["dependency_pr_number"]):
+                    return json.dumps({"number": self.live_config["dependency_pr_number"], "state": "OPEN", "mergedAt": None})
                 return json.dumps(
                     {
                         "headRefOid": COMMIT,
                         "body": "isolated candidate\n" + marker,
                         "state": "OPEN",
                         "url": "https://example.invalid/isolated/pr/1",
+                        "isDraft": True,
+                        "headRefName": self.live_config["review_pr_head_branch"],
+                        "baseRefName": self.live_config["review_pr_base_branch"],
                     }
                 )
             if command[:2] == ["gh", "api"] and command[-1] == "--paginate":
@@ -190,6 +195,14 @@ class ExactReviewIntegrationTests(unittest.TestCase):
                 "reviewed_fingerprint": decision["candidate_fingerprint"],
                 "artifact_url": "https://example.invalid/isolated/review/9001",
                 "blocking_findings": decision["findings"],
+            }
+            state["delivery_receipt"] = {
+                "status": "VERIFIED", "repository": self.live_config["canonical_repository"],
+                "pull_request": self.live_config["review_pr_number"], "candidate_commit": COMMIT,
+                "candidate_fingerprint": FINGERPRINT, "review_round": state["review_round"],
+                "review_artifact_url": "https://example.invalid/isolated/review/9001",
+                "issue_comment_url": "https://example.invalid/issues/8#comment",
+                "project_status": "Review Queue",
             }
             self.assertEqual(COMMIT, publication["remote_head"])
             self.assertEqual(FINGERPRINT, publication["candidate_fingerprint"])

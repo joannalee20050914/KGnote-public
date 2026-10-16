@@ -154,7 +154,7 @@ def publication_progression_blockers(
     if publication.get("status") != "PUBLISHED":
         blockers.append("external_review: exact candidate is not published")
     for field, value in expected.items():
-        if not value or publication.get(field) != value:
+        if value is None or value == "" or publication.get(field) != value:
             blockers.append(f"external_review: publication read-back mismatch for {field}")
     artifact = publication.get("artifact_url")
     if not isinstance(artifact, str) or not artifact:
