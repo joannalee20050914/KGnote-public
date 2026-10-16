@@ -8,10 +8,11 @@ Status: active execution contract. This extends the repository review control pl
 - candidate repository: `joannalee20050914/KGnote-public`
 - configured ChatGPT Work trigger repository: `joannalee20050914/KGnote-public`
 - review-request repository: `joannalee20050914/KGnote-public`
-- canonical pull request: `joannalee20050914/KGnote-public#1`
+- canonical pull request for the authorized Issue #19 single-round verification: `joannalee20050914/KGnote-public#22`
+- historical pull request retained without mutation: `joannalee20050914/KGnote-public#1`
 - archival repository: `joannalee20050914/KGnote`
 
-All four active repository identities must be equal. The archival repository must remain private and must not receive candidate publication or review-trigger events unless a later explicit migration decision supersedes `CANONICAL_PUBLIC_REPOSITORY_MIGRATION_20261005.md`.
+All four active repository identities must be equal. The archival repository must remain private and must not receive candidate publication or review-trigger events unless a later explicit migration decision supersedes `CANONICAL_PUBLIC_REPOSITORY_MIGRATION_20261005.md`. The PR #22 binding is limited to this single-round transport verification and does not supersede or modify the historical evidence on PR #1.
 
 ## Required pipeline
 

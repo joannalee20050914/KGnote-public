@@ -1,44 +1,44 @@
 {
   "schema_version": "kgnote.external-product-review-state.v1",
   "program_id": "program-kgnote-autonomous-external-review-v2",
-  "goal_id": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
+  "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
   "canonical_repository": "joannalee20050914/KGnote-public",
   "candidate_repository": "joannalee20050914/KGnote-public",
   "trigger_repository": "joannalee20050914/KGnote-public",
   "review_request_repository": "joannalee20050914/KGnote-public",
   "archive_repository": "joannalee20050914/KGnote",
-  "pull_request": 1,
-  "phase": "SUPERSEDED_BY_STAGE2B_PLANNING",
-  "review_round": 14,
-  "candidate_commit": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
-  "candidate_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
+  "pull_request": 22,
+  "phase": "PREPARING_CANDIDATE",
+  "review_round": 1,
+  "candidate_commit": null,
+  "candidate_fingerprint": null,
   "internal_review": {
-    "status": "EVIDENCE_NOT_RECONSTRUCTED_FOR_EXACT_B975BB5",
-    "artifact": null
+    "status": "LOCAL_DETERMINISTIC_EVIDENCE_ONLY",
+    "artifact": "tests/control_plane/test_exact_review_integration.py"
   },
   "publication": {
-    "status": "PUBLISHED",
+    "status": "NOT_PUBLISHED",
     "repository": "joannalee20050914/KGnote-public",
-    "pull_request": 1,
-    "remote_head": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
-    "candidate_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
+    "pull_request": 22,
+    "remote_head": null,
+    "candidate_fingerprint": null,
     "request_marker": "KGNOTE_PRODUCT_REVIEW_REQUEST_V2",
-    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/1"
+    "artifact_url": null
   },
   "external_review": {
-    "status": "PASS",
-    "reviewed_commit": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
-    "reviewed_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
-    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/1#pullrequestreview-5444572548",
-    "review_author": "joannalee20050914",
-    "review_source": "pull_request_review",
-    "record_id": 5444572548,
+    "status": "NOT_RUN",
+    "reviewed_commit": null,
+    "reviewed_fingerprint": null,
+    "artifact_url": null,
+    "review_author": null,
+    "review_source": null,
+    "record_id": null,
     "native_ui_observed": false,
     "blocking_findings": []
   },
   "human_acceptance": {
     "eligible": false,
-    "reason": "The old human-eligibility milestone was superseded by the authorized Stage 2B planning direction; native product and learner acceptance were not performed."
+    "reason": "The single-round transport verification cannot promote product or human acceptance gates."
   },
   "release_verified": false
 }

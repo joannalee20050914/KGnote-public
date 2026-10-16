@@ -9,7 +9,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
   "protocol_version": "kgnote.review-protocol.v1",
   "review_id": "review-stage2b-delivery-planning-v1-001",
   "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
-  "milestone_id": "S2B-GITHUB-PROJECTS",
+  "milestone_id": "S2B-REVIEW-INTEGRATION-TASK",
   "status": "IMPLEMENTING",
   "author_role": "CODEX_IMPLEMENTER",
   "base_revision": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
@@ -25,26 +25,56 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     "PLAN.md"
   ],
   "changed_areas": [
-    "Stage 2B GitHub Projects delivery metadata only"
+    "AGENTS.md human-readable GitHub content rule",
+    "preserved Issue #19 bounded exact-review integration test",
+    "minimum PR #22 review transport configuration and control-state alignment"
   ],
   "acceptance_criteria": [
-    "reuse existing Projects and Issues before creating missing D2 hierarchy and views",
-    "bind task status to current evidence without duplicating one Issue per RC"
+    "record one durable Traditional Chinese human-readable GitHub content rule in AGENTS.md",
+    "publish one public-safe Draft PR #22 candidate without modifying PR #1, main, or product source",
+    "emit exactly one configured event trigger and consume one real ChatGPT Work result with exact repository, PR, HEAD, fingerprint, round, author, and source binding"
   ],
   "negative_requirements": [
-    "do not push or update PR #1",
+    "do not update PR #1 or push main",
     "do not start Release 1 through 4 product migration",
     "do not bind the b975bb5 round-14 PASS to a later commit",
     "do not promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
   ],
-  "validation_performed": [],
-  "validation_results": [],
+  "validation_performed": [
+    ".venv/bin/python -m unittest -v tests.control_plane.test_exact_review_integration tests.test_github_product_review_consumer tests.control_plane.test_publish_external_candidate tests.control_plane.test_external_review_control tests.control_plane.test_publication_receipt_contract",
+    ".venv/bin/python -m unittest discover -s tests/control_plane -p 'test_*.py' -v",
+    "live read-only PR #1 review/comment fetch followed by in-memory Review Consumer evaluation against b975bb5/c38fe014/round-14"
+  ],
+  "validation_results": [
+    {
+      "name": "focused exact-review matrix",
+      "status": "PASS",
+      "evidence": "42/42 tests passed"
+    },
+    {
+      "name": "control-plane suite",
+      "status": "PASS",
+      "evidence": "95/95 tests passed before the GitHub human-readability slice; the current slice reruns this suite before completion"
+    },
+    {
+      "name": "isolated exact-review integration",
+      "status": "PASS",
+      "evidence": "one synthetic exact publication-to-consumer-to-gate flow plus eight fail-closed paths passed"
+    },
+    {
+      "name": "historical live PR #1 read-back",
+      "status": "PASS",
+      "evidence": "30 records checked; exact round-14 PASS accepted only for b975bb5/c38fe014 and 29 nonmatching records rejected"
+    }
+  ],
   "known_deviations": [],
-  "known_uncertainties": [],
+  "known_uncertainties": [
+    "The GitHub event channel is externally managed and cannot be proven available until the single authorized exact trigger is emitted and a fresh result is read back."
+  ],
   "reviewer_focus": [
-    "evidence-to-status mapping for reused work",
-    "fail-closed handling of unavailable GitHub Projects operations",
-    "no duplicate RC-only Issues"
+    "exact repository, PR, HEAD, fingerprint, and round binding",
+    "stale, wrong-repository, internal-only, and blocking-finding rejection",
+    "clear separation between deterministic local integration evidence and a real ChatGPT Work review artifact"
   ],
   "preserved_human_gates": [
     "PA-HUMAN-1",

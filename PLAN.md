@@ -7,9 +7,9 @@ This file contains exactly one active execution goal. It does not promote any hu
 {
   "schema_version": "kgnote.codex-plan.v1",
   "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
-  "objective": "Preserve the accepted Feature Disposition Ledger as the reuse-first delivery baseline, create or reuse the D2 GitHub Projects structure without duplicating work, and define the next bounded Codex-to-ChatGPT Work integration task without starting product implementation.",
+  "objective": "Preserve the accepted Stage 2B planning and human-readable GitHub baseline, then execute exactly one bounded Codex-to-GitHub-to-ChatGPT Work-to-Codex review handoff on a public-safe Draft PR without modifying product behavior or PR #1.",
   "status": "active",
-  "active_milestone_id": "S2B-GITHUB-PROJECTS",
+  "active_milestone_id": "S2B-REVIEW-INTEGRATION-TASK",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "explicit_direction": {
@@ -42,7 +42,8 @@ This file contains exactly one active execution goal. It does not promote any hu
       "creating duplicate issues for every RC without a feature hierarchy",
       "treating legacy tests as proof that the current delivery is Done",
       "starting Release 1 through 4 product migration from this planning goal",
-      "binding the b975bb5 round-14 PASS to any later commit or fingerprint"
+      "binding the b975bb5 round-14 PASS to any later commit or fingerprint",
+      "using a simulated result or a Codex-authored verdict as the new ChatGPT Work review"
     ]
   },
   "repository_authority": {
@@ -51,7 +52,7 @@ This file contains exactly one active execution goal. It does not promote any hu
     "trigger_repository": "joannalee20050914/KGnote-public",
     "review_request_repository": "joannalee20050914/KGnote-public",
     "archive_repository": "joannalee20050914/KGnote",
-    "pull_request": 1
+    "pull_request": 22
   },
   "previous_goal_disposition": {
     "goal_id": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
@@ -147,7 +148,7 @@ This file contains exactly one active execution goal. It does not promote any hu
     {
       "id": "S2B-GITHUB-PROJECTS",
       "title": "Create or reuse the D2 GitHub Projects delivery structure",
-      "status": "active",
+      "status": "complete",
       "dependencies": [
         "S2B-CONTROL-ALIGNMENT",
         "S2B-LEDGER-BASELINE"
@@ -156,7 +157,10 @@ This file contains exactly one active execution goal. It does not promote any hu
       "owned_paths": [
         "PLAN.md",
         "CODEX_STATUS.md",
+        ".ai/REVIEW_REQUEST.md",
+        ".ai/ORCHESTRATOR_STATE.json",
         "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
+        "tests/control_plane/test_exact_review_integration.py",
         "GitHub Project and Issue metadata for joannalee20050914/KGnote-public"
       ],
       "acceptance": [
@@ -169,22 +173,53 @@ This file contains exactly one active execution goal. It does not promote any hu
     },
     {
       "id": "S2B-REVIEW-INTEGRATION-TASK",
-      "title": "Define the next minimal Codex-to-ChatGPT Work review integration task",
-      "status": "pending",
+      "title": "Execute one real Codex-to-GitHub-to-ChatGPT Work review handoff",
+      "status": "active",
       "dependencies": [
         "S2B-GITHUB-PROJECTS"
       ],
       "human_gate": "none",
       "owned_paths": [
+        "AGENTS.md",
         "PLAN.md",
         "CODEX_STATUS.md",
+        ".ai/",
+        "docs/control-plane/",
         "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
+        "tests/control_plane/test_exact_review_integration.py",
         "GitHub Project and Issue metadata for joannalee20050914/KGnote-public"
       ],
       "acceptance": [
         "the task starts from actual Review Consumer, Review Transport, and PR #1 state",
         "the task reuses existing protocol, version identity, validators, and tests",
-        "acceptance proves one bounded handoff and fail-closed rejection path without starting product implementation"
+        "one public-safe short-lived branch and independent Draft PR are used without modifying PR #1 or main",
+        "one exact trigger produces a real ChatGPT Work review artifact or a concrete fail-closed transport blocker",
+        "the existing Review Consumer binds repository, PR, HEAD, fingerprint, round, and source before accepting PASS or CHANGES_REQUIRED",
+        "the task stops after one review result and does not start product implementation or an unbounded repair loop"
+      ]
+    },
+    {
+      "id": "S2B-GITHUB-HUMAN-READABILITY",
+      "title": "Make existing GitHub delivery content readable to non-specialists",
+      "status": "complete",
+      "dependencies": [
+        "S2B-GITHUB-PROJECTS"
+      ],
+      "human_gate": "none",
+      "owned_paths": [
+        "AGENTS.md",
+        "docs/control-plane/authority-lock.json",
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/REVIEW_REQUEST.md",
+        ".ai/ORCHESTRATOR_STATE.json",
+        "GitHub Project and Issue metadata for joannalee20050914/KGnote-public"
+      ],
+      "acceptance": [
+        "the single repository AGENTS.md records the product owner's Traditional Chinese human-readable GitHub content rule without changing machine-readable contracts",
+        "the existing 20 Issues receive clearer Traditional Chinese titles and purpose-first bodies without new Issues or changed hierarchy, scope, mappings, acceptance, dependencies, or status",
+        "Project view labels are clearer in Chinese when supported while their filters and item states remain unchanged",
+        "all six parent milestones plus Issues #8, #14, #19, and #21 are read back and audited"
       ]
     }
   ]
@@ -194,6 +229,6 @@ This file contains exactly one active execution goal. It does not promote any hu
 
 ## Current recovery note
 
-Autonomous orchestration state: `STOPPED`. Active work package: `S2B-GITHUB-PROJECTS`.
-Next action: inspect and reuse existing GitHub Projects and Issues, then create only the missing D2 hierarchy and views; do not push PR #1 or start product implementation.
+Autonomous orchestration state: `STOPPED`. Active work package: `S2B-REVIEW-INTEGRATION-TASK`.
+Next action: prepare, verify, publish, and trigger exactly one public-safe Draft PR #22 candidate on `codex/issue-19-real-review`; consume one real ChatGPT Work result and stop without modifying PR #1, main, or product behavior.
 Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.

@@ -2,7 +2,7 @@
   "schema_version": "kgnote.orchestrator-state.v1",
   "run_id": "orch-stage2b-delivery-planning-v1",
   "active_goal": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
-  "work_package": "S2B-GITHUB-PROJECTS",
+  "work_package": "S2B-REVIEW-INTEGRATION-TASK",
   "state": "STOPPED",
   "current_agent": null,
   "candidate_fingerprint": null,
@@ -13,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Inspect and reuse existing GitHub Projects and Issues, then create only the missing D2 hierarchy and views; do not push PR #1 or start product implementation.",
+  "next_action": "Prepare and publish exactly one public-safe Draft PR #22 candidate, emit one exact trigger, consume one real ChatGPT Work result, and stop without modifying PR #1, main, or product behavior.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -28,5 +28,5 @@
   },
   "last_agent_run": null,
   "created_at": "2026-10-16T12:48:12+08:00",
-  "updated_at": "2026-10-16T12:51:34+08:00"
+  "updated_at": "2026-10-16T15:00:00+08:00"
 }

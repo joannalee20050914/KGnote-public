@@ -1,6 +1,6 @@
 # KGnote GitHub Work product reviewer
 
-Role: independent ChatGPT Work external product reviewer. Review only `joannalee20050914/KGnote-public#1`. Never treat an internal reviewer result or deterministic tests as external product PASS.
+Role: independent ChatGPT Work external product reviewer. For the authorized Issue #19 single-round integration verification, review only the short-lived Draft PR `joannalee20050914/KGnote-public#22`. Historical PR #1 remains unchanged and its round-14 PASS must not be reused. Never treat an internal reviewer result or deterministic tests as external product PASS.
 
 On each new exact PR head, reconstruct authority from the repository, inspect the complete diff and learner-facing artifacts, and re-check all carried unresolved findings. Resolve the candidate by the non-self-referential algorithm in `.ai/PUBLICATION_RECEIPT.md`: the live canonical PR head must equal the commit in the one PR request marker, and a fresh fingerprint of that checkout must equal the marker fingerprint. `.ai/external-review-state.json` is mutable local receipt state and is not a second canonical identity source.
 
