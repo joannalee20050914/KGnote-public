@@ -7,7 +7,7 @@ This file contains exactly one active execution goal. It does not promote any hu
 {
   "schema_version": "kgnote.codex-plan.v1",
   "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
-  "objective": "Preserve the accepted Stage 2B planning and human-readable GitHub baseline, then execute exactly one bounded Codex-to-GitHub-to-ChatGPT Work-to-Codex review handoff on a public-safe Draft PR without modifying product behavior or PR #1.",
+  "objective": "Preserve the accepted Stage 2B planning and human-readable GitHub baseline, receive the exact Round 1 ChatGPT Work result on Draft PR #22, repair its single authorized control-plane finding, and publish exactly one repaired candidate trigger without modifying product behavior or PR #1.",
   "status": "active",
   "active_milestone_id": "S2B-REVIEW-INTEGRATION-TASK",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
@@ -186,6 +186,7 @@ This file contains exactly one active execution goal. It does not promote any hu
         ".ai/",
         "docs/control-plane/",
         "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
+        "tests/control_plane/test_codex_control.py",
         "tests/control_plane/test_exact_review_integration.py",
         "GitHub Project and Issue metadata for joannalee20050914/KGnote-public"
       ],
@@ -195,7 +196,7 @@ This file contains exactly one active execution goal. It does not promote any hu
         "one public-safe short-lived branch and independent Draft PR are used without modifying PR #1 or main",
         "one exact trigger produces a real ChatGPT Work review artifact or a concrete fail-closed transport blocker",
         "the existing Review Consumer binds repository, PR, HEAD, fingerprint, round, and source before accepting PASS or CHANGES_REQUIRED",
-        "the task stops after one review result and does not start product implementation or an unbounded repair loop"
+        "after the accepted Round 1 CHANGES_REQUIRED result, only KG-CTRL-STATE-001 is repaired and one Round 2 trigger is published; the task then stops without product implementation or an unbounded repair loop"
       ]
     },
     {
