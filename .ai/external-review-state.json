@@ -8,37 +8,65 @@
   "review_request_repository": "joannalee20050914/KGnote-public",
   "archive_repository": "joannalee20050914/KGnote",
   "pull_request": 22,
-  "phase": "PREPARING_CANDIDATE",
-  "review_round": 1,
-  "candidate_commit": null,
-  "candidate_fingerprint": null,
+  "phase": "EXTERNAL_PRODUCT_REVIEW_ACCEPTED",
+  "review_round": 2,
+  "candidate_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
+  "candidate_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
   "internal_review": {
-    "status": "LOCAL_DETERMINISTIC_EVIDENCE_ONLY",
-    "artifact": "tests/control_plane/test_exact_review_integration.py"
+    "status": "PASS",
+    "artifact": "output/control-plane/verification-20261016T152918+0800.json"
   },
   "publication": {
-    "status": "NOT_PUBLISHED",
+    "status": "PUBLISHED",
     "repository": "joannalee20050914/KGnote-public",
     "pull_request": 22,
-    "remote_head": null,
-    "candidate_fingerprint": null,
+    "remote_head": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
+    "candidate_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
     "request_marker": "KGNOTE_PRODUCT_REVIEW_REQUEST_V2",
-    "artifact_url": null
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22",
+    "trigger_comment": "@kgnote-ai-review f35669e11970e42f6a3d0a9fe218fb2b904ed835",
+    "trigger_artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#issuecomment-6210434280"
   },
   "external_review": {
-    "status": "NOT_RUN",
-    "reviewed_commit": null,
-    "reviewed_fingerprint": null,
-    "artifact_url": null,
-    "review_author": null,
-    "review_source": null,
-    "record_id": null,
+    "status": "PASS",
+    "reviewed_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
+    "reviewed_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#pullrequestreview-5544513834",
+    "review_author": "joannalee20050914",
+    "review_source": "pull_request_review",
+    "record_id": 5544513834,
     "native_ui_observed": false,
-    "blocking_findings": []
+    "blocking_findings": [],
+    "consumer_accepted": true,
+    "consumer_reason": "The existing Consumer accepted exactly one Round 2 formal review after validating the trusted author, result marker, schema, repository, PR, program, goal, HEAD, fingerprint, round, and COMMENTED review state. The Round 1 artifact was rejected for result_marker_commit_mismatch against the Round 2 candidate.",
+    "schema": "schemas/product-review/v1/review-result.schema.json",
+    "trigger_linkage": {
+      "comment_id": 6210434280,
+      "comment_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#issuecomment-6210434280",
+      "github_artifact_evidence": "The Round 2 review body explicitly identifies comment 6210434280, its author, timestamp, exact body, PR, and matching HEAD.",
+      "scheduled_run_linkage": "not_independently_verified",
+      "scheduled_run_reason": "The current Codex/CLI environment cannot read the ChatGPT Scheduled run record or a platform event-to-run ID. GitHub exposes no native trigger-comment field on the review object.",
+      "unattended_writeback": "not_verified_human_approval_was_still_required",
+      "platform_authorization_limit": "pending_confirmation"
+    }
+  },
+  "previous_external_review": {
+    "review_round": 1,
+    "status": "CHANGES_REQUIRED",
+    "reviewed_commit": "40489650a71ba09b26c8e9976dd38030ae2ddbd5",
+    "reviewed_fingerprint": "f0a90833d69e5397aa1fd1ff45ceee87ca70b12e87b0106cd15eca98343be823",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#pullrequestreview-5544290364",
+    "review_author": "joannalee20050914",
+    "review_source": "pull_request_review",
+    "record_id": 5544290364,
+    "blocking_findings": [
+      "KG-CTRL-STATE-001"
+    ],
+    "consumer_accepted": true
   },
   "human_acceptance": {
     "eligible": false,
-    "reason": "The single-round transport verification cannot promote product or human acceptance gates."
+    "reason": "The exact-review integration slice passed, but it cannot promote product or human acceptance gates. Work write-back still required human approval during this run, so unattended automatic publication remains an unverified platform authorization capability."
   },
   "release_verified": false
 }

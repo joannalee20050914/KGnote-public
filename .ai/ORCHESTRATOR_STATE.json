@@ -1,9 +1,9 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "orch-stage2b-delivery-planning-v1",
-  "active_goal": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
-  "work_package": "S2B-REVIEW-INTEGRATION-TASK",
-  "state": "STOPPED",
+  "run_id": "orch-d2-t01-source-library-v1",
+  "active_goal": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
+  "work_package": "D2-T01-SOURCE-LIBRARY",
+  "state": "IMPLEMENTING",
   "current_agent": null,
   "candidate_fingerprint": null,
   "review_id": null,
@@ -13,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Prepare and publish exactly one public-safe Draft PR #22 candidate, emit one exact trigger, consume one real ChatGPT Work result, and stop without modifying PR #1, main, or product behavior.",
+  "next_action": "Reuse the existing importer, canonical store, and bounded Release 1 source-library/UI evidence; implement and verify only Issue #8 persistent revision, conversation speaker, multi-file, UI, provenance, rollback, and read-back gaps.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -22,11 +22,11 @@
     "fingerprint": null
   },
   "next_human_checkpoint": {
-    "id": "PA-HUMAN-1_AND_NS-HUMAN-SMOKE",
-    "status": "not_evaluated_by_stage2b_planning",
-    "description": "Stage 2B planning does not promote native product or learner acceptance gates."
+    "id": "PA-HUMAN-1",
+    "status": "not_evaluated",
+    "description": "Requires native product and learner evidence; deterministic tests and AI review cannot promote it."
   },
   "last_agent_run": null,
-  "created_at": "2026-10-16T12:48:12+08:00",
-  "updated_at": "2026-10-16T15:00:00+08:00"
+  "created_at": "2026-10-16T16:10:00+08:00",
+  "updated_at": "2026-10-16T16:26:51+08:00"
 }

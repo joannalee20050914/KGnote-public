@@ -43,13 +43,13 @@
     {
       "path": "docs/requirements/requirements.json",
       "role": "requirements_ssot",
-      "sha256": "3a91e8914814a1105360aaf9a9e5a42eedc1c2eb15a8e35990b0b4bfd5573f09",
+      "sha256": "7839bf327748a8d5d35ede5786540deb56f10e632a34a1b52808029718f47d3a",
       "required_marker": "KG-ALPHA-05"
     },
     {
       "path": "docs/requirements/scenarios.json",
       "role": "scenarios_ssot",
-      "sha256": "e893ef38666bbaf7026acb0fdf87a6e513cc9d107c5b68cd66922bd670a9961f",
+      "sha256": "47d9e2e85b921c777c0e31abd046fad4dd577e2addbbe42d2972f7e546be642e",
       "required_marker": "SC-48"
     },
     {
@@ -79,7 +79,7 @@
     {
       "path": "DEVELOPMENT_PLAIN.md",
       "role": "active_roadmap",
-      "sha256": "b609852d9323f3379fd54438e57bee0711f621986c6b5ed1aeb7368528d4be29",
+      "sha256": "b37392c8ea2544cd5e16248c413b72240b84f3e96295f8ceeb7c6580164ce758",
       "required_marker": "Obsidian-first learning layer"
     }
   ],

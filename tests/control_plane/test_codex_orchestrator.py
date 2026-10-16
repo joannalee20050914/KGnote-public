@@ -408,6 +408,9 @@ class OrchestratorDurabilityTests(unittest.TestCase):
             )
         )
         target_milestone_id = target_milestone["id"]
+        test_implementation_path = "docs/control-plane/test-decision-implementation.txt"
+        if test_implementation_path not in target_milestone["owned_paths"]:
+            target_milestone["owned_paths"].append(test_implementation_path)
         plan["status"] = "active"
         plan["active_milestone_id"] = target_milestone_id
         for milestone in plan["milestones"]:

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KGnote · 匯入學習材料</title><link rel="stylesheet" href="./learn.css"></head>
+<body>
+<header class="topbar"><a class="brand" href="./home.html">KGnote</a><span>匯入與持久來源資料庫</span><a class="secondary compact" href="./library.html">來源資料庫</a></header>
+<main class="practice-shell">
+  <section class="hero"><p class="eyebrow">SOURCE IMPORT</p><h1>原樣保存 Markdown，再開始整理</h1><p class="lede">可一次選擇多份一般 Markdown，或選擇對話 Markdown。KGnote 會保存原始 UTF-8 bytes（位元組）、來源位置、對話發言者與不可變版本；整理結果不會覆寫原文。</p></section>
+  <form id="source-form" class="history">
+    <label>來源類型<select id="source-kind"><option value="document">一般 Markdown</option><option value="chatgpt_conversation">對話 Markdown（需有 User／Assistant 或 Learner／Tutor 標記）</option></select></label>
+    <label>更新既有來源（可留空）<select id="existing-source"><option value="">建立新來源</option></select></label>
+    <p class="mapping-note">更新既有來源時只能選一個檔案，且會以目前版本作為 optimistic lock（版本鎖）；若版本已變更，系統會拒收而不覆寫。</p>
+    <label>從這台 Mac 選擇 Markdown<input id="source-files" type="file" accept=".md,text/markdown" multiple></label>
+    <p id="file-status" class="mapping-note" role="status">可選多檔；全部驗證成功才會一起保存。</p>
+    <fieldset><legend>或直接貼上一份 Markdown</legend><label>材料名稱<input id="title" maxlength="160" placeholder="例如：DNS 入門"></label><label>Markdown 原文<textarea id="content" rows="12" placeholder="# 主題&#10;&#10;貼上你的學習材料…"></textarea></label></fieldset>
+    <div class="hero-actions"><button class="primary" type="submit">驗證並保存來源</button><a class="secondary" href="./home.html">返回</a></div>
+    <p id="status" role="status" aria-live="polite"></p>
+  </form>
+  <section id="completion" class="history" hidden></section>
+</main>
+<script type="module" src="./import-app.js"></script>
+</body>
+</html>
