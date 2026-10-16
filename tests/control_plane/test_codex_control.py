@@ -179,6 +179,27 @@ class ControlPlaneNegativeTests(unittest.TestCase):
         errors = CONTROL.validate_plan_status(self.base_plan(), status, branch="b", head="h")
         self.assertTrue(any("active milestone differs" in e for e in errors))
 
+    def test_plan_status_accepts_a_different_valid_goal_and_milestone_identity(self):
+        plan = self.base_plan()
+        status = self.base_status()
+        plan["goal_id"] = status["goal_id"] = "GOAL-NEXT"
+        plan["active_milestone_id"] = status["active_milestone_id"] = "MILESTONE-NEXT"
+        plan["milestones"][1]["id"] = "MILESTONE-NEXT"
+        status["implementation_state"] = "IMPLEMENTING"
+        status["review"] = {
+            "state": "IMPLEMENTING",
+            "current_review_id": None,
+            "candidate_revision": None,
+            "candidate_fingerprint": None,
+            "unresolved_findings": [],
+            "human_decision_blockers": [],
+        }
+        status["next_action"] = "Continue the declared active milestone."
+        self.assertEqual(
+            CONTROL.validate_plan_status(plan, status, branch="b", head="h"),
+            [],
+        )
+
     def test_unexpected_dirty_path_is_rejected(self):
         self.assertEqual(CONTROL.unexpected_dirty_paths(["work/ok.py", "secret.txt"], self.base_plan()), ["secret.txt"])
 
@@ -520,6 +541,19 @@ class ControlPlaneNegativeTests(unittest.TestCase):
 
 
 class RepositoryIntegrityTests(unittest.TestCase):
+    def assert_plan_declares_exactly_one_current_active_milestone(self, plan):
+        active_milestone_id = plan.get("active_milestone_id")
+        self.assertIsInstance(active_milestone_id, str)
+        self.assertTrue(active_milestone_id)
+        self.assertEqual(
+            [
+                milestone.get("id")
+                for milestone in plan.get("milestones", [])
+                if milestone.get("status") == "active"
+            ],
+            [active_milestone_id],
+        )
+
     def test_current_selectors_resolve_exactly(self):
         self.assertEqual(CONTROL.validate_selectors(ROOT), [])
 
@@ -560,7 +594,7 @@ class RepositoryIntegrityTests(unittest.TestCase):
         request, _, _ = CONTROL.load_review_artifacts(ROOT)
         if CONTROL.is_clean_publication_adapter_checkout(ROOT):
             self.assertTrue((ROOT / CONTROL.PUBLICATION_RECEIPT_PATH).is_file())
-            self.assertEqual(plan["active_milestone_id"], "AR-EXTERNAL-REVIEW")
+            self.assert_plan_declares_exactly_one_current_active_milestone(plan)
             fingerprint = CONTROL.repository_fingerprint(ROOT)
             head = CONTROL.git_text(ROOT, "rev-parse", "HEAD")
             self.assertEqual(
@@ -776,7 +810,7 @@ class RepositoryIntegrityTests(unittest.TestCase):
         if CONTROL.is_clean_publication_adapter_checkout(ROOT):
             receipt = (ROOT / CONTROL.PUBLICATION_RECEIPT_PATH).read_text()
             self.assertIn("live canonical PR", receipt)
-            self.assertEqual(plan["active_milestone_id"], "AR-EXTERNAL-REVIEW")
+            self.assert_plan_declares_exactly_one_current_active_milestone(plan)
             self.assertIn(".ai/PUBLICATION_RECEIPT.md", plan["authoritative_specs"])
             fingerprint = CONTROL.repository_fingerprint(ROOT)
             head = CONTROL.git_text(ROOT, "rev-parse", "HEAD")

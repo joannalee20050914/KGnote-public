@@ -1,25 +1,44 @@
 {
   "schema_version": "kgnote.external-product-review-state.v1",
   "program_id": "program-kgnote-autonomous-external-review-v2",
-  "goal_id": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
+  "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
   "canonical_repository": "joannalee20050914/KGnote-public",
   "candidate_repository": "joannalee20050914/KGnote-public",
   "trigger_repository": "joannalee20050914/KGnote-public",
   "review_request_repository": "joannalee20050914/KGnote-public",
   "archive_repository": "joannalee20050914/KGnote",
-  "pull_request": 1,
-  "phase": "INTERNAL_VERIFY",
-  "review_round": 2,
+  "pull_request": 22,
+  "phase": "PREPARING_CANDIDATE",
+  "review_round": 1,
   "candidate_commit": null,
   "candidate_fingerprint": null,
-  "internal_review": {"status": "PENDING", "artifact": null},
-  "publication": {"status": "PENDING", "remote_head": null},
-  "external_review": {
-    "status": "CHANGES_REQUIRED",
-    "reviewed_commit": "15d043c786a33e7a1a97c61519a49f6eb7c1091d",
-    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/1#pullrequestreview-5411948557",
-    "blocking_findings": ["KG-SEM-001", "KG-ALPHA-RECOVERY-001", "KG-PRACTICE-001", "KG-PRACTICE-002", "KG-CTRL-001"]
+  "internal_review": {
+    "status": "LOCAL_DETERMINISTIC_EVIDENCE_ONLY",
+    "artifact": "tests/control_plane/test_exact_review_integration.py"
   },
-  "human_acceptance": {"eligible": false, "reason": "External blocking findings remain unresolved."},
+  "publication": {
+    "status": "NOT_PUBLISHED",
+    "repository": "joannalee20050914/KGnote-public",
+    "pull_request": 22,
+    "remote_head": null,
+    "candidate_fingerprint": null,
+    "request_marker": "KGNOTE_PRODUCT_REVIEW_REQUEST_V2",
+    "artifact_url": null
+  },
+  "external_review": {
+    "status": "NOT_RUN",
+    "reviewed_commit": null,
+    "reviewed_fingerprint": null,
+    "artifact_url": null,
+    "review_author": null,
+    "review_source": null,
+    "record_id": null,
+    "native_ui_observed": false,
+    "blocking_findings": []
+  },
+  "human_acceptance": {
+    "eligible": false,
+    "reason": "The single-round transport verification cannot promote product or human acceptance gates."
+  },
   "release_verified": false
 }

@@ -6,25 +6,25 @@ This file records facts and recovery state; it does not define product requireme
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-07T17:05:12+08:00",
-  "goal_id": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
+  "updated_at": "2026-10-16T15:00:00+08:00",
+  "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
   "goal_status": "active",
-  "active_milestone_id": "AR-PUBLISH",
+  "active_milestone_id": "S2B-REVIEW-INTEGRATION-TASK",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
-  "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
+  "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
-    "branch": "codex/kg-note-autonomous-review",
-    "head": "f66779f77267029f6d6b54ba0e50579b6f68b996",
-    "checkpoint_commit": "15d043c786a33e7a1a97c61519a49f6eb7c1091d",
+    "branch": "codex/issue-19-real-review",
+    "head": "ed2daa3d07414870b36a5965b56f62c5889ce9b9",
+    "checkpoint_commit": "ed2daa3d07414870b36a5965b56f62c5889ce9b9",
     "checkpoint_manifest": "docs/control-plane/checkpoints/public-readiness-pre-rewrite-20261005.json",
     "checkpoint_manifest_sha256": "6450347a61a671dd7b30cb9f8444b7bde60945794e6cefad9fdf3537a22f8d8f"
   },
   "working_state": {
-    "fingerprint_algorithm": "sha256-canonical-json-v2-review-bus-exclusions (tracked and non-ignored untracked candidate files; mutable review bus excluded exactly)",
-    "fingerprint": "7c8001a5204937fbb3f0db2127e933f04035dcfa6a16d05d8e02982dac8008f6",
-    "starting_fingerprint": "2270fd8cebdc7f11e45480c50c315a4155cfc8001cbf34a9f00aec6fd5175555",
-    "expected_dirty_policy": "Only AR-REPAIR owned paths may differ from the external-reviewed checkpoint.",
+    "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
+    "fingerprint": "2806e58c4c9a0bed3e1002a99b0703f5100f06cc5535d1ebe595092dce53c2a2",
+    "starting_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
+    "expected_dirty_policy": "The authorized Issue #19 candidate may contain the preserved AGENTS/authority-lock changes, bounded exact-review integration test, and only the minimum review configuration/control documentation needed for Draft PR #22; no product source changes are allowed.",
     "unexpected_dirty_paths": []
   },
   "implementation_state": "IMPLEMENTING",
@@ -38,51 +38,60 @@ This file records facts and recovery state; it does not define product requireme
   },
   "external_review": {
     "repository": "joannalee20050914/KGnote-public",
+    "pull_request": 22,
+    "status": "NOT_RUN",
+    "review_round": 1,
+    "reviewed_commit": null,
+    "reviewed_fingerprint": null,
+    "artifact_url": null,
+    "consumer_status": "not_run",
+    "blocking_findings": [],
+    "applies_to_current_worktree": false
+  },
+  "historical_external_review": {
+    "repository": "joannalee20050914/KGnote-public",
     "pull_request": 1,
-    "status": "CHANGES_REQUIRED",
-    "reviewed_commit": "15d043c786a33e7a1a97c61519a49f6eb7c1091d",
-    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/1#pullrequestreview-5411948557",
-    "blocking_findings": [
-      "KG-SEM-001",
-      "KG-ALPHA-RECOVERY-001",
-      "KG-PRACTICE-001",
-      "KG-PRACTICE-002",
-      "KG-CTRL-001"
-    ]
+    "status": "PASS_HISTORICAL_EXACT_CANDIDATE",
+    "review_round": 14,
+    "reviewed_commit": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
+    "reviewed_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/1#pullrequestreview-5444572548",
+    "consumer_status": "accepted",
+    "applies_to_current_worktree": false
   },
   "verification": {
     "candidate_verified": false,
     "release_verified": false,
-    "control_plane_ready": false,
-    "last_green_milestone": "AR-REPAIR",
-    "last_candidate_evidence": "output/control-plane/verification-20261007T170254+0800.json",
-    "last_verified_fingerprint": "675d3eeb05fb763bb76417d4ebc707d45ce8bebaca0caf693d89112d9a09aa93",
-    "last_result": "Reviewer PASS for review-external-review-recovery-v1-002 was archived and consumed for deterministic progression; it is not rebound to the post-progression fingerprint."
+    "control_plane_ready": true,
+    "last_green_milestone": "S2B-GITHUB-HUMAN-READABILITY",
+    "last_candidate_evidence": "AGENTS.md plus live read-back of GitHub Project #1 and Issues #2 through #21",
+    "last_verified_fingerprint": "360f9f3b4287cf0dbac9e2d6dd1a1a1b4d4d42b6386c758762256009d6759dfe",
+    "last_result": "GitHub human-readable content slice PASS: the durable rule is present in AGENTS.md and its authority lock is reconciled; all 20 existing Issues were revised and read back; all 6 parent and 14 child relationships, issue states, Project statuses, RC/FD evidence text, and four view filters remained unchanged; the focused schema test passed and the complete control-plane suite passed 95/95. No Issue, product code, commit, push, PR #1 change, or release promotion occurred."
   },
-  "next_action": "Automatically begin authorized work package AR-PUBLISH.",
+  "next_action": "Verify and publish exactly one public-safe candidate on short-lived branch codex/issue-19-real-review to Draft PR #22, emit one exact trigger, consume one real ChatGPT Work result, record Issue #19 evidence, and stop.",
   "external_or_human_gates": [
     {
       "id": "EXTERNAL-PRODUCT-REVIEW",
-      "status": "changes_required",
-      "description": "Five blocking findings are carried from canonical PR #1."
+      "status": "pass_for_superseded_b975bb5_candidate_only",
+      "description": "Round-14 has zero findings but is not inherited by the Stage 2B documentation delta."
     },
     {
       "id": "PA-HUMAN-1",
-      "status": "not_eligible_external_review_pending",
-      "description": "Do not ask the owner to test until external PASS."
+      "status": "not_evaluated_by_stage2b_planning",
+      "description": "Native learner acceptance remains external and unverified."
     },
     {
       "id": "NS-HUMAN-SMOKE",
-      "status": "not_eligible_external_review_pending",
-      "description": "Do not ask the owner to test until external PASS."
+      "status": "not_evaluated_by_stage2b_planning",
+      "description": "Native product smoke evidence remains external and unverified."
     }
   ],
   "forbidden_during_goal": [
-    "publication to joannalee20050914/KGnote",
-    "human checkpoint before exact external PASS",
-    "dropping external findings",
-    "using internal PASS as external evidence",
-    "asking the owner to transport routine findings"
+    "push or update PR #1",
+    "start Release 1 through 4 product migration",
+    "re-run Stage 2A or the classified 26-commit inventory",
+    "bind the b975bb5 round-14 PASS to a later commit or fingerprint",
+    "promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
   ]
 }
 ```
@@ -90,9 +99,9 @@ This file records facts and recovery state; it does not define product requireme
 
 ## Human-readable handoff
 
-Goal `GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1` remains active at milestone `AR-PUBLISH`.
+Goal `GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1` remains active at milestone `S2B-REVIEW-INTEGRATION-TASK`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Automatically begin authorized work package AR-PUBLISH.
+Exact next action: Verify and publish exactly one public-safe candidate on short-lived branch codex/issue-19-real-review to Draft PR #22, emit one exact trigger, consume one real ChatGPT Work result, record Issue #19 evidence, and stop.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

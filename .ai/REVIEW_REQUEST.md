@@ -7,88 +7,74 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 {
   "schema_version": "kgnote.review-request.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "review_id": "review-external-review-recovery-v1-003",
-  "goal_id": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
-  "milestone_id": "AR-INTERNAL-VERIFY",
+  "review_id": "review-stage2b-delivery-planning-v1-001",
+  "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
+  "milestone_id": "S2B-REVIEW-INTEGRATION-TASK",
   "status": "IMPLEMENTING",
   "author_role": "CODEX_IMPLEMENTER",
-  "base_revision": "15d043c786a33e7a1a97c61519a49f6eb7c1091d",
+  "base_revision": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
   "candidate_revision": null,
   "candidate_fingerprint": null,
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
-    "docs/control-plane/CANONICAL_PUBLIC_REPOSITORY_MIGRATION_20261005.md",
     "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
-    "docs/control-plane/INCIDENT_EXTERNAL_REVIEW_BYPASS_20261007.md",
     ".ai/GITHUB_WORK_PRODUCT_REVIEWER.md",
+    ".ai/PUBLICATION_RECEIPT.md",
     ".ai/REVIEW_PROTOCOL.md",
+    "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
     "PLAN.md"
   ],
   "changed_areas": [
-    "canonical external review result envelope, schema, parser, and five-round budget",
-    "review-status-aware learner concept projection"
+    "AGENTS.md human-readable GitHub content rule",
+    "preserved Issue #19 bounded exact-review integration test",
+    "minimum PR #22 review transport configuration and control-state alignment"
   ],
   "acceptance_criteria": [
-    "remote PR #1 head, request repository, trigger repository, commit, and fingerprint match by read-back"
+    "record one durable Traditional Chinese human-readable GitHub content rule in AGENTS.md",
+    "publish one public-safe Draft PR #22 candidate without modifying PR #1, main, or product source",
+    "emit exactly one configured event trigger and consume one real ChatGPT Work result with exact repository, PR, HEAD, fingerprint, round, author, and source binding"
   ],
   "negative_requirements": [
-    "internal PASS is not external PASS",
-    "do not publish to archival KGnote",
-    "do not ask the owner to transport findings",
-    "do not promote PA-HUMAN-1 or NS-HUMAN-SMOKE"
+    "do not update PR #1 or push main",
+    "do not start Release 1 through 4 product migration",
+    "do not bind the b975bb5 round-14 PASS to a later commit",
+    "do not promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
   ],
   "validation_performed": [
-    "./.venv/bin/python docs/requirements/requirements_guard.py check --repo .",
-    "./.venv/bin/python -m unittest discover -s docs/requirements -p test_requirements_guard.py -v",
-    "./.venv/bin/python -m unittest discover -s tests/control_plane -p test_*.py -v",
-    "./.venv/bin/python -m unittest discover -s tests -p test_*.py -v",
-    "npm test",
-    "git diff --check",
-    "internal untracked_whitespace_errors"
+    ".venv/bin/python -m unittest -v tests.control_plane.test_exact_review_integration tests.test_github_product_review_consumer tests.control_plane.test_publish_external_candidate tests.control_plane.test_external_review_control tests.control_plane.test_publication_receipt_contract",
+    ".venv/bin/python -m unittest discover -s tests/control_plane -p 'test_*.py' -v",
+    "live read-only PR #1 review/comment fetch followed by in-memory Review Consumer evaluation against b975bb5/c38fe014/round-14"
   ],
   "validation_results": [
     {
-      "name": "requirements_guard",
+      "name": "focused exact-review matrix",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#requirements_guard"
+      "evidence": "42/42 tests passed"
     },
     {
-      "name": "requirements_guard_tests",
+      "name": "control-plane suite",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#requirements_guard_tests"
+      "evidence": "95/95 tests passed before the GitHub human-readability slice; the current slice reruns this suite before completion"
     },
     {
-      "name": "control_plane_negative_tests",
+      "name": "isolated exact-review integration",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#control_plane_negative_tests"
+      "evidence": "one synthetic exact publication-to-consumer-to-gate flow plus eight fail-closed paths passed"
     },
     {
-      "name": "python_product_tests",
+      "name": "historical live PR #1 read-back",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#python_product_tests"
-    },
-    {
-      "name": "node_tests",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#node_tests"
-    },
-    {
-      "name": "strict_git_diff_check",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#strict_git_diff_check"
-    },
-    {
-      "name": "untracked_whitespace",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#untracked_whitespace"
+      "evidence": "30 records checked; exact round-14 PASS accepted only for b975bb5/c38fe014 and 29 nonmatching records rejected"
     }
   ],
   "known_deviations": [],
-  "known_uncertainties": [],
+  "known_uncertainties": [
+    "The GitHub event channel is externally managed and cannot be proven available until the single authorized exact trigger is emitted and a fresh result is read back."
+  ],
   "reviewer_focus": [
-    "R-001 and R-002 exact resolutions",
-    "literal live-config PASS and CHANGES_REQUIRED ingestion plus provisional concept notes",
-    "Re-verify carried unresolved findings from immutable history: R-001, R-002."
+    "exact repository, PR, HEAD, fingerprint, and round binding",
+    "stale, wrong-repository, internal-only, and blocking-finding rejection",
+    "clear separation between deterministic local integration evidence and a real ChatGPT Work review artifact"
   ],
   "preserved_human_gates": [
     "PA-HUMAN-1",
@@ -2489,6 +2475,6 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 
 ## Human-readable status
 
-Review `review-external-review-recovery-v1-003` is `IMPLEMENTING`.
+Review `review-stage2b-delivery-planning-v1-001` is `IMPLEMENTING`.
 It has no active candidate binding and cannot be interpreted as a review request or PASS.
 Codex must complete deterministic verification before issuing this request.

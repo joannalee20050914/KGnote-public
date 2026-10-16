@@ -3,8 +3,8 @@
 This tracked artifact defines how a fresh process resolves the exact external-review candidate without attempting to embed a commit's own SHA inside that same commit.
 
 - canonical repository: `joannalee20050914/KGnote-public`
-- canonical pull request: `1`
-- canonical branch: `codex/kg-note-autonomous-review`
+- canonical pull request: `22`
+- canonical branch: `codex/issue-19-real-review`
 - request marker: `KGNOTE_PRODUCT_REVIEW_REQUEST_V2`
 - fingerprint algorithm: `sha256-canonical-json-v3-branch-independent-review-bus-exclusions`
 
