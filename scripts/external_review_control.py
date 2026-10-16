@@ -46,6 +46,14 @@ def repository_authority_errors(config: Mapping[str, Any]) -> list[str]:
         errors.append("external_review: exact issue-comment trigger event must be configured")
     if config.get("trigger_comment_template") != "@kgnote-ai-review {candidate_commit}":
         errors.append("external_review: exact review trigger comment template is missing")
+    if config.get("schema_version") == "kgnote.github-product-reviewer-config.v2":
+        if config.get("review_pr_expected_draft") is not True:
+            errors.append("external_review: candidate PR must remain Draft")
+        for field in ("review_pr_head_branch", "review_pr_base_branch", "dependency_pr_required_state"):
+            if not isinstance(config.get(field), str) or not config.get(field):
+                errors.append(f"external_review: missing {field}")
+        if not isinstance(config.get("dependency_pr_number"), int):
+            errors.append("external_review: missing dependency_pr_number")
     return errors
 
 
@@ -90,6 +98,18 @@ def human_gate_blockers(
         blockers.append("external_review: exact candidate has not been published")
     if isinstance(publication, Mapping) and publication.get("remote_head") != expected_commit:
         blockers.append("external_review: published remote head does not match candidate commit")
+    receipt = state.get("delivery_receipt")
+    if config.get("delivery_issue_number") is not None and (not isinstance(receipt, Mapping) or receipt.get("status") != "VERIFIED"):
+        blockers.append("external_review: Issue/Project delivery receipt is missing")
+    elif isinstance(receipt, Mapping):
+        expected_receipt = {"repository": config.get("canonical_repository"), "pull_request": config.get("review_pr_number"),
+            "candidate_commit": expected_commit, "candidate_fingerprint": expected_fingerprint,
+            "review_round": state.get("review_round"), "project_status": "Review Queue"}
+        for field, value in expected_receipt.items():
+            if receipt.get(field) != value:
+                blockers.append(f"external_review: delivery receipt mismatch for {field}")
+        if not receipt.get("issue_comment_url") or not receipt.get("review_artifact_url"):
+            blockers.append("external_review: delivery receipt read-back URLs are missing")
     return blockers
 
 
@@ -126,6 +146,11 @@ def publication_progression_blockers(
             candidate_commit=state.get("candidate_commit")
         ),
     }
+    if config.get("dependency_pr_number") is not None:
+        expected.update({"is_draft": config.get("review_pr_expected_draft"),
+            "head_branch": config.get("review_pr_head_branch"), "base_branch": config.get("review_pr_base_branch"),
+            "dependency_pr": config.get("dependency_pr_number"), "dependency_state": config.get("dependency_pr_required_state"),
+            "dependency_merged": False})
     if publication.get("status") != "PUBLISHED":
         blockers.append("external_review: exact candidate is not published")
     for field, value in expected.items():

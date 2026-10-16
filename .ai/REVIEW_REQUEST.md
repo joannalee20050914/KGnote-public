@@ -13,8 +13,8 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
   "status": "IMPLEMENTING",
   "author_role": "CODEX_IMPLEMENTER",
   "base_revision": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
-  "candidate_revision": null,
-  "candidate_fingerprint": null,
+  "candidate_revision": "11db14fb9d385f21957f029ecd802e6ad42f6a21+worktree:cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
+  "candidate_fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
     "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
@@ -28,8 +28,8 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     "PLAN.md"
   ],
   "changed_areas": [
-    "R-006: BOM-neutral semantic validation, heading extraction, conversation speaker parsing, and extraction-input projection while immutable bytes remain exact",
-    "R-007: non-self-referential tracked run evidence and exact-candidate binding through excluded review/verifier artifacts"
+    "Issue #8 internal PASS history and transition to the existing AR-EXTERNAL-REVIEW publication milestone",
+    "PR #23 exact publication identity, reviewer instructions, and fail-closed Publisher/Consumer configuration"
   ],
   "acceptance_criteria": [
     "Issue #8 product bytes remain unchanged after the verified implementation milestone except for required review/publication control receipts",
@@ -58,53 +58,52 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     {
       "name": "requirements_guard",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261016T165006+0800.json#requirements_guard"
+      "evidence": "output/control-plane/verification-20261016T165421+0800.json#requirements_guard"
     },
     {
       "name": "requirements_guard_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261016T165006+0800.json#requirements_guard_tests"
+      "evidence": "output/control-plane/verification-20261016T165421+0800.json#requirements_guard_tests"
     },
     {
       "name": "control_plane_negative_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261016T165006+0800.json#control_plane_negative_tests"
+      "evidence": "output/control-plane/verification-20261016T165421+0800.json#control_plane_negative_tests"
     },
     {
       "name": "python_product_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261016T165006+0800.json#python_product_tests"
+      "evidence": "output/control-plane/verification-20261016T165421+0800.json#python_product_tests"
     },
     {
       "name": "node_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261016T165006+0800.json#node_tests"
+      "evidence": "output/control-plane/verification-20261016T165421+0800.json#node_tests"
     },
     {
       "name": "strict_git_diff_check",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261016T165006+0800.json#strict_git_diff_check"
+      "evidence": "output/control-plane/verification-20261016T165421+0800.json#strict_git_diff_check"
     },
     {
       "name": "public_safety_scan",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261016T165006+0800.json#public_safety_scan"
+      "evidence": "output/control-plane/verification-20261016T165421+0800.json#public_safety_scan"
     },
     {
       "name": "untracked_whitespace",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261016T165006+0800.json#untracked_whitespace"
+      "evidence": "output/control-plane/verification-20261016T165421+0800.json#untracked_whitespace"
     }
   ],
   "known_deviations": [],
   "known_uncertainties": [
-    "Multi-process concurrent writers are not claimed as verified; locking is bounded to this process.",
+    "ChatGPT Scheduled run linkage and unattended GitHub writeback cannot be independently observed from this local CLI.",
     "PR #23 remains stacked on unmerged PR #22."
   ],
   "reviewer_focus": [
-    "Re-check R-006 BOM-only/BOM-whitespace rejection, BOM-prefixed first speaker for prefix and heading formats, exact raw byte read-back, and semantic extraction projection.",
-    "Re-check R-007 by reading tracked evidence, current HEAD, this request, and its exact verifier together; reject any contradictory identity.",
-    "Re-verify carried unresolved findings from immutable history: R-006, R-007."
+    "Confirm product bytes from the internally passed c99c182 candidate remain unchanged and the post-progression candidate is safe to publish.",
+    "Confirm repository, PR #23, HEAD/fingerprint protocol, stacked PR #22 dependency, trigger template, and preserved human/release gates are exact."
   ],
   "preserved_human_gates": [
     "PA-HUMAN-1",
@@ -117,7 +116,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
   "candidate_manifest": {
     "algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
     "branch": "codex/issue-8-source-library",
-    "head": "c99c182c80acff6047aba88ebb471760a66b8849",
+    "head": "11db14fb9d385f21957f029ecd802e6ad42f6a21",
     "excluded_paths": [
       ".ai/DECISIONS.md",
       ".ai/ORCHESTRATOR.lock",
@@ -245,7 +244,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "PLAN.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "0fdf74031e8575ae1355b06cf5261f2308475d56fb4c9d6a785265c673a1accb"
+        "sha256": "3ebb2a25e7dbabccf9a5d08abc5b8fcb5c09a2a4e52dbc8c44517186743293a9"
       },
       {
         "path": "README.md",
@@ -2613,7 +2612,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
       }
     ]
   },
-  "requested_at": null
+  "requested_at": "2026-10-16T16:54:52+08:00"
 }
 ```
 <!-- END KGNOTE REVIEW REQUEST JSON -->
@@ -2621,5 +2620,5 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 ## Human-readable status
 
 Review `review-d2-t01-source-library-v1-004` is `IMPLEMENTING`.
-It has no active candidate binding and cannot be interpreted as a review request or PASS.
+It is bound to `11db14fb9d385f21957f029ecd802e6ad42f6a21+worktree:cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17` and fingerprint `cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17`.
 Codex must complete deterministic verification before issuing this request.

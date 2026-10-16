@@ -197,6 +197,11 @@ This file contains exactly one active execution goal. It does not promote any hu
         ".ai/",
         "docs/requirements/",
         "DEVELOPMENT_PLAIN.md",
+        "scripts/codex_orchestrator.py",
+        "scripts/external_review_control.py",
+        "scripts/external_review_handoff.py",
+        "scripts/publish_external_candidate.py",
+        "tests/control_plane/",
         "GitHub PR and Issue metadata for joannalee20050914/KGnote-public"
       ],
       "acceptance": [

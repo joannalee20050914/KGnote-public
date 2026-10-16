@@ -1,8 +1,8 @@
 {
   "schema_version": "kgnote.review-history-index.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "event_count": 23,
-  "last_event_id": "evt-0023",
+  "event_count": 27,
+  "last_event_id": "evt-0027",
   "reviews": {
     "review-external-review-recovery-v1-001": {
       "snapshots": [
@@ -98,6 +98,22 @@
       ],
       "last_event_type": "PASS_CONSUMED_FOR_PROGRESSION",
       "candidate_fingerprint": "6dc468b961387118a3f770c476096fbd9a96c892c041b350941f114a49bca5f6"
+    },
+    "review-d2-t01-source-library-v1-004": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-d2-t01-source-library-v1-004/request-bbb9cc944700c35d4df402cf5d518f855c1fd7e787080997b613ad2862e95c22.md",
+          "sha256": "bbb9cc944700c35d4df402cf5d518f855c1fd7e787080997b613ad2862e95c22",
+          "event_id": "evt-0024"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-d2-t01-source-library-v1-004/result-73c15ca7ec5db8642c6289fb1f079c2b7d1b8dff388955f4cb4fde1f1ea53dfc.md",
+          "sha256": "73c15ca7ec5db8642c6289fb1f079c2b7d1b8dff388955f4cb4fde1f1ea53dfc",
+          "event_id": "evt-0026"
+        }
+      ],
+      "last_event_type": "IMPLEMENTATION_RESUMED",
+      "candidate_fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17"
     }
   },
   "findings": {
@@ -135,6 +151,21 @@
       "status": "VERIFIED",
       "review_id": "review-d2-t01-source-library-v1-003",
       "last_event_id": "evt-0022"
+    },
+    "R-008": {
+      "status": "OPEN",
+      "review_id": "review-d2-t01-source-library-v1-004",
+      "last_event_id": "evt-0026"
+    },
+    "R-009": {
+      "status": "OPEN",
+      "review_id": "review-d2-t01-source-library-v1-004",
+      "last_event_id": "evt-0026"
+    },
+    "R-010": {
+      "status": "OPEN",
+      "review_id": "review-d2-t01-source-library-v1-004",
+      "last_event_id": "evt-0026"
     }
   }
 }

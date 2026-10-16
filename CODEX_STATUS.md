@@ -6,7 +6,7 @@ This file records facts and recovery state; it does not define product requireme
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-16T16:53:46+08:00",
+  "updated_at": "2026-10-16T16:59:00+08:00",
   "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "goal_status": "active",
   "active_milestone_id": "AR-EXTERNAL-REVIEW",
@@ -15,7 +15,7 @@ This file records facts and recovery state; it does not define product requireme
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/issue-8-source-library",
-    "head": "c99c182c80acff6047aba88ebb471760a66b8849",
+    "head": "11db14fb9d385f21957f029ecd802e6ad42f6a21",
     "base_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
     "base_pull_request": 22,
     "base_pull_request_state": "OPEN_DRAFT_UNMERGED",
@@ -23,7 +23,7 @@ This file records facts and recovery state; it does not define product requireme
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "003b4dac80d1e833558d3ff675634f7d603d6535146cc559be64b5a268720e1b",
+    "fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
     "starting_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
     "expected_dirty_policy": "Issue #8 may change only its product import/source-library/UI paths, bounded tests, requirement delivery evidence, and necessary control/review state. Existing Issue #19 closure receipts are preserved; unrelated changes are forbidden.",
     "preserved_preexisting_dirty_paths": [
@@ -37,9 +37,13 @@ This file records facts and recovery state; it does not define product requireme
   "review": {
     "state": "IMPLEMENTING",
     "current_review_id": null,
-    "candidate_revision": null,
-    "candidate_fingerprint": null,
-    "unresolved_findings": [],
+    "candidate_revision": "11db14fb9d385f21957f029ecd802e6ad42f6a21+worktree:cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
+    "candidate_fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
+    "unresolved_findings": [
+      "R-008",
+      "R-009",
+      "R-010"
+    ],
     "human_decision_blockers": []
   },
   "external_review": {
@@ -68,15 +72,15 @@ This file records facts and recovery state; it does not define product requireme
     "unattended_writeback": "not_verified_human_approval_was_still_required"
   },
   "verification": {
-    "candidate_verified": false,
+    "candidate_verified": true,
     "release_verified": false,
-    "control_plane_ready": false,
+    "control_plane_ready": true,
     "last_green_milestone": "S2B-REVIEW-INTEGRATION-TASK",
-    "last_candidate_evidence": "output/control-plane/verification-20261016T165006+0800.json",
-    "last_verified_fingerprint": "6dc468b961387118a3f770c476096fbd9a96c892c041b350941f114a49bca5f6",
-    "last_result": "Reviewer PASS for review-d2-t01-source-library-v1-003 was archived and consumed for deterministic progression; it is not rebound to the post-progression fingerprint."
+    "last_candidate_evidence": "output/control-plane/verification-20261016T165421+0800.json",
+    "last_verified_fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
+    "last_result": "Deterministic verification passed for the exact candidate; semantic review is pending."
   },
-  "next_action": "Automatically begin authorized work package AR-EXTERNAL-REVIEW.",
+  "next_action": "Implement only the authority-bounded resolutions, preserve finding IDs, rerun deterministic verification, and issue a new fingerprint-bound review request.",
   "external_or_human_gates": [
     {
       "id": "PR22-STACKED-BASE",
@@ -115,6 +119,6 @@ This file records facts and recovery state; it does not define product requireme
 Goal `GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1` remains active at milestone `AR-EXTERNAL-REVIEW`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
-Unresolved findings: none. Human decision blockers: none.
-Exact next action: Automatically begin authorized work package AR-EXTERNAL-REVIEW.
+Unresolved findings: R-008, R-009, R-010. Human decision blockers: none.
+Exact next action: Implement only the authority-bounded resolutions, preserve finding IDs, rerun deterministic verification, and issue a new fingerprint-bound review request.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

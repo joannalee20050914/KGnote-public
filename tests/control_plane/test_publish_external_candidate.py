@@ -20,6 +20,9 @@ class PublicationTransitionTests(unittest.TestCase):
             "candidate_repository": "owner/public", "trigger_repository": "owner/public",
             "review_request_repository": "owner/public", "archive_repository": "owner/archive",
             "review_pr_number": 1, "request_marker": "REQUEST_V2",
+            "review_pr_expected_draft": True, "review_pr_head_branch": "codex/candidate",
+            "review_pr_base_branch": "codex/base", "dependency_pr_number": 22,
+            "dependency_pr_required_state": "OPEN",
             "max_product_review_rounds": 12,
             "trigger_events": ["pull_request.synchronize", "issue_comment.created"],
             "trigger_comment_template": "@kgnote-ai-review {candidate_commit}",
@@ -30,6 +33,8 @@ class PublicationTransitionTests(unittest.TestCase):
             "repository": "owner/public", "pull_request": 1, "remote_head": "a" * 40,
             "candidate_fingerprint": "b" * 64, "request_marker": "REQUEST_V2",
             "body": marker, "state": "OPEN", "artifact_url": "https://example/pr/1",
+            "is_draft": True, "head_branch": "codex/candidate", "base_branch": "codex/base",
+            "dependency_pr": 22, "dependency_state": "OPEN", "dependency_merged": False,
         }
 
     def test_exact_remote_snapshot_passes(self):
@@ -85,6 +90,13 @@ class PublicationTransitionTests(unittest.TestCase):
                 snapshot = {**self.snapshot, field: value}
                 self.assertTrue(PUBLISH.remote_snapshot_errors(self.config, self.state, snapshot))
 
+    def test_wrong_pr_shape_and_dependency_fail_closed(self):
+        for field, value in (("is_draft", False), ("head_branch", "wrong"),
+                             ("base_branch", "main"), ("dependency_state", "CLOSED"),
+                             ("dependency_merged", True)):
+            with self.subTest(field=field):
+                self.assertTrue(PUBLISH.remote_snapshot_errors(self.config, self.state, {**self.snapshot, field: value}))
+
     def test_publish_executes_push_readback_and_durable_recording(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
@@ -105,7 +117,8 @@ class PublicationTransitionTests(unittest.TestCase):
                 if command[:3] == ["gh", "pr", "edit"]: return ""
                 if command[:3] == ["git", "push", "origin"]: return ""
                 if command[:3] == ["gh", "pr", "view"]:
-                    return json.dumps({"headRefOid": "a" * 40, "body": "PR\n" + marker, "state": "OPEN", "url": "https://example/pr/1"})
+                    if command[3] == "22": return json.dumps({"number": 22, "state": "OPEN", "mergedAt": None})
+                    return json.dumps({"headRefOid": "a" * 40, "body": "PR\n" + marker, "state": "OPEN", "url": "https://example/pr/1", "isDraft": True, "headRefName": "codex/candidate", "baseRefName": "codex/base"})
                 if command[:2] == ["gh", "api"] and command[-1] == "--paginate":
                     return "[]"
                 if command[:2] == ["gh", "api"] and "body=@kgnote-ai-review " in command[-1]:

@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 
 import codex_control as control
 import external_review_control
+import external_review_handoff
 import publish_external_candidate
 
 
@@ -863,6 +864,20 @@ def start(repo: Path, *, resume: bool, max_review_cycles: int, max_steps: int | 
         if existing is None:
             raise ValueError("orchestrator_resume: no durable state exists; use start")
         state = existing
+        if state["state"] == "AWAITING_EXTERNAL_PRODUCT_REVIEW":
+            decision = external_review_handoff.process(repo)
+            if not decision.get("accepted"):
+                state["next_action"] = "External review not yet accepted; a future event or bounded resume may retry."
+                write_state(repo, state)
+                return state
+            if decision.get("verdict") == "PASS":
+                advance_after_pass(repo, state)
+                return state
+            if decision.get("verdict") == "PRODUCT_DECISION_REQUIRED":
+                update_state(repo, state, "PRODUCT_DECISION_REQUIRED", "External product reviewer requires a durable human decision.")
+                return state
+            update_state(repo, state, "REPAIRING", "External CHANGES_REQUIRED was accepted; route exact findings to repair.")
+            return state
         if state["state"] == "PRODUCT_DECISION_REQUIRED":
             if not resume_after_product_decision(repo, state):
                 return state
