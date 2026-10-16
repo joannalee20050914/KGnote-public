@@ -63,6 +63,11 @@ def _now() -> str:
     return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
 
 
+def _semantic_content(content: str) -> str:
+    """Remove only the optional leading UTF-8 BOM for semantic interpretation."""
+    return content[1:] if content.startswith("\ufeff") else content
+
+
 def _atomic_write(path: Path, content: bytes) -> None:
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
@@ -199,7 +204,10 @@ def _validated_request(request: Any) -> dict[str, Any]:
     expected_revision_id = request.get("expected_revision_id")
     if not isinstance(title, str) or not title.strip() or len(title.strip()) > 160:
         raise SourceLibraryError("invalid_source_title")
-    if not isinstance(content, str) or not content.strip():
+    if not isinstance(content, str):
+        raise SourceLibraryError("empty_source")
+    semantic_content = _semantic_content(content)
+    if not semantic_content.strip():
         raise SourceLibraryError("empty_source")
     try:
         encoded = content.encode("utf-8")
@@ -242,11 +250,11 @@ def _validated_request(request: Any) -> dict[str, Any]:
         source_id = derived_source_id
     digest = _sha256(encoded)
     revision_id = f"revision_{digest[:24]}"
-    spans = _speaker_spans(content, source_kind)
+    spans = _speaker_spans(semantic_content, source_kind)
 
     # Reuse the public extraction input contract as the import boundary.
     build_extraction_input(
-        content=content,
+        content=semantic_content,
         metadata=SourceMetadata(
             source_id=source_id,
             source_kind=source_kind,
@@ -459,9 +467,10 @@ def read_source(root: Path, source_id: str, revision_id: str | None = None) -> d
         content = original.decode("utf-8", errors="strict")
     except (SourceLibraryError, OSError, UnicodeError):
         return None
+    semantic_content = _semantic_content(content)
     headings = [
         {"line": number, "title": match.group(1), "level": len(line) - len(line.lstrip("#"))}
-        for number, line in enumerate(content.splitlines(), 1)
+        for number, line in enumerate(semantic_content.splitlines(), 1)
         if (match := _TITLE.match(line))
     ]
     return {
@@ -483,7 +492,7 @@ def extraction_input_for_source(
         return None
     metadata = source["source"]
     return build_extraction_input(
-        content=source["content"],
+        content=_semantic_content(source["content"]),
         metadata=SourceMetadata(
             source_id=metadata["source_id"],
             source_kind=metadata["source_kind"],

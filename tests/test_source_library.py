@@ -135,6 +135,34 @@ class SourceLibraryTests(unittest.TestCase):
             self.assertEqual([span["role"] for span in spans], ["user", "assistant", "tool"])
             self.assertEqual([span["locator"]["value"] for span in spans], ["L1-L3", "L4-L5", "L6-L7"])
 
+    def test_bom_is_semantic_neutral_for_blank_and_first_conversation_speaker(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "library"
+            for file_name, content in (("bom-only.md", "\ufeff"), ("bom-blank.md", "\ufeff  \n\t")):
+                before = tree_bytes(root)
+                status, rejected = import_source(root, request(content=content, file_name=file_name))
+                self.assertEqual(status, "rejected")
+                self.assertEqual(rejected["problem"]["code"], "empty_source")
+                self.assertEqual(tree_bytes(root), before)
+
+            for file_name, content, expected in (
+                ("bom-prefix.md", "\ufeffUser: Question.\n\nAssistant: Answer.\n", [("user", "L1-L2"), ("assistant", "L3-L3")]),
+                ("bom-heading.md", "\ufeff## User\nQuestion.\n\n## Assistant\nAnswer.\n", [("user", "L1-L3"), ("assistant", "L4-L5")]),
+            ):
+                status, accepted = import_source(root, request(
+                    title="BOM conversation", content=content,
+                    source_kind="chatgpt_conversation", file_name=file_name,
+                ))
+                self.assertEqual(status, "created")
+                read_back = read_source(root, accepted["source"]["source_id"])
+                self.assertEqual(read_back["content"].encode("utf-8"), content.encode("utf-8"))
+                self.assertEqual(
+                    [(span["role"], span["locator"]["value"]) for span in read_back["revision"]["speaker_spans"]],
+                    expected,
+                )
+                extraction = extraction_input_for_source(root, accepted["source"]["source_id"])
+                self.assertFalse(extraction["source"]["content"].startswith("\ufeff"))
+
     def test_duplicate_is_unchanged_and_update_keeps_both_immutable_revisions(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "library"

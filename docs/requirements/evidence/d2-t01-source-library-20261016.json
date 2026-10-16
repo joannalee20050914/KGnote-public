@@ -3,9 +3,11 @@
   "run_id": "d2-t01-source-library-20261016",
   "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "milestone_id": "D2-T01-SOURCE-LIBRARY",
-  "repository_head": "6f5531516070613fc1300c1e675db8075ad8717f",
   "branch": "codex/issue-8-source-library",
-  "working_tree": "authorized Issue #8 repair candidate at fingerprint 70a8083cc55caa09c0dab328880664d9622f7c13ae676cf600d8391aadc23ae6; review receipts excluded from candidate fingerprint",
+  "candidate_binding": {
+    "mechanism": "The final exact HEAD and fingerprint are recorded after commit in the fingerprint-excluded .ai/REVIEW_REQUEST.md and its referenced output/control-plane verification artifact.",
+    "tracked_file_scope": "This tracked evidence records reproducible commands and results but intentionally does not claim its own enclosing commit or fingerprint."
+  },
   "recorded_at": "2026-10-16T16:42:14+08:00",
   "requirements": ["KG-ING-01", "KG-ING-02", "KG-ING-03", "KG-PLAT-05", "KG-PLAT-06"],
   "feature_dispositions": ["FD-01", "FD-02"],
@@ -14,8 +16,8 @@
     {
       "command": "PYTHONPATH=src .venv/bin/python -m unittest -v tests.test_source_library tests.test_source_library_http",
       "result": "pass",
-      "tests": 11,
-      "scope": "ordinary Markdown exact bytes including a UTF-8 BOM through HTTP/storage, explicit and mixed-format conversation speakers, duplicate import, immutable update lineage, stale rejection, malformed/oversize/path/symlink/tamper negatives, atomic batch validation, injected transaction failure, HTTP list/import/read/update, and exact revision read-back"
+      "tests": 12,
+      "scope": "ordinary Markdown exact bytes including a UTF-8 BOM through HTTP/storage, BOM-neutral blank rejection and first-speaker parsing, explicit and mixed-format conversation speakers, duplicate import, immutable update lineage, stale rejection, malformed/oversize/path/symlink/tamper negatives, atomic batch validation, injected transaction failure, HTTP list/import/read/update, and exact revision read-back"
     },
     {
       "command": "node --test web/tests/source-library-ui.test.js",
@@ -50,6 +52,7 @@
       "command": "python3 scripts/codex_control.py --repo . verify",
       "result": "pass",
       "evidence": "output/control-plane/verification-20261016T164214+0800.json",
+      "binding": "pre-commit repair verification; the final sealed exact-candidate verifier is resolved through .ai/REVIEW_REQUEST.md validation_results after the candidate commit",
       "control_plane_tests": 97,
       "python_product_tests": 323,
       "node_tests": 60,

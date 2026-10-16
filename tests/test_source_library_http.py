@@ -153,6 +153,27 @@ class SourceLibraryHttpTests(unittest.TestCase):
         self.assertEqual(read_back["content"].encode("utf-8"), selected_bytes)
         self.assertEqual(read_back["revision"]["content_sha256"], hashlib.sha256(selected_bytes).hexdigest())
 
+        for file_name, blank in (("bom-only.md", "\ufeff"), ("bom-blank.md", "\ufeff  \n")):
+            status, rejected = self.request("POST", "/api/library/sources", source_request(
+                title="Blank BOM", content=blank,
+                locator={"kind": "file_name", "value": file_name},
+            ))
+            self.assertEqual(status, 400)
+            self.assertEqual(rejected["problem"]["code"], "empty_source")
+
+        conversation = "\ufeffUser: Question.\n\nAssistant: Answer.\n"
+        status, accepted = self.request("POST", "/api/library/sources", source_request(
+            title="BOM conversation",
+            content=conversation,
+            source_kind="chatgpt_conversation",
+            locator={"kind": "file_name", "value": "bom-chat.md"},
+        ))
+        self.assertEqual(status, 201)
+        status, exact = self.request("GET", f"/api/library/sources/{accepted['source']['source_id']}")
+        self.assertEqual(status, 200)
+        self.assertEqual(exact["content"].encode("utf-8"), conversation.encode("utf-8"))
+        self.assertEqual([span["role"] for span in exact["revision"]["speaker_spans"]], ["user", "assistant"])
+
 
 if __name__ == "__main__":
     unittest.main()
