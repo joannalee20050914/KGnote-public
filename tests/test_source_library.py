@@ -109,6 +109,32 @@ class SourceLibraryTests(unittest.TestCase):
             roles = [item["role"] for item in read_source(root, payload["source"]["source_id"])["revision"]["speaker_spans"]]
             self.assertEqual(roles, ["system", "user", "assistant"])
 
+    def test_mixed_conversation_formats_reject_unknown_labels_and_keep_known_roles(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "library"
+            for file_name, content in (
+                ("heading-first.md", "## User\nKnown.\n\nAlex: ambiguous.\n"),
+                ("prefix-first.md", "User: Known.\n\n## Assistant\nAnswer.\n\nAlex: ambiguous.\n"),
+            ):
+                before = tree_bytes(root)
+                status, rejected = import_source(root, request(
+                    title="Mixed", content=content,
+                    source_kind="chatgpt_conversation", file_name=file_name,
+                ))
+                self.assertEqual(status, "rejected")
+                self.assertEqual(rejected["problem"]["code"], "ambiguous_conversation_speaker")
+                self.assertEqual(tree_bytes(root), before)
+
+            status, accepted = import_source(root, request(
+                title="Known mixed",
+                content="## User\nQuestion.\n\nAssistant: Answer.\n\n## Tool\nResult.\n",
+                source_kind="chatgpt_conversation", file_name="known-mixed.md",
+            ))
+            self.assertEqual(status, "created")
+            spans = read_source(root, accepted["source"]["source_id"])["revision"]["speaker_spans"]
+            self.assertEqual([span["role"] for span in spans], ["user", "assistant", "tool"])
+            self.assertEqual([span["locator"]["value"] for span in spans], ["L1-L3", "L4-L5", "L6-L7"])
+
     def test_duplicate_is_unchanged_and_update_keeps_both_immutable_revisions(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "library"

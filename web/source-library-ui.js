@@ -27,7 +27,9 @@ export async function readMarkdownFile(file) {
   if (file.size > MAX_SOURCE_BYTES) throw new Error("source_too_large");
   const bytes = await file.arrayBuffer();
   try {
-    return new TextDecoder("utf-8", {fatal: true}).decode(bytes);
+    // Keep a valid UTF-8 BOM as U+FEFF so the JSON string round-trips to the
+    // exact selected bytes when the server encodes it for immutable storage.
+    return new TextDecoder("utf-8", {fatal: true, ignoreBOM: true}).decode(bytes);
   } catch {
     throw new Error("invalid_utf8");
   }

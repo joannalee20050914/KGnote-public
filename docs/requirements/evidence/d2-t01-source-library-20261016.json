@@ -3,10 +3,10 @@
   "run_id": "d2-t01-source-library-20261016",
   "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "milestone_id": "D2-T01-SOURCE-LIBRARY",
-  "repository_head": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
+  "repository_head": "6f5531516070613fc1300c1e675db8075ad8717f",
   "branch": "codex/issue-8-source-library",
-  "working_tree": "dirty; authorized Issue #8 implementation and preserved Issue #19 receipts; no candidate commit yet",
-  "recorded_at": "2026-10-16T16:26:51+08:00",
+  "working_tree": "authorized Issue #8 repair candidate at fingerprint 70a8083cc55caa09c0dab328880664d9622f7c13ae676cf600d8391aadc23ae6; review receipts excluded from candidate fingerprint",
+  "recorded_at": "2026-10-16T16:42:14+08:00",
   "requirements": ["KG-ING-01", "KG-ING-02", "KG-ING-03", "KG-PLAT-05", "KG-PLAT-06"],
   "feature_dispositions": ["FD-01", "FD-02"],
   "rc_scope": ["RC-04", "RC-05", "RC-06", "RC-10", "RC-11", "RC-21", "RC-26", "RC-31", "RC-32"],
@@ -14,14 +14,14 @@
     {
       "command": "PYTHONPATH=src .venv/bin/python -m unittest -v tests.test_source_library tests.test_source_library_http",
       "result": "pass",
-      "tests": 9,
-      "scope": "ordinary Markdown exact bytes, explicit conversation speakers, duplicate import, immutable update lineage, stale rejection, malformed/oversize/path/symlink/tamper negatives, atomic batch validation, injected transaction failure, HTTP list/import/read/update, and exact revision read-back"
+      "tests": 11,
+      "scope": "ordinary Markdown exact bytes including a UTF-8 BOM through HTTP/storage, explicit and mixed-format conversation speakers, duplicate import, immutable update lineage, stale rejection, malformed/oversize/path/symlink/tamper negatives, atomic batch validation, injected transaction failure, HTTP list/import/read/update, and exact revision read-back"
     },
     {
       "command": "node --test web/tests/source-library-ui.test.js",
       "result": "pass",
-      "tests": 5,
-      "scope": "single and multi-file request construction, existing-source optimistic lock, UTF-8/extension/size rejection, exact revision URL, and UI control exposure"
+      "tests": 6,
+      "scope": "single and multi-file request construction, existing-source optimistic lock, UTF-8/extension/size rejection, byte-exact BOM preservation, exact revision URL, and UI control exposure"
     },
     {
       "command": "scripts/run_tests.sh",
@@ -45,11 +45,21 @@
       "command": "scripts/codex_preflight.sh",
       "result": "pass",
       "scope": "authority, PLAN/STATUS, branch/HEAD, owned dirty paths, review bus, and fingerprint alignment before final candidate sealing"
+    },
+    {
+      "command": "python3 scripts/codex_control.py --repo . verify",
+      "result": "pass",
+      "evidence": "output/control-plane/verification-20261016T164214+0800.json",
+      "control_plane_tests": 97,
+      "python_product_tests": 323,
+      "node_tests": 60,
+      "public_safety_scan": {"result": "pass", "scanned_files": 413, "scope": "exact fingerprint manifest"},
+      "release_verified": false
     }
   ],
   "read_back": {
-    "ordinary_source": "current and previous raw Markdown revisions returned exact UTF-8 bytes and verified SHA-256",
-    "conversation_source": "explicit speaker labels, canonical roles, and line-range locators returned from stored revision metadata",
+    "ordinary_source": "current and previous raw Markdown revisions, including a valid UTF-8 BOM, returned exact bytes and verified SHA-256",
+    "conversation_source": "explicit and mixed-format speaker labels, canonical roles, and line-range locators returned from stored revision metadata; unknown labels reject without writes",
     "integration": "a verified source revision reconstructs the existing kgnote.extraction-input.v1 payload through src/kgnote/ingestion/markdown_source.py"
   },
   "limits": [

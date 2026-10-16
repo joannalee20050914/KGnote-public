@@ -136,12 +136,21 @@ def _speaker_spans(content: str, source_kind: str) -> list[dict[str, Any]]:
         for number, line in enumerate(lines, 1):
             heading = _TITLE.match(line)
             if not heading or number < heading_matches[0][0]:
+                if _POSSIBLE_PREFIX.match(line) and not _SPEAKER_PREFIX.match(line):
+                    raise SourceLibraryError("ambiguous_conversation_speaker")
                 continue
             level = len(line) - len(line.lstrip("#"))
             if level == speaker_level and not _SPEAKER_HEADING.match(line):
                 raise SourceLibraryError("ambiguous_conversation_speaker")
-        for position, (start, match) in enumerate(heading_matches):
-            end = heading_matches[position + 1][0] - 1 if position + 1 < len(heading_matches) else len(lines)
+        markers = list(heading_matches)
+        markers.extend(
+            (number, match)
+            for number, line in enumerate(lines, 1)
+            if (match := _SPEAKER_PREFIX.match(line))
+        )
+        markers.sort(key=lambda item: item[0])
+        for position, (start, match) in enumerate(markers):
+            end = markers[position + 1][0] - 1 if position + 1 < len(markers) else len(lines)
             label = match.group(1)
             spans.append({
                 "speaker": label,

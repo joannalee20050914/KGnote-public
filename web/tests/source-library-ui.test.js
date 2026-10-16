@@ -63,6 +63,20 @@ test("browser boundary rejects extensions, oversized bytes and invalid UTF-8", a
   await assert.rejects(readMarkdownFile(invalid), /invalid_utf8/);
 });
 
+test("browser boundary preserves a valid UTF-8 BOM byte-for-byte", async () => {
+  const selected = Uint8Array.from([0xef, 0xbb, 0xbf, 0x23, 0x20, 0x58, 0x0a]);
+  const file = {
+    name: "bom.md",
+    size: selected.byteLength,
+    async arrayBuffer() { return selected.slice().buffer; },
+  };
+  const content = await readMarkdownFile(file);
+  assert.equal(content.codePointAt(0), 0xfeff);
+  assert.deepEqual(new TextEncoder().encode(content), selected);
+  const payload = await fileImportPayload([file], "document");
+  assert.deepEqual(new TextEncoder().encode(payload.content), selected);
+});
+
 test("source read URL binds source and optional immutable revision and rejects traversal", () => {
   const current = sourceReadConfig("?id=src_0123456789abcdef01234567");
   assert.equal(sourceReadUrl(current), "/api/library/sources/src_0123456789abcdef01234567");

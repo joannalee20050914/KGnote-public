@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import http.client
+import hashlib
 import json
 import tempfile
 import threading
@@ -134,6 +135,23 @@ class SourceLibraryHttpTests(unittest.TestCase):
             disabled.shutdown()
             disabled.server_close()
             thread.join(timeout=2)
+
+    def test_bom_prefixed_markdown_round_trips_through_http_and_storage(self) -> None:
+        content = "\ufeff# BOM source\n"
+        selected_bytes = content.encode("utf-8")
+        status, created = self.request("POST", "/api/library/sources", source_request(
+            title="BOM source",
+            content=content,
+            locator={"kind": "file_name", "value": "bom.md"},
+        ))
+        self.assertEqual(status, 201)
+        source = created["source"]
+        raw_path = self.library / "sources" / source["source_id"] / "revisions" / f"{source['current_revision_id']}.md"
+        self.assertEqual(raw_path.read_bytes(), selected_bytes)
+        status, read_back = self.request("GET", f"/api/library/sources/{source['source_id']}")
+        self.assertEqual(status, 200)
+        self.assertEqual(read_back["content"].encode("utf-8"), selected_bytes)
+        self.assertEqual(read_back["revision"]["content_sha256"], hashlib.sha256(selected_bytes).hexdigest())
 
 
 if __name__ == "__main__":

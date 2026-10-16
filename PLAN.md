@@ -109,7 +109,7 @@ This file contains exactly one active execution goal. It does not promote any hu
         "PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/authority-lock.json",
         "DEVELOPMENT_PLAIN.md", "docs/requirements/",
         "src/kgnote/ingestion/", "src/kgnote/learning/", "src/kgnote/storage/",
-        "scripts/serve_graph_view.py", "web/", "tests/"
+        "scripts/serve_graph_view.py", "scripts/codex_control.py", "web/", "tests/"
       ],
       "acceptance": [
         "一般 Markdown 與明確 speaker 的對話 Markdown 可由現有產品 UI 匯入持久來源資料庫，原始 UTF-8 bytes、來源種類、speaker、locator 與 hash 可讀回",

@@ -208,6 +208,32 @@ class ControlPlaneNegativeTests(unittest.TestCase):
         self.assertTrue(claims["candidate_verified"])
         self.assertFalse(claims["release_verified"])
 
+    def test_public_safety_scan_accepts_safe_candidate_and_rejects_sensitive_fixtures(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            subprocess.run(["git", "-C", str(root), "config", "user.email", "test@example.invalid"], check=True)
+            subprocess.run(["git", "-C", str(root), "config", "user.name", "KGnote Test"], check=True)
+            (root / "safe.md").write_text("Public documentation only.\n")
+            subprocess.run(["git", "-C", str(root), "add", "safe.md"], check=True)
+            subprocess.run(["git", "-C", str(root), "commit", "-qm", "fixture"], check=True)
+            self.assertEqual(CONTROL.public_safety_errors(root), ([], 1))
+
+            (root / "secret.txt").write_text(
+                "ghp_" + "A" * 36 + "\n"
+                + "/Users/" + "private-owner/source.md\n"
+                + "-----BEGIN " + "PRIVATE KEY-----\n"
+            )
+            errors, scanned = CONTROL.public_safety_errors(root)
+            self.assertEqual(scanned, 2)
+            self.assertTrue(any(error.endswith("github_access_token") for error in errors))
+            self.assertTrue(any(error.endswith("private_home_path") for error in errors))
+            self.assertTrue(any(error.endswith("private_key_material") for error in errors))
+
+            (root / ".env.local").write_text("SAFE_PLACEHOLDER=not-a-real-secret\n")
+            errors, _ = CONTROL.public_safety_errors(root)
+            self.assertIn(".env.local: forbidden_environment_file", errors)
+
     def test_manual_gate_blocks_auto_advance(self):
         plan = self.base_plan()
         plan["milestones"][1]["human_gate"] = "user_approval"
