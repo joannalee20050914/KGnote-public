@@ -24,4 +24,4 @@ Writer after reviewer custody: independent reviewer only.
 ```
 <!-- END KGNOTE REVIEW RESULT JSON -->
 
-Independent semantic review passed the exact sealed candidate. The orchestrator owns submission and routing; this result does not promote any preserved human or release gate.
+There is no sealed Stage 2B candidate or current reviewer verdict. Historical round-14 PASS evidence remains bound only to b975bb5 and is not represented by this empty result.

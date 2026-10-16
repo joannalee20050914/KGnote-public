@@ -8,18 +8,37 @@
   "review_request_repository": "joannalee20050914/KGnote-public",
   "archive_repository": "joannalee20050914/KGnote",
   "pull_request": 1,
-  "phase": "INTERNAL_VERIFY",
-  "review_round": 2,
-  "candidate_commit": null,
-  "candidate_fingerprint": null,
-  "internal_review": {"status": "PENDING", "artifact": null},
-  "publication": {"status": "PENDING", "remote_head": null},
-  "external_review": {
-    "status": "CHANGES_REQUIRED",
-    "reviewed_commit": "15d043c786a33e7a1a97c61519a49f6eb7c1091d",
-    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/1#pullrequestreview-5411948557",
-    "blocking_findings": ["KG-SEM-001", "KG-ALPHA-RECOVERY-001", "KG-PRACTICE-001", "KG-PRACTICE-002", "KG-CTRL-001"]
+  "phase": "SUPERSEDED_BY_STAGE2B_PLANNING",
+  "review_round": 14,
+  "candidate_commit": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
+  "candidate_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
+  "internal_review": {
+    "status": "EVIDENCE_NOT_RECONSTRUCTED_FOR_EXACT_B975BB5",
+    "artifact": null
   },
-  "human_acceptance": {"eligible": false, "reason": "External blocking findings remain unresolved."},
+  "publication": {
+    "status": "PUBLISHED",
+    "repository": "joannalee20050914/KGnote-public",
+    "pull_request": 1,
+    "remote_head": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
+    "candidate_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
+    "request_marker": "KGNOTE_PRODUCT_REVIEW_REQUEST_V2",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/1"
+  },
+  "external_review": {
+    "status": "PASS",
+    "reviewed_commit": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
+    "reviewed_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/1#pullrequestreview-5444572548",
+    "review_author": "joannalee20050914",
+    "review_source": "pull_request_review",
+    "record_id": 5444572548,
+    "native_ui_observed": false,
+    "blocking_findings": []
+  },
+  "human_acceptance": {
+    "eligible": false,
+    "reason": "The old human-eligibility milestone was superseded by the authorized Stage 2B planning direction; native product and learner acceptance were not performed."
+  },
   "release_verified": false
 }

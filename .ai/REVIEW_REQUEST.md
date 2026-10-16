@@ -7,88 +7,44 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 {
   "schema_version": "kgnote.review-request.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "review_id": "review-external-review-recovery-v1-003",
-  "goal_id": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
-  "milestone_id": "AR-INTERNAL-VERIFY",
+  "review_id": "review-stage2b-delivery-planning-v1-001",
+  "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
+  "milestone_id": "S2B-GITHUB-PROJECTS",
   "status": "IMPLEMENTING",
   "author_role": "CODEX_IMPLEMENTER",
-  "base_revision": "15d043c786a33e7a1a97c61519a49f6eb7c1091d",
+  "base_revision": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
   "candidate_revision": null,
   "candidate_fingerprint": null,
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
-    "docs/control-plane/CANONICAL_PUBLIC_REPOSITORY_MIGRATION_20261005.md",
     "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
-    "docs/control-plane/INCIDENT_EXTERNAL_REVIEW_BYPASS_20261007.md",
     ".ai/GITHUB_WORK_PRODUCT_REVIEWER.md",
+    ".ai/PUBLICATION_RECEIPT.md",
     ".ai/REVIEW_PROTOCOL.md",
+    "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
     "PLAN.md"
   ],
   "changed_areas": [
-    "canonical external review result envelope, schema, parser, and five-round budget",
-    "review-status-aware learner concept projection"
+    "Stage 2B GitHub Projects delivery metadata only"
   ],
   "acceptance_criteria": [
-    "remote PR #1 head, request repository, trigger repository, commit, and fingerprint match by read-back"
+    "reuse existing Projects and Issues before creating missing D2 hierarchy and views",
+    "bind task status to current evidence without duplicating one Issue per RC"
   ],
   "negative_requirements": [
-    "internal PASS is not external PASS",
-    "do not publish to archival KGnote",
-    "do not ask the owner to transport findings",
-    "do not promote PA-HUMAN-1 or NS-HUMAN-SMOKE"
+    "do not push or update PR #1",
+    "do not start Release 1 through 4 product migration",
+    "do not bind the b975bb5 round-14 PASS to a later commit",
+    "do not promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
   ],
-  "validation_performed": [
-    "./.venv/bin/python docs/requirements/requirements_guard.py check --repo .",
-    "./.venv/bin/python -m unittest discover -s docs/requirements -p test_requirements_guard.py -v",
-    "./.venv/bin/python -m unittest discover -s tests/control_plane -p test_*.py -v",
-    "./.venv/bin/python -m unittest discover -s tests -p test_*.py -v",
-    "npm test",
-    "git diff --check",
-    "internal untracked_whitespace_errors"
-  ],
-  "validation_results": [
-    {
-      "name": "requirements_guard",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#requirements_guard"
-    },
-    {
-      "name": "requirements_guard_tests",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#requirements_guard_tests"
-    },
-    {
-      "name": "control_plane_negative_tests",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#control_plane_negative_tests"
-    },
-    {
-      "name": "python_product_tests",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#python_product_tests"
-    },
-    {
-      "name": "node_tests",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#node_tests"
-    },
-    {
-      "name": "strict_git_diff_check",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#strict_git_diff_check"
-    },
-    {
-      "name": "untracked_whitespace",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261007T170254+0800.json#untracked_whitespace"
-    }
-  ],
+  "validation_performed": [],
+  "validation_results": [],
   "known_deviations": [],
   "known_uncertainties": [],
   "reviewer_focus": [
-    "R-001 and R-002 exact resolutions",
-    "literal live-config PASS and CHANGES_REQUIRED ingestion plus provisional concept notes",
-    "Re-verify carried unresolved findings from immutable history: R-001, R-002."
+    "evidence-to-status mapping for reused work",
+    "fail-closed handling of unavailable GitHub Projects operations",
+    "no duplicate RC-only Issues"
   ],
   "preserved_human_gates": [
     "PA-HUMAN-1",
@@ -2489,6 +2445,6 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 
 ## Human-readable status
 
-Review `review-external-review-recovery-v1-003` is `IMPLEMENTING`.
+Review `review-stage2b-delivery-planning-v1-001` is `IMPLEMENTING`.
 It has no active candidate binding and cannot be interpreted as a review request or PASS.
 Codex must complete deterministic verification before issuing this request.

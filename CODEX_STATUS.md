@@ -6,25 +6,25 @@ This file records facts and recovery state; it does not define product requireme
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-07T17:05:12+08:00",
-  "goal_id": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
+  "updated_at": "2026-10-16T12:51:34+08:00",
+  "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
   "goal_status": "active",
-  "active_milestone_id": "AR-PUBLISH",
+  "active_milestone_id": "S2B-GITHUB-PROJECTS",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
-  "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
+  "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/kg-note-autonomous-review",
-    "head": "f66779f77267029f6d6b54ba0e50579b6f68b996",
-    "checkpoint_commit": "15d043c786a33e7a1a97c61519a49f6eb7c1091d",
+    "head": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
+    "checkpoint_commit": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
     "checkpoint_manifest": "docs/control-plane/checkpoints/public-readiness-pre-rewrite-20261005.json",
     "checkpoint_manifest_sha256": "6450347a61a671dd7b30cb9f8444b7bde60945794e6cefad9fdf3537a22f8d8f"
   },
   "working_state": {
-    "fingerprint_algorithm": "sha256-canonical-json-v2-review-bus-exclusions (tracked and non-ignored untracked candidate files; mutable review bus excluded exactly)",
-    "fingerprint": "7c8001a5204937fbb3f0db2127e933f04035dcfa6a16d05d8e02982dac8008f6",
-    "starting_fingerprint": "2270fd8cebdc7f11e45480c50c315a4155cfc8001cbf34a9f00aec6fd5175555",
-    "expected_dirty_policy": "Only AR-REPAIR owned paths may differ from the external-reviewed checkpoint.",
+    "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
+    "fingerprint": "e2b816479d621c60bd595e9a3e8e22ca390c24660dfef4edb5a4021b4186ce2d",
+    "starting_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
+    "expected_dirty_policy": "Only the Stage 2B Ledger and authorized control-state reconciliation paths may differ from b975bb5 before the local checkpoint commit.",
     "unexpected_dirty_paths": []
   },
   "implementation_state": "IMPLEMENTING",
@@ -39,50 +39,48 @@ This file records facts and recovery state; it does not define product requireme
   "external_review": {
     "repository": "joannalee20050914/KGnote-public",
     "pull_request": 1,
-    "status": "CHANGES_REQUIRED",
-    "reviewed_commit": "15d043c786a33e7a1a97c61519a49f6eb7c1091d",
-    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/1#pullrequestreview-5411948557",
-    "blocking_findings": [
-      "KG-SEM-001",
-      "KG-ALPHA-RECOVERY-001",
-      "KG-PRACTICE-001",
-      "KG-PRACTICE-002",
-      "KG-CTRL-001"
-    ]
+    "status": "PASS_HISTORICAL_EXACT_CANDIDATE",
+    "review_round": 14,
+    "reviewed_commit": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
+    "reviewed_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/1#pullrequestreview-5444572548",
+    "consumer_status": "accepted",
+    "blocking_findings": [],
+    "applies_to_current_worktree": false
   },
   "verification": {
-    "candidate_verified": false,
+    "candidate_verified": true,
     "release_verified": false,
-    "control_plane_ready": false,
-    "last_green_milestone": "AR-REPAIR",
-    "last_candidate_evidence": "output/control-plane/verification-20261007T170254+0800.json",
-    "last_verified_fingerprint": "675d3eeb05fb763bb76417d4ebc707d45ce8bebaca0caf693d89112d9a09aa93",
-    "last_result": "Reviewer PASS for review-external-review-recovery-v1-002 was archived and consumed for deterministic progression; it is not rebound to the post-progression fingerprint."
+    "control_plane_ready": true,
+    "last_green_milestone": "S2B-LEDGER-BASELINE",
+    "last_candidate_evidence": "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
+    "last_verified_fingerprint": "e2b816479d621c60bd595e9a3e8e22ca390c24660dfef4edb5a4021b4186ce2d",
+    "last_result": "Stage 2B documentation/control candidate: Requirements Guard PASS, Ledger 23/23 and RC 34/34 checks PASS, privacy scan PASS, 93/93 control-plane tests PASS, review-validate PASS, and Preflight PASS. Historical round-14 PASS remains bound only to b975bb5/c38fe014."
   },
-  "next_action": "Automatically begin authorized work package AR-PUBLISH.",
+  "next_action": "Inspect and reuse existing GitHub Projects and Issues, then create only the missing D2 hierarchy and views; do not push PR #1 or start product implementation.",
   "external_or_human_gates": [
     {
       "id": "EXTERNAL-PRODUCT-REVIEW",
-      "status": "changes_required",
-      "description": "Five blocking findings are carried from canonical PR #1."
+      "status": "pass_for_superseded_b975bb5_candidate_only",
+      "description": "Round-14 has zero findings but is not inherited by the Stage 2B documentation delta."
     },
     {
       "id": "PA-HUMAN-1",
-      "status": "not_eligible_external_review_pending",
-      "description": "Do not ask the owner to test until external PASS."
+      "status": "not_evaluated_by_stage2b_planning",
+      "description": "Native learner acceptance remains external and unverified."
     },
     {
       "id": "NS-HUMAN-SMOKE",
-      "status": "not_eligible_external_review_pending",
-      "description": "Do not ask the owner to test until external PASS."
+      "status": "not_evaluated_by_stage2b_planning",
+      "description": "Native product smoke evidence remains external and unverified."
     }
   ],
   "forbidden_during_goal": [
-    "publication to joannalee20050914/KGnote",
-    "human checkpoint before exact external PASS",
-    "dropping external findings",
-    "using internal PASS as external evidence",
-    "asking the owner to transport routine findings"
+    "push or update PR #1",
+    "start Release 1 through 4 product migration",
+    "re-run Stage 2A or the classified 26-commit inventory",
+    "bind the b975bb5 round-14 PASS to a later commit or fingerprint",
+    "promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
   ]
 }
 ```
@@ -90,9 +88,9 @@ This file records facts and recovery state; it does not define product requireme
 
 ## Human-readable handoff
 
-Goal `GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1` remains active at milestone `AR-PUBLISH`.
+Goal `GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1` remains active at milestone `S2B-GITHUB-PROJECTS`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Automatically begin authorized work package AR-PUBLISH.
+Exact next action: Inspect and reuse existing GitHub Projects and Issues, then create only the missing D2 hierarchy and views; do not push PR #1 or start product implementation.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

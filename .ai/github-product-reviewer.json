@@ -14,6 +14,6 @@
   "trusted_reviewer_author_login": "joannalee20050914",
   "trigger_events": ["pull_request.ready_for_review", "pull_request.synchronize", "issue_comment.created"],
   "trigger_comment_template": "@kgnote-ai-review {candidate_commit}",
-  "last_reviewed_candidate_fingerprint": null,
+  "last_reviewed_candidate_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
   "max_product_review_rounds": 16
 }
