@@ -6,16 +6,16 @@ This file records facts and recovery state; it does not define product requireme
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-16T16:35:03+08:00",
+  "updated_at": "2026-10-16T16:53:46+08:00",
   "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "goal_status": "active",
-  "active_milestone_id": "D2-T01-SOURCE-LIBRARY",
+  "active_milestone_id": "AR-EXTERNAL-REVIEW",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/issue-8-source-library",
-    "head": "a560bd9cecab20b3e5dda3be9e9274aa82d16f6e",
+    "head": "c99c182c80acff6047aba88ebb471760a66b8849",
     "base_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
     "base_pull_request": 22,
     "base_pull_request_state": "OPEN_DRAFT_UNMERGED",
@@ -23,7 +23,7 @@ This file records facts and recovery state; it does not define product requireme
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "09d9444084d489ebddbd4713875fb5b8b9bfe382de4bb5de8e3210df28e39569",
+    "fingerprint": "003b4dac80d1e833558d3ff675634f7d603d6535146cc559be64b5a268720e1b",
     "starting_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
     "expected_dirty_policy": "Issue #8 may change only its product import/source-library/UI paths, bounded tests, requirement delivery evidence, and necessary control/review state. Existing Issue #19 closure receipts are preserved; unrelated changes are forbidden.",
     "preserved_preexisting_dirty_paths": [
@@ -72,11 +72,11 @@ This file records facts and recovery state; it does not define product requireme
     "release_verified": false,
     "control_plane_ready": false,
     "last_green_milestone": "S2B-REVIEW-INTEGRATION-TASK",
-    "last_candidate_evidence": "output/control-plane/verification-20261016T152918+0800.json",
-    "last_verified_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
-    "last_result": "Issue #8 Draft PR #23 and exact external-review target configured."
+    "last_candidate_evidence": "output/control-plane/verification-20261016T165006+0800.json",
+    "last_verified_fingerprint": "6dc468b961387118a3f770c476096fbd9a96c892c041b350941f114a49bca5f6",
+    "last_result": "Reviewer PASS for review-d2-t01-source-library-v1-003 was archived and consumed for deterministic progression; it is not rebound to the post-progression fingerprint."
   },
-  "next_action": "Run deterministic validation; on success create the next fingerprint-bound review request.",
+  "next_action": "Automatically begin authorized work package AR-EXTERNAL-REVIEW.",
   "external_or_human_gates": [
     {
       "id": "PR22-STACKED-BASE",
@@ -112,9 +112,9 @@ This file records facts and recovery state; it does not define product requireme
 
 ## Human-readable handoff
 
-Goal `GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1` remains active at milestone `D2-T01-SOURCE-LIBRARY`.
+Goal `GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1` remains active at milestone `AR-EXTERNAL-REVIEW`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Run deterministic validation; on success create the next fingerprint-bound review request.
+Exact next action: Automatically begin authorized work package AR-EXTERNAL-REVIEW.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

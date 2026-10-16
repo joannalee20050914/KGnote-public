@@ -9,7 +9,7 @@ This file contains exactly one active execution goal. It does not promote any hu
   "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "objective": "以 GitHub Issue #8 為唯一主動工作，最大限度重用既有 Markdown 匯入、canonical store（正式資料儲存層）與 Release 1 source-library/UI 證據，只補足持久來源資料庫、多檔匯入、對話 speaker、來源版本與可追溯讀回的確認缺口。",
   "status": "active",
-  "active_milestone_id": "D2-T01-SOURCE-LIBRARY",
+  "active_milestone_id": "AR-EXTERNAL-REVIEW",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "explicit_direction": {
@@ -36,11 +36,40 @@ This file contains exactly one active execution goal. It does not promote any hu
   ],
   "requirement_context": {
     "github_issue": "https://github.com/joannalee20050914/KGnote-public/issues/8",
-    "feature_dispositions": ["FD-01", "FD-02"],
-    "prerequisite_dispositions": ["FD-17", "FD-18", "FD-19"],
-    "requirements": ["KG-ING-01", "KG-ING-02", "KG-ING-03", "KG-PLAT-05", "KG-PLAT-06", "KG-ALPHA-01"],
-    "acceptance_criteria": ["RC-04", "RC-05", "RC-06", "RC-10", "RC-11", "RC-21", "RC-26", "RC-31", "RC-32"],
-    "scenarios": ["SC-21", "SC-28", "SC-31", "SC-44"],
+    "feature_dispositions": [
+      "FD-01",
+      "FD-02"
+    ],
+    "prerequisite_dispositions": [
+      "FD-17",
+      "FD-18",
+      "FD-19"
+    ],
+    "requirements": [
+      "KG-ING-01",
+      "KG-ING-02",
+      "KG-ING-03",
+      "KG-PLAT-05",
+      "KG-PLAT-06",
+      "KG-ALPHA-01"
+    ],
+    "acceptance_criteria": [
+      "RC-04",
+      "RC-05",
+      "RC-06",
+      "RC-10",
+      "RC-11",
+      "RC-21",
+      "RC-26",
+      "RC-31",
+      "RC-32"
+    ],
+    "scenarios": [
+      "SC-21",
+      "SC-28",
+      "SC-31",
+      "SC-44"
+    ],
     "delivery_principle": "Existing Evidence First -> Reuse First -> Delta Only -> Verify Integration -> Build Missing Features",
     "forbidden_substitutes": [
       "重寫既有 Markdown importer、canonical store 或 review transport",
@@ -92,24 +121,50 @@ This file contains exactly one active execution goal. It does not promote any hu
     "stop_on_human_gate": true,
     "external_review_required_before_human_gate": true,
     "max_review_cycles_per_milestone": 5,
-    "stop_on_review_state": ["PRODUCT_DECISION_REQUIRED", "AUTHORITY_CONFLICT", "AUTOMATION_BLOCKED", "BUDGET_EXHAUSTED", "GOAL_COMPLETE", "STOPPED"]
+    "stop_on_review_state": [
+      "PRODUCT_DECISION_REQUIRED",
+      "AUTHORITY_CONFLICT",
+      "AUTOMATION_BLOCKED",
+      "BUDGET_EXHAUSTED",
+      "GOAL_COMPLETE",
+      "STOPPED"
+    ]
   },
   "preserved_human_gates": [
-    {"id": "PA-HUMAN-1", "status": "not_evaluated", "release_verified": false, "rule": "Requires native product and learner evidence; deterministic tests and AI review cannot promote it."},
-    {"id": "NS-HUMAN-SMOKE", "status": "not_evaluated", "release_verified": false, "rule": "Requires native product evidence; deterministic tests and AI review cannot promote it."}
+    {
+      "id": "PA-HUMAN-1",
+      "status": "not_evaluated",
+      "release_verified": false,
+      "rule": "Requires native product and learner evidence; deterministic tests and AI review cannot promote it."
+    },
+    {
+      "id": "NS-HUMAN-SMOKE",
+      "status": "not_evaluated",
+      "release_verified": false,
+      "rule": "Requires native product evidence; deterministic tests and AI review cannot promote it."
+    }
   ],
   "milestones": [
     {
       "id": "D2-T01-SOURCE-LIBRARY",
       "title": "Issue #8：整合匯入與持久來源資料庫",
-      "status": "active",
+      "status": "complete",
       "dependencies": [],
       "human_gate": "none",
       "owned_paths": [
-        "PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/authority-lock.json",
-        "DEVELOPMENT_PLAIN.md", "docs/requirements/",
-        "src/kgnote/ingestion/", "src/kgnote/learning/", "src/kgnote/storage/",
-        "scripts/serve_graph_view.py", "scripts/codex_control.py", "web/", "tests/"
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "docs/control-plane/authority-lock.json",
+        "DEVELOPMENT_PLAIN.md",
+        "docs/requirements/",
+        "src/kgnote/ingestion/",
+        "src/kgnote/learning/",
+        "src/kgnote/storage/",
+        "scripts/serve_graph_view.py",
+        "scripts/codex_control.py",
+        "web/",
+        "tests/"
       ],
       "acceptance": [
         "一般 Markdown 與明確 speaker 的對話 Markdown 可由現有產品 UI 匯入持久來源資料庫，原始 UTF-8 bytes、來源種類、speaker、locator 與 hash 可讀回",
@@ -131,12 +186,18 @@ This file contains exactly one active execution goal. It does not promote any hu
     {
       "id": "AR-EXTERNAL-REVIEW",
       "title": "Issue #8：發布並接收精確候選的獨立產品審查",
-      "status": "pending",
-      "dependencies": ["D2-T01-SOURCE-LIBRARY"],
+      "status": "active",
+      "dependencies": [
+        "D2-T01-SOURCE-LIBRARY"
+      ],
       "human_gate": "none",
       "owned_paths": [
-        "PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/requirements/",
-        "DEVELOPMENT_PLAIN.md", "GitHub PR and Issue metadata for joannalee20050914/KGnote-public"
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "docs/requirements/",
+        "DEVELOPMENT_PLAIN.md",
+        "GitHub PR and Issue metadata for joannalee20050914/KGnote-public"
       ],
       "acceptance": [
         "Issue #8 product bytes remain unchanged after the verified implementation milestone except for required review/publication control receipts",
@@ -153,6 +214,6 @@ This file contains exactly one active execution goal. It does not promote any hu
 
 ## Current recovery note
 
-Autonomous orchestration state: `IMPLEMENTING`. Active work package: `D2-T01-SOURCE-LIBRARY`.
-Next action: reuse the existing importer, canonical store, and bounded Release 1 source-library/UI evidence; implement and verify only the persistent source revision, conversation attribution, multi-file, UI, provenance, rollback, and read-back gaps required by Issue #8.
-PR #22 remains open and unmerged. This branch is stacked on its exact reviewed commit but must not modify or merge that PR. PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.
+Autonomous orchestration state: `IMPLEMENTING`. Active work package: `AR-EXTERNAL-REVIEW`.
+Next action: Automatically begin authorized work package AR-EXTERNAL-REVIEW.
+Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.

@@ -24,4 +24,4 @@ Writer after reviewer custody: independent reviewer only.
 ```
 <!-- END KGNOTE REVIEW RESULT JSON -->
 
-There is no sealed Stage 2B candidate or current reviewer verdict. Historical round-14 PASS evidence remains bound only to b975bb5 and is not represented by this empty result.
+Verdict: `PASS`. R-003 through R-007 are verified for the exact sealed candidate at HEAD `c99c182c80acff6047aba88ebb471760a66b8849` and fingerprint `6dc468b961387118a3f770c476096fbd9a96c892c041b350941f114a49bca5f6`. This internal verdict does not promote external product review, PA-HUMAN-1, NS-HUMAN-SMOKE, multi-process safety, or release verification.

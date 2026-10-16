@@ -1,8 +1,8 @@
 {
   "schema_version": "kgnote.review-history-index.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "event_count": 9,
-  "last_event_id": "evt-0009",
+  "event_count": 23,
+  "last_event_id": "evt-0023",
   "reviews": {
     "review-external-review-recovery-v1-001": {
       "snapshots": [
@@ -40,6 +40,64 @@
       ],
       "last_event_type": "PASS_CONSUMED_FOR_PROGRESSION",
       "candidate_fingerprint": "675d3eeb05fb763bb76417d4ebc707d45ce8bebaca0caf693d89112d9a09aa93"
+    },
+    "review-d2-t01-source-library-v1-001": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-d2-t01-source-library-v1-001/request-87d81a63967dbaf56b9baaa70fb7fcdbbbcc545c21c2eef29ec9ed38f515dc91.md",
+          "sha256": "87d81a63967dbaf56b9baaa70fb7fcdbbbcc545c21c2eef29ec9ed38f515dc91",
+          "event_id": "evt-0010"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-d2-t01-source-library-v1-001/result-aa8faeadceb06401cd2eadf1fc62105852ed314f3d77d31c380b771d7b3f4747.md",
+          "sha256": "aa8faeadceb06401cd2eadf1fc62105852ed314f3d77d31c380b771d7b3f4747",
+          "event_id": "evt-0012"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-d2-t01-source-library-v1-001/resolution-1ea139005c0da2116a583998cf1d759731973210086bddb58e36c4d0ac3a6f7c.md",
+          "sha256": "1ea139005c0da2116a583998cf1d759731973210086bddb58e36c4d0ac3a6f7c",
+          "event_id": "evt-0014"
+        }
+      ],
+      "last_event_type": "FIXES_PROPOSED",
+      "candidate_fingerprint": "0ee44e7d4ea4b068d183ef4761d8913d8864b5a6e8106e7fe6642c377d0484f0"
+    },
+    "review-d2-t01-source-library-v1-002": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-d2-t01-source-library-v1-002/request-95e515e7e30fd87293f0cfc13196d15eb4d79babf1912f5520e693445699eb43.md",
+          "sha256": "95e515e7e30fd87293f0cfc13196d15eb4d79babf1912f5520e693445699eb43",
+          "event_id": "evt-0015"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-d2-t01-source-library-v1-002/result-d73b81075ee37519337f88c7100f936906c08190c088caef2c741f126cedf386.md",
+          "sha256": "d73b81075ee37519337f88c7100f936906c08190c088caef2c741f126cedf386",
+          "event_id": "evt-0017"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-d2-t01-source-library-v1-002/resolution-ad1d6dee2302d8c11031316d74b5e17d25adb6ad9a27e22147c2b87555e54c7c.md",
+          "sha256": "ad1d6dee2302d8c11031316d74b5e17d25adb6ad9a27e22147c2b87555e54c7c",
+          "event_id": "evt-0019"
+        }
+      ],
+      "last_event_type": "FIXES_PROPOSED",
+      "candidate_fingerprint": "b293c760b688362d5957e1aa3bf84feee6609836748e20c9754c66529863b8db"
+    },
+    "review-d2-t01-source-library-v1-003": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-d2-t01-source-library-v1-003/request-5981e94ba6904ec28192fdab8ef188868ad3ad6fc8c84879628fdd83bcf51019.md",
+          "sha256": "5981e94ba6904ec28192fdab8ef188868ad3ad6fc8c84879628fdd83bcf51019",
+          "event_id": "evt-0020"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-d2-t01-source-library-v1-003/result-2fc2780e7f927d10bd9ca596382cf3b42c335e434627ad931211d865e55e6ab4.md",
+          "sha256": "2fc2780e7f927d10bd9ca596382cf3b42c335e434627ad931211d865e55e6ab4",
+          "event_id": "evt-0022"
+        }
+      ],
+      "last_event_type": "PASS_CONSUMED_FOR_PROGRESSION",
+      "candidate_fingerprint": "6dc468b961387118a3f770c476096fbd9a96c892c041b350941f114a49bca5f6"
     }
   },
   "findings": {
@@ -52,6 +110,31 @@
       "status": "VERIFIED",
       "review_id": "review-external-review-recovery-v1-002",
       "last_event_id": "evt-0008"
+    },
+    "R-003": {
+      "status": "VERIFIED",
+      "review_id": "review-d2-t01-source-library-v1-003",
+      "last_event_id": "evt-0022"
+    },
+    "R-004": {
+      "status": "VERIFIED",
+      "review_id": "review-d2-t01-source-library-v1-003",
+      "last_event_id": "evt-0022"
+    },
+    "R-005": {
+      "status": "VERIFIED",
+      "review_id": "review-d2-t01-source-library-v1-003",
+      "last_event_id": "evt-0022"
+    },
+    "R-006": {
+      "status": "VERIFIED",
+      "review_id": "review-d2-t01-source-library-v1-003",
+      "last_event_id": "evt-0022"
+    },
+    "R-007": {
+      "status": "VERIFIED",
+      "review_id": "review-d2-t01-source-library-v1-003",
+      "last_event_id": "evt-0022"
     }
   }
 }

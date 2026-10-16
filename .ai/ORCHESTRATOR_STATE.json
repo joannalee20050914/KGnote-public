@@ -1,19 +1,19 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "orch-d2-t01-source-library-v1",
+  "run_id": "orch-ad54c73103f7",
   "active_goal": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
-  "work_package": "D2-T01-SOURCE-LIBRARY",
+  "work_package": "AR-EXTERNAL-REVIEW",
   "state": "IMPLEMENTING",
   "current_agent": null,
   "candidate_fingerprint": null,
   "review_id": null,
-  "review_cycle": 0,
+  "review_cycle": 3,
   "max_review_cycles": 5,
   "agent_failures": 0,
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Reuse the existing importer, canonical store, and bounded Release 1 source-library/UI evidence; implement and verify only Issue #8 persistent revision, conversation speaker, multi-file, UI, provenance, rollback, and read-back gaps.",
+  "next_action": "Automatically begin authorized work package AR-EXTERNAL-REVIEW.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -26,7 +26,16 @@
     "status": "not_evaluated",
     "description": "Requires native product and learner evidence; deterministic tests and AI review cannot promote it."
   },
-  "last_agent_run": null,
-  "created_at": "2026-10-16T16:10:00+08:00",
-  "updated_at": "2026-10-16T16:26:51+08:00"
+  "last_agent_run": {
+    "role": "reviewer",
+    "separate_ephemeral_context": true,
+    "exit_code": 0,
+    "duration_seconds": 180.815,
+    "output_tail": "ier.\",\n+        \".ai/REVIEW_REQUEST.md validation_results consistently references output/control-plane/verification-20261016T165006+0800.json for review-d2-t01-source-library-v1-003 at HEAD c99c182c80acff6047aba88ebb471760a66b8849 and fingerprint 6dc468b961387118a3f770c476096fbd9a96c892c041b350941f114a49bca5f6.\",\n+        \"The exact verifier has matching repository HEAD and stable fingerprint_before/fingerprint_after, all gates PASS, and evidence_readback=true.\",\n+        \"docs/requirements/requirements.json and scenarios.json continue to point to the tracked evidence, whose binding now resolves without contradictory identity; requirements_guard passes.\"\n+      ],\n+      \"affected_files_or_behavior\": [\n+        \"docs/requirements/evidence/d2-t01-source-library-20261016.json\",\n+        \".ai/REVIEW_REQUEST.md exact-candidate binding\",\n+        \"output/control-plane/verification-20261016T165006+0800.json\",\n+        \"Durable source-to-requirement-to-scenario-to-actual-run traceability\"\n+      ],\n+      \"required_resolution\": \"No further resolution is required for R-007 on this exact candidate.\",\n+      \"verification_method\": \"Read the tracked evidence, current request, current HEAD, and referenced final verifier together; confirm no contradictory candidate identity, honest pre-commit labeling, exact stable final identity, PASS gates, evidence read-back, and resolving requirement/scenario references.\",\n+      \"status\": \"VERIFIED\",\n+      \"resolution_evidence\": [\n+        \"docs/requirements/evidence/d2-t01-source-library-20261016.json#candidate_binding\",\n+        \"output/control-plane/verification-20261016T165006+0800.json\",\n+        \"Independent reviewer requirements_guard and identity read-back on review-d2-t01-source-library-v1-003\"\n+      ]\n+    }\n+  ],\n+  \"verified_requirements\": [\n+    \"D2-T01-SOURCE-LIBRARY acceptance criteria 1-8 for the internal exact-candidate milestone\",\n+    \"KG-ING-01 exact immutable byte preservation, provenance, locator, and read-back contribution\",\n+    \"KG-ING-02 selected source import contribution\",\n+    \"KG-ING-03 explicit conversation speaker attribution contribution without understanding inference\",\n+    \"KG-PLAT-05 authorized local source boundary contribution\",\n+    \"KG-PLAT-06 persistence, idempotency, stale-revision rejection, and atomic rollback contribution\",\n+    \"KG-ALPHA-01 source-library integration contribution\",\n+    \"FD-01 and FD-02 Issue #8 delta\",\n+    \"FD-19 exact-candidate public-safety verifier gate\",\n+    \"R-003\",\n+    \"R-004\",\n+    \"R-005\",\n+    \"R-006\",\n+    \"R-007\"\n+  ],\n   \"unverified_requirements\": [],\n   \"human_decisions_required\": [],\n-  \"human_gates_preserved\": [],\n-  \"reviewed_at\": null\n+  \"human_gates_preserved\": [\n+    \"PA-HUMAN-1\",\n+    \"NS-HUMAN-SMOKE\",\n+    \"release_verified=false\",\n+    \"AR-EXTERNAL-REVIEW remains pending\"\n+  ],\n+  \"reviewed_at\": \"2026-10-16T16:52:18+08:00\"\n }\n ```\n <!-- END KGNOTE REVIEW RESULT JSON -->\n \n-Verdict: `CHANGES_REQUIRED`. R-003, R-004, and R-005 are verified on the exact sealed candidate. R-006 blocks BOM-aware empty-source validation and first-speaker attribution; R-007 requires correcting stale tracked run identity. No human, native-device, external-product-review, or release gate is promoted.\n+Verdict: `PASS`. R-003 through R-007 are verified for the exact sealed candidate at HEAD `c99c182c80acff6047aba88ebb471760a66b8849` and fingerprint `6dc468b961387118a3f770c476096fbd9a96c892c041b350941f114a49bca5f6`. This internal verdict does not promote external product review, PA-HUMAN-1, NS-HUMAN-SMOKE, multi-process safety, or release verification.\n\ntokens used\n100,253\n獨立審查完成，Verdict：`PASS`。\n\n- R-003～R-007：`VERIFIED`\n- Exact candidate：HEAD `c99c182c…`\n- Fingerprint：`6dc468b9…`\n- `review-validate-pending`：PASS\n- Repository preflight：PASS\n- 未修改 candidate files，未執行 submit 或狀態轉移\n- PA-HUMAN-1、NS-HUMAN-SMOKE、外部產品審查與 `release_verified=false` 均維持原狀\n\n完整結果：[.ai/REVIEW_RESULT.md](/Users/joanna/KGnote-public-rewrite-20261005/.ai/REVIEW_RESULT.md)\n",
+    "last_message_path": "output/control-plane/orchestrator/orch-ad54c73103f7-reviewer-20261016T165044+0800.txt",
+    "created_at": "2026-10-16T16:53:45+08:00",
+    "transcript_path": "output/control-plane/orchestrator/orch-ad54c73103f7-reviewer-20261016T165044+0800.json"
+  },
+  "created_at": "2026-10-16T16:36:21+08:00",
+  "updated_at": "2026-10-16T16:53:46+08:00"
 }
