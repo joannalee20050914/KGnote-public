@@ -887,6 +887,107 @@ class OrchestratorDurabilityTests(unittest.TestCase):
             self.assertEqual(state["state"], "BUDGET_EXHAUSTED")
             self.assertTrue(state["human_action_required"])
 
+    def test_work_hours_are_timezone_bound_and_end_exclusive(self):
+        zone = ORCH.WORK_TIMEZONE
+        for moment, expected in (
+            (ORCH.datetime(2026, 10, 17, 8, 59, tzinfo=zone), False),
+            (ORCH.datetime(2026, 10, 17, 9, 0, tzinfo=zone), True),
+            (ORCH.datetime(2026, 10, 17, 18, 29, 59, tzinfo=zone), True),
+            (ORCH.datetime(2026, 10, 17, 18, 30, tzinfo=zone), False),
+        ):
+            with self.subTest(moment=moment):
+                self.assertEqual(ORCH.within_authorized_work_hours(moment), expected)
+
+    def test_ordinary_resume_preserves_protected_terminal_states_across_restart(self):
+        for terminal in sorted(ORCH.EXPLICIT_RESUME_STATES):
+            with self.subTest(terminal=terminal), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                state = OrchestrationSimulationTests().base_state(review_cycle=5)
+                state.update({
+                    "state": terminal,
+                    "blockers": [{"type": "persisted", "detail": terminal}],
+                    "human_action_required": terminal != "STOPPED",
+                })
+                ORCH.write_state(root, state)
+                persisted = (root / ORCH.STATE_PATH).read_bytes()
+                with mock.patch.object(ORCH, "within_authorized_work_hours", return_value=True), \
+                     mock.patch.object(ORCH, "derive_state", side_effect=AssertionError("must not rederive")), \
+                     mock.patch.object(ORCH, "run_loop", side_effect=AssertionError("must not run")):
+                    resumed = ORCH.start(
+                        root, resume=True, max_review_cycles=5, max_steps=1,
+                        runner=lambda *_: self.fail("must not dispatch"),
+                    )
+                self.assertEqual(resumed["state"], terminal)
+                self.assertEqual(resumed["blockers"], state["blockers"])
+                self.assertEqual((root / ORCH.STATE_PATH).read_bytes(), persisted)
+
+    def test_explicit_terminal_recovery_is_state_exact_and_budget_safe(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for terminal in ("STOPPED", "BUDGET_EXHAUSTED"):
+                state = OrchestrationSimulationTests().base_state()
+                state.update({"state": terminal, "blockers": [{"type": "persisted"}]})
+                ORCH.write_state(root, state)
+                derived = {**state, "state": "IMPLEMENTING", "blockers": []}
+                with mock.patch.object(ORCH, "within_authorized_work_hours", return_value=True), \
+                     mock.patch.object(ORCH, "derive_state", return_value=derived), \
+                     mock.patch.object(ORCH, "run_loop", side_effect=lambda _r, value, _runner, _steps: value):
+                    resumed = ORCH.start(
+                        root, resume=True, max_review_cycles=5, max_steps=1,
+                        runner=lambda *_: self.fail("run loop is stubbed"),
+                        resume_terminal_state=terminal,
+                    )
+                self.assertEqual(resumed["state"], "IMPLEMENTING")
+                self.assertEqual(resumed["blockers"], [])
+
+            blocked = OrchestrationSimulationTests().base_state(review_cycle=5)
+            blocked.update({
+                "state": "AUTOMATION_BLOCKED",
+                "blockers": [{"type": "repair_budget_exhausted", "effective_review_limit": 5}],
+                "human_action_required": True,
+            })
+            ORCH.write_state(root, blocked)
+            with mock.patch.object(ORCH, "within_authorized_work_hours", return_value=True), \
+                 mock.patch.object(ORCH, "derive_state", side_effect=AssertionError("budget must remain blocked")), \
+                 mock.patch.object(ORCH, "run_loop", side_effect=AssertionError("must not run")):
+                resumed = ORCH.start(
+                    root, resume=True, max_review_cycles=5, max_steps=1,
+                    runner=lambda *_: self.fail("must not dispatch"),
+                    resume_terminal_state="AUTOMATION_BLOCKED",
+                )
+            self.assertEqual(resumed["state"], "AUTOMATION_BLOCKED")
+
+            blocked["base_review_cycles"] = 5
+            blocked["supplemental_review_limit"] = 1
+            ORCH.write_state(root, blocked)
+            derived = {**blocked, "state": "REPAIRING", "blockers": []}
+            with mock.patch.object(ORCH, "within_authorized_work_hours", return_value=True), \
+                 mock.patch.object(ORCH, "derive_state", return_value=derived), \
+                 mock.patch.object(ORCH, "run_loop", side_effect=lambda _r, value, _runner, _steps: value):
+                resumed = ORCH.start(
+                    root, resume=True, max_review_cycles=5, max_steps=1,
+                    runner=lambda *_: self.fail("run loop is stubbed"),
+                    resume_terminal_state="AUTOMATION_BLOCKED",
+                )
+            self.assertEqual(resumed["state"], "REPAIRING")
+            self.assertEqual(resumed["blockers"], [])
+
+    def test_outside_work_hours_never_runs_or_mutates_persisted_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = OrchestrationSimulationTests().base_state()
+            state["state"] = "IMPLEMENTING"
+            ORCH.write_state(root, state)
+            persisted = (root / ORCH.STATE_PATH).read_bytes()
+            with mock.patch.object(ORCH, "within_authorized_work_hours", return_value=False), \
+                 mock.patch.object(ORCH, "run_loop", side_effect=AssertionError("must not run")):
+                resumed = ORCH.start(
+                    root, resume=True, max_review_cycles=5, max_steps=1,
+                    runner=lambda *_: self.fail("must not dispatch"),
+                )
+            self.assertEqual(resumed["state"], "IMPLEMENTING")
+            self.assertEqual((root / ORCH.STATE_PATH).read_bytes(), persisted)
+
 
 if __name__ == "__main__":
     unittest.main()

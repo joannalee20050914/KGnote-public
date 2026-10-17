@@ -39,6 +39,10 @@ TERMINAL_STATES = {
     "GOAL_COMPLETE",
     "STOPPED",
 }
+EXPLICIT_RESUME_STATES = {"STOPPED", "AUTOMATION_BLOCKED", "BUDGET_EXHAUSTED"}
+WORK_TIMEZONE = ZoneInfo("Asia/Taipei")
+WORKDAY_START_MINUTE = 9 * 60
+WORKDAY_END_MINUTE = 18 * 60 + 30
 MACHINE_HANDOFF_STATES = {"AWAITING_EXTERNAL_PRODUCT_REVIEW"}
 MACHINE_STATES = {
     "IMPLEMENTING",
@@ -57,7 +61,43 @@ QUOTA_MARKERS = (
 
 
 def now() -> str:
-    return datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds")
+    return datetime.now(WORK_TIMEZONE).isoformat(timespec="seconds")
+
+
+def within_authorized_work_hours(moment: datetime | None = None) -> bool:
+    """Return whether new autonomous work may start in Asia/Taipei."""
+    if moment is None:
+        local = datetime.now(WORK_TIMEZONE)
+    elif moment.tzinfo is None:
+        local = moment.replace(tzinfo=WORK_TIMEZONE)
+    else:
+        local = moment.astimezone(WORK_TIMEZONE)
+    minute = local.hour * 60 + local.minute
+    return WORKDAY_START_MINUTE <= minute < WORKDAY_END_MINUTE
+
+
+def terminal_resume_authorized(state: dict[str, Any], requested_state: str | None) -> bool:
+    """Require an exact operator request and preserve exhausted review budgets."""
+    current = state.get("state")
+    if current not in EXPLICIT_RESUME_STATES or requested_state != current:
+        return False
+    if current != "AUTOMATION_BLOCKED":
+        return True
+    for blocker in state.get("blockers", []):
+        if blocker.get("type") != "repair_budget_exhausted":
+            continue
+        review_cycle = int(state.get("review_cycle", 0))
+        if "supplemental_review_limit" in state or "base_review_cycles" in state:
+            effective_limit = int(
+                state.get("base_review_cycles", state.get("max_review_cycles", 5))
+            ) + int(state.get("supplemental_review_limit", 0))
+        else:
+            effective_limit = int(
+                blocker.get("effective_review_limit", state.get("max_review_cycles", 5))
+            )
+        if review_cycle >= effective_limit:
+            return False
+    return True
 
 
 def state_path(repo: Path) -> Path:
@@ -858,12 +898,22 @@ def resume_after_product_decision(repo: Path, state: dict[str, Any]) -> bool:
     return True
 
 
-def start(repo: Path, *, resume: bool, max_review_cycles: int, max_steps: int | None, runner: AgentRunner) -> dict[str, Any]:
+def start(
+    repo: Path,
+    *,
+    resume: bool,
+    max_review_cycles: int,
+    max_steps: int | None,
+    runner: AgentRunner,
+    resume_terminal_state: str | None = None,
+) -> dict[str, Any]:
     existing = read_state(repo)
     if resume:
         if existing is None:
             raise ValueError("orchestrator_resume: no durable state exists; use start")
         state = existing
+        if not within_authorized_work_hours():
+            return state
         if state["state"] == "AWAITING_EXTERNAL_PRODUCT_REVIEW":
             decision = external_review_handoff.process(repo)
             if not decision.get("accepted"):
@@ -884,7 +934,9 @@ def start(repo: Path, *, resume: bool, max_review_cycles: int, max_steps: int | 
         elif state["state"] in {"HUMAN_CHECKPOINT_REQUIRED", "AUTHORITY_CONFLICT"}:
             # Re-derive after the human or authority artifact was durably updated.
             state = derive_state(repo, max_review_cycles=state.get("max_review_cycles", max_review_cycles))
-        elif state["state"] in {"STOPPED", "AUTOMATION_BLOCKED", "BUDGET_EXHAUSTED"}:
+        elif state["state"] in EXPLICIT_RESUME_STATES:
+            if not terminal_resume_authorized(state, resume_terminal_state):
+                return state
             state["state"] = derive_state(repo, max_review_cycles=state.get("max_review_cycles", max_review_cycles))["state"]
             state["blockers"] = []
             state["human_action_required"] = False
@@ -896,6 +948,8 @@ def start(repo: Path, *, resume: bool, max_review_cycles: int, max_steps: int | 
         state = derive_state(repo, max_review_cycles=max_review_cycles)
         write_state(repo, state)
         append_event(repo, state, "ORCHESTRATOR_STARTED")
+        if not within_authorized_work_hours():
+            return state
     return run_loop(repo, state, runner, max_steps)
 
 
@@ -915,6 +969,12 @@ def main() -> int:
         command = sub.add_parser(name)
         command.add_argument("--max-review-cycles", type=int, default=5)
         command.add_argument("--max-steps", type=int)
+        if name == "resume":
+            command.add_argument(
+                "--resume-terminal-state",
+                choices=sorted(EXPLICIT_RESUME_STATES),
+                help="explicitly authorize recovery from the exact persisted terminal state",
+            )
     sub.add_parser("status")
     sub.add_parser("stop")
     args = parser.parse_args()
@@ -929,6 +989,7 @@ def main() -> int:
                 max_review_cycles=args.max_review_cycles,
                 max_steps=args.max_steps,
                 runner=run_codex_agent,
+                resume_terminal_state=getattr(args, "resume_terminal_state", None),
             )
         elif args.command == "status":
             result = read_state(repo) or derive_state(repo)
