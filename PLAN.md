@@ -126,8 +126,8 @@ This file contains exactly one active execution goal. It does not promote any hu
       "authority_url": "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md",
       "scope": "Issue #8 bounded internal repair/reviews through the single cycle-17 review of PR #23 external findings finding-kg-src-revision-001, finding-r-004, and finding-r-005",
       "authorized_total": 15,
-      "used": 12,
-      "remaining": 3,
+      "used": 13,
+      "remaining": 2,
       "base_cycles_preserved": 5,
       "authorizations": [
         {
