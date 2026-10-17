@@ -6,7 +6,7 @@
   "repository": "joannalee20050914/KGnote-public",
   "issue": 8,
   "finding": "finding-r-004",
-  "worktree": "/Users/joanna/KGnote-public-rewrite-20261005",
+  "worktree": "runtime_configured_local_checkout",
   "branch": "codex/issue-8-source-library",
   "authority_record": "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md",
   "authority_version": "2026-10-17-first-production-canary",
