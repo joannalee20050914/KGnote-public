@@ -189,12 +189,30 @@ def _markdown_without_html_comments(lines: list[str], ignored_lines: set[int]) -
     return visible
 
 
+def _markdown_block_quote_lines(lines: list[str]) -> set[int]:
+    """Return block-quote lines, including lazy paragraph continuations."""
+    quoted: set[int] = set()
+    in_quote_paragraph = False
+    for number, line in enumerate(lines, 1):
+        if re.match(r"^ {0,3}>", line):
+            quoted.add(number)
+            quote_content = re.sub(r"^ {0,3}> ?", "", line, count=1)
+            in_quote_paragraph = bool(quote_content.strip())
+            continue
+        if not line.strip():
+            in_quote_paragraph = False
+            continue
+        if in_quote_paragraph:
+            quoted.add(number)
+    return quoted
+
+
 def _speaker_spans(content: str, source_kind: str) -> list[dict[str, Any]]:
     if source_kind != "chatgpt_conversation":
         return []
     lines = content.splitlines()
     fenced_lines = _markdown_fenced_code_lines(lines)
-    quoted_lines = {number for number, line in enumerate(lines, 1) if re.match(r"^ {0,3}>", line)}
+    quoted_lines = _markdown_block_quote_lines(lines)
     protected_lines = fenced_lines | quoted_lines
     speaker_lines = _markdown_without_html_comments(lines, protected_lines)
     heading_matches = [
