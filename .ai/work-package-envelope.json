@@ -13,8 +13,8 @@
   "scope": ["Markdown speaker attribution", "HTML comments", "quoted contexts", "necessary regression tests"],
   "work_window": {"timezone": "Asia/Taipei", "start": "09:00", "end": "18:30"},
   "budgets": {
-    "local_repairs": {"authorized": 3, "used": 1},
-    "internal_reviews": {"authorized": 20, "used": 17, "canary_authorized": 3},
+    "local_repairs": {"authorized": 3, "used": 2},
+    "internal_reviews": {"authorized": 20, "used": 18, "canary_authorized": 3},
     "external_reviews": {"authorized": 6, "used": 4, "canary_authorized": 2}
   },
   "stop_conditions": ["two_consecutive_rounds_without_material_progress", "budget_exhausted", "identity_mismatch", "human_gate", "github_permission_denied", "protected_write_not_authorized"],
