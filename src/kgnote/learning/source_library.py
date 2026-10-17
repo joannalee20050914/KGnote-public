@@ -157,21 +157,56 @@ def _markdown_fenced_code_lines(lines: list[str]) -> set[int]:
     return fenced
 
 
+def _markdown_without_html_comments(lines: list[str], ignored_lines: set[int]) -> list[str]:
+    """Mask Markdown HTML comments while preserving line numbering."""
+    visible: list[str] = []
+    in_comment = False
+    for number, line in enumerate(lines, 1):
+        if number in ignored_lines:
+            visible.append(line)
+            continue
+        remainder = line
+        fragments: list[str] = []
+        while remainder:
+            if in_comment:
+                closing = remainder.find("-->")
+                if closing < 0:
+                    remainder = ""
+                    continue
+                remainder = remainder[closing + 3:]
+                in_comment = False
+                continue
+            opening = remainder.find("<!--")
+            if opening < 0:
+                fragments.append(remainder)
+                break
+            fragments.append(remainder[:opening])
+            remainder = remainder[opening + 4:]
+            in_comment = True
+        visible.append("".join(fragments))
+    if in_comment:
+        raise SourceLibraryError("ambiguous_conversation_speaker")
+    return visible
+
+
 def _speaker_spans(content: str, source_kind: str) -> list[dict[str, Any]]:
     if source_kind != "chatgpt_conversation":
         return []
     lines = content.splitlines()
     fenced_lines = _markdown_fenced_code_lines(lines)
+    quoted_lines = {number for number, line in enumerate(lines, 1) if re.match(r"^ {0,3}>", line)}
+    protected_lines = fenced_lines | quoted_lines
+    speaker_lines = _markdown_without_html_comments(lines, protected_lines)
     heading_matches = [
         (index, match)
-        for index, line in enumerate(lines, 1)
-        if index not in fenced_lines and (match := _SPEAKER_HEADING.match(line))
+        for index, line in enumerate(speaker_lines, 1)
+        if index not in protected_lines and (match := _SPEAKER_HEADING.match(line))
     ]
     spans: list[dict[str, Any]] = []
     if heading_matches:
         speaker_level = len(lines[heading_matches[0][0] - 1]) - len(lines[heading_matches[0][0] - 1].lstrip("#"))
-        for number, line in enumerate(lines, 1):
-            if number in fenced_lines:
+        for number, line in enumerate(speaker_lines, 1):
+            if number in protected_lines:
                 continue
             heading = _TITLE.match(line)
             if not heading or number < heading_matches[0][0]:
@@ -184,8 +219,8 @@ def _speaker_spans(content: str, source_kind: str) -> list[dict[str, Any]]:
         markers = list(heading_matches)
         markers.extend(
             (number, match)
-            for number, line in enumerate(lines, 1)
-            if number not in fenced_lines and (match := _SPEAKER_PREFIX.match(line))
+            for number, line in enumerate(speaker_lines, 1)
+            if number not in protected_lines and (match := _SPEAKER_PREFIX.match(line))
         )
         markers.sort(key=lambda item: item[0])
         for position, (start, match) in enumerate(markers):
@@ -199,8 +234,8 @@ def _speaker_spans(content: str, source_kind: str) -> list[dict[str, Any]]:
         return spans
 
     active: dict[str, Any] | None = None
-    for number, line in enumerate(lines, 1):
-        if number in fenced_lines:
+    for number, line in enumerate(speaker_lines, 1):
+        if number in protected_lines:
             continue
         match = _SPEAKER_PREFIX.match(line)
         if match:

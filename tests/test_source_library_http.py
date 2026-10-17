@@ -208,6 +208,26 @@ class SourceLibraryHttpTests(unittest.TestCase):
         self.assertEqual(exact["content"].encode("utf-8"), conversation.encode("utf-8"))
         self.assertEqual([span["role"] for span in exact["revision"]["speaker_spans"]], ["user", "assistant"])
 
+    def test_html_comment_speaker_example_is_not_attributed_through_http(self) -> None:
+        content = (
+            "## User\nQuestion.\n\n## Assistant\n<!--\nUser: demonstration only\n-->\n"
+            "Assistant explanation continues.\n"
+        )
+        status, accepted = self.request("POST", "/api/library/sources", source_request(
+            title="Comment example",
+            content=content,
+            source_kind="chatgpt_conversation",
+            locator={"kind": "file_name", "value": "comment-example.md"},
+        ))
+        self.assertEqual(status, 201)
+        status, exact = self.request("GET", f"/api/library/sources/{accepted['source']['source_id']}")
+        self.assertEqual(status, 200)
+        self.assertEqual(exact["content"].encode("utf-8"), content.encode("utf-8"))
+        self.assertEqual(
+            [(span["role"], span["locator"]["value"]) for span in exact["revision"]["speaker_spans"]],
+            [("user", "L1-L3"), ("assistant", "L4-L8")],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

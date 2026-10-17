@@ -125,9 +125,9 @@ This file contains exactly one active execution goal. It does not promote any hu
     "supplemental_review_cycles": {
       "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24",
       "scope": "Issue #8 bounded internal repair/reviews through the single cycle-17 review of PR #23 external findings finding-kg-src-revision-001, finding-r-004, and finding-r-005",
-      "authorized_total": 12,
+      "authorized_total": 15,
       "used": 12,
-      "remaining": 0,
+      "remaining": 3,
       "base_cycles_preserved": 5,
       "authorizations": [
         {
@@ -184,9 +184,14 @@ This file contains exactly one active execution goal. It does not promote any hu
           "cycles": 1,
           "scope": "PR #23 external review 5556852723 findings only: unique A-B-A revision identity and stale locking, Markdown fenced-code speaker attribution, and PUBLICATION_RECEIPT authoritative-spec declaration; only after bounded local repair, clean checkpoint, full verification, prepublication read-back, reservation, and Seal",
           "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231346877"
+        },
+        {
+          "cycles": 3,
+          "scope": "First production canary for Issue #8 finding-r-004 only: Markdown speaker attribution in HTML comments, quoted contexts, and necessary regressions; internal cycles 18 through 20, with no-progress stop after two consecutive rounds",
+          "authority_url": "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md"
         }
       ],
-      "stop_rule": "Preserve all 16 historical attempts. At most one review of the three exact PR #23 external findings may run as total cycle 17 after every pre-review gate passes; once its reviewer context starts it is consumed regardless of PASS, CHANGES_REQUIRED, stale, crash, failure, or no-verdict outcome. Stop after cycle 17 and never auto-extend to cycle 18."
+      "stop_rule": "Preserve cycles 1 through 17. The approved production canary permits at most cycles 18 through 20 for finding-r-004 only. Stop after cycle 20, after two consecutive rounds without material progress, or at any protected gate; never auto-extend to cycle 21."
     },
     "post_review_local_repair": {
       "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231346877",
@@ -197,6 +202,19 @@ This file contains exactly one active execution goal. It does not promote any hu
       "review_authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231346877",
       "status": "external_review_5556852723_changes_required_local_repair_attempt_1",
       "stop_rule": "Start cycle 17 only for the committed clean candidate after every authorized gate passes, and never launch cycle 18; a started context is consumed even without a verdict. If cycle 17 passes, at most one remaining real external Work review may run and no third external review is authorized."
+    },
+    "production_canary_authorization": {
+      "status": "APPROVED",
+      "authority_record": "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md",
+      "issue": 8,
+      "finding": "finding-r-004",
+      "local_repairs_authorized": 3,
+      "local_repairs_used": 1,
+      "internal_cycles": [18, 19, 20],
+      "external_rounds": [5, 6],
+      "no_progress_stop": 2,
+      "work_window": "Asia/Taipei 09:00-18:30",
+      "forbidden": ["cycle 21", "external round 7", "paid API", "force push", "modify or merge PR #1, PR #22, or main", "promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"]
     },
     "stop_on_review_state": [
       "PRODUCT_DECISION_REQUIRED",
@@ -272,6 +290,7 @@ This file contains exactly one active execution goal. It does not promote any hu
         "PLAN.md",
         "CODEX_STATUS.md",
         ".ai/",
+        "docs/control-plane/",
         "docs/requirements/",
         "DEVELOPMENT_PLAIN.md",
         "scripts/codex_orchestrator.py",
@@ -299,6 +318,6 @@ This file contains exactly one active execution goal. It does not promote any hu
 
 ## Current recovery note
 
-Autonomous orchestration state: `AUTOMATION_BLOCKED`. Active work package: `AR-EXTERNAL-REVIEW`.
-Next action: complete the bounded repair of all three findings from PR #23 external review 5556852723, form a clean checkpoint, and launch at most cycle 17 only after every pre-review gate passes. No cycle 18 is authorized; cycle 17 PASS permits at most one remaining real external Work review.
+Autonomous orchestration state: `AUTOMATION_BLOCKED`, with an exact owner-authorized resume pending. Active work package: `AR-EXTERNAL-REVIEW`.
+Next action: use the audited terminal-state resume for the approved Issue #8 finding-r-004 production canary. At most three local repairs, internal cycles 18–20, and external rounds 5–6 are authorized; two consecutive rounds without material progress stop the canary. Cycle 21 and external round 7 are forbidden.
 Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.

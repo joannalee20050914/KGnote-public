@@ -163,6 +163,34 @@ class SourceLibraryTests(unittest.TestCase):
             self.assertEqual(status, "rejected")
             self.assertEqual(rejected["problem"]["code"], "ambiguous_conversation_speaker")
 
+    def test_conversation_ignores_speaker_markers_in_html_comments_and_quotes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "library"
+            content = (
+                "## User\nQuestion.\n\n## Assistant\n<!--\nUser: demonstration only\n-->\n"
+                "Assistant explanation continues.\n> User: quoted example only\n"
+                "<!-- Assistant: inline example only -->\n\nUser: Actual follow-up.\n"
+            )
+            status, accepted = import_source(root, request(
+                title="Protected examples", content=content,
+                source_kind="chatgpt_conversation", file_name="protected.md",
+            ))
+            self.assertEqual(status, "created")
+            read_back = read_source(root, accepted["source"]["source_id"])
+            self.assertEqual(read_back["content"].encode("utf-8"), content.encode("utf-8"))
+            self.assertEqual(
+                [(span["role"], span["locator"]["value"]) for span in read_back["revision"]["speaker_spans"]],
+                [("user", "L1-L3"), ("assistant", "L4-L11"), ("user", "L12-L12")],
+            )
+
+            status, rejected = import_source(root, request(
+                title="Unclosed comment",
+                content="User: question\n<!--\nAssistant: example only\n",
+                source_kind="chatgpt_conversation", file_name="unclosed-comment.md",
+            ))
+            self.assertEqual(status, "rejected")
+            self.assertEqual(rejected["problem"]["code"], "ambiguous_conversation_speaker")
+
     def test_bom_is_semantic_neutral_for_blank_and_first_conversation_speaker(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "library"
