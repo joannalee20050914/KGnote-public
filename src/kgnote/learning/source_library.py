@@ -28,6 +28,7 @@ _TITLE = re.compile(r"^#{1,6}\s+(.+?)\s*#*\s*$")
 _SPEAKER_HEADING = re.compile(r"^#{1,6}\s+(User|Assistant|System|Tool|Learner|Tutor)\s*#*\s*$", re.I)
 _SPEAKER_PREFIX = re.compile(r"^(User|Assistant|System|Tool|Learner|Tutor):\s*(.*)$", re.I)
 _POSSIBLE_PREFIX = re.compile(r"^([^:#]{1,40}):\s+.+$")
+_FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 _SPEAKER_ROLES = {
     "user": "user",
     "learner": "user",
@@ -127,18 +128,51 @@ def _load_source_metadata(root: Path, source_id: str) -> dict[str, Any] | None:
         raise SourceLibraryError("source_metadata_mismatch")
     if not any(isinstance(item, dict) and item.get("revision_id") == current for item in revisions):
         raise SourceLibraryError("source_metadata_mismatch")
+    revision_ids = [item.get("revision_id") for item in revisions if isinstance(item, dict)]
+    if len(revision_ids) != len(revisions) or len(revision_ids) != len(set(revision_ids)):
+        raise SourceLibraryError("source_revision_identity_ambiguous")
     return metadata
+
+
+def _markdown_fenced_code_lines(lines: list[str]) -> set[int]:
+    """Return one-based lines inside Markdown fences, rejecting an unclosed fence."""
+    fenced: set[int] = set()
+    marker: str | None = None
+    marker_length = 0
+    for number, line in enumerate(lines, 1):
+        if marker is None:
+            match = _FENCE.match(line)
+            if match:
+                marker = match.group(1)[0]
+                marker_length = len(match.group(1))
+                fenced.add(number)
+            continue
+        fenced.add(number)
+        closing = re.fullmatch(rf" {{0,3}}{re.escape(marker)}{{{marker_length},}}\s*", line)
+        if closing:
+            marker = None
+            marker_length = 0
+    if marker is not None:
+        raise SourceLibraryError("ambiguous_conversation_speaker")
+    return fenced
 
 
 def _speaker_spans(content: str, source_kind: str) -> list[dict[str, Any]]:
     if source_kind != "chatgpt_conversation":
         return []
     lines = content.splitlines()
-    heading_matches = [(index, match) for index, line in enumerate(lines, 1) if (match := _SPEAKER_HEADING.match(line))]
+    fenced_lines = _markdown_fenced_code_lines(lines)
+    heading_matches = [
+        (index, match)
+        for index, line in enumerate(lines, 1)
+        if index not in fenced_lines and (match := _SPEAKER_HEADING.match(line))
+    ]
     spans: list[dict[str, Any]] = []
     if heading_matches:
         speaker_level = len(lines[heading_matches[0][0] - 1]) - len(lines[heading_matches[0][0] - 1].lstrip("#"))
         for number, line in enumerate(lines, 1):
+            if number in fenced_lines:
+                continue
             heading = _TITLE.match(line)
             if not heading or number < heading_matches[0][0]:
                 if _POSSIBLE_PREFIX.match(line) and not _SPEAKER_PREFIX.match(line):
@@ -151,7 +185,7 @@ def _speaker_spans(content: str, source_kind: str) -> list[dict[str, Any]]:
         markers.extend(
             (number, match)
             for number, line in enumerate(lines, 1)
-            if (match := _SPEAKER_PREFIX.match(line))
+            if number not in fenced_lines and (match := _SPEAKER_PREFIX.match(line))
         )
         markers.sort(key=lambda item: item[0])
         for position, (start, match) in enumerate(markers):
@@ -166,6 +200,8 @@ def _speaker_spans(content: str, source_kind: str) -> list[dict[str, Any]]:
 
     active: dict[str, Any] | None = None
     for number, line in enumerate(lines, 1):
+        if number in fenced_lines:
+            continue
         match = _SPEAKER_PREFIX.match(line)
         if match:
             if active is not None:
@@ -249,7 +285,6 @@ def _validated_request(request: Any) -> dict[str, Any]:
     if source_id is None:
         source_id = derived_source_id
     digest = _sha256(encoded)
-    revision_id = f"revision_{digest[:24]}"
     spans = _speaker_spans(semantic_content, source_kind)
 
     # Reuse the public extraction input contract as the import boundary.
@@ -272,7 +307,6 @@ def _validated_request(request: Any) -> dict[str, Any]:
         "content": content,
         "encoded": encoded,
         "content_sha256": digest,
-        "revision_id": revision_id,
         "speaker_spans": spans,
     }
 
@@ -319,6 +353,15 @@ def _apply_prepared(root: Path, prepared: dict[str, Any], imported_at: str) -> t
         revisions = []
         created_at = imported_at
 
+    revision_identity = _canonical_json({
+        "source_id": source_id,
+        "ordinal": len(revisions) + 1,
+        "previous_revision_id": previous,
+        "content_sha256": prepared["content_sha256"],
+    })
+    prepared = {**prepared, "revision_id": f"revision_{_sha256(revision_identity)[:24]}"}
+    if any(item.get("revision_id") == prepared["revision_id"] for item in revisions):
+        raise SourceLibraryError("source_revision_collision")
     summary = _revision_summary(prepared, previous, imported_at)
     revisions.append(summary)
     metadata = {

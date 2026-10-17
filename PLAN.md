@@ -22,6 +22,7 @@ This file contains exactly one active execution goal. It does not promote any hu
     "docs/control-plane/AUTHORITY.md",
     "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
     ".ai/REVIEW_PROTOCOL.md",
+    ".ai/PUBLICATION_RECEIPT.md",
     "docs/PRODUCT_CONTRACT.md",
     "docs/DATA_MODEL.md",
     "docs/REPRESENTATION_CONSISTENCY_CONTRACT.md",
@@ -123,9 +124,9 @@ This file contains exactly one active execution goal. It does not promote any hu
     "max_review_cycles_per_milestone": 5,
     "supplemental_review_cycles": {
       "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24",
-      "scope": "Issue #8 R-008 through R-011 bounded repair/reviews through the single final cycle-16 invocation-safety review",
-      "authorized_total": 11,
-      "used": 11,
+      "scope": "Issue #8 bounded internal repair/reviews through the single cycle-17 review of PR #23 external findings finding-kg-src-revision-001, finding-r-004, and finding-r-005",
+      "authorized_total": 12,
+      "used": 12,
       "remaining": 0,
       "base_cycles_preserved": 5,
       "authorizations": [
@@ -178,19 +179,24 @@ This file contains exactly one active execution goal. It does not promote any hu
           "cycles": 1,
           "scope": "R-011 reviewer-context launch admission only, after bounded local repair, deterministic launch-count tests, clean checkpoint, exact verification, prepublication read-back, reservation, and Seal",
           "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231134202"
+        },
+        {
+          "cycles": 1,
+          "scope": "PR #23 external review 5556852723 findings only: unique A-B-A revision identity and stale locking, Markdown fenced-code speaker attribution, and PUBLICATION_RECEIPT authoritative-spec declaration; only after bounded local repair, clean checkpoint, full verification, prepublication read-back, reservation, and Seal",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231346877"
         }
       ],
-      "stop_rule": "Preserve all 15 historical attempts. At most one R-011 review may run as total cycle 16 after every pre-review gate passes; once its reviewer context starts it is consumed regardless of PASS, CHANGES_REQUIRED, stale, crash, failure, or no-verdict outcome. Stop after cycle 16 and never auto-extend to cycle 17."
+      "stop_rule": "Preserve all 16 historical attempts. At most one review of the three exact PR #23 external findings may run as total cycle 17 after every pre-review gate passes; once its reviewer context starts it is consumed regardless of PASS, CHANGES_REQUIRED, stale, crash, failure, or no-verdict outcome. Stop after cycle 17 and never auto-extend to cycle 18."
     },
     "post_review_local_repair": {
-      "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6229882134",
-      "work_package_url": "https://github.com/joannalee20050914/KGnote-public/issues/8#issuecomment-6229889233",
-      "scope": "R-009 External Evidence Revalidation only: re-read exact GitHub review/comment bytes at restart, human-gate, and completion boundaries; re-check Draft/head/base and PR #22 routing; at most two local repair attempts.",
+      "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231346877",
+      "work_package_url": "https://github.com/joannalee20050914/KGnote-public/pull/23#pullrequestreview-5556852723",
+      "scope": "Only the three blocking findings from PR #23 external review 5556852723: unique A-B-A revision identity and stale locking, Markdown fenced-code speaker attribution, and PUBLICATION_RECEIPT authoritative-spec declaration; at most two local repair attempts.",
       "attempts_used": 1,
       "review_authorized": true,
-      "review_authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231134202",
-      "status": "cycle_15_changes_required_r011_cycle_16_reserved_pending_commit_and_gates",
-      "stop_rule": "Repair only R-011. Start cycle 16 only for the committed clean candidate after every authorized gate passes, and never launch cycle 17; a started context is consumed even without a verdict."
+      "review_authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231346877",
+      "status": "external_review_5556852723_changes_required_local_repair_attempt_1",
+      "stop_rule": "Start cycle 17 only for the committed clean candidate after every authorized gate passes, and never launch cycle 18; a started context is consumed even without a verdict. If cycle 17 passes, at most one remaining real external Work review may run and no third external review is authorized."
     },
     "stop_on_review_state": [
       "PRODUCT_DECISION_REQUIRED",
@@ -294,5 +300,5 @@ This file contains exactly one active execution goal. It does not promote any hu
 ## Current recovery note
 
 Autonomous orchestration state: `AUTOMATION_BLOCKED`. Active work package: `AR-EXTERNAL-REVIEW`.
-Next action: complete the bounded R-011 launch-admission repair, prove one-context behavior across exhaustion/restart/duplicates/crash/concurrency, then launch at most cycle 16 only after every pre-review gate passes. No cycle 17 is authorized.
+Next action: complete the bounded repair of all three findings from PR #23 external review 5556852723, form a clean checkpoint, and launch at most cycle 17 only after every pre-review gate passes. No cycle 18 is authorized; cycle 17 PASS permits at most one remaining real external Work review.
 Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.

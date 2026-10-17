@@ -135,6 +135,34 @@ class SourceLibraryTests(unittest.TestCase):
             self.assertEqual([span["role"] for span in spans], ["user", "assistant", "tool"])
             self.assertEqual([span["locator"]["value"] for span in spans], ["L1-L3", "L4-L5", "L6-L7"])
 
+    def test_conversation_ignores_speaker_like_markers_inside_markdown_fences(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "library"
+            content = (
+                "## User\nQuestion.\n\n## Assistant\nHere is an example:\n"
+                "```text\nUser: demonstration only\n## Tool\n```\n"
+                "Assistant explanation continues.\n\nUser: Actual follow-up.\n"
+                "~~~md\nAssistant: another example\n~~~\n"
+            )
+            status, accepted = import_source(root, request(
+                title="Fenced examples", content=content,
+                source_kind="chatgpt_conversation", file_name="fenced.md",
+            ))
+            self.assertEqual(status, "created")
+            spans = read_source(root, accepted["source"]["source_id"])["revision"]["speaker_spans"]
+            self.assertEqual(
+                [(span["role"], span["locator"]["value"]) for span in spans],
+                [("user", "L1-L3"), ("assistant", "L4-L11"), ("user", "L12-L15")],
+            )
+
+            status, rejected = import_source(root, request(
+                title="Unclosed fence",
+                content="User: question\n```text\nAssistant: example only\n",
+                source_kind="chatgpt_conversation", file_name="unclosed.md",
+            ))
+            self.assertEqual(status, "rejected")
+            self.assertEqual(rejected["problem"]["code"], "ambiguous_conversation_speaker")
+
     def test_bom_is_semantic_neutral_for_blank_and_first_conversation_speaker(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "library"
@@ -200,6 +228,31 @@ class SourceLibraryTests(unittest.TestCase):
             self.assertEqual(stale["problem"]["code"], "stale_source_revision")
             self.assertEqual(read_source(root, source_id)["revision"]["revision_id"], revision_two)
 
+    def test_a_b_a_history_uses_unique_revision_tokens_and_rejects_first_token_as_stale(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "library"
+            _, first = import_source(root, request(content="# DNS\n\nA\n"))
+            source_id = first["source"]["source_id"]
+            revision_a1 = first["source"]["current_revision_id"]
+            _, second = import_source(root, request(
+                content="# DNS\n\nB\n", source_id=source_id, expected_revision_id=revision_a1,
+            ))
+            revision_b = second["source"]["current_revision_id"]
+            _, third = import_source(root, request(
+                content="# DNS\n\nA\n", source_id=source_id, expected_revision_id=revision_b,
+            ))
+            revision_a2 = third["source"]["current_revision_id"]
+
+            self.assertEqual(len({revision_a1, revision_b, revision_a2}), 3)
+            self.assertEqual(read_source(root, source_id, revision_a2)["content"], "# DNS\n\nA\n")
+            self.assertEqual(read_source(root, source_id, revision_a2)["revision"]["previous_revision_id"], revision_b)
+            status, stale = import_source(root, request(
+                content="# DNS\n\nC\n", source_id=source_id, expected_revision_id=revision_a1,
+            ))
+            self.assertEqual(status, "rejected")
+            self.assertEqual(stale["problem"]["code"], "stale_source_revision")
+            self.assertEqual(read_source(root, source_id)["revision"]["revision_id"], revision_a2)
+
     def test_batch_is_all_or_nothing_for_validation_and_commit_failure(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "library"
@@ -264,6 +317,29 @@ class SourceLibraryTests(unittest.TestCase):
             raw = root / "sources" / source["source_id"] / revision["raw_path"]
             raw.write_text("tampered", encoding="utf-8")
             self.assertIsNone(read_source(root, source["source_id"]))
+
+    def test_legacy_duplicate_revision_ids_fail_closed_without_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "library"
+            _, payload = import_source(root, request(content="# DNS\n\nA\n"))
+            source = payload["source"]
+            metadata_path = root / "sources" / source["source_id"] / "source.json"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            duplicate = dict(metadata["revisions"][0])
+            duplicate["previous_revision_id"] = duplicate["revision_id"]
+            metadata["revisions"].append(duplicate)
+            metadata["revision_count"] = 2
+            metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+            before = tree_bytes(root)
+
+            self.assertIsNone(read_source(root, source["source_id"]))
+            status, rejected = import_source(root, request(
+                content="# DNS\n\nB\n", source_id=source["source_id"],
+                expected_revision_id=source["current_revision_id"],
+            ))
+            self.assertEqual(status, "rejected")
+            self.assertEqual(rejected["problem"]["code"], "source_revision_identity_ambiguous")
+            self.assertEqual(tree_bytes(root), before)
 
 
 if __name__ == "__main__":

@@ -136,6 +136,40 @@ class SourceLibraryHttpTests(unittest.TestCase):
             disabled.server_close()
             thread.join(timeout=2)
 
+    def test_a_b_a_revision_tokens_remain_unique_and_original_token_is_stale(self) -> None:
+        status, created = self.request("POST", "/api/library/sources", source_request(
+            title="ABA", content="# ABA\n\nA\n",
+            locator={"kind": "file_name", "value": "aba.md"},
+        ))
+        self.assertEqual(status, 201)
+        source_id = created["source"]["source_id"]
+        revision_a1 = created["source"]["current_revision_id"]
+        status, second = self.request("POST", "/api/library/sources", source_request(
+            source_id=source_id, expected_revision_id=revision_a1,
+            title="ABA", content="# ABA\n\nB\n",
+            locator={"kind": "file_name", "value": "aba.md"},
+        ))
+        self.assertEqual(status, 201)
+        revision_b = second["source"]["current_revision_id"]
+        status, third = self.request("POST", "/api/library/sources", source_request(
+            source_id=source_id, expected_revision_id=revision_b,
+            title="ABA", content="# ABA\n\nA\n",
+            locator={"kind": "file_name", "value": "aba.md"},
+        ))
+        self.assertEqual(status, 201)
+        revision_a2 = third["source"]["current_revision_id"]
+        self.assertEqual(len({revision_a1, revision_b, revision_a2}), 3)
+        status, current = self.request("GET", f"/api/library/sources/{source_id}")
+        self.assertEqual(status, 200)
+        self.assertEqual(current["revision"]["previous_revision_id"], revision_b)
+        status, stale = self.request("POST", "/api/library/sources", source_request(
+            source_id=source_id, expected_revision_id=revision_a1,
+            title="ABA", content="# ABA\n\nC\n",
+            locator={"kind": "file_name", "value": "aba.md"},
+        ))
+        self.assertEqual(status, 409)
+        self.assertEqual(stale["problem"]["code"], "stale_source_revision")
+
     def test_bom_prefixed_markdown_round_trips_through_http_and_storage(self) -> None:
         content = "\ufeff# BOM source\n"
         selected_bytes = content.encode("utf-8")
