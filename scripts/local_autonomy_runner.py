@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bounded production wake-up adapter for the existing KGnote orchestrator."""
 from __future__ import annotations
-import fcntl, json, os, subprocess, sys
+import argparse, fcntl, json, os, subprocess, sys
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -73,4 +73,9 @@ def run_once(repo: Path = REPO, current: datetime | None = None, command_runner=
         append("orchestrator_wake_completed", exit_code=completed.returncode)
         return completed.returncode
 
-if __name__ == "__main__": raise SystemExit(run_once())
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", type=Path, default=REPO)
+    return run_once(parser.parse_args().repo.resolve())
+
+if __name__ == "__main__": raise SystemExit(main())

@@ -388,7 +388,9 @@ class OrchestratorDurabilityTests(unittest.TestCase):
     def make_repository_complete_fixture(self, root, fixture, *, source_root=ROOT):
         self.copy_repository_snapshot(source_root, root)
         (root / ".venv/bin").mkdir(parents=True)
-        os.symlink(ROOT / ".venv/bin/python", root / ".venv/bin/python")
+        # The fixture may run from a control-plane-only worktree without its own
+        # virtualenv. Bind it to the interpreter actually running the suite.
+        os.symlink(Path(sys.executable).resolve(), root / ".venv/bin/python")
         shutil.rmtree(root / ".ai/REVIEW_HISTORY", ignore_errors=True)
         shutil.rmtree(root / ".ai/ORCHESTRATION_HISTORY", ignore_errors=True)
         (root / ".ai/ORCHESTRATOR_STATE.json").unlink(missing_ok=True)
@@ -556,7 +558,8 @@ class OrchestratorDurabilityTests(unittest.TestCase):
     ):
         with self.subTest(source_root=source_root.name):
             self.make_repository_complete_fixture(root, fixture, source_root=source_root)
-            self.assertEqual(ORCH.control.preflight(root)["status"], "pass")
+            preflight = ORCH.control.preflight(root)
+            self.assertEqual(preflight["status"], "pass", preflight.get("errors"))
             ORCH.control.accept_review_custody(root, "independent-reviewer")
             request, _, decisions = ORCH.control.load_review_artifacts(root)
             decision = {
