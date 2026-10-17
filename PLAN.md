@@ -123,7 +123,7 @@ This file contains exactly one active execution goal. It does not promote any hu
     "external_review_required_before_human_gate": true,
     "max_review_cycles_per_milestone": 5,
     "supplemental_review_cycles": {
-      "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24",
+      "authority_url": "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md",
       "scope": "Issue #8 bounded internal repair/reviews through the single cycle-17 review of PR #23 external findings finding-kg-src-revision-001, finding-r-004, and finding-r-005",
       "authorized_total": 15,
       "used": 12,

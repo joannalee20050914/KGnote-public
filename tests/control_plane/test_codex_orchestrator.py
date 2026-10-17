@@ -1403,8 +1403,9 @@ class OrchestratorDurabilityTests(unittest.TestCase):
                 "human_action_required": True,
             })
             ORCH.write_state(root, blocked)
+            same_budget = {**blocked, "state": "REPAIRING", "blockers": []}
             with mock.patch.object(ORCH, "within_authorized_work_hours", return_value=True), \
-                 mock.patch.object(ORCH, "derive_state", side_effect=AssertionError("budget must remain blocked")), \
+                 mock.patch.object(ORCH, "derive_state", return_value=same_budget), \
                  mock.patch.object(ORCH, "run_loop", side_effect=AssertionError("must not run")):
                 resumed = ORCH.start(
                     root, resume=True, max_review_cycles=5, max_steps=1,
@@ -1416,7 +1417,9 @@ class OrchestratorDurabilityTests(unittest.TestCase):
             blocked["base_review_cycles"] = 5
             blocked["supplemental_review_limit"] = 1
             ORCH.write_state(root, blocked)
-            derived = {**blocked, "state": "REPAIRING", "blockers": []}
+            derived = {**blocked, "state": "REPAIRING", "blockers": [],
+                       "supplemental_review_limit": 2,
+                       "supplemental_review_authority": "owner-canary"}
             with mock.patch.object(ORCH, "within_authorized_work_hours", return_value=True), \
                  mock.patch.object(ORCH, "derive_state", return_value=derived), \
                  mock.patch.object(ORCH, "run_loop", side_effect=lambda _r, value, _runner, _steps: value):
@@ -1427,6 +1430,10 @@ class OrchestratorDurabilityTests(unittest.TestCase):
                 )
             self.assertEqual(resumed["state"], "REPAIRING")
             self.assertEqual(resumed["blockers"], [])
+            self.assertEqual(resumed["review_cycle"], 5)
+            self.assertEqual(resumed["supplemental_review_limit"], 2)
+            self.assertEqual(resumed["supplemental_review_used"], 0)
+            self.assertEqual(resumed["supplemental_review_authority"], "owner-canary")
 
     def test_outside_work_hours_never_runs_or_mutates_persisted_state(self):
         with tempfile.TemporaryDirectory() as tmp:

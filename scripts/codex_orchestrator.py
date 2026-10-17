@@ -76,7 +76,9 @@ def within_authorized_work_hours(moment: datetime | None = None) -> bool:
     return WORKDAY_START_MINUTE <= minute < WORKDAY_END_MINUTE
 
 
-def terminal_resume_authorized(state: dict[str, Any], requested_state: str | None) -> bool:
+def terminal_resume_authorized(
+    state: dict[str, Any], requested_state: str | None, *, authorized_review_limit: int | None = None
+) -> bool:
     """Require an exact operator request and preserve exhausted review budgets."""
     current = state.get("state")
     if current not in EXPLICIT_RESUME_STATES or requested_state != current:
@@ -95,7 +97,9 @@ def terminal_resume_authorized(state: dict[str, Any], requested_state: str | Non
             effective_limit = int(
                 blocker.get("effective_review_limit", state.get("max_review_cycles", 5))
             )
-        if review_cycle >= effective_limit:
+        if review_cycle >= effective_limit and (
+            authorized_review_limit is None or review_cycle >= authorized_review_limit
+        ):
             return False
     return True
 
@@ -1227,9 +1231,25 @@ def start(
             # Re-derive after the human or authority artifact was durably updated.
             state = derive_state(repo, max_review_cycles=state.get("max_review_cycles", max_review_cycles))
         elif state["state"] in EXPLICIT_RESUME_STATES:
-            if not terminal_resume_authorized(state, resume_terminal_state):
+            if resume_terminal_state != state["state"]:
                 return state
-            state["state"] = derive_state(repo, max_review_cycles=state.get("max_review_cycles", max_review_cycles))["state"]
+            derived = derive_state(
+                repo, max_review_cycles=state.get("max_review_cycles", max_review_cycles)
+            )
+            authorized_limit = review_budget_limit(derived)
+            if not terminal_resume_authorized(
+                state, resume_terminal_state, authorized_review_limit=authorized_limit
+            ):
+                return state
+            if authorized_limit < int(state.get("review_cycle", 0)):
+                return state
+            state["state"] = derived["state"]
+            state["supplemental_review_limit"] = derived.get("supplemental_review_limit", 0)
+            state["supplemental_review_authority"] = derived.get("supplemental_review_authority")
+            state["supplemental_review_used"] = max(
+                int(state.get("supplemental_review_used", 0)),
+                max(0, int(state.get("review_cycle", 0)) - int(state.get("base_review_cycles", 5))),
+            )
             state["blockers"] = []
             state["human_action_required"] = False
             state["run_id"] = f"orch-{uuid.uuid4().hex[:12]}"
