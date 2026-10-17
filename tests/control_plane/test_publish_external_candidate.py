@@ -47,14 +47,14 @@ class PublicationTransitionTests(unittest.TestCase):
         self.assertTrue(output.startswith(" M .ai/"))
 
     def test_fresh_process_resolves_exact_candidate_only_from_pr_and_recomputed_fingerprint(self):
-        observed = {"headRefOid": "a" * 40, "body": self.snapshot["body"]}
+        observed = {"headRefOid": "a" * 40, "body": self.snapshot["body"], "state": "OPEN"}
         self.assertEqual(self.state, PUBLISH.resolve_pr_candidate(self.config, observed, "b" * 64))
         with self.assertRaises(PUBLISH.PublicationError):
             PUBLISH.resolve_pr_candidate(self.config, observed, "c" * 64)
 
     def test_configured_late_round_is_supported_and_round_over_budget_fails_closed(self):
         late = {**self.state, "review_round": 12}
-        observed = {"headRefOid": "a" * 40, "body": PUBLISH.request_marker(self.config, late)}
+        observed = {"headRefOid": "a" * 40, "body": PUBLISH.request_marker(self.config, late), "state": "OPEN"}
         self.assertEqual(late, PUBLISH.resolve_pr_candidate(self.config, observed, "b" * 64))
         with self.assertRaisesRegex(PUBLISH.PublicationError, "authority envelope"):
             PUBLISH.request_marker(self.config, {**late, "review_round": 13})
@@ -113,7 +113,9 @@ class PublicationTransitionTests(unittest.TestCase):
                     return " M .ai/ORCHESTRATION_HISTORY/events.jsonl\n?? .ai/ORCHESTRATOR.lock"
                 if command[:4] == ["git", "remote", "get-url", "origin"]: return "https://github.com/owner/public.git"
                 if command[:3] == ["git", "branch", "--show-current"]: return "codex/candidate"
-                if command[:3] == ["gh", "pr", "view"] and command[-1] == "body": return json.dumps({"body": "PR"})
+                if command[:3] == ["gh", "pr", "view"] and "number,body,state,isDraft,headRefName,baseRefName" in command:
+                    return json.dumps({"number": 1, "body": "PR", "state": "OPEN", "isDraft": True,
+                        "headRefName": "codex/candidate", "baseRefName": "codex/base"})
                 if command[:3] == ["gh", "pr", "edit"]: return ""
                 if command[:3] == ["git", "push", "origin"]: return ""
                 if command[:3] == ["gh", "pr", "view"]:
@@ -132,6 +134,39 @@ class PublicationTransitionTests(unittest.TestCase):
             self.assertTrue(any(command[:3] == ["git", "push", "origin"] for command in calls))
             recorded = json.loads((repo / ".ai/external-review-state.json").read_text())
             self.assertEqual("AWAITING_EXTERNAL_PRODUCT_REVIEW", recorded["phase"])
+
+    def test_invalid_pr_shape_or_dependency_makes_zero_remote_mutations(self):
+        invalid_cases = [
+            {"isDraft": False}, {"headRefName": "wrong"}, {"baseRefName": "main"},
+            {"dependency_state": "CLOSED"}, {"dependency_mergedAt": "2026-01-01T00:00:00Z"},
+        ]
+        for invalid in invalid_cases:
+            with self.subTest(invalid=invalid), tempfile.TemporaryDirectory() as directory:
+                repo = Path(directory); (repo / ".ai").mkdir(); (repo / ".git").mkdir()
+                (repo / ".ai/github-product-reviewer.json").write_text(json.dumps(self.config))
+                (repo / ".ai/external-review-state.json").write_text(json.dumps(self.state))
+                calls = []
+                def runner(command, *, cwd):
+                    calls.append(command)
+                    if command[:3] == ["git", "rev-parse", "HEAD"]: return "a" * 40
+                    if command[:3] == ["git", "status", "--porcelain"]: return ""
+                    if command[:4] == ["git", "remote", "get-url", "origin"]: return "https://github.com/owner/public.git"
+                    if command[:3] == ["git", "branch", "--show-current"]: return "codex/candidate"
+                    if command[:3] == ["gh", "pr", "view"] and command[3] == "22":
+                        return json.dumps({"number": 22, "state": invalid.get("dependency_state", "OPEN"),
+                            "mergedAt": invalid.get("dependency_mergedAt")})
+                    if command[:3] == ["gh", "pr", "view"]:
+                        return json.dumps({"number": 1, "body": "PR", "state": "OPEN",
+                            "isDraft": invalid.get("isDraft", True),
+                            "headRefName": invalid.get("headRefName", "codex/candidate"),
+                            "baseRefName": invalid.get("baseRefName", "codex/base")})
+                    raise AssertionError(command)
+                with mock.patch.object(PUBLISH.codex_control, "repository_fingerprint", return_value={"value": "b" * 64}):
+                    with self.assertRaises(PUBLISH.PublicationError):
+                        PUBLISH.publish(repo, runner)
+                self.assertFalse(any(command[:3] == ["gh", "pr", "edit"] for command in calls))
+                self.assertFalse(any(command[:3] == ["git", "push", "origin"] for command in calls))
+                self.assertFalse(any(command[:2] == ["gh", "api"] for command in calls))
 
     def test_failed_push_does_not_record_publication(self):
         with tempfile.TemporaryDirectory() as directory:

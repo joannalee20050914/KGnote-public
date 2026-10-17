@@ -505,6 +505,7 @@ class ControlPlaneNegativeTests(unittest.TestCase):
         captured = {}
         with tempfile.TemporaryDirectory() as tmp, \
              mock.patch.object(CONTROL, "preflight", return_value={"status": "pass"}), \
+             mock.patch.object(CONTROL, "fingerprinted_unpublished_paths", return_value=[]), \
              mock.patch.object(CONTROL, "load_plan_status", return_value=(plan, status)), \
              mock.patch.object(CONTROL, "load_review_artifacts", return_value=(request, result, {"decisions": []})), \
              mock.patch.object(CONTROL, "repository_fingerprint", return_value={"value": "d" * 64, "head": "c" * 40}), \
@@ -530,6 +531,32 @@ class ControlPlaneNegativeTests(unittest.TestCase):
             repo, ["/private/example/KGnote/.venv/bin/python", "verify.py"]
         )
         self.assertEqual(rendered, "./.venv/bin/python verify.py")
+
+    def test_direct_review_request_rejects_uncommitted_fingerprinted_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(
+                 CONTROL,
+                 "fingerprinted_unpublished_paths",
+                 return_value=["scripts/codex_orchestrator.py"],
+             ), \
+             mock.patch.object(CONTROL, "preflight", side_effect=AssertionError("must reject before preflight")):
+            with self.assertRaisesRegex(ValueError, "clean_candidate_gate"):
+                CONTROL.prepare_review_request(
+                    Path(tmp), "evidence.json", ["candidate"], ["clean gate"], [], []
+                )
+
+    def test_clean_candidate_helper_uses_fingerprint_exclusions(self):
+        status = (
+            " M scripts/codex_orchestrator.py\n"
+            " M CODEX_STATUS.md\n"
+            "?? .ai/REVIEW_HISTORY/review-001/result.md\n"
+        )
+        completed = subprocess.CompletedProcess([], 0, status.replace("\n", "\0").encode(), b"")
+        with mock.patch.object(CONTROL, "run_git", return_value=completed):
+            self.assertEqual(
+                ["scripts/codex_orchestrator.py"],
+                CONTROL.fingerprinted_unpublished_paths(Path("/example")),
+            )
 
     def test_pre_custody_invalidation_allocates_new_review_and_audits_reason(self):
         request = self.base_review_request()
@@ -1110,7 +1137,8 @@ class ReviewHelperIntegrationTests(unittest.TestCase):
             CONTROL.mark_finding_fixed(root, "R-001", ["regression test passed"])
             (root / "implementation.txt").write_text("candidate two\n")
             evidence = self.evidence_for_current_candidate(root)
-            with mock.patch.object(CONTROL, "preflight", return_value={"status": "pass"}):
+            with mock.patch.object(CONTROL, "preflight", return_value={"status": "pass"}), \
+                 mock.patch.object(CONTROL, "fingerprinted_unpublished_paths", return_value=[]):
                 prepared = CONTROL.prepare_review_request(root, evidence, ["implementation"], ["recheck"], [], [])
             self.assertEqual(prepared["review_id"], "review-example-002")
             _, status = CONTROL.load_plan_status(root)
@@ -1135,7 +1163,8 @@ class ReviewHelperIntegrationTests(unittest.TestCase):
             CONTROL.mark_finding_fixed(root, "R-001", ["supersession regression prepared"])
             (root / "implementation.txt").write_text("candidate two\n")
             evidence = self.evidence_for_current_candidate(root)
-            with mock.patch.object(CONTROL, "preflight", return_value={"status": "pass"}):
+            with mock.patch.object(CONTROL, "preflight", return_value={"status": "pass"}), \
+                 mock.patch.object(CONTROL, "fingerprinted_unpublished_paths", return_value=[]):
                 CONTROL.prepare_review_request(root, evidence, ["finding lifecycle"], ["recheck R-001"], [], [])
 
             events, errors = CONTROL.read_history_events(root)
@@ -1219,7 +1248,8 @@ class ReviewHelperIntegrationTests(unittest.TestCase):
             )
             (root / "implementation.txt").write_text("candidate after human decision\n")
             evidence = self.evidence_for_current_candidate(root)
-            with mock.patch.object(CONTROL, "preflight", return_value={"status": "pass"}):
+            with mock.patch.object(CONTROL, "preflight", return_value={"status": "pass"}), \
+                 mock.patch.object(CONTROL, "fingerprinted_unpublished_paths", return_value=[]):
                 CONTROL.prepare_review_request(root, evidence, ["finding lifecycle"], ["recheck R-001"], [], [])
             CONTROL.accept_review_custody(root, "reviewer-2")
             request, _, _ = CONTROL.load_review_artifacts(root)
@@ -1260,7 +1290,8 @@ class ReviewHelperIntegrationTests(unittest.TestCase):
             CONTROL.resume_implementation(root)
             (root / "implementation.txt").write_text("candidate after decision\n")
             evidence = self.evidence_for_current_candidate(root)
-            with mock.patch.object(CONTROL, "preflight", return_value={"status": "pass"}):
+            with mock.patch.object(CONTROL, "preflight", return_value={"status": "pass"}), \
+                 mock.patch.object(CONTROL, "fingerprinted_unpublished_paths", return_value=[]):
                 prepared = CONTROL.prepare_review_request(root, evidence, ["implementation"], ["review decision"], [], [])
             self.assertEqual(prepared["review_id"], "review-example-002")
             request, result, _ = CONTROL.load_review_artifacts(root)

@@ -39,6 +39,10 @@ TERMINAL_STATES = {
     "GOAL_COMPLETE",
     "STOPPED",
 }
+EXPLICIT_RESUME_STATES = {"STOPPED", "AUTOMATION_BLOCKED", "BUDGET_EXHAUSTED"}
+WORK_TIMEZONE = ZoneInfo("Asia/Taipei")
+WORKDAY_START_MINUTE = 9 * 60
+WORKDAY_END_MINUTE = 18 * 60 + 30
 MACHINE_HANDOFF_STATES = {"AWAITING_EXTERNAL_PRODUCT_REVIEW"}
 MACHINE_STATES = {
     "IMPLEMENTING",
@@ -57,7 +61,43 @@ QUOTA_MARKERS = (
 
 
 def now() -> str:
-    return datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds")
+    return datetime.now(WORK_TIMEZONE).isoformat(timespec="seconds")
+
+
+def within_authorized_work_hours(moment: datetime | None = None) -> bool:
+    """Return whether new autonomous work may start in Asia/Taipei."""
+    if moment is None:
+        local = datetime.now(WORK_TIMEZONE)
+    elif moment.tzinfo is None:
+        local = moment.replace(tzinfo=WORK_TIMEZONE)
+    else:
+        local = moment.astimezone(WORK_TIMEZONE)
+    minute = local.hour * 60 + local.minute
+    return WORKDAY_START_MINUTE <= minute < WORKDAY_END_MINUTE
+
+
+def terminal_resume_authorized(state: dict[str, Any], requested_state: str | None) -> bool:
+    """Require an exact operator request and preserve exhausted review budgets."""
+    current = state.get("state")
+    if current not in EXPLICIT_RESUME_STATES or requested_state != current:
+        return False
+    if current != "AUTOMATION_BLOCKED":
+        return True
+    for blocker in state.get("blockers", []):
+        if blocker.get("type") != "repair_budget_exhausted":
+            continue
+        review_cycle = int(state.get("review_cycle", 0))
+        if "supplemental_review_limit" in state or "base_review_cycles" in state:
+            effective_limit = int(
+                state.get("base_review_cycles", state.get("max_review_cycles", 5))
+            ) + int(state.get("supplemental_review_limit", 0))
+        else:
+            effective_limit = int(
+                blocker.get("effective_review_limit", state.get("max_review_cycles", 5))
+            )
+        if review_cycle >= effective_limit:
+            return False
+    return True
 
 
 def state_path(repo: Path) -> Path:
@@ -126,6 +166,10 @@ def derive_state(repo: Path, *, max_review_cycles: int = 5) -> dict[str, Any]:
     }.get(review_state, "AUTOMATION_BLOCKED")
     if plan.get("status") == "complete":
         mapped = "GOAL_COMPLETE"
+    supplemental = plan.get("auto_advance", {}).get("supplemental_review_cycles", {})
+    supplemental_limit = supplemental.get("authorized_total", 0)
+    if not isinstance(supplemental_limit, int) or supplemental_limit < 0:
+        supplemental_limit = 0
     return {
         "schema_version": "kgnote.orchestrator-state.v1",
         "run_id": f"orch-{uuid.uuid4().hex[:12]}",
@@ -137,6 +181,10 @@ def derive_state(repo: Path, *, max_review_cycles: int = 5) -> dict[str, Any]:
         "review_id": request.get("review_id") if review_state != "IMPLEMENTING" else None,
         "review_cycle": 0,
         "max_review_cycles": max_review_cycles,
+        "base_review_cycles": max_review_cycles,
+        "supplemental_review_limit": supplemental_limit,
+        "supplemental_review_used": 0,
+        "supplemental_review_authority": supplemental.get("authority_url"),
         "agent_failures": 0,
         "max_agent_failures": 3,
         "empty_reviewer_results": 0,
@@ -156,6 +204,109 @@ def derive_state(repo: Path, *, max_review_cycles: int = 5) -> dict[str, Any]:
         "created_at": now(),
         "updated_at": now(),
     }
+
+
+def review_budget_limit(state: dict[str, Any]) -> int:
+    return int(state.get("base_review_cycles", state.get("max_review_cycles", 5))) + int(
+        state.get("supplemental_review_limit", 0)
+    )
+
+
+def review_budget_blocker(state: dict[str, Any], unresolved: list[str]) -> dict[str, Any]:
+    return {
+        "type": "repair_budget_exhausted",
+        "review_cycle": state["review_cycle"],
+        "base_review_cycles": state.get("base_review_cycles", state.get("max_review_cycles")),
+        "supplemental_review_limit": state.get("supplemental_review_limit", 0),
+        "supplemental_review_used": state.get("supplemental_review_used", 0),
+        "effective_review_limit": review_budget_limit(state),
+        "unresolved_findings": unresolved,
+    }
+
+
+def sync_supplemental_budget_plan(
+    repo: Path, state: dict[str, Any], *, reserve_next_review: bool = False
+) -> None:
+    """Persist additive usage or one pre-seal reservation in candidate bytes."""
+    plan, _status = control.load_plan_status(repo)
+    supplemental = plan.get("auto_advance", {}).get("supplemental_review_cycles")
+    if not isinstance(supplemental, dict):
+        return
+    current_cycle = int(state.get("review_cycle", 0))
+    target_cycle = current_cycle + (1 if reserve_next_review else 0)
+    used = max(0, target_cycle - int(
+        state.get("base_review_cycles", state.get("max_review_cycles", 5))
+    ))
+    limit = int(state.get("supplemental_review_limit", 0))
+    if target_cycle > review_budget_limit(state):
+        raise ValueError("review_budget: cannot reserve a review beyond the authorized limit")
+    if supplemental.get("authorized_total") != limit:
+        raise ValueError("review_budget: PLAN and orchestrator supplemental limits disagree")
+    supplemental["used"] = min(used, limit)
+    supplemental["remaining"] = max(0, limit - used)
+    state["supplemental_review_used"] = min(used, limit)
+    if reserve_next_review:
+        state["review_budget_reservation"] = {
+            "review_cycle": target_cycle,
+            "supplemental_used": min(used, limit),
+            "status": "RESERVED",
+            "authority": state.get("supplemental_review_authority"),
+        }
+    control.replace_embedded_json(repo / "PLAN.md", control.PLAN_BEGIN, control.PLAN_END, plan)
+
+
+def release_review_budget_reservation(repo: Path, state: dict[str, Any]) -> None:
+    """Release a reservation before any reviewer starts after a failed gate."""
+    reservation = state.get("review_budget_reservation")
+    if not isinstance(reservation, dict) or reservation.get("status") != "RESERVED":
+        return
+    state.pop("review_budget_reservation", None)
+    sync_supplemental_budget_plan(repo, state, reserve_next_review=False)
+
+
+def review_budget_reservation_errors(
+    repo: Path, state: dict[str, Any], next_cycle: int
+) -> list[str]:
+    """Read back the pre-seal reservation without mutating candidate bytes."""
+    plan, _status = control.load_plan_status(repo)
+    supplemental = plan.get("auto_advance", {}).get("supplemental_review_cycles", {})
+    base = int(state.get("base_review_cycles", state.get("max_review_cycles", 5)))
+    expected_used = max(0, next_cycle - base)
+    reservation = state.get("review_budget_reservation")
+    errors: list[str] = []
+    if not isinstance(reservation, dict):
+        errors.append("review_budget: pre-seal reservation is missing")
+    else:
+        if reservation.get("review_cycle") != next_cycle:
+            errors.append("review_budget: reservation cycle is stale")
+        if reservation.get("supplemental_used") != expected_used:
+            errors.append("review_budget: reservation usage is inconsistent")
+        if reservation.get("status") != "RESERVED":
+            errors.append("review_budget: reservation was already consumed")
+        if reservation.get("authority") != state.get("supplemental_review_authority"):
+            errors.append("review_budget: reservation authority is stale")
+    if supplemental.get("authorized_total") != state.get("supplemental_review_limit"):
+        errors.append("review_budget: PLAN authorization limit is inconsistent")
+    if supplemental.get("used") != expected_used:
+        errors.append("review_budget: PLAN did not persist the reserved usage before seal")
+    if supplemental.get("remaining") != max(
+        0, int(state.get("supplemental_review_limit", 0)) - expected_used
+    ):
+        errors.append("review_budget: PLAN remaining usage is inconsistent")
+    return errors
+
+
+def consume_review_budget_reservation(state: dict[str, Any], review_cycle: int) -> None:
+    """Consume exactly one reserved context without changing fingerprinted files."""
+    reservation = state.get("review_budget_reservation")
+    if (
+        not isinstance(reservation, dict)
+        or reservation.get("status") != "RESERVED"
+        or reservation.get("review_cycle") != review_cycle
+    ):
+        raise ValueError("review_budget: valid pre-seal reservation is required")
+    reservation["status"] = "CONSUMED"
+    reservation["consumed_at"] = now()
 
 
 def update_state(repo: Path, state: dict[str, Any], new_state: str, next_action: str, **fields: Any) -> None:
@@ -219,7 +370,7 @@ def role_prompt(role: str) -> str:
     return (
         "You are the KGnote implementer in an autonomous repair/work-package context. Reconstruct authority and "
         "state solely from AGENTS.md, PLAN.md, CODEX_STATUS.md, .ai/IMPLEMENTER_BOOTSTRAP.md, and current review "
-        "artifacts. Implement only the active authorized work package. If findings exist, preserve their IDs, "
+        "artifacts, including .ai/external-review-state.json when external findings exist. Implement only the active authorized work package. If findings exist, preserve their IDs, "
         "repair them, and mark each fixed item FIXED_PENDING_REVIEW with concrete evidence. Do not act as reviewer, "
         "select a product decision, promote human gates, or wait for the human to type continue. Finish when the "
         "candidate is ready for deterministic validation; the orchestrator will validate and hand it off."
@@ -332,10 +483,25 @@ def current_milestone(plan: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def validate_and_request(repo: Path, state: dict[str, Any]) -> bool:
+    unpublished = control.fingerprinted_unpublished_paths(repo)
+    if unpublished:
+        state["blockers"] = [{
+            "type": "clean_candidate_gate",
+            "unpublished_paths": unpublished,
+        }]
+        update_state(
+            repo,
+            state,
+            "REPAIRING",
+            "Commit the bounded fingerprinted candidate before reserving or starting an independent review.",
+        )
+        return False
     update_state(repo, state, "VALIDATING", "Run deterministic verification for the current candidate.")
+    sync_supplemental_budget_plan(repo, state, reserve_next_review=True)
     control.sync_implementing_fingerprint(repo, "Implementation context completed; validation is pending.")
     evidence, exit_code = control.verify(repo)
     if exit_code != 0:
+        release_review_budget_reservation(repo, state)
         state["blockers"] = [{
             "type": "validation_failure",
             "evidence": evidence.get("evidence_path"),
@@ -550,6 +716,11 @@ def advance_after_pass(repo: Path, state: dict[str, Any]) -> None:
                 candidate_custody={"status": "NONE", "owner": None, "review_id": None, "fingerprint": None},
             )
             return
+        delivery_blockers = external_review_control.repository_human_gate_blockers(repo)
+        if delivery_blockers:
+            state["blockers"] = [{"type": "delivery_receipt_invalid", "errors": delivery_blockers}]
+            update_state(repo, state, "AUTOMATION_BLOCKED", "Issue/Project exact delivery receipt failed closed; repair read-back before completion.")
+            return
     if active.get("id") == "AR-PUBLISH":
         publication_blockers = (
             external_review_control.repository_publication_progression_blockers(repo)
@@ -703,13 +874,8 @@ def orchestrate_step(repo: Path, state: dict[str, Any], runner: AgentRunner = ru
         return
 
     if review_state == "READY_FOR_REVIEW":
-        if state["review_cycle"] >= state["max_review_cycles"]:
-            state["blockers"] = [{
-                "type": "repair_budget_exhausted",
-                "review_cycle": state["review_cycle"],
-                "max_review_cycles": state["max_review_cycles"],
-                "unresolved_findings": control.history_unresolved_finding_ids(repo),
-            }]
+        if state["review_cycle"] >= review_budget_limit(state):
+            state["blockers"] = [review_budget_blocker(state, control.history_unresolved_finding_ids(repo))]
             update_state(
                 repo,
                 state,
@@ -717,7 +883,24 @@ def orchestrate_step(repo: Path, state: dict[str, Any], runner: AgentRunner = ru
                 "Five review/repair cycles were exhausted; inspect structured findings and choose a recovery action.",
             )
             return
+        next_cycle = state["review_cycle"] + 1
+        base_cycles = int(state.get("base_review_cycles", state.get("max_review_cycles", 5)))
+        if next_cycle > base_cycles:
+            reservation_errors = review_budget_reservation_errors(repo, state, next_cycle)
+            if reservation_errors:
+                state["blockers"] = [{
+                    "type": "review_budget_reservation_invalid",
+                    "errors": reservation_errors,
+                }]
+                update_state(
+                    repo, state, "AUTOMATION_BLOCKED",
+                    "Reviewer launch blocked because the pre-seal budget reservation failed read-back.",
+                )
+                return
         state["review_cycle"] += 1
+        state["supplemental_review_used"] = max(0, state["review_cycle"] - base_cycles)
+        if state["review_cycle"] > base_cycles:
+            consume_review_budget_reservation(state, state["review_cycle"])
         reviewer_identity = f"codex-independent-reviewer:{state['run_id']}:{state['review_cycle']}"
         control.accept_review_custody(repo, reviewer_identity)
         state["candidate_custody"] = {
@@ -743,13 +926,8 @@ def orchestrate_step(repo: Path, state: dict[str, Any], runner: AgentRunner = ru
         review_state = request.get("status")
 
     if review_state == "CHANGES_REQUIRED":
-        if state["review_cycle"] >= state["max_review_cycles"]:
-            state["blockers"] = [{
-                "type": "repair_budget_exhausted",
-                "review_cycle": state["review_cycle"],
-                "max_review_cycles": state["max_review_cycles"],
-                "unresolved_findings": control.history_unresolved_finding_ids(repo),
-            }]
+        if state["review_cycle"] >= review_budget_limit(state):
+            state["blockers"] = [review_budget_blocker(state, control.history_unresolved_finding_ids(repo))]
             update_state(repo, state, "AUTOMATION_BLOCKED", "Review/repair budget exhausted with unresolved findings.")
             return
         control.resume_implementation(repo)
@@ -805,16 +983,44 @@ def run_loop(repo: Path, state: dict[str, Any], runner: AgentRunner, max_steps: 
 
 def resume_after_product_decision(repo: Path, state: dict[str, Any]) -> bool:
     request, result, decisions = control.load_review_artifacts(repo)
-    if request.get("status") != "PRODUCT_DECISION_REQUIRED":
-        return True
-    required_ids = result.get("human_decisions_required", [])
+    external_state: dict[str, Any] = {}
+    try:
+        external_state = external_review_control.load_json(
+            repo / external_review_control.STATE_PATH
+        )
+    except (OSError, ValueError, json.JSONDecodeError):
+        pass
+    external_required_ids = external_state.get("pending_external_decisions", [])
+    external_decision = (
+        external_state.get("external_review", {}).get("status") == "PRODUCT_DECISION_REQUIRED"
+        and isinstance(external_required_ids, list)
+        and all(isinstance(item, str) for item in external_required_ids)
+        and bool(external_required_ids)
+    )
+    if request.get("status") != "PRODUCT_DECISION_REQUIRED" and not external_decision:
+        state["blockers"] = [{
+            "type": "human_decision_evidence_invalid",
+            "required_decision_ids": [],
+            "errors": ["orchestrator_resume: no canonical internal or external decision context exists"],
+        }]
+        update_state(repo, state, "PRODUCT_DECISION_REQUIRED", "Product-decision state lacks a canonical sealed decision context; fail closed.")
+        return False
+    required_ids = external_required_ids if external_decision else result.get("human_decisions_required", [])
     entries = {
         item.get("decision_id"): item
         for item in decisions.get("decisions", [])
         if isinstance(item, dict)
     }
     errors = control.validate_decisions(decisions, repo, request)
-    errors.extend(control.validate_review_result(request, result, decisions))
+    if external_decision:
+        for decision_id in required_ids:
+            entry = entries.get(decision_id, {})
+            for field in ("review_id", "candidate_revision", "candidate_fingerprint"):
+                expected = request.get(field if field != "review_id" else "review_id")
+                if entry.get(field) != expected:
+                    errors.append(f"orchestrator_resume: external decision {decision_id} has stale {field}")
+    else:
+        errors.extend(control.validate_review_result(request, result, decisions))
     missing = sorted(set(required_ids) - set(entries))
     pending = sorted(
         decision_id
@@ -842,9 +1048,26 @@ def resume_after_product_decision(repo: Path, state: dict[str, Any]) -> bool:
             "Required human decisions are missing, pending, or invalid; record valid external authority evidence and resume.",
         )
         return False
-    adopted_fingerprint = control.resume_implementation(repo)
-    if not adopted_fingerprint:
-        raise ValueError("orchestrator_resume: human decision resume did not adopt the repository fingerprint")
+    if external_decision:
+        reset_review_bus_after_pass(
+            repo,
+            "External human decisions were validated; implement only the authority-bounded resolution.",
+        )
+        adopted_fingerprint = control.sync_implementing_fingerprint(
+            repo,
+            "External human decisions were validated and the new authority records were adopted.",
+            "Invoke a fresh implementer for only the external decision-authorized resolution, then run deterministic validation.",
+        )
+        external_state["phase"] = "EXTERNAL_PRODUCT_DECISION_RESOLVED"
+        external_state["resolved_external_decisions"] = list(required_ids)
+        external_state["pending_external_decisions"] = []
+        temporary = repo / ".ai/external-review-state.json.tmp"
+        temporary.write_text(json.dumps(external_state, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        os.replace(temporary, repo / external_review_control.STATE_PATH)
+    else:
+        adopted_fingerprint = control.resume_implementation(repo)
+        if not adopted_fingerprint:
+            raise ValueError("orchestrator_resume: human decision resume did not adopt the repository fingerprint")
     state["blockers"] = []
     update_state(
         repo,
@@ -858,12 +1081,22 @@ def resume_after_product_decision(repo: Path, state: dict[str, Any]) -> bool:
     return True
 
 
-def start(repo: Path, *, resume: bool, max_review_cycles: int, max_steps: int | None, runner: AgentRunner) -> dict[str, Any]:
+def start(
+    repo: Path,
+    *,
+    resume: bool,
+    max_review_cycles: int,
+    max_steps: int | None,
+    runner: AgentRunner,
+    resume_terminal_state: str | None = None,
+) -> dict[str, Any]:
     existing = read_state(repo)
     if resume:
         if existing is None:
             raise ValueError("orchestrator_resume: no durable state exists; use start")
         state = existing
+        if not within_authorized_work_hours():
+            return state
         if state["state"] == "AWAITING_EXTERNAL_PRODUCT_REVIEW":
             decision = external_review_handoff.process(repo)
             if not decision.get("accepted"):
@@ -874,9 +1107,17 @@ def start(repo: Path, *, resume: bool, max_review_cycles: int, max_steps: int | 
                 advance_after_pass(repo, state)
                 return state
             if decision.get("verdict") == "PRODUCT_DECISION_REQUIRED":
-                update_state(repo, state, "PRODUCT_DECISION_REQUIRED", "External product reviewer requires a durable human decision.")
+                decision_ids = external_review_control.load_json(
+                    repo / external_review_control.STATE_PATH
+                ).get("pending_external_decisions", [])
+                state["blockers"] = [{"type": "external_product_decision_required", "decision_ids": decision_ids}]
+                update_state(repo, state, "PRODUCT_DECISION_REQUIRED", "External product reviewer requires the canonical pending decisions in .ai/DECISIONS.md to be resolved by durable human authority.")
                 return state
-            update_state(repo, state, "REPAIRING", "External CHANGES_REQUIRED was accepted; route exact findings to repair.")
+            external_state = external_review_control.load_json(repo / external_review_control.STATE_PATH)
+            reset_review_bus_after_pass(repo, "External CHANGES_REQUIRED was accepted; repair the complete durable external findings.")
+            state["blockers"] = [{"type": "external_changes_required", "findings": external_state["external_review"].get("findings", [])}]
+            update_state(repo, state, "REPAIRING", "External CHANGES_REQUIRED was accepted; route complete exact findings to a fresh implementer context.", review_id=None,
+                         candidate_custody={"status": "NONE", "owner": None, "review_id": None, "fingerprint": None})
             return state
         if state["state"] == "PRODUCT_DECISION_REQUIRED":
             if not resume_after_product_decision(repo, state):
@@ -884,7 +1125,9 @@ def start(repo: Path, *, resume: bool, max_review_cycles: int, max_steps: int | 
         elif state["state"] in {"HUMAN_CHECKPOINT_REQUIRED", "AUTHORITY_CONFLICT"}:
             # Re-derive after the human or authority artifact was durably updated.
             state = derive_state(repo, max_review_cycles=state.get("max_review_cycles", max_review_cycles))
-        elif state["state"] in {"STOPPED", "AUTOMATION_BLOCKED", "BUDGET_EXHAUSTED"}:
+        elif state["state"] in EXPLICIT_RESUME_STATES:
+            if not terminal_resume_authorized(state, resume_terminal_state):
+                return state
             state["state"] = derive_state(repo, max_review_cycles=state.get("max_review_cycles", max_review_cycles))["state"]
             state["blockers"] = []
             state["human_action_required"] = False
@@ -896,6 +1139,8 @@ def start(repo: Path, *, resume: bool, max_review_cycles: int, max_steps: int | 
         state = derive_state(repo, max_review_cycles=max_review_cycles)
         write_state(repo, state)
         append_event(repo, state, "ORCHESTRATOR_STARTED")
+        if not within_authorized_work_hours():
+            return state
     return run_loop(repo, state, runner, max_steps)
 
 
@@ -915,6 +1160,12 @@ def main() -> int:
         command = sub.add_parser(name)
         command.add_argument("--max-review-cycles", type=int, default=5)
         command.add_argument("--max-steps", type=int)
+        if name == "resume":
+            command.add_argument(
+                "--resume-terminal-state",
+                choices=sorted(EXPLICIT_RESUME_STATES),
+                help="explicitly authorize recovery from the exact persisted terminal state",
+            )
     sub.add_parser("status")
     sub.add_parser("stop")
     args = parser.parse_args()
@@ -929,6 +1180,7 @@ def main() -> int:
                 max_review_cycles=args.max_review_cycles,
                 max_steps=args.max_steps,
                 runner=run_codex_agent,
+                resume_terminal_state=getattr(args, "resume_terminal_state", None),
             )
         elif args.command == "status":
             result = read_state(repo) or derive_state(repo)

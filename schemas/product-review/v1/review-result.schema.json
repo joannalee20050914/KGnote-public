@@ -31,8 +31,24 @@
       "type": "array",
       "items": {"$ref": "#/$defs/finding"}
     },
+    "human_decisions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/humanDecisionProposal"}
+    },
     "native_ui_observed": {"type": "boolean"}
   },
+  "allOf": [
+    {
+      "if": {"properties": {"verdict": {"const": "PRODUCT_DECISION_REQUIRED"}}},
+      "then": {
+        "required": ["human_decisions"],
+        "properties": {"human_decisions": {"minItems": 1}}
+      },
+      "else": {
+        "properties": {"human_decisions": {"maxItems": 0}}
+      }
+    }
+  ],
   "$defs": {
     "finding": {
       "type": "object",
@@ -54,6 +70,51 @@
         "expected_behavior": {"type": "string", "minLength": 1},
         "authority_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
         "candidate_evidence": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "humanDecisionProposal": {
+      "type": "object",
+      "$comment": "linked_findings referential integrity against root findings is enforced by the repository Consumer because JSON Schema Draft 2020-12 cannot express that cross-array identity constraint.",
+      "additionalProperties": false,
+      "required": [
+        "decision_id",
+        "question",
+        "why_existing_authority_is_insufficient",
+        "affected_requirements",
+        "available_options",
+        "observable_consequences",
+        "blocking_scope",
+        "linked_findings"
+      ],
+      "properties": {
+        "decision_id": {"type": "string", "pattern": "^D-[0-9]{3,}$"},
+        "question": {"type": "string", "minLength": 1},
+        "why_existing_authority_is_insufficient": {"type": "string", "minLength": 1},
+        "affected_requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "available_options": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "observable_consequences": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "blocking_scope": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "linked_findings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "pattern": "^finding-[a-z0-9-]+$"}
+        }
       }
     }
   }

@@ -1337,6 +1337,12 @@ def prepare_review_request(
     known_deviations: list[str],
     known_uncertainties: list[str],
 ) -> dict[str, Any]:
+    unpublished = fingerprinted_unpublished_paths(repo)
+    if unpublished:
+        raise ValueError(
+            "clean_candidate_gate: fingerprinted candidate files are not committed: "
+            + ", ".join(unpublished)
+        )
     preflight_result = preflight(repo)
     if preflight_result.get("status") != "pass":
         raise ValueError(f"review_request: preflight failed: {preflight_result.get('errors')}")
@@ -1972,6 +1978,21 @@ def fingerprint_excluded(relative: str) -> bool:
     return relative in FINGERPRINT_EXCLUDES or any(
         relative.startswith(prefix) for prefix in FINGERPRINT_EXCLUDE_PREFIXES
     )
+
+
+def fingerprinted_unpublished_paths(repo: Path) -> list[str]:
+    """Return dirty candidate paths that publication cannot reproduce from HEAD."""
+    rows = run_git(repo, "status", "--porcelain=v1", "-z").stdout.split(b"\0")
+    unpublished: list[str] = []
+    for row in rows:
+        if not row:
+            continue
+        if len(row) < 4:
+            raise ValueError("clean_candidate_gate: malformed git status row")
+        relative = row[3:].decode("utf-8", "surrogateescape")
+        if not fingerprint_excluded(relative):
+            unpublished.append(relative)
+    return sorted(set(unpublished))
 
 
 def repository_manifest(repo: Path) -> dict[str, Any]:

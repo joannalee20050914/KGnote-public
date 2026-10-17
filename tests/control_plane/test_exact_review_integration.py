@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import sys
 import tempfile
@@ -48,6 +49,15 @@ class ExactReviewIntegrationTests(unittest.TestCase):
             candidate_commit=COMMIT,
             review_round=ROUND,
         )
+
+    def canonical_authority(self) -> dict:
+        return {
+            "repository": self.live_config["canonical_repository"],
+            "pull_request": self.live_config["review_pr_number"],
+            "candidate_commit": COMMIT,
+            "candidate_fingerprint": FINGERPRINT,
+            "review_round": ROUND,
+        }
 
     def result(self, *, verdict: str = "PASS", findings: list[dict] | None = None) -> dict:
         identity = self.identity()
@@ -137,8 +147,11 @@ class ExactReviewIntegrationTests(unittest.TestCase):
                 return f"https://github.com/{self.live_config['canonical_repository']}.git"
             if command[:3] == ["git", "branch", "--show-current"]:
                 return "codex/isolated-exact-review"
-            if command[:3] == ["gh", "pr", "view"] and command[-1] == "body":
-                return json.dumps({"body": "isolated candidate\n" + marker})
+            if command[:3] == ["gh", "pr", "view"] and "number,body,state,isDraft,headRefName,baseRefName" in command:
+                return json.dumps({"number": self.live_config["review_pr_number"],
+                    "body": "isolated candidate\n" + marker, "state": "OPEN", "isDraft": True,
+                    "headRefName": self.live_config["review_pr_head_branch"],
+                    "baseRefName": self.live_config["review_pr_base_branch"]})
             if command[:3] == ["git", "push", "origin"]:
                 return ""
             if command[:3] == ["gh", "pr", "view"]:
@@ -193,25 +206,72 @@ class ExactReviewIntegrationTests(unittest.TestCase):
                 "status": decision["status"],
                 "reviewed_commit": decision["candidate_commit"],
                 "reviewed_fingerprint": decision["candidate_fingerprint"],
-                "artifact_url": "https://example.invalid/isolated/review/9001",
+                "artifact_url": (
+                    f"https://github.com/{self.live_config['canonical_repository']}/pull/"
+                    f"{self.live_config['review_pr_number']}#pullrequestreview-9001"
+                ),
+                "review_author": decision["review_author"],
+                "review_source": decision["review_source"],
+                "record_id": decision["record_id"],
+                "submitted_at": "2026-10-17T03:00:00Z",
+                "repository": self.live_config["canonical_repository"],
+                "pull_request": self.live_config["review_pr_number"],
+                "review_round": decision["review_round"],
+                "findings": decision["findings"],
                 "blocking_findings": decision["findings"],
+                "consumer_accepted": True,
+                "original_body_sha256": hashlib.sha256(
+                    self.record(self.result())["body"].encode("utf-8")
+                ).hexdigest(),
             }
+            receipt_body = external_control.issue_receipt_body(
+                self.live_config, state, state["external_review"]["artifact_url"],
+                canonical_authority=self.canonical_authority(),
+            )
             state["delivery_receipt"] = {
                 "status": "VERIFIED", "repository": self.live_config["canonical_repository"],
                 "pull_request": self.live_config["review_pr_number"], "candidate_commit": COMMIT,
                 "candidate_fingerprint": FINGERPRINT, "review_round": state["review_round"],
-                "review_artifact_url": "https://example.invalid/isolated/review/9001",
-                "issue_comment_url": "https://example.invalid/issues/8#comment",
-                "project_status": "Review Queue",
+                "review_artifact_url": state["external_review"]["artifact_url"],
+                "issue": self.live_config["delivery_issue_number"], "issue_comment_id": 9001,
+                "issue_comment_url": f"https://github.com/{self.live_config['canonical_repository']}/issues/{self.live_config['delivery_issue_number']}#issuecomment-9001",
+                "issue_comment_author": self.live_config["trusted_reviewer_author_login"],
+                "project_item_id": self.live_config["project_item_id"],
+                "project_status": "Review Queue", "project_content_repository": self.live_config["canonical_repository"],
+                "project_content_issue": self.live_config["delivery_issue_number"],
+                "issue_receipt_body_sha256": hashlib.sha256(receipt_body.encode("utf-8")).hexdigest(),
+                "preserved_gates": ["PA-HUMAN-1", "NS-HUMAN-SMOKE", "release_verified=false"],
             }
             self.assertEqual(COMMIT, publication["remote_head"])
             self.assertEqual(FINGERPRINT, publication["candidate_fingerprint"])
-            self.assertEqual([], external_control.human_gate_blockers(self.live_config, state))
+            self.assertEqual([], external_control.human_gate_blockers(
+                self.live_config, state,
+                canonical_authority=self.canonical_authority(),
+            ))
             self.assertEqual(
                 "HUMAN_CHECKPOINT_REQUIRED",
-                external_control.next_machine_state(self.live_config, state),
+                external_control.next_machine_state(
+                    self.live_config, state,
+                    canonical_authority=self.canonical_authority(),
+                ),
             )
             self.assertFalse(state["release_verified"])
+
+            for field, wrong in (("issue", 999), ("project_item_id", "wrong-item"),
+                                 ("review_artifact_url", "https://stale.invalid/review"),
+                                 ("issue_receipt_body_sha256", "c" * 64)):
+                broken = json.loads(json.dumps(state))
+                broken["delivery_receipt"][field] = wrong
+                self.assertTrue(external_control.delivery_receipt_blockers(
+                    self.live_config, broken,
+                    canonical_authority=self.canonical_authority(),
+                ), field)
+            broken = json.loads(json.dumps(state))
+            broken["delivery_receipt"]["issue_comment_url"] = "https://github.com/other/repo/issues/8#issuecomment-9001"
+            self.assertTrue(external_control.delivery_receipt_blockers(
+                self.live_config, broken,
+                canonical_authority=self.canonical_authority(),
+            ))
 
     def test_identity_internal_only_and_blocking_finding_fail_closed(self) -> None:
         identity = self.identity()

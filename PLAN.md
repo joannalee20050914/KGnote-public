@@ -121,6 +121,72 @@ This file contains exactly one active execution goal. It does not promote any hu
     "stop_on_human_gate": true,
     "external_review_required_before_human_gate": true,
     "max_review_cycles_per_milestone": 5,
+    "supplemental_review_cycles": {
+      "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24",
+      "scope": "Issue #8 R-008 through R-010 repair/reviews, the cycle-13 replacement, cycle-14 External Evidence Revalidation, and one final cycle-15 clean-checkpoint replacement review",
+      "authorized_total": 10,
+      "used": 10,
+      "remaining": 0,
+      "base_cycles_preserved": 5,
+      "authorizations": [
+        {
+          "cycles": 2,
+          "scope": "R-008 through R-010 concentrated repair/review",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24"
+        },
+        {
+          "cycles": 1,
+          "scope": "R-009 formal schema, Consumer, canonical decision bridge, and necessary tests only",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6213300000"
+        },
+        {
+          "cycles": 1,
+          "scope": "R-009 convergence repair: linked_findings integrity, handoff metadata, durable rejection, atomic decision projection, and necessary tests only",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6228024464"
+        },
+        {
+          "cycles": 1,
+          "scope": "R-009 record_id positive-integer contract, durable rejection, symmetric metadata, restart, and decision-queue invariance tests only",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6229026175"
+        },
+        {
+          "cycles": 1,
+          "scope": "R-009 complete external evidence lifecycle validation from acceptance through durable read-back, restart, human gate, and delivery completion",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6229229689"
+        },
+        {
+          "cycles": 1,
+          "scope": "R-009 canonical authority binding for the accepted external evidence lifecycle and necessary tests only",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6229457904"
+        },
+        {
+          "cycles": 1,
+          "scope": "One replacement independent review after a minimal pre-seal budget reservation ordering fix; same R-009 candidate only",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6229686177"
+        },
+        {
+          "cycles": 1,
+          "scope": "Final R-009 External Evidence Revalidation review only, after targeted tests, pre-seal budget reservation, complete pre-review gate, and exact candidate identity read-back",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6230751022"
+        },
+        {
+          "cycles": 1,
+          "scope": "One replacement review for the committed clean candidate only, after the shared clean-candidate gate, checkpoint commit, exact verification, read-only prepublication checks, pre-seal reservation, and identity read-back",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231047878"
+        }
+      ],
+      "stop_rule": "Preserve all 14 historical attempts including the exact cycle-14 PASS. At most one clean-checkpoint replacement may run as total cycle 15 after every pre-review gate passes; once its reviewer context starts it is consumed regardless of verdict or stale/no-verdict outcome. Stop after cycle 15 and do not auto-extend to cycle 16."
+    },
+    "post_review_local_repair": {
+      "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6229882134",
+      "work_package_url": "https://github.com/joannalee20050914/KGnote-public/issues/8#issuecomment-6229889233",
+      "scope": "R-009 External Evidence Revalidation only: re-read exact GitHub review/comment bytes at restart, human-gate, and completion boundaries; re-check Draft/head/base and PR #22 routing; at most two local repair attempts.",
+      "attempts_used": 1,
+      "review_authorized": true,
+      "review_authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231047878",
+      "status": "cycle_14_pass_clean_checkpoint_replacement_15_authorized_pending_commit_and_gates",
+      "stop_rule": "Preserve the cycle-14 PASS for its exact dirty-worktree revision. Start cycle 15 only for the committed clean candidate after every authorized gate passes, and never launch cycle 16."
+    },
     "stop_on_review_state": [
       "PRODUCT_DECISION_REQUIRED",
       "AUTHORITY_CONFLICT",
@@ -200,8 +266,11 @@ This file contains exactly one active execution goal. It does not promote any hu
         "scripts/codex_orchestrator.py",
         "scripts/external_review_control.py",
         "scripts/external_review_handoff.py",
+        "scripts/github_product_review_consumer.py",
         "scripts/publish_external_candidate.py",
+        "schemas/product-review/v1/review-result.schema.json",
         "tests/control_plane/",
+        "tests/test_github_product_review_consumer.py",
         "GitHub PR and Issue metadata for joannalee20050914/KGnote-public"
       ],
       "acceptance": [
@@ -219,6 +288,6 @@ This file contains exactly one active execution goal. It does not promote any hu
 
 ## Current recovery note
 
-Autonomous orchestration state: `IMPLEMENTING`. Active work package: `AR-EXTERNAL-REVIEW`.
-Next action: Automatically begin authorized work package AR-EXTERNAL-REVIEW.
+Autonomous orchestration state: `AUTOMATION_BLOCKED`. Active work package: `AR-EXTERNAL-REVIEW`.
+Next action: preserve the exact cycle-14 PASS and use the one-time owner authorization only to form the committed clean candidate, complete all pre-review gates, and launch at most cycle 15. The cycle-15 reservation is fingerprint-bound before the checkpoint; no cycle 16 is authorized.
 Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.
