@@ -215,16 +215,26 @@ class OrchestrationSimulationTests(unittest.TestCase):
             self.assertEqual(state["state"], "REPAIRING")
             self.assertIsNone(state["candidate_custody"]["owner"])
 
-    def test_6_crash_context_restart_resumes_existing_reviewer_custody(self):
+    def test_6_crash_context_restart_does_not_create_a_second_context(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             state = self.base_state(review_cycle=1)
             state["state"] = "REVIEWING"
+            state["candidate_custody"]["status"] = "REVIEWER"
+            state["reviewer_context_launch"] = {
+                "context_id": "reviewer-context-original",
+                "review_cycle": 1,
+                "review_id": "review-example-001",
+                "candidate_fingerprint": "a" * 64,
+                "status": "STARTED",
+                "started_at": "2026-09-23T00:00:00+08:00",
+            }
             request, _, _, runner = self.harness(root, ["PASS"], initial="UNDER_REVIEW")
             ORCH.orchestrate_step(root, state, runner)
-            self.assertEqual(request["status"], "PASS")
-            self.assertEqual(state["state"], "GOAL_COMPLETE")
-            self.assertEqual(state["review_cycle"], 1, "resuming custody must not spend a new review cycle")
+            self.assertEqual(request["status"], "UNDER_REVIEW")
+            self.assertEqual(state["state"], "AUTOMATION_BLOCKED")
+            self.assertEqual(state["review_cycle"], 1)
+            self.assertEqual(state["blockers"][0]["type"], "reviewer_context_launch_blocked")
 
     def test_7_repair_budget_exhaustion_has_structured_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -419,6 +429,7 @@ class OrchestrationSimulationTests(unittest.TestCase):
                 "supplemental_review_limit": 2,
                 "supplemental_review_used": 2,
                 "supplemental_review_authority": "https://authority.example/replacement",
+                "review_id": "review-example-007",
                 "review_budget_reservation": {
                     "review_cycle": 7, "supplemental_used": 2,
                     "status": "RESERVED",
@@ -434,11 +445,16 @@ class OrchestrationSimulationTests(unittest.TestCase):
             def accept(_repo, _identity):
                 request["status"] = "UNDER_REVIEW"
 
+            def launch(_repo, current_state, _runner):
+                errors = ORCH.authorize_reviewer_context(root, current_state, request)
+                self.assertEqual([], errors)
+                return "UNDER_REVIEW"
+
             with mock.patch.object(ORCH, "recover_stale_candidate", return_value=False), \
                  mock.patch.object(ORCH.control, "preflight", return_value={"status": "pass", "errors": []}), \
                  mock.patch.object(ORCH.control, "load_review_artifacts", return_value=(request, result, {})), \
                  mock.patch.object(ORCH.control, "accept_review_custody", side_effect=accept), \
-                 mock.patch.object(ORCH, "execute_reviewer", return_value="UNDER_REVIEW") as reviewer:
+                 mock.patch.object(ORCH, "execute_reviewer", side_effect=launch) as reviewer:
                 ORCH.orchestrate_step(root, state, lambda *_args: self.fail())
 
             reviewer.assert_called_once()
@@ -707,12 +723,17 @@ class OrchestratorDurabilityTests(unittest.TestCase):
         ORCH.control.write_status(root, status)
         return request, decisions
 
-    def test_successful_but_empty_reviewer_is_bounded_and_persists_attempts(self):
+    def test_empty_reviewer_consumes_one_context_and_never_relaunches(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            (root / ".ai").mkdir()
             state = OrchestrationSimulationTests().base_state(review_cycle=1)
             state["state"] = "REVIEWING"
-            request = {"status": "UNDER_REVIEW", "review_id": "review-example-001"}
+            state["candidate_custody"]["status"] = "REVIEWER"
+            request = {
+                "status": "UNDER_REVIEW", "review_id": "review-example-001",
+                "candidate_fingerprint": "a" * 64,
+            }
             result = {"artifact_state": "EMPTY", "verdict": None, "findings": []}
             calls = {"count": 0}
 
@@ -722,13 +743,138 @@ class OrchestratorDurabilityTests(unittest.TestCase):
 
             with mock.patch.object(ORCH.control, "load_review_artifacts", return_value=(request, result, {"decisions": []})), \
                  mock.patch.object(ORCH, "recover_stale_candidate", return_value=False):
-                for expected in (1, 2, 3):
-                    ORCH.execute_reviewer(root, state, runner)
-                    self.assertEqual(state["empty_reviewer_results"], expected)
-            self.assertEqual(calls["count"], 3)
+                ORCH.execute_reviewer(root, state, runner)
+                self.assertEqual(state["empty_reviewer_results"], 1)
+                ORCH.execute_reviewer(root, state, runner)
+            self.assertEqual(calls["count"], 1)
             self.assertEqual(state["state"], "AUTOMATION_BLOCKED")
-            self.assertEqual(state["blockers"][0]["type"], "reviewer_produced_no_result")
-            self.assertEqual(state["blockers"][0]["attempts"], 3)
+            self.assertEqual(state["blockers"][0]["type"], "reviewer_context_launch_blocked")
+            self.assertIn(
+                "already started", " ".join(state["blockers"][0]["errors"])
+            )
+
+    def test_reviewer_launch_admission_covers_consumed_stale_and_valid_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            request = {
+                "status": "UNDER_REVIEW", "review_id": "review-example-006",
+                "candidate_fingerprint": "a" * 64,
+            }
+
+            def supplemental_state():
+                state = OrchestrationSimulationTests().base_state(review_cycle=6)
+                state.update({
+                    "review_id": request["review_id"],
+                    "base_review_cycles": 5,
+                    "supplemental_review_limit": 1,
+                    "supplemental_review_used": 1,
+                    "review_budget_reservation": {
+                        "review_cycle": 6, "supplemental_used": 1,
+                        "status": "RESERVED", "authority": "owner",
+                    },
+                })
+                state["candidate_custody"] = {
+                    "status": "REVIEWER", "owner": "reviewer",
+                    "review_id": request["review_id"], "fingerprint": "a" * 64,
+                }
+                return state
+
+            valid = supplemental_state()
+            self.assertEqual([], ORCH.authorize_reviewer_context(root, valid, request))
+            self.assertEqual("CONSUMED", valid["review_budget_reservation"]["status"])
+            self.assertEqual("STARTED", valid["reviewer_context_launch"]["status"])
+
+            for label, mutate, expected in (
+                ("consumed", lambda s: s["review_budget_reservation"].update(status="CONSUMED"), "consumed"),
+                ("stale review", lambda s: s.update(review_id="review-example-stale"), "identity is stale"),
+                ("exhausted", lambda s: s.update(review_cycle=7), "no remaining"),
+            ):
+                with self.subTest(label=label):
+                    state = supplemental_state()
+                    mutate(state)
+                    self.assertIn(expected, " ".join(ORCH.reviewer_context_launch_errors(state, request)))
+
+    def test_crash_duplicate_restart_and_missing_verdict_never_launch_second_context(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = OrchestrationSimulationTests().base_state(review_cycle=1)
+            state["candidate_custody"]["status"] = "REVIEWER"
+            request = {
+                "status": "UNDER_REVIEW", "review_id": "review-example-001",
+                "candidate_fingerprint": "a" * 64,
+            }
+            result = {"artifact_state": "EMPTY", "verdict": None, "findings": []}
+            calls = {"count": 0}
+
+            # Simulate a crash after durable admission but before the process call.
+            self.assertEqual([], ORCH.authorize_reviewer_context(root, state, request))
+
+            def runner(*_args):
+                calls["count"] += 1
+                return {"role": "reviewer", "exit_code": 0, "output_tail": ""}
+
+            with mock.patch.object(
+                ORCH.control, "load_review_artifacts",
+                return_value=(request, result, {"decisions": []}),
+            ):
+                ORCH.execute_reviewer(root, state, runner)
+                ORCH.execute_reviewer(root, state, runner)
+            self.assertEqual(0, calls["count"])
+            self.assertEqual("AUTOMATION_BLOCKED", state["state"])
+
+    def test_process_lock_allows_only_one_concurrent_launcher(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".ai").mkdir()
+            state = OrchestrationSimulationTests().base_state(review_cycle=1)
+            descriptor = ORCH.acquire_lock(root, state)
+            calls = {"count": 0}
+
+            def runner(*_args):
+                calls["count"] += 1
+                return {"role": "reviewer", "exit_code": 0, "output_tail": ""}
+
+            try:
+                with self.assertRaisesRegex(ValueError, "another runner may be active"):
+                    ORCH.run_loop(root, state, runner, 1)
+            finally:
+                ORCH.release_lock(root, descriptor)
+            self.assertEqual(0, calls["count"])
+
+    def test_final_authorized_context_stale_result_stops_without_replacement(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = OrchestrationSimulationTests().base_state(review_cycle=6)
+            state.update({
+                "base_review_cycles": 5,
+                "supplemental_review_limit": 1,
+                "supplemental_review_used": 1,
+                "review_budget_reservation": {
+                    "review_cycle": 6, "supplemental_used": 1,
+                    "status": "RESERVED", "authority": "owner",
+                },
+            })
+            state["candidate_custody"]["status"] = "REVIEWER"
+            request = {
+                "status": "UNDER_REVIEW", "review_id": "review-example-001",
+                "candidate_fingerprint": "a" * 64,
+            }
+            calls = {"count": 0}
+
+            def runner(*_args):
+                calls["count"] += 1
+                return {"role": "reviewer", "exit_code": 0, "output_tail": ""}
+
+            with mock.patch.object(
+                ORCH.control, "load_review_artifacts",
+                return_value=(request, {"artifact_state": "EMPTY"}, {}),
+            ), mock.patch.object(ORCH, "recover_stale_candidate", return_value=True), \
+                 mock.patch.object(ORCH.control, "history_unresolved_finding_ids", return_value=["R-011"]):
+                ORCH.execute_reviewer(root, state, runner)
+            self.assertEqual(1, calls["count"])
+            self.assertEqual("AUTOMATION_BLOCKED", state["state"])
+            self.assertEqual(6, state["review_cycle"])
+            self.assertEqual("repair_budget_exhausted", state["blockers"][0]["type"])
 
     def test_pending_changes_result_validates_and_crash_resume_archives_before_preflight(self):
         with tempfile.TemporaryDirectory() as tmp:

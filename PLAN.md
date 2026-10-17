@@ -123,9 +123,9 @@ This file contains exactly one active execution goal. It does not promote any hu
     "max_review_cycles_per_milestone": 5,
     "supplemental_review_cycles": {
       "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24",
-      "scope": "Issue #8 R-008 through R-010 repair/reviews, the cycle-13 replacement, cycle-14 External Evidence Revalidation, and one final cycle-15 clean-checkpoint replacement review",
-      "authorized_total": 10,
-      "used": 10,
+      "scope": "Issue #8 R-008 through R-011 bounded repair/reviews through the single final cycle-16 invocation-safety review",
+      "authorized_total": 11,
+      "used": 11,
       "remaining": 0,
       "base_cycles_preserved": 5,
       "authorizations": [
@@ -173,9 +173,14 @@ This file contains exactly one active execution goal. It does not promote any hu
           "cycles": 1,
           "scope": "One replacement review for the committed clean candidate only, after the shared clean-candidate gate, checkpoint commit, exact verification, read-only prepublication checks, pre-seal reservation, and identity read-back",
           "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231047878"
+        },
+        {
+          "cycles": 1,
+          "scope": "R-011 reviewer-context launch admission only, after bounded local repair, deterministic launch-count tests, clean checkpoint, exact verification, prepublication read-back, reservation, and Seal",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231134202"
         }
       ],
-      "stop_rule": "Preserve all 14 historical attempts including the exact cycle-14 PASS. At most one clean-checkpoint replacement may run as total cycle 15 after every pre-review gate passes; once its reviewer context starts it is consumed regardless of verdict or stale/no-verdict outcome. Stop after cycle 15 and do not auto-extend to cycle 16."
+      "stop_rule": "Preserve all 15 historical attempts. At most one R-011 review may run as total cycle 16 after every pre-review gate passes; once its reviewer context starts it is consumed regardless of PASS, CHANGES_REQUIRED, stale, crash, failure, or no-verdict outcome. Stop after cycle 16 and never auto-extend to cycle 17."
     },
     "post_review_local_repair": {
       "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6229882134",
@@ -183,9 +188,9 @@ This file contains exactly one active execution goal. It does not promote any hu
       "scope": "R-009 External Evidence Revalidation only: re-read exact GitHub review/comment bytes at restart, human-gate, and completion boundaries; re-check Draft/head/base and PR #22 routing; at most two local repair attempts.",
       "attempts_used": 1,
       "review_authorized": true,
-      "review_authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231047878",
-      "status": "cycle_14_pass_clean_checkpoint_replacement_15_authorized_pending_commit_and_gates",
-      "stop_rule": "Preserve the cycle-14 PASS for its exact dirty-worktree revision. Start cycle 15 only for the committed clean candidate after every authorized gate passes, and never launch cycle 16."
+      "review_authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231134202",
+      "status": "cycle_15_changes_required_r011_cycle_16_reserved_pending_commit_and_gates",
+      "stop_rule": "Repair only R-011. Start cycle 16 only for the committed clean candidate after every authorized gate passes, and never launch cycle 17; a started context is consumed even without a verdict."
     },
     "stop_on_review_state": [
       "PRODUCT_DECISION_REQUIRED",
@@ -289,5 +294,5 @@ This file contains exactly one active execution goal. It does not promote any hu
 ## Current recovery note
 
 Autonomous orchestration state: `AUTOMATION_BLOCKED`. Active work package: `AR-EXTERNAL-REVIEW`.
-Next action: preserve the exact cycle-14 PASS and use the one-time owner authorization only to form the committed clean candidate, complete all pre-review gates, and launch at most cycle 15. The cycle-15 reservation is fingerprint-bound before the checkpoint; no cycle 16 is authorized.
+Next action: complete the bounded R-011 launch-admission repair, prove one-context behavior across exhaustion/restart/duplicates/crash/concurrency, then launch at most cycle 16 only after every pre-review gate passes. No cycle 17 is authorized.
 Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.

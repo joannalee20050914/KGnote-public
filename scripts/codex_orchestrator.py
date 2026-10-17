@@ -309,6 +309,78 @@ def consume_review_budget_reservation(state: dict[str, Any], review_cycle: int) 
     reservation["consumed_at"] = now()
 
 
+def reviewer_context_launch_errors(
+    state: dict[str, Any], request: dict[str, Any]
+) -> list[str]:
+    """Validate the single durable admission point for a new reviewer context."""
+    cycle = int(state.get("review_cycle", 0))
+    errors: list[str] = []
+    if cycle < 1 or cycle > review_budget_limit(state):
+        errors.append("reviewer_launch: no remaining authorized review cycle")
+    if request.get("status") != "UNDER_REVIEW":
+        errors.append("reviewer_launch: request is not in reviewer custody")
+    if request.get("review_id") != state.get("review_id"):
+        errors.append("reviewer_launch: review identity is stale")
+    if request.get("candidate_fingerprint") != state.get("candidate_fingerprint"):
+        errors.append("reviewer_launch: candidate fingerprint is stale")
+    custody = state.get("candidate_custody")
+    if not isinstance(custody, dict) or custody.get("status") != "REVIEWER":
+        errors.append("reviewer_launch: durable reviewer custody is missing")
+    elif (
+        custody.get("review_id") != request.get("review_id")
+        or custody.get("fingerprint") != request.get("candidate_fingerprint")
+    ):
+        errors.append("reviewer_launch: custody identity is stale")
+    launch = state.get("reviewer_context_launch")
+    if isinstance(launch, dict) and launch.get("review_cycle") == cycle:
+        errors.append("reviewer_launch: this review cycle already started a context")
+    base = int(state.get("base_review_cycles", state.get("max_review_cycles", 5)))
+    if cycle > base:
+        reservation = state.get("review_budget_reservation")
+        if not isinstance(reservation, dict):
+            errors.append("reviewer_launch: persisted reservation is missing")
+        elif reservation.get("review_cycle") != cycle:
+            errors.append("reviewer_launch: reservation identity is stale")
+        elif reservation.get("status") != "RESERVED":
+            errors.append("reviewer_launch: reservation is already consumed")
+    return errors
+
+
+def authorize_reviewer_context(
+    repo: Path, state: dict[str, Any], request: dict[str, Any]
+) -> list[str]:
+    """Persist one context launch before invoking any external process.
+
+    A crash after this write consumes the context and fails closed. An
+    ephemeral Codex process has no resumable session identity, so a later wake
+    cannot reinterpret UNDER_REVIEW/EMPTY as authority for another process.
+    """
+    errors = reviewer_context_launch_errors(state, request)
+    if errors:
+        return errors
+    cycle = int(state["review_cycle"])
+    base = int(state.get("base_review_cycles", state.get("max_review_cycles", 5)))
+    if cycle > base:
+        consume_review_budget_reservation(state, cycle)
+    state["reviewer_context_launch"] = {
+        "context_id": f"reviewer-context-{uuid.uuid4().hex}",
+        "review_cycle": cycle,
+        "review_id": request["review_id"],
+        "candidate_fingerprint": request["candidate_fingerprint"],
+        "status": "STARTED",
+        "started_at": now(),
+    }
+    update_state(repo, state, "REVIEWING", "Invoke the single authorized independent reviewer context.")
+    append_event(
+        repo,
+        state,
+        "REVIEWER_CONTEXT_STARTED",
+        context_id=state["reviewer_context_launch"]["context_id"],
+        review_id=request["review_id"],
+    )
+    return []
+
+
 def update_state(repo: Path, state: dict[str, Any], new_state: str, next_action: str, **fields: Any) -> None:
     state["state"] = new_state
     state["next_action"] = next_action
@@ -542,11 +614,42 @@ def validate_and_request(repo: Path, state: dict[str, Any]) -> bool:
 
 
 def execute_reviewer(repo: Path, state: dict[str, Any], runner: AgentRunner) -> str:
-    """Run or resume reviewer custody and return the resulting review state."""
-    update_state(repo, state, "REVIEWING", "Invoke the independent reviewer against the exact sealed candidate.")
+    """Launch exactly one authorized reviewer context and return its result."""
+    request, _, _ = control.load_review_artifacts(repo)
+    launch_errors = authorize_reviewer_context(repo, state, request)
+    if launch_errors:
+        state["blockers"] = [{
+            "type": "reviewer_context_launch_blocked",
+            "review_cycle": state.get("review_cycle"),
+            "review_id": request.get("review_id"),
+            "errors": launch_errors,
+        }]
+        update_state(
+            repo, state, "AUTOMATION_BLOCKED",
+            "Reviewer context authority is absent, stale, exhausted, or already consumed; do not retry.",
+        )
+        return request.get("status")
     if not run_role(repo, state, "reviewer", runner):
+        state["blockers"] = [{
+            "type": "reviewer_context_failed_after_consumption",
+            "review_cycle": state.get("review_cycle"),
+            "review_id": request.get("review_id"),
+            "context_id": state.get("reviewer_context_launch", {}).get("context_id"),
+        }]
+        update_state(
+            repo, state, "AUTOMATION_BLOCKED",
+            "The authorized reviewer context failed after consumption; a new context is not authorized.",
+        )
         return control.load_review_artifacts(repo)[0].get("status")
     if recover_stale_candidate(repo, state):
+        if int(state.get("review_cycle", 0)) >= review_budget_limit(state):
+            state["blockers"] = [
+                review_budget_blocker(state, control.history_unresolved_finding_ids(repo))
+            ]
+            update_state(
+                repo, state, "AUTOMATION_BLOCKED",
+                "The final authorized reviewer context became stale; no replacement context is authorized.",
+            )
         return "IMPLEMENTING"
     request, result, _ = control.load_review_artifacts(repo)
     if request.get("status") == "UNDER_REVIEW" and result.get("artifact_state") == "SUBMITTED":
@@ -555,16 +658,16 @@ def execute_reviewer(repo: Path, state: dict[str, Any], runner: AgentRunner) -> 
         request, result, _ = control.load_review_artifacts(repo)
     if request.get("status") == "UNDER_REVIEW" and result.get("artifact_state") == "EMPTY":
         state["empty_reviewer_results"] = int(state.get("empty_reviewer_results", 0)) + 1
-        if state["empty_reviewer_results"] >= state["max_agent_failures"]:
-            state["blockers"] = [{
-                "type": "reviewer_produced_no_result",
-                "review_id": request.get("review_id"),
-                "attempts": state["empty_reviewer_results"],
-            }]
-            update_state(repo, state, "AUTOMATION_BLOCKED", "Reviewer repeatedly returned without a result.")
-        else:
-            write_state(repo, state)
-            append_event(repo, state, "REVIEWER_RETRY_SCHEDULED", review_id=request.get("review_id"))
+        state["blockers"] = [{
+            "type": "reviewer_produced_no_result_after_consumption",
+            "review_id": request.get("review_id"),
+            "review_cycle": state.get("review_cycle"),
+            "context_id": state.get("reviewer_context_launch", {}).get("context_id"),
+        }]
+        update_state(
+            repo, state, "AUTOMATION_BLOCKED",
+            "The authorized reviewer context returned no verdict; a new context is not authorized.",
+        )
     return request.get("status")
 
 
@@ -899,8 +1002,6 @@ def orchestrate_step(repo: Path, state: dict[str, Any], runner: AgentRunner = ru
                 return
         state["review_cycle"] += 1
         state["supplemental_review_used"] = max(0, state["review_cycle"] - base_cycles)
-        if state["review_cycle"] > base_cycles:
-            consume_review_budget_reservation(state, state["review_cycle"])
         reviewer_identity = f"codex-independent-reviewer:{state['run_id']}:{state['review_cycle']}"
         control.accept_review_custody(repo, reviewer_identity)
         state["candidate_custody"] = {
@@ -914,8 +1015,8 @@ def orchestrate_step(repo: Path, state: dict[str, Any], runner: AgentRunner = ru
             return
 
     elif review_state == "UNDER_REVIEW" and result.get("artifact_state") == "EMPTY":
-        # Crash/context restart recovery: custody and fingerprint remain durable,
-        # so a new independent reviewer context resumes the same sealed review.
+        # Ephemeral reviewer processes have no verifiable resumable session.
+        # The centralized launch admission therefore blocks any second context.
         review_state = execute_reviewer(repo, state, runner)
         if state["state"] in TERMINAL_STATES:
             return

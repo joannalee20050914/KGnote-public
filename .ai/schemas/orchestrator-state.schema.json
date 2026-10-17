@@ -36,6 +36,19 @@
       },
       "additionalProperties": false
     },
+    "reviewer_context_launch": {
+      "type": "object",
+      "required": ["context_id", "review_cycle", "review_id", "candidate_fingerprint", "status", "started_at"],
+      "properties": {
+        "context_id": {"type": "string", "minLength": 1},
+        "review_cycle": {"type": "integer", "minimum": 1},
+        "review_id": {"type": "string", "minLength": 1},
+        "candidate_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "status": {"const": "STARTED"},
+        "started_at": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
     "next_human_checkpoint": {"type": ["object", "null"]},
     "last_agent_run": {"type": ["object", "null"]},
     "created_at": {"type": "string"},
