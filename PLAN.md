@@ -210,11 +210,25 @@ This file contains exactly one active execution goal. It does not promote any hu
       "finding": "finding-r-004",
       "local_repairs_authorized": 3,
       "local_repairs_used": 1,
-      "internal_cycles": [18, 19, 20],
-      "external_rounds": [5, 6],
+      "internal_cycles": [
+        18,
+        19,
+        20
+      ],
+      "external_rounds": [
+        5,
+        6
+      ],
       "no_progress_stop": 2,
       "work_window": "Asia/Taipei 09:00-18:30",
-      "forbidden": ["cycle 21", "external round 7", "paid API", "force push", "modify or merge PR #1, PR #22, or main", "promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"]
+      "forbidden": [
+        "cycle 21",
+        "external round 7",
+        "paid API",
+        "force push",
+        "modify or merge PR #1, PR #22, or main",
+        "promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
+      ]
     },
     "stop_on_review_state": [
       "PRODUCT_DECISION_REQUIRED",
