@@ -39,12 +39,25 @@ from kgnote.review import (  # noqa: E402
     validate_attempt_request,
     validate_attempt_against_practice_set,
 )
-from kgnote.learning import latest_resume_context, load_learning_unit_catalog, prior_encounters, record_resume_context  # noqa: E402
+from kgnote.learning import (  # noqa: E402
+    MAX_BATCH_SOURCES,
+    MAX_SOURCE_BYTES,
+    SourceLibraryError,
+    import_source,
+    import_sources,
+    latest_resume_context,
+    list_sources,
+    load_learning_unit_catalog,
+    prior_encounters,
+    read_source,
+    record_resume_context,
+)
 from kgnote.notes import read_note, save_note, search_notes  # noqa: E402
 from kgnote.reader import load_reader  # noqa: E402
 
 MAX_QUERY_BYTES = 32_768
 MAX_NOTE_BYTES = 300_000
+MAX_SOURCE_IMPORT_BYTES = MAX_BATCH_SOURCES * (MAX_SOURCE_BYTES + 2_048)
 HTTP_ERROR_VERSION = "kgnote.graph-view-http-error.v1"
 SECURITY_HEADERS = {
     "Cache-Control": "no-store",
@@ -95,6 +108,52 @@ def execute_query(store_root: Path, body: bytes) -> tuple[int, dict[str, Any]]:
     except Exception:
         return HTTPStatus.INTERNAL_SERVER_ERROR, http_problem("internal_error")
     return (HTTPStatus.OK if result.status == "ready" else HTTPStatus.BAD_REQUEST), result.response
+
+
+def execute_source_import(source_library_root: Path, body: bytes) -> tuple[int, dict[str, Any]]:
+    if len(body) > MAX_SOURCE_IMPORT_BYTES:
+        return HTTPStatus.REQUEST_ENTITY_TOO_LARGE, http_problem("source_import_too_large")
+    try:
+        request = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return HTTPStatus.BAD_REQUEST, http_problem("invalid_json")
+    try:
+        if isinstance(request, dict) and request.get("schema_version") == "kgnote.source-import-batch.v1":
+            status, payload = import_sources(source_library_root, request)
+        else:
+            status, payload = import_source(source_library_root, request)
+    except Exception:
+        return HTTPStatus.INTERNAL_SERVER_ERROR, http_problem("internal_error")
+    if status in {"created", "updated", "applied"}:
+        return HTTPStatus.CREATED, payload
+    if status == "unchanged":
+        return HTTPStatus.OK, payload
+    if status == "failed":
+        return HTTPStatus.INTERNAL_SERVER_ERROR, payload
+    conflict_codes = {"stale_source_revision", "source_identity_mismatch", "source_revision_collision"}
+    code = payload.get("problem", {}).get("code")
+    return (HTTPStatus.CONFLICT if code in conflict_codes else HTTPStatus.BAD_REQUEST), payload
+
+
+def execute_source_list(source_library_root: Path) -> tuple[int, dict[str, Any]]:
+    try:
+        sources = list_sources(source_library_root)
+    except SourceLibraryError:
+        return HTTPStatus.INTERNAL_SERVER_ERROR, http_problem("source_library_unavailable")
+    return HTTPStatus.OK, {
+        "schema_version": "kgnote.source-list-http.v2",
+        "status": "ready",
+        "sources": sources,
+    }
+
+
+def execute_source_read(
+    source_library_root: Path, source_id: str, revision_id: str | None,
+) -> tuple[int, dict[str, Any]]:
+    source = read_source(source_library_root, source_id, revision_id)
+    if source is None:
+        return HTTPStatus.NOT_FOUND, http_problem("source_not_found")
+    return HTTPStatus.OK, {"status": "ready", **source}
 
 
 def execute_review(store_root: Path, body: bytes) -> tuple[int, dict[str, Any]]:
@@ -376,6 +435,7 @@ def handler_for(
     claim_review_overlay: dict[str, Any] | None = None,
     attempts_root: Path | None = None,
     learning_units: dict[str, Any] | None = None,
+    source_library_root: Path | None = None,
 ) -> type[BaseHTTPRequestHandler]:
     allowed_static_root = static_root or ROOT / "web"
 
@@ -405,6 +465,23 @@ def handler_for(
 
         def do_GET(self) -> None:  # noqa: N802
             parsed = urlsplit(self.path)
+            if source_library_root is not None and parsed.path == "/api/library/sources":
+                if parsed.query:
+                    self._reject(HTTPStatus.BAD_REQUEST, "invalid_source_query")
+                    return
+                status, payload = execute_source_list(source_library_root)
+                self._send_json(status, payload)
+                return
+            if source_library_root is not None and parsed.path.startswith("/api/library/sources/"):
+                source_id = unquote(parsed.path.removeprefix("/api/library/sources/"))
+                parameters = parse_qs(parsed.query, keep_blank_values=True)
+                if "/" in source_id or set(parameters) - {"revision"} or any(len(values) != 1 for values in parameters.values()):
+                    self._reject(HTTPStatus.BAD_REQUEST, "invalid_source_query")
+                    return
+                revision_id = parameters.get("revision", [None])[0]
+                status, payload = execute_source_read(source_library_root, source_id, revision_id)
+                self._send_json(status, payload)
+                return
             if learning_units is not None and parsed.path == "/api/learning-units":
                 if parsed.query:
                     self._reject(HTTPStatus.BAD_REQUEST, "invalid_learning_unit_query")
@@ -577,6 +654,8 @@ def handler_for(
 
         def do_POST(self) -> None:  # noqa: N802
             allowed = {"/api/graph-view", "/api/reviews"}
+            if source_library_root is not None:
+                allowed.add("/api/library/sources")
             if guided_map_model is not None and guided_review_root is not None:
                 allowed.add("/api/guided-reviews")
             parsed = urlsplit(self.path)
@@ -599,11 +678,15 @@ def handler_for(
                 length = -1
             if length < 0:
                 status, payload = HTTPStatus.BAD_REQUEST, http_problem("invalid_content_length")
-            elif length > MAX_QUERY_BYTES:
+            elif self.path == "/api/library/sources" and length > MAX_SOURCE_IMPORT_BYTES:
+                status, payload = HTTPStatus.REQUEST_ENTITY_TOO_LARGE, http_problem("source_import_too_large")
+            elif self.path != "/api/library/sources" and length > MAX_QUERY_BYTES:
                 status, payload = HTTPStatus.REQUEST_ENTITY_TOO_LARGE, http_problem("query_too_large")
             else:
                 body = self.rfile.read(length)
-                if is_feedback:
+                if self.path == "/api/library/sources":
+                    status, payload = execute_source_import(source_library_root, body)
+                elif is_feedback:
                     attempt_id = unquote(parsed.path.removeprefix("/api/attempts/").removesuffix("/feedback"))
                     if "/" in attempt_id or parsed.query or attempts_root is None:
                         status, payload = HTTPStatus.NOT_FOUND, http_problem("not_found")
@@ -716,6 +799,7 @@ def main() -> None:
     parser.add_argument("--claim-review-overlay", help="Snapshot-bound ClaimReview overlay used to gate practice items.")
     parser.add_argument("--learning-unit-catalog", help="Bounded catalog for the multi-unit Learn and Practice surfaces.")
     parser.add_argument("--attempts-root", help="Local root for machine-managed Attempt v1 records.")
+    parser.add_argument("--source-library-root", help="Explicit local root for immutable imported source revisions.")
     parser.add_argument(
         "--host", choices=("127.0.0.1", "0.0.0.0"), default="127.0.0.1",
         help="Use 0.0.0.0 only for trusted local-network access.",
@@ -769,13 +853,20 @@ def main() -> None:
         if catalog_result.status != "ready":
             parser.error(f"learning unit catalog unavailable: {catalog_result.problem_code}")
         learning_units = catalog_result.payload["bundles"]
+    source_library_root = None
+    if args.source_library_root:
+        source_library_root = Path(args.source_library_root)
+        try:
+            list_sources(source_library_root)
+        except SourceLibraryError as error:
+            parser.error(f"source library configuration unavailable: {error.code}")
     server = ThreadingHTTPServer(
         (args.host, args.port),
         handler_for(
             store_root, guided_map_model=guided_map_model, guided_review_root=guided_review_root,
             notes_root=notes_root, note_writes_enabled=args.enable_note_writes,
             claim_review_overlay=claim_review_overlay, attempts_root=attempts_root,
-            learning_units=learning_units,
+            learning_units=learning_units, source_library_root=source_library_root,
         ),
     )
     location = "this Mac's local-network IP" if args.host == "0.0.0.0" else "127.0.0.1"

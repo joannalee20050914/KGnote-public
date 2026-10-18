@@ -110,6 +110,34 @@ class GitHubProductReviewConsumerTest(unittest.TestCase):
         self.assertEqual("PASS", decision["status"])
         self.assertEqual("issue_comment", decision["review_source"])
 
+    def test_record_id_must_be_a_positive_integer_for_each_supported_source(self):
+        missing = object()
+        invalid_values = (missing, None, "42", 0, -1, True)
+        for source in ("pull_request_review", "issue_comment"):
+            for value in invalid_values:
+                with self.subTest(source=source, value=value):
+                    record = self.record(source=source)
+                    if source == "issue_comment":
+                        record.pop("review_state")
+                    if value is missing:
+                        record.pop("record_id")
+                    else:
+                        record["record_id"] = value
+                    with self.assertRaisesRegex(
+                        ConsumerInputError, "record_id must be a positive integer"
+                    ):
+                        self.consume([record])
+
+    def test_positive_record_id_is_preserved_for_each_supported_source(self):
+        for source in ("pull_request_review", "issue_comment"):
+            with self.subTest(source=source):
+                record = self.record(source=source, record_id=42)
+                if source == "issue_comment":
+                    record.pop("review_state")
+                decision = self.consume([record])
+                self.assertTrue(decision["accepted"])
+                self.assertEqual(42, decision["record_id"])
+
     def test_rejects_untrusted_author(self):
         decision = self.consume([self.record(author_login="joannalee20050914")])
         self.assertEqual("WAITING_FOR_PRODUCT_REVIEW", decision["status"])
@@ -199,6 +227,60 @@ class GitHubProductReviewConsumerTest(unittest.TestCase):
         )
         self.assertEqual("CHANGES_REQUIRED", decision["status"])
         self.assertEqual([finding], decision["findings"])
+
+    def test_accepts_and_preserves_product_decision_proposals(self):
+        finding = {
+            "id": "finding-choice",
+            "severity": "blocking",
+            "category": "product_intent",
+            "observation": "Existing authority does not select an observable behavior.",
+            "expected_behavior": "A human product decision selects one option.",
+            "authority_refs": ["PLAN.md"],
+            "candidate_evidence": ["web/example.js"],
+        }
+        proposal = {
+            "decision_id": "D-901",
+            "question": "Choose A or B?",
+            "why_existing_authority_is_insufficient": "The approved sources do not choose.",
+            "affected_requirements": ["KG-GOV-07"],
+            "available_options": ["A", "B"],
+            "observable_consequences": ["Behavior A", "Behavior B"],
+            "blocking_scope": ["external publication"],
+            "linked_findings": ["finding-choice"],
+        }
+        result = self.result(verdict="PRODUCT_DECISION_REQUIRED", findings=[finding])
+        result["human_decisions"] = [proposal]
+        decision = self.consume([self.record(result=result)])
+        self.assertTrue(decision["accepted"])
+        self.assertEqual("PRODUCT_DECISION_REQUIRED", decision["status"])
+        self.assertEqual([proposal], decision["human_decisions"])
+
+    def test_rejects_product_decision_without_complete_proposals(self):
+        incomplete = self.result(verdict="PRODUCT_DECISION_REQUIRED")
+        decision = self.consume([self.record(result=incomplete)])
+        self.assertFalse(decision["accepted"])
+        self.assertEqual("schema_invalid", decision["rejected"][0]["reason"])
+
+    def test_rejects_product_decision_linked_to_nonexistent_finding(self):
+        finding = {
+            "id": "finding-real", "severity": "blocking", "category": "product_intent",
+            "observation": "Authority gap.", "expected_behavior": "Obtain a human choice.",
+            "authority_refs": ["PLAN.md"], "candidate_evidence": ["web/example.js"],
+        }
+        proposal = {
+            "decision_id": "D-901", "question": "Choose A or B?",
+            "why_existing_authority_is_insufficient": "The approved sources do not choose.",
+            "affected_requirements": ["KG-GOV-07"], "available_options": ["A", "B"],
+            "observable_consequences": ["Behavior A", "Behavior B"],
+            "blocking_scope": ["external publication"],
+            "linked_findings": ["finding-does-not-exist"],
+        }
+        result = self.result(verdict="PRODUCT_DECISION_REQUIRED", findings=[finding])
+        result["human_decisions"] = [proposal]
+        decision = self.consume([self.record(result=result)])
+        self.assertFalse(decision["accepted"])
+        self.assertEqual("semantic_invalid", decision["rejected"][0]["reason"])
+        self.assertIn("finding-does-not-exist", decision["rejected"][0]["errors"][0])
 
     def test_live_config_accepts_literal_documented_round_twelve_pass(self):
         config = json.loads((REPO / ".ai/github-product-reviewer.json").read_text())

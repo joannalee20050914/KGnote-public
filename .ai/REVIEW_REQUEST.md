@@ -7,74 +7,103 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 {
   "schema_version": "kgnote.review-request.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "review_id": "review-stage2b-delivery-planning-v1-001",
-  "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
-  "milestone_id": "S2B-REVIEW-INTEGRATION-TASK",
+  "review_id": "review-d2-t01-source-library-v1-020",
+  "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
+  "milestone_id": "AR-EXTERNAL-REVIEW",
   "status": "IMPLEMENTING",
   "author_role": "CODEX_IMPLEMENTER",
-  "base_revision": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
+  "base_revision": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
   "candidate_revision": null,
   "candidate_fingerprint": null,
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
     "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
-    ".ai/GITHUB_WORK_PRODUCT_REVIEWER.md",
-    ".ai/PUBLICATION_RECEIPT.md",
     ".ai/REVIEW_PROTOCOL.md",
+    "docs/PRODUCT_CONTRACT.md",
+    "docs/DATA_MODEL.md",
+    "docs/REPRESENTATION_CONSISTENCY_CONTRACT.md",
     "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
+    "docs/requirements/requirements.json",
+    "docs/requirements/scenarios.json",
     "PLAN.md"
   ],
   "changed_areas": [
-    "AGENTS.md human-readable GitHub content rule",
-    "preserved Issue #19 bounded exact-review integration test",
-    "minimum PR #22 review transport configuration and control-state alignment"
+    "active work package AR-EXTERNAL-REVIEW: Issue #8：發布並接收精確候選的獨立產品審查"
   ],
   "acceptance_criteria": [
-    "record one durable Traditional Chinese human-readable GitHub content rule in AGENTS.md",
-    "publish one public-safe Draft PR #22 candidate without modifying PR #1, main, or product source",
-    "emit exactly one configured event trigger and consume one real ChatGPT Work result with exact repository, PR, HEAD, fingerprint, round, author, and source binding"
+    "Issue #8 product bytes remain unchanged after the verified implementation milestone except for required review/publication control receipts",
+    "a Draft PR on codex/issue-8-source-library uses codex/issue-19-real-review as its temporary stacked base while PR #22 remains unmerged",
+    "Publication Receipt, PR marker, remote HEAD, fingerprint, review round, repository and PR identity all match the exact Issue #8 candidate",
+    "the existing independent product reviewer writes PASS, CHANGES_REQUIRED, or PRODUCT_DECISION_REQUIRED for that exact candidate and the existing Consumer accepts or rejects it fail closed",
+    "Issue #8 and GitHub Project record the exact evidence without promoting PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
   ],
   "negative_requirements": [
-    "do not update PR #1 or push main",
-    "do not start Release 1 through 4 product migration",
-    "do not bind the b975bb5 round-14 PASS to a later commit",
+    "do not modify or merge PR #1, PR #22, or main",
+    "do not bulk-copy the private archive or discard existing local receipts",
+    "do not infer understanding from imported conversation content",
     "do not promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
   ],
   "validation_performed": [
-    ".venv/bin/python -m unittest -v tests.control_plane.test_exact_review_integration tests.test_github_product_review_consumer tests.control_plane.test_publish_external_candidate tests.control_plane.test_external_review_control tests.control_plane.test_publication_receipt_contract",
-    ".venv/bin/python -m unittest discover -s tests/control_plane -p 'test_*.py' -v",
-    "live read-only PR #1 review/comment fetch followed by in-memory Review Consumer evaluation against b975bb5/c38fe014/round-14"
+    "./.venv/bin/python docs/requirements/requirements_guard.py check --repo .",
+    "./.venv/bin/python -m unittest discover -s docs/requirements -p test_requirements_guard.py -v",
+    "./.venv/bin/python -m unittest discover -s tests/control_plane -p test_*.py -v",
+    "./.venv/bin/python -m unittest discover -s tests -p test_*.py -v",
+    "npm test",
+    "git diff --check",
+    "internal public_safety_errors --scope fingerprint-manifest",
+    "internal untracked_whitespace_errors"
   ],
   "validation_results": [
     {
-      "name": "focused exact-review matrix",
+      "name": "requirements_guard",
       "status": "PASS",
-      "evidence": "42/42 tests passed"
+      "evidence": "output/control-plane/verification-20261017T165209+0800.json#requirements_guard"
     },
     {
-      "name": "control-plane suite",
+      "name": "requirements_guard_tests",
       "status": "PASS",
-      "evidence": "95/95 tests passed before the GitHub human-readability slice; the current slice reruns this suite before completion"
+      "evidence": "output/control-plane/verification-20261017T165209+0800.json#requirements_guard_tests"
     },
     {
-      "name": "isolated exact-review integration",
+      "name": "control_plane_negative_tests",
       "status": "PASS",
-      "evidence": "one synthetic exact publication-to-consumer-to-gate flow plus eight fail-closed paths passed"
+      "evidence": "output/control-plane/verification-20261017T165209+0800.json#control_plane_negative_tests"
     },
     {
-      "name": "historical live PR #1 read-back",
+      "name": "python_product_tests",
       "status": "PASS",
-      "evidence": "30 records checked; exact round-14 PASS accepted only for b975bb5/c38fe014 and 29 nonmatching records rejected"
+      "evidence": "output/control-plane/verification-20261017T165209+0800.json#python_product_tests"
+    },
+    {
+      "name": "node_tests",
+      "status": "PASS",
+      "evidence": "output/control-plane/verification-20261017T165209+0800.json#node_tests"
+    },
+    {
+      "name": "strict_git_diff_check",
+      "status": "PASS",
+      "evidence": "output/control-plane/verification-20261017T165209+0800.json#strict_git_diff_check"
+    },
+    {
+      "name": "public_safety_scan",
+      "status": "PASS",
+      "evidence": "output/control-plane/verification-20261017T165209+0800.json#public_safety_scan"
+    },
+    {
+      "name": "untracked_whitespace",
+      "status": "PASS",
+      "evidence": "output/control-plane/verification-20261017T165209+0800.json#untracked_whitespace"
     }
   ],
   "known_deviations": [],
-  "known_uncertainties": [
-    "The GitHub event channel is externally managed and cannot be proven available until the single authorized exact trigger is emitted and a fresh result is read back."
-  ],
+  "known_uncertainties": [],
   "reviewer_focus": [
-    "exact repository, PR, HEAD, fingerprint, and round binding",
-    "stale, wrong-repository, internal-only, and blocking-finding rejection",
-    "clear separation between deterministic local integration evidence and a real ChatGPT Work review artifact"
+    "Issue #8 product bytes remain unchanged after the verified implementation milestone except for required review/publication control receipts",
+    "a Draft PR on codex/issue-8-source-library uses codex/issue-19-real-review as its temporary stacked base while PR #22 remains unmerged",
+    "Publication Receipt, PR marker, remote HEAD, fingerprint, review round, repository and PR identity all match the exact Issue #8 candidate",
+    "the existing independent product reviewer writes PASS, CHANGES_REQUIRED, or PRODUCT_DECISION_REQUIRED for that exact candidate and the existing Consumer accepts or rejects it fail closed",
+    "Issue #8 and GitHub Project record the exact evidence without promoting PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified",
+    "Re-verify carried unresolved findings from immutable history: R-015."
   ],
   "preserved_human_gates": [
     "PA-HUMAN-1",
@@ -85,9 +114,9 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     "product owner"
   ],
   "candidate_manifest": {
-    "algorithm": "sha256-canonical-json-v2-review-bus-exclusions",
-    "branch": "codex/kg-note-autonomous-review",
-    "head": "f66779f77267029f6d6b54ba0e50579b6f68b996",
+    "algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
+    "branch": "codex/issue-8-source-library",
+    "head": "53c71a81a7c1a1483c7490f652007e5db1c7b6a5",
     "excluded_paths": [
       ".ai/DECISIONS.md",
       ".ai/ORCHESTRATOR.lock",
@@ -95,6 +124,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
       ".ai/ORCHESTRATOR_STOP",
       ".ai/REVIEW_REQUEST.md",
       ".ai/REVIEW_RESULT.md",
+      ".ai/external-review-state.json",
       "CODEX_STATUS.md"
     ],
     "excluded_prefixes": [
@@ -106,13 +136,19 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": ".ai/GITHUB_WORK_PRODUCT_REVIEWER.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "9356b707c683fc8ff4b1164f4a3983f075baf99f3112ddc1635a12671b2bbf26"
+        "sha256": "47f6a0f217a869198e68506407aa2d19bece27f05d433859ba74772a50863643"
       },
       {
         "path": ".ai/IMPLEMENTER_BOOTSTRAP.md",
         "kind": "file",
         "mode": "0o644",
         "sha256": "a73223df1a1b8d7acab5435eb94387d48bf6a146d1eb77b10a6398e0773956ea"
+      },
+      {
+        "path": ".ai/PUBLICATION_RECEIPT.md",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "a5cf38fb8521e7f8c3916161e6c7d9c2c41da4d7af258f4721b903eed8618ab6"
       },
       {
         "path": ".ai/REVIEWER_BOOTSTRAP.md",
@@ -124,19 +160,13 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": ".ai/REVIEW_PROTOCOL.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "e86334c77e078a54e024d849aafe42bbb6a16b1cac1354d7f4903842fca91778"
-      },
-      {
-        "path": ".ai/external-review-state.json",
-        "kind": "file",
-        "mode": "0o644",
-        "sha256": "a48027e475be4416eb2bab2ca434644f10a76c05dca629ceeb035a42edd47ba4"
+        "sha256": "efa8eb45c9bd67ce5e69e18ea38d6ba90a4c399b89de2716d5afa6d376831a41"
       },
       {
         "path": ".ai/github-product-reviewer.json",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "10d6ace6af05908b8623acf3932021939422cae3100ef86a63353d6dce6b27a9"
+        "sha256": "e4217fab175f1e32299bcf1f950369b05f61cf17ebe79dfc8b67e11917788fb0"
       },
       {
         "path": ".ai/review-state.json",
@@ -154,7 +184,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": ".ai/schemas/orchestrator-state.schema.json",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "82e23332a1e136e7e2ca2a387e3cae1bcdf971b6bde9a22671d417b2392d5a5a"
+        "sha256": "d3d08af3370dceec3bddc9f97c4e9be6fa400d2c6b0665c2247dd428810c1ec5"
       },
       {
         "path": ".ai/schemas/review-decisions.schema.json",
@@ -181,6 +211,12 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "sha256": "b89dccf70ba7d857f8d1338cf1b671cb12bcebb4fcac23ab0dd0585dfa6bb4b4"
       },
       {
+        "path": ".ai/work-package-envelope.json",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "0f4ad7b54289b7273ba0e35b88001b4762db0631247345cb2c558047717defdd"
+      },
+      {
         "path": ".env.example",
         "kind": "file",
         "mode": "0o644",
@@ -202,19 +238,19 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "AGENTS.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "cb00649b968edbbf66887a0609c24b6a5b80326d76274369e479c8a526868284"
+        "sha256": "10e186bc15e282e656f46c3d9a8230a3149f21b123011790cbe480faff3aa50c"
       },
       {
         "path": "DEVELOPMENT_PLAIN.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "06e50f107b21644cb8a87995e062ef87a26081722c6d794c09a21d91b9dab7d9"
+        "sha256": "b37392c8ea2544cd5e16248c413b72240b84f3e96295f8ceeb7c6580164ce758"
       },
       {
         "path": "PLAN.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "1fdc008385041c6db6eb928e047448f5e2194563e72dee928dc15b314ed4678c"
+        "sha256": "e59aee078ba8e424eeffeaa366be27ab9f671523aa2fc20a53c60286466643f8"
       },
       {
         "path": "README.md",
@@ -238,7 +274,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "docs/DATA_MODEL.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "3f413cd6504340ffa67897fec30764a5c57934499355a6e058b07f8b0dc3757a"
+        "sha256": "fad89739d1eb1fed6342c6367383ab0e2cdebaab0f8ea605aed181ecec34b7b2"
       },
       {
         "path": "docs/DEVELOPMENT_PLAIN_SUPERSEDED_20260922.md",
@@ -298,7 +334,13 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "01cc4f3438113ea3657e906474ff348afa9f7aabce9c810a8fccd155698ca694"
+        "sha256": "be77310cca278bc31d8e38e3a61c6b6a5f8ca5e7a31410da682914b85057eafb"
+      },
+      {
+        "path": "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "fc82d0db2b9179149dcc643ba55b1bfde83d4658f2ac080a51cce2319a6b3634"
       },
       {
         "path": "docs/control-plane/BASELINE_WAIVERS.md",
@@ -316,7 +358,13 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "docs/control-plane/INCIDENT_EXTERNAL_REVIEW_BYPASS_20261007.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "b3e45b2df94e76f08c465774d82a912a173221cf5d2eaf2c4d44ec4a9bda0027"
+        "sha256": "6c0266f02944a2475ecdd933a698fad81f8d5853599cca9fe61e4d380c8cabd0"
+      },
+      {
+        "path": "docs/control-plane/INCIDENT_TRIAL_IDENTITY_DRIFT_20261007.md",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "c69a13d519db4641086794e7c75cf8f2d41471cf5e7a4b18c1c88600f6555a90"
       },
       {
         "path": "docs/control-plane/PUBLIC_READINESS_REMEDIATION_20261005.md",
@@ -328,7 +376,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "docs/control-plane/authority-lock.json",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "d118944770e9761c533792a5d937d270275e9bc5ab78fd6af4e6c6cf1bb4b56e"
+        "sha256": "dc7308658e32b4ec40d0ae4735ccefcd39586ccccdab9846fa5cebad531f44e1"
       },
       {
         "path": "docs/control-plane/checkpoints/cp0-pre-control-plane-20260922T135255+0800.json",
@@ -370,13 +418,13 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "docs/obsidian/PERSONAL_ALPHA_INTEGRATED_TRIAL.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "e12de0e8d494479a12b2cfb697022c5f7b6cbde219f6353511ab948c378657ec"
+        "sha256": "4c375714d8fbfe8148c69937587b30140cd243f2ece58f7d74c0842ddeb87611"
       },
       {
         "path": "docs/requirements/ACCEPTANCE_SCENARIOS.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "14eab0a8c1358a87e1a8bf494222d78fde5e8c93f8436438167c8bdb3111cb11"
+        "sha256": "b03e176021201550cf633766089f082c833b0657e8968d026d91e81ec8305c65"
       },
       {
         "path": "docs/requirements/AGENTS.requirements.md",
@@ -419,6 +467,12 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "kind": "file",
         "mode": "0o644",
         "sha256": "e5282b9f1c5593ca9abb3f580e3d6d18aae49c5383a22c1b190d5e2cfc5655be"
+      },
+      {
+        "path": "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "21d31b596af8d689c9b30e5f3c33ea1c394dcdf6952b52e563b4889558ef1905"
       },
       {
         "path": "docs/requirements/MANIFEST.json",
@@ -472,7 +526,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "docs/requirements/REQUIREMENTS_TRACE.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "b8f50b5a1c10c5b19c22492cb9ac014bab3c9e9f431d2c7395d9d6eb0892d88d"
+        "sha256": "580f77178ae612edc00c77544d3d6a9a672b276275c2336c487a7b6ef5d911b2"
       },
       {
         "path": "docs/requirements/SOURCE_INDEX.md",
@@ -490,7 +544,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "docs/requirements/TRACEABILITY_MATRIX.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "a9e9f72fb7b3dcec0f4539a48737a2ddc25a017f534b8b97a32212d103515ee3"
+        "sha256": "6a64fa2e08d5f2f73aae9aa2e03b9850625092f050e8170672ef611081da4bb4"
       },
       {
         "path": "docs/requirements/USER_DIRECTION_DELTA_20260922.md",
@@ -503,6 +557,12 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "kind": "file",
         "mode": "0o644",
         "sha256": "2bf1bdfacfde86da2dab2994dd30990e350dd53180fd180ca8901633cac44190"
+      },
+      {
+        "path": "docs/requirements/evidence/d2-t01-source-library-20261016.json",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "a57bbde99da3d8200cf95b9bfaa6565d2b29a7eb0b5b7d110b70f4b7575a512e"
       },
       {
         "path": "docs/requirements/evidence/loop1-20260920.json",
@@ -559,6 +619,12 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "sha256": "a5c558aad6b42b2efea563977933662c5ad7ee87d1a3ffe5ec988b5c4306ad1c"
       },
       {
+        "path": "docs/requirements/evidence/personal-alpha-portability-repair-20261007.json",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "c9260bf20a9421b59671d1a91a19969f5143f5c9e36525dae6a09b07bea2c82c"
+      },
+      {
         "path": "docs/requirements/evidence/personal-alpha-rp-pa-1-20260927.json",
         "kind": "file",
         "mode": "0o644",
@@ -592,7 +658,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "docs/requirements/requirements.json",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "3a91e8914814a1105360aaf9a9e5a42eedc1c2eb15a8e35990b0b4bfd5573f09"
+        "sha256": "7839bf327748a8d5d35ede5786540deb56f10e632a34a1b52808029718f47d3a"
       },
       {
         "path": "docs/requirements/requirements_guard.py",
@@ -604,7 +670,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "docs/requirements/scenarios.json",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "e893ef38666bbaf7026acb0fdf87a6e513cc9d107c5b68cd66922bd670a9961f"
+        "sha256": "47d9e2e85b921c777c0e31abd046fad4dd577e2addbbe42d2972f7e546be642e"
       },
       {
         "path": "docs/requirements/sources.json",
@@ -1036,7 +1102,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "schemas/product-review/v1/review-result.schema.json",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "b7d2e91310a908455211be187976a78d2d633759285021abc764e14484e6b9e0"
+        "sha256": "f0b977274a82b291bea0d0aa0b447d2425155cad413da035457ba516abe898b5"
       },
       {
         "path": "schemas/reader/v1/README.md",
@@ -1090,13 +1156,13 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "scripts/codex_control.py",
         "kind": "file",
         "mode": "0o755",
-        "sha256": "1b7ac5a709abbdda74fdc295b324973ed241fd480e7260566c7fef8ceb9234bd"
+        "sha256": "eefaffc6399dcb68de67e62d936db699a8c48498566253485b2cf822efe0e8cf"
       },
       {
         "path": "scripts/codex_orchestrator.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "dc407a92a0ee52ee2ef29a1f3a8ff25887acf333f88150805e7c20441ebdf9b5"
+        "sha256": "0f09e98d1af88ac7faeb9fafcdf57d08f2a0e2c29b6968480808966b04a5b2b7"
       },
       {
         "path": "scripts/codex_preflight.sh",
@@ -1114,13 +1180,19 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "scripts/external_review_control.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "6003ebd41e77adb28714d95c6b5eadf1e9b2b3919f88a73bc12a807611d40cb9"
+        "sha256": "402fb0cba0ea7b36d21b58eb221943f840038b6e4a0d17b2ab1dca37f7415de7"
+      },
+      {
+        "path": "scripts/external_review_handoff.py",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "429af0ef0848f945339b0a6573bdc05ac8d9d0c4f922230f693aec169659c037"
       },
       {
         "path": "scripts/github_product_review_consumer.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "dbbc424f8893204917c2bae350653a7e1d64779a7fbe7054e8301c5f0d4ea3f0"
+        "sha256": "339c3082c481731670c512c625156765fc10a450d11b5b5463e206f4224d5d0e"
       },
       {
         "path": "scripts/import_markdown.py",
@@ -1132,19 +1204,25 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "scripts/kgnote_alpha.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "dafbd30bed9af474b2f066ef9797b26ebaaa6e4acc8af93c1c121d1b0dd03b6d"
+        "sha256": "a07fa572f611cc7138a7e9a72d0fbb3a80f751fe7552cdbef55b66aecafda9c2"
       },
       {
         "path": "scripts/kgnote_obsidian_spike.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "567244b9e8d7ebf02f080c20e5b2d0cab696a63a9846056ce0988fa18d476898"
+        "sha256": "73ad599262ebcf13837cde5ab7530c471e332bdb014fbcbed1586387f5251800"
       },
       {
         "path": "scripts/prepare_h0.py",
         "kind": "file",
         "mode": "0o644",
         "sha256": "e59f5bcee360ebb0efa8f9a5a632b1e004373ed7f2e65a19c13df36f7a514b2b"
+      },
+      {
+        "path": "scripts/publish_external_candidate.py",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "e2a7ed528c05f72430c9816b058edcf5fcba8a66acf37e06b85e87cc7e6e51a6"
       },
       {
         "path": "scripts/run_tests.sh",
@@ -1156,7 +1234,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "scripts/serve_graph_view.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "70f7610a365d7a8a101c4863445cf9d32d748ea97a23eaa2ac0a3521dbb02ffb"
+        "sha256": "92597d77d733363c300b78200815148db58e8b4e6c521ce19b6fac3a959dd9e3"
       },
       {
         "path": "src/kgnote/__init__.py",
@@ -1282,7 +1360,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "src/kgnote/learning/__init__.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "61746b6b765a73bd97d0966c4fc321c409087ba452a149fce5861beadd31a4b3"
+        "sha256": "f671f07311a94b54c7582f48a0fac139d1268ce5bfc2bc43f50788d40be6f0a0"
       },
       {
         "path": "src/kgnote/learning/catalog.py",
@@ -1301,6 +1379,12 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "kind": "file",
         "mode": "0o644",
         "sha256": "bb91ab2bd5a0bcc64fa6975f1d6a45fb6470e4a189916cf5193069acb5eea08b"
+      },
+      {
+        "path": "src/kgnote/learning/source_library.py",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "0dc60201b9329663ae2f79925fa600ea5e422caa46286ecd24316215d4766f5c"
       },
       {
         "path": "src/kgnote/normalization/README.md",
@@ -1366,13 +1450,13 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "src/kgnote/personal_alpha/preview.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "386bbd868478267da0c770a8db93d1a1911b5254e53c3a1b3b3d75121543c54f"
+        "sha256": "a7b7f6421c6cd2e33b325c89c5c44266e1353fd13ff0177d2b2e441ed45687ec"
       },
       {
         "path": "src/kgnote/personal_alpha/workspace.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "3dee36d36eed9ff6eb3d4a92d6bc0179756b9c27eabd0462e40697fb3b9f272e"
+        "sha256": "385be38b478d3f7ba448b44596554bb3297f9d5aa7f925fa2e22287dc7b25694"
       },
       {
         "path": "src/kgnote/pipeline/README.md",
@@ -1570,19 +1654,43 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/control_plane/test_codex_control.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "0b664a7859af62ea628bdb3b25a66f9f76c3b96040656325a3e822e929fe8424"
+        "sha256": "6c9b3e74c2f4f10587ca9e7eb253e38384b7ddca38986c90179c962ca3b1f88e"
       },
       {
         "path": "tests/control_plane/test_codex_orchestrator.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "39c9bcb8e02bd0693c3947d94d6d95940244aa57635f404a5a81878a4b23a74d"
+        "sha256": "2b255fb34ea917604bae42ffc4481404d396a7f2335c135f5d31a911a05e8532"
+      },
+      {
+        "path": "tests/control_plane/test_exact_review_integration.py",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "2b74926815dd850978f3bfaee87b1dd13ef88110018612539ecedcf3bd4a6a19"
       },
       {
         "path": "tests/control_plane/test_external_review_control.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "32d30d56491031deeb078d1a5832a9b6e47d51393c69da45fc853b2379ff9096"
+        "sha256": "82f7768d038032eedc00eccc80bd9fa027aee9d15024f3e788f18ccaea371d36"
+      },
+      {
+        "path": "tests/control_plane/test_external_review_handoff.py",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "3f0e5e14399e118eb555747a78c2381aeeb2aaf506c82e3a9397c6bb99a7ddad"
+      },
+      {
+        "path": "tests/control_plane/test_publication_receipt_contract.py",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "ead78c623d33f866fb664156c98707cafb8745e574e9f6923522dd015da1fc2d"
+      },
+      {
+        "path": "tests/control_plane/test_publish_external_candidate.py",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "7ff8cb2572466569f2df2efaaa74b6d404b99585757e59cf03195637bd78febc"
       },
       {
         "path": "tests/fixtures/extraction-run/v1/golden.json",
@@ -1840,7 +1948,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/test_github_product_review_consumer.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "f08b5aa3d4c53e6badca4709b6bf568b3024ca93eafe11f2ab8426db97c4d340"
+        "sha256": "43f1a7763ba224fd98e40c0daa556c916adb4cde9d6b67cb2e67929b0373ec18"
       },
       {
         "path": "tests/test_graph_read_model_contract.py",
@@ -1960,7 +2068,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/test_obsidian_native_spike.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "eaf401e4a29ee752052b90c3998d91b4035dc91423aa0b53d41c2f782bdf2bb8"
+        "sha256": "db6b042b5e554f20c66a040c595d8293ac78d6cd0811cd4f3fcefac7f284cbf6"
       },
       {
         "path": "tests/test_offline_extraction_response.py",
@@ -1978,7 +2086,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/test_personal_alpha_analysis.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "a715407d61a3af0f728b56b22ff24c66313691288acd0a668006ac78efc63c6a"
+        "sha256": "098d30cdab90280812130bbebb8f8c8adcc401d95c87ff0907f97a0d2c138d1c"
       },
       {
         "path": "tests/test_personal_alpha_cli.py",
@@ -1990,7 +2098,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/test_personal_alpha_presentation.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "a3243742cf0508e386425cc6d50c4c228d35cb00f6128221cb623d9010107a85"
+        "sha256": "34e36cd004ab6894117a597dee3dd693fae9858f9fb71087e8f1f0a04c9bf91b"
       },
       {
         "path": "tests/test_personal_alpha_workspace.py",
@@ -2057,6 +2165,18 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "kind": "file",
         "mode": "0o644",
         "sha256": "ad01973b7a2ab268078a48f62e689b812993cdbac10a03560387f56cca9c5631"
+      },
+      {
+        "path": "tests/test_source_library.py",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "8f07947654ca18e078d3ccbc83be4ec2ea6da2b2b74c062673415c5d6d8ae55e"
+      },
+      {
+        "path": "tests/test_source_library_http.py",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "8a27d384db27e01b9ea814ec4566ba627d91ff2342517f86d71e8375cbb92dab"
       },
       {
         "path": "web/README.md",
@@ -2266,7 +2386,19 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "web/home.html",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "13fa2e3c95318d9032d9a1986055b4d98bc2321b3e50783b3573da4e47df42db"
+        "sha256": "74099a3c64083b21f6788e09b99a3003afd2e5c373abaad2719534f09b2cb868"
+      },
+      {
+        "path": "web/import-app.js",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "8e32b8f054ed002c55af632da91568f90d27c628187b84ed00685fa50a7df9b0"
+      },
+      {
+        "path": "web/import.html",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "43b28499a29dbbd717e65c794f8fb4b58a191cdb147c719992f5361527a26e52"
       },
       {
         "path": "web/index.html",
@@ -2323,6 +2455,18 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "sha256": "492f3e56fc80d15314bca23417c07cd4aa8c9ed798e672faee01dd63fc724c03"
       },
       {
+        "path": "web/library-app.js",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "e29b5fc23d33f67a8ac0b4eb3618c4ae190555dc1c967e45c14c418cc08f8bd2"
+      },
+      {
+        "path": "web/library.html",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "55f057eb0619da38b43a04b091636afef0b90901bfb5fdfd3d6f7c2076d63bda"
+      },
+      {
         "path": "web/panel.js",
         "kind": "file",
         "mode": "0o644",
@@ -2377,6 +2521,18 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "sha256": "7e80ada98b04d7cf925b2d4631db3b573ec0c25e1bba4cacb53fcd6d7235909e"
       },
       {
+        "path": "web/source-app.js",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "cfb88d2a973e91baf50568b0cebaebb6ea398e134d7e2ef7be3daf828a837b31"
+      },
+      {
+        "path": "web/source-library-ui.js",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "8c8631ed25db4baa28ad14c97ae9103bc2ecf4554e85ecb514c7f0dc899aa765"
+      },
+      {
         "path": "web/source-reader.css",
         "kind": "file",
         "mode": "0o644",
@@ -2393,6 +2549,12 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "kind": "file",
         "mode": "0o644",
         "sha256": "d165744db38676ebf9ba84b30a7ef6e62f4c35e399d04c90b3ffce25a478039a"
+      },
+      {
+        "path": "web/source.html",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "c661c084cc1921283e39ac8064d8f5f66f68bf31e50b3e71e78fa69703eef6ea"
       },
       {
         "path": "web/styles.css",
@@ -2461,6 +2623,12 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "sha256": "4d9895daaf840b0a42a7297eab36b910b789a9ae32a8c2970b3f18a0e66514ad"
       },
       {
+        "path": "web/tests/source-library-ui.test.js",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "11a3b7d4391361fbaa90960366011f3f74bc8ead577fa2d4d0ebd15add06c934"
+      },
+      {
         "path": "web/tests/source-reader.test.js",
         "kind": "file",
         "mode": "0o644",
@@ -2475,6 +2643,6 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 
 ## Human-readable status
 
-Review `review-stage2b-delivery-planning-v1-001` is `IMPLEMENTING`.
+Review `review-d2-t01-source-library-v1-020` is `IMPLEMENTING`.
 It has no active candidate binding and cannot be interpreted as a review request or PASS.
 Codex must complete deterministic verification before issuing this request.

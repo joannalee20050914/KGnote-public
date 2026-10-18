@@ -6,10 +6,10 @@ This file contains exactly one active execution goal. It does not promote any hu
 ```json
 {
   "schema_version": "kgnote.codex-plan.v1",
-  "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
-  "objective": "Preserve the accepted Stage 2B planning and human-readable GitHub baseline, receive the exact Round 1 ChatGPT Work result on Draft PR #22, repair its single authorized control-plane finding, and publish exactly one repaired candidate trigger without modifying product behavior or PR #1.",
+  "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
+  "objective": "以 GitHub Issue #8 為唯一主動工作，最大限度重用既有 Markdown 匯入、canonical store（正式資料儲存層）與 Release 1 source-library/UI 證據，只補足持久來源資料庫、多檔匯入、對話 speaker、來源版本與可追溯讀回的確認缺口。",
   "status": "active",
-  "active_milestone_id": "S2B-REVIEW-INTEGRATION-TASK",
+  "active_milestone_id": "AR-EXTERNAL-REVIEW",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "explicit_direction": {
@@ -21,29 +21,64 @@ This file contains exactly one active execution goal. It does not promote any hu
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
     "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
-    ".ai/GITHUB_WORK_PRODUCT_REVIEWER.md",
-    ".ai/PUBLICATION_RECEIPT.md",
     ".ai/REVIEW_PROTOCOL.md",
+    ".ai/PUBLICATION_RECEIPT.md",
+    "docs/PRODUCT_CONTRACT.md",
+    "docs/DATA_MODEL.md",
+    "docs/REPRESENTATION_CONSISTENCY_CONTRACT.md",
     "docs/requirements/README.md",
     "docs/requirements/DECISIONS_AND_CONFLICTS.md",
     "docs/requirements/requirements.json",
     "docs/requirements/scenarios.json",
     "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
+    "DEVELOPMENT_PLAIN.md",
     "PLAN.md",
     "AGENTS.md"
   ],
   "requirement_context": {
-    "product_decisions": "R-01 through R-13",
-    "acceptance_criteria": "RC-01 through RC-34",
-    "feature_families": 23,
+    "github_issue": "https://github.com/joannalee20050914/KGnote-public/issues/8",
+    "feature_dispositions": [
+      "FD-01",
+      "FD-02"
+    ],
+    "prerequisite_dispositions": [
+      "FD-17",
+      "FD-18",
+      "FD-19"
+    ],
+    "requirements": [
+      "KG-ING-01",
+      "KG-ING-02",
+      "KG-ING-03",
+      "KG-PLAT-05",
+      "KG-PLAT-06",
+      "KG-ALPHA-01"
+    ],
+    "acceptance_criteria": [
+      "RC-04",
+      "RC-05",
+      "RC-06",
+      "RC-10",
+      "RC-11",
+      "RC-21",
+      "RC-26",
+      "RC-31",
+      "RC-32"
+    ],
+    "scenarios": [
+      "SC-21",
+      "SC-28",
+      "SC-31",
+      "SC-44"
+    ],
     "delivery_principle": "Existing Evidence First -> Reuse First -> Delta Only -> Verify Integration -> Build Missing Features",
     "forbidden_substitutes": [
-      "re-running Stage 2A or the classified 26-commit inventory",
-      "creating duplicate issues for every RC without a feature hierarchy",
-      "treating legacy tests as proof that the current delivery is Done",
-      "starting Release 1 through 4 product migration from this planning goal",
-      "binding the b975bb5 round-14 PASS to any later commit or fingerprint",
-      "using a simulated result or a Codex-authored verdict as the new ChatGPT Work review"
+      "重寫既有 Markdown importer、canonical store 或 review transport",
+      "把 Release 1 舊測試直接當成本候選通過證據",
+      "從私人 archive 整批搬入未審核內容或可變控制狀態",
+      "把匯入過的來源重新改寫成摘要或失去原始 bytes",
+      "將遭遇概念或對話 speaker 推論為使用者已理解",
+      "把 PR #22 或任何舊 PASS 綁定到 Issue #8 的新候選"
     ]
   },
   "repository_authority": {
@@ -52,35 +87,158 @@ This file contains exactly one active execution goal. It does not promote any hu
     "trigger_repository": "joannalee20050914/KGnote-public",
     "review_request_repository": "joannalee20050914/KGnote-public",
     "archive_repository": "joannalee20050914/KGnote",
-    "pull_request": 22
+    "base_pull_request": 22,
+    "candidate_pull_request": 23
   },
   "previous_goal_disposition": {
-    "goal_id": "GOAL-KGNOTE-EXTERNAL-REVIEW-RECOVERY-V1",
-    "candidate_commit": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
-    "candidate_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
+    "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
+    "milestone_id": "S2B-REVIEW-INTEGRATION-TASK",
+    "disposition": "complete",
+    "issue": 19,
+    "candidate_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
+    "candidate_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
     "external_review": {
-      "round": 14,
+      "round": 2,
       "status": "PASS",
-      "finding_count": 0,
       "consumer_status": "accepted",
-      "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/1#pullrequestreview-5444572548"
+      "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#pullrequestreview-5544513834"
     },
-    "milestones": [
-      {"id": "AR-REPAIR", "disposition": "complete"},
-      {"id": "AR-INTERNAL-VERIFY", "disposition": "complete_for_recorded_candidate"},
-      {"id": "AR-PUBLISH", "disposition": "complete_for_b975bb5"},
-      {"id": "AR-EXTERNAL-REVIEW", "disposition": "complete_for_b975bb5_round_14"},
-      {"id": "AR-HUMAN-ELIGIBILITY", "disposition": "superseded_not_completed", "reason": "The product owner redirected execution to Stage 2B planning; native Obsidian and learner acceptance evidence was not produced."}
+    "remaining_platform_limits": [
+      "Scheduled run 與 Comment ID 6210434280 的直接關聯未能獨立讀取",
+      "Work 寫回 GitHub 曾要求人工核准，無人值守發布仍未證明"
     ],
-    "gate_rule": "The round-14 PASS is historical exact-candidate evidence only. It does not verify the Stage 2B Ledger, any later commit, PA-HUMAN-1, NS-HUMAN-SMOKE, or release readiness."
+    "gate_rule": "Issue #19 的 PASS 只適用 f35669e/e9355f73；它不驗證 Issue #8、PA-HUMAN-1、NS-HUMAN-SMOKE 或 release readiness。"
+  },
+  "base_strategy": {
+    "branch": "codex/issue-8-source-library",
+    "base_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
+    "base_status": "PR #22 is open and unmerged",
+    "integration_rule": "Issue #8 may be developed as a stacked candidate; its future PR must use codex/issue-19-real-review as the temporary base until PR #22 is integrated, and must not modify or merge PR #22."
   },
   "auto_advance": {
-    "enabled": false,
+    "enabled": true,
     "requires_current_milestone_green": true,
     "requires_dependencies_complete": true,
     "stop_on_human_gate": true,
     "external_review_required_before_human_gate": true,
     "max_review_cycles_per_milestone": 5,
+    "supplemental_review_cycles": {
+      "authority_url": "docs/control-plane/CONTROLLED_RECONCILIATION_20261018.md",
+      "scope": "Preserve all historical usage and permit the controlled Issue #8 continuation through Cycle 22 for finding-r-004 only, after reconciliation and Budget Stop verification",
+      "authorized_total": 17,
+      "used": 15,
+      "remaining": 2,
+      "base_cycles_preserved": 5,
+      "authorizations": [
+        {
+          "cycles": 2,
+          "scope": "R-008 through R-010 concentrated repair/review",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24"
+        },
+        {
+          "cycles": 1,
+          "scope": "R-009 formal schema, Consumer, canonical decision bridge, and necessary tests only",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6213300000"
+        },
+        {
+          "cycles": 1,
+          "scope": "R-009 convergence repair: linked_findings integrity, handoff metadata, durable rejection, atomic decision projection, and necessary tests only",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6228024464"
+        },
+        {
+          "cycles": 1,
+          "scope": "R-009 record_id positive-integer contract, durable rejection, symmetric metadata, restart, and decision-queue invariance tests only",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6229026175"
+        },
+        {
+          "cycles": 1,
+          "scope": "R-009 complete external evidence lifecycle validation from acceptance through durable read-back, restart, human gate, and delivery completion",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6229229689"
+        },
+        {
+          "cycles": 1,
+          "scope": "R-009 canonical authority binding for the accepted external evidence lifecycle and necessary tests only",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6229457904"
+        },
+        {
+          "cycles": 1,
+          "scope": "One replacement independent review after a minimal pre-seal budget reservation ordering fix; same R-009 candidate only",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6229686177"
+        },
+        {
+          "cycles": 1,
+          "scope": "Final R-009 External Evidence Revalidation review only, after targeted tests, pre-seal budget reservation, complete pre-review gate, and exact candidate identity read-back",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6230751022"
+        },
+        {
+          "cycles": 1,
+          "scope": "One replacement review for the committed clean candidate only, after the shared clean-candidate gate, checkpoint commit, exact verification, read-only prepublication checks, pre-seal reservation, and identity read-back",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231047878"
+        },
+        {
+          "cycles": 1,
+          "scope": "R-011 reviewer-context launch admission only, after bounded local repair, deterministic launch-count tests, clean checkpoint, exact verification, prepublication read-back, reservation, and Seal",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231134202"
+        },
+        {
+          "cycles": 1,
+          "scope": "PR #23 external review 5556852723 findings only: unique A-B-A revision identity and stale locking, Markdown fenced-code speaker attribution, and PUBLICATION_RECEIPT authoritative-spec declaration; only after bounded local repair, clean checkpoint, full verification, prepublication read-back, reservation, and Seal",
+          "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231346877"
+        },
+        {
+          "cycles": 3,
+          "scope": "First production canary for Issue #8 finding-r-004 only: Markdown speaker attribution in HTML comments, quoted contexts, and necessary regressions; internal cycles 18 through 20, with no-progress stop after two consecutive rounds",
+          "authority_url": "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md"
+        },
+        {
+          "cycles": 3,
+          "scope": "Controlled continuation for the preserved post-Round-6 finding-r-004 repair, with at most internal cycles 20 through 22; historical Cycle 20 authority is not double-counted",
+          "authority_url": "docs/control-plane/CONTROLLED_RECONCILIATION_20261018.md"
+        }
+      ],
+      "stop_rule": "Preserve every historical cycle and usage record. Controlled continuation permits at most cycles 20 through 22 for finding-r-004 only. Stop after cycle 22, after two consecutive rounds without material progress, when any required downstream budget is exhausted, or at any protected gate; never auto-extend to cycle 23."
+    },
+    "post_review_local_repair": {
+      "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231346877",
+      "work_package_url": "https://github.com/joannalee20050914/KGnote-public/pull/23#pullrequestreview-5556852723",
+      "scope": "Only the three blocking findings from PR #23 external review 5556852723: unique A-B-A revision identity and stale locking, Markdown fenced-code speaker attribution, and PUBLICATION_RECEIPT authoritative-spec declaration; at most two local repair attempts.",
+      "attempts_used": 1,
+      "review_authorized": true,
+      "review_authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231346877",
+      "status": "external_review_5556852723_changes_required_local_repair_attempt_1",
+      "stop_rule": "Start cycle 17 only for the committed clean candidate after every authorized gate passes, and never launch cycle 18; a started context is consumed even without a verdict. If cycle 17 passes, at most one remaining real external Work review may run and no third external review is authorized."
+    },
+    "production_canary_authorization": {
+      "status": "CONTROLLED_RECONCILIATION_APPROVED_RUNNER_BLOCKED_PENDING_VERIFICATION",
+      "authority_record": "docs/control-plane/CONTROLLED_RECONCILIATION_20261018.md",
+      "issue": 8,
+      "finding": "finding-r-004",
+      "local_repairs_authorized": 6,
+      "local_repairs_used": 3,
+      "internal_cycles": [
+        18,
+        19,
+        20,
+        21,
+        22
+      ],
+      "external_rounds": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "no_progress_stop": 2,
+      "work_window": "Asia/Taipei 09:00-18:30",
+      "forbidden": [
+        "cycle 23",
+        "external round 9",
+        "paid API",
+        "force push",
+        "modify or merge PR #1, PR #22, or main",
+        "promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
+      ]
+    },
     "stop_on_review_state": [
       "PRODUCT_DECISION_REQUIRED",
       "AUTHORITY_CONFLICT",
@@ -93,21 +251,21 @@ This file contains exactly one active execution goal. It does not promote any hu
   "preserved_human_gates": [
     {
       "id": "PA-HUMAN-1",
-      "status": "not_evaluated_by_stage2b_planning",
+      "status": "not_evaluated",
       "release_verified": false,
-      "rule": "Requires native product and learner evidence; planning documents cannot promote it."
+      "rule": "Requires native product and learner evidence; deterministic tests and AI review cannot promote it."
     },
     {
       "id": "NS-HUMAN-SMOKE",
-      "status": "not_evaluated_by_stage2b_planning",
+      "status": "not_evaluated",
       "release_verified": false,
-      "rule": "Requires native product evidence; planning documents cannot promote it."
+      "rule": "Requires native product evidence; deterministic tests and AI review cannot promote it."
     }
   ],
   "milestones": [
     {
-      "id": "S2B-CONTROL-ALIGNMENT",
-      "title": "Reconcile stale execution state with the authorized Stage 2B direction",
+      "id": "D2-T01-SOURCE-LIBRARY",
+      "title": "Issue #8：整合匯入與持久來源資料庫",
       "status": "complete",
       "dependencies": [],
       "human_gate": "none",
@@ -115,112 +273,65 @@ This file contains exactly one active execution goal. It does not promote any hu
         "PLAN.md",
         "CODEX_STATUS.md",
         ".ai/",
-        "docs/control-plane/",
-        "docs/requirements/human-decisions/"
+        "docs/control-plane/authority-lock.json",
+        "DEVELOPMENT_PLAIN.md",
+        "docs/requirements/",
+        "src/kgnote/ingestion/",
+        "src/kgnote/learning/",
+        "src/kgnote/storage/",
+        "scripts/serve_graph_view.py",
+        "scripts/codex_control.py",
+        "web/",
+        "tests/"
       ],
       "acceptance": [
-        "round-14 is consumed by the existing Review Consumer against the exact b975bb5 identity",
-        "the old human-eligibility milestone is preserved as superseded and not completed",
-        "PLAN, STATUS, review bus, and Orchestrator identify the same Stage 2B goal and next work package",
-        "release_verified remains false and no old PASS is rebound to a new fingerprint"
+        "一般 Markdown 與明確 speaker 的對話 Markdown 可由現有產品 UI 匯入持久來源資料庫，原始 UTF-8 bytes、來源種類、speaker、locator 與 hash 可讀回",
+        "相同來源與內容重複匯入不產生無界重複資料；相同來源的新內容建立不可變 revision lineage，stale revision 更新會 fail closed",
+        "多檔匯入要嘛全部提交、要嘛安全回復；錯誤副檔名、空白、非 UTF-8、模糊對話 speaker、過大輸入及路徑逸出有可操作錯誤",
+        "匯入結果可從來源資料庫及 UI 讀回，且與既有 canonical ingestion/storage 整合，不重寫既有轉換管線",
+        "以 ordinary Markdown、conversation、duplicate、update、malformed、provenance、rollback 與 read-back fixtures 產生目前候選的實際測試證據",
+        "requirements guard、相關 Python/Node 測試、Repository Preflight、secret scan 與完整 verifier 對精確候選通過",
+        "Issue #8 與 Project 狀態、證據、剩餘限制及回復方式已讀回；不把舊測試或 PR #22 PASS 當成本候選 Done",
+        "候選使用既有 GitHub PR 與 independent product reviewer（獨立產品審查者）流程送審，結果只綁定精確 repository、PR、HEAD、fingerprint 與 round"
+      ],
+      "stop_conditions": [
+        "需要未授權來源資料、付費外部服務或新的產品裁決",
+        "會覆寫人工筆記、刪除 immutable evidence 或無法安全回復",
+        "PR #22 基準發生不相容變更，無法在不修改或合併 PR #22 的前提下繼續",
+        "平台要求新的人工授權或目前權限無法發布／接收精確候選"
       ]
     },
     {
-      "id": "S2B-LEDGER-BASELINE",
-      "title": "Accept and preserve the unique Feature Disposition Ledger",
-      "status": "complete",
-      "dependencies": [
-        "S2B-CONTROL-ALIGNMENT"
-      ],
-      "human_gate": "none",
-      "owned_paths": [
-        "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
-        "PLAN.md",
-        "CODEX_STATUS.md"
-      ],
-      "acceptance": [
-        "all 23 feature families record source, disposition, RC mapping, remaining gap, and verification condition",
-        "RC-01 through RC-34 each map to an existing result or explicit gap",
-        "no private path, raw conversation, credential, or secret is present",
-        "requirements_guard passes without rewriting requirements or acceptance specifications"
-      ]
-    },
-    {
-      "id": "S2B-GITHUB-PROJECTS",
-      "title": "Create or reuse the D2 GitHub Projects delivery structure",
-      "status": "complete",
-      "dependencies": [
-        "S2B-CONTROL-ALIGNMENT",
-        "S2B-LEDGER-BASELINE"
-      ],
-      "human_gate": "none",
-      "owned_paths": [
-        "PLAN.md",
-        "CODEX_STATUS.md",
-        ".ai/REVIEW_REQUEST.md",
-        ".ai/ORCHESTRATOR_STATE.json",
-        "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
-        "tests/control_plane/test_exact_review_integration.py",
-        "GitHub Project and Issue metadata for joannalee20050914/KGnote-public"
-      ],
-      "acceptance": [
-        "existing Projects, Issues, and planning documents are inspected before creating anything",
-        "one D2 hierarchy maps requirements, feature families, RC evidence, Release 1 through 4 reuse, and review transport work without one-Issue-per-RC duplication",
-        "each executable task has a Chinese purpose, sources and RC mapping, existing evidence, delta, dependencies, acceptance, stop condition, and rollback",
-        "Owner View, Ready Queue, Blocked, and Review Queue are visible in GitHub or each unsupported operation has a concrete permission/tool blocker",
-        "evidence-backed status does not mark work Done merely because a legacy test exists"
-      ]
-    },
-    {
-      "id": "S2B-REVIEW-INTEGRATION-TASK",
-      "title": "Execute one real Codex-to-GitHub-to-ChatGPT Work review handoff",
+      "id": "AR-EXTERNAL-REVIEW",
+      "title": "Issue #8：發布並接收精確候選的獨立產品審查",
       "status": "active",
       "dependencies": [
-        "S2B-GITHUB-PROJECTS"
+        "D2-T01-SOURCE-LIBRARY"
       ],
       "human_gate": "none",
       "owned_paths": [
-        "AGENTS.md",
         "PLAN.md",
         "CODEX_STATUS.md",
         ".ai/",
         "docs/control-plane/",
-        "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
-        "tests/control_plane/test_codex_control.py",
-        "tests/control_plane/test_exact_review_integration.py",
-        "GitHub Project and Issue metadata for joannalee20050914/KGnote-public"
+        "docs/requirements/",
+        "DEVELOPMENT_PLAIN.md",
+        "scripts/codex_orchestrator.py",
+        "scripts/external_review_control.py",
+        "scripts/external_review_handoff.py",
+        "scripts/github_product_review_consumer.py",
+        "scripts/publish_external_candidate.py",
+        "schemas/product-review/v1/review-result.schema.json",
+        "tests/control_plane/",
+        "tests/test_github_product_review_consumer.py",
+        "GitHub PR and Issue metadata for joannalee20050914/KGnote-public"
       ],
       "acceptance": [
-        "the task starts from actual Review Consumer, Review Transport, and PR #1 state",
-        "the task reuses existing protocol, version identity, validators, and tests",
-        "one public-safe short-lived branch and independent Draft PR are used without modifying PR #1 or main",
-        "one exact trigger produces a real ChatGPT Work review artifact or a concrete fail-closed transport blocker",
-        "the existing Review Consumer binds repository, PR, HEAD, fingerprint, round, and source before accepting PASS or CHANGES_REQUIRED",
-        "after the accepted Round 1 CHANGES_REQUIRED result, only KG-CTRL-STATE-001 is repaired and one Round 2 trigger is published; the task then stops without product implementation or an unbounded repair loop"
-      ]
-    },
-    {
-      "id": "S2B-GITHUB-HUMAN-READABILITY",
-      "title": "Make existing GitHub delivery content readable to non-specialists",
-      "status": "complete",
-      "dependencies": [
-        "S2B-GITHUB-PROJECTS"
-      ],
-      "human_gate": "none",
-      "owned_paths": [
-        "AGENTS.md",
-        "docs/control-plane/authority-lock.json",
-        "PLAN.md",
-        "CODEX_STATUS.md",
-        ".ai/REVIEW_REQUEST.md",
-        ".ai/ORCHESTRATOR_STATE.json",
-        "GitHub Project and Issue metadata for joannalee20050914/KGnote-public"
-      ],
-      "acceptance": [
-        "the single repository AGENTS.md records the product owner's Traditional Chinese human-readable GitHub content rule without changing machine-readable contracts",
-        "the existing 20 Issues receive clearer Traditional Chinese titles and purpose-first bodies without new Issues or changed hierarchy, scope, mappings, acceptance, dependencies, or status",
-        "Project view labels are clearer in Chinese when supported while their filters and item states remain unchanged",
-        "all six parent milestones plus Issues #8, #14, #19, and #21 are read back and audited"
+        "Issue #8 product bytes remain unchanged after the verified implementation milestone except for required review/publication control receipts",
+        "a Draft PR on codex/issue-8-source-library uses codex/issue-19-real-review as its temporary stacked base while PR #22 remains unmerged",
+        "Publication Receipt, PR marker, remote HEAD, fingerprint, review round, repository and PR identity all match the exact Issue #8 candidate",
+        "the existing independent product reviewer writes PASS, CHANGES_REQUIRED, or PRODUCT_DECISION_REQUIRED for that exact candidate and the existing Consumer accepts or rejects it fail closed",
+        "Issue #8 and GitHub Project record the exact evidence without promoting PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
       ]
     }
   ]
@@ -230,6 +341,6 @@ This file contains exactly one active execution goal. It does not promote any hu
 
 ## Current recovery note
 
-Autonomous orchestration state: `STOPPED`. Active work package: `S2B-REVIEW-INTEGRATION-TASK`.
-Next action: prepare, verify, publish, and trigger exactly one public-safe Draft PR #22 candidate on `codex/issue-19-real-review`; consume one real ChatGPT Work result and stop without modifying PR #1, main, or product behavior.
+Autonomous orchestration state: `AUTOMATION_BLOCKED`; the work-package envelope is `RECONCILING` under `docs/control-plane/CONTROLLED_RECONCILIATION_20261018.md`. Active work package: `AR-EXTERNAL-REVIEW`.
+Next action: preserve and checkpoint the post-Round-6 repair separately from the historical sealed candidate, verify the Budget Stop routing, then run full deterministic verification, identity read-back, and preflight. The Runner remains stopped until those gates pass; controlled ceilings are local repair 6, internal Cycle 22, and external Round 8 without resetting historical usage.
 Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.

@@ -1,0 +1,111 @@
+# Current review result
+
+Writer after reviewer custody: independent reviewer only.
+
+<!-- BEGIN KGNOTE REVIEW RESULT JSON -->
+```json
+{
+  "schema_version": "kgnote.review-result.v1",
+  "protocol_version": "kgnote.review-protocol.v1",
+  "artifact_state": "SUBMITTED",
+  "review_id": "review-d2-t01-source-library-v1-004",
+  "author_role": "CHATGPT_WORK_REVIEWER",
+  "reviewer_identity": "codex-independent-reviewer:orch-ad54c73103f7:4",
+  "reviewed_revision": "11db14fb9d385f21957f029ecd802e6ad42f6a21+worktree:cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
+  "reviewed_fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
+  "verdict": "CHANGES_REQUIRED",
+  "findings": [
+    {
+      "finding_id": "R-008",
+      "severity": "BLOCKER",
+      "authority_source": "PLAN.md AR-EXTERNAL-REVIEW acceptance criterion 2 and base_strategy; .ai/GITHUB_WORK_PRODUCT_REVIEWER.md requirement to review only Draft PR joannalee20050914/KGnote-public#23 stacked on the still-open PR #22 branch; docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md exact-publication and fail-closed identity rules",
+      "expected_behavior": "Before publishing or triggering external review, the live PR must be read back as Draft PR #23 with head branch codex/issue-8-source-library and base branch codex/issue-19-real-review, while the PR #22 dependency remains open and unmerged. A mismatch must fail closed because it changes the external review diff and integration boundary.",
+      "observed_behavior": "scripts/publish_external_candidate.py reads only body before mutation and headRefOid, body, state, and url after push. remote_snapshot_errors validates OPEN state, repository, PR number, head commit, fingerprint, and marker, but never requests or checks isDraft, headRefName, baseRefName, or the live PR #22 state. Consequently a ready-for-review PR, wrong head branch, wrong base branch, or merged/closed dependency can satisfy every current publication check and test.",
+      "evidence": [
+        "scripts/publish_external_candidate.py invokes `gh pr view` with `--json body` and later `--json headRefOid,body,state,url`; neither call requests isDraft, headRefName, or baseRefName.",
+        "scripts/publish_external_candidate.py remote_snapshot_errors has no expected fields for Draft status, head branch, stacked base, or PR #22 dependency state.",
+        "rg found no baseRefName or isDraft validation in scripts or control-plane tests, while .ai/REVIEW_REQUEST.md names the Draft/stacked-base behavior as an acceptance criterion.",
+        "The live GitHub API was unavailable in this reviewer runtime, and the repository provides no sealed remote receipt that independently proves those omitted fields for the exact candidate."
+      ],
+      "affected_files_or_behavior": [
+        "scripts/publish_external_candidate.py publication snapshot and validation",
+        "tests/control_plane/test_publish_external_candidate.py negative coverage",
+        "PR #23 Draft/head/base identity and PR #22 dependency boundary",
+        "External reviewer diff scope"
+      ],
+      "required_resolution": "Extend the publication read-back and fail-closed validator to require the authorized Draft/head/base tuple and the relevant live PR #22 dependency state before trigger creation. Add negative tests for non-Draft, wrong head, wrong base, and closed/merged dependency states, then reseal and rerun exact-candidate verification.",
+      "verification_method": "Using mocked and live read-back snapshots, prove that only Draft PR #23 with head codex/issue-8-source-library, base codex/issue-19-real-review, and the authorized open/unmerged PR #22 dependency can publish; each mismatched field must fail before the exact trigger is accepted.",
+      "status": "OPEN"
+    },
+    {
+      "finding_id": "R-009",
+      "severity": "BLOCKER",
+      "authority_source": "PLAN.md AR-EXTERNAL-REVIEW acceptance criteria 3 and 4; docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md required pipeline and state invariants 2-6; .ai/REVIEW_PROTOCOL.md requirement that AWAITING_EXTERNAL_PRODUCT_REVIEW be a machine-owned handoff whose result is consumed and routed automatically",
+      "expected_behavior": "After exact publication and trigger read-back, repository-owned orchestration must acquire the resulting GitHub review/comment, pass normalized records to the existing fail-closed Consumer, persist the accepted exact-candidate result, and automatically route PASS, CHANGES_REQUIRED, or PRODUCT_DECISION_REQUIRED without owner continuation.",
+      "observed_behavior": "The publisher can create the exact trigger and scripts/github_product_review_consumer.py can validate caller-supplied records, but no repository workflow or orchestrator path fetches external records or invokes that Consumer. codex_orchestrator.py treats AWAITING_EXTERNAL_PRODUCT_REVIEW as a MACHINE_HANDOFF_STATE and run_loop exits before orchestrate_step; resume re-enters the same loop and exits again. There is no .github workflow or other repository adapter closing the result-ingestion loop.",
+      "evidence": [
+        "scripts/codex_orchestrator.py defines MACHINE_HANDOFF_STATES = {\"AWAITING_EXTERNAL_PRODUCT_REVIEW\"}; run_loop stops while state is in that set.",
+        "scripts/codex_orchestrator.py advance_after_pass publishes, writes AWAITING_EXTERNAL_PRODUCT_REVIEW, and returns; no later branch calls github_product_review_consumer.consume_records.",
+        "scripts/github_product_review_consumer.py is a standalone deterministic CLI requiring a pre-fetched records file; repository search found no caller outside tests.",
+        "The repository contains no .github workflow and no other event/poll adapter for issue_comment.created or pull-request review records.",
+        "The request itself preserves the known uncertainty that Scheduled run linkage and unattended GitHub writeback cannot be independently observed, so those historical assumptions cannot substitute for exact Issue #8 routing evidence."
+      ],
+      "affected_files_or_behavior": [
+        "scripts/codex_orchestrator.py external machine-handoff lifecycle",
+        "scripts/github_product_review_consumer.py invocation boundary",
+        "External GitHub review acquisition and normalized-record persistence",
+        "Automatic routing of external PASS, CHANGES_REQUIRED, and PRODUCT_DECISION_REQUIRED"
+      ],
+      "required_resolution": "Add or durably bind a repository-owned event/poll adapter that fetches the canonical PR #23 review/comment records, invokes the existing Consumer for the exact published tuple, persists the accepted artifact and digest, and resumes orchestration automatically. Prove crash/restart recovery and fail-closed behavior for missing, stale, duplicate, wrong-author, and blocking results.",
+      "verification_method": "Run an integration test from PUBLISHED through an injected canonical GitHub record to Consumer acceptance and the correct next orchestrator state; also demonstrate that `orchestrator resume` or the configured event entrypoint makes progress from AWAITING_EXTERNAL_PRODUCT_REVIEW without human continuation and rejects all mismatched records.",
+      "status": "OPEN"
+    },
+    {
+      "finding_id": "R-010",
+      "severity": "BLOCKER",
+      "authority_source": "PLAN.md AR-EXTERNAL-REVIEW acceptance criterion 5 and owned GitHub Issue/Project metadata; AGENTS.md section 5 requirement to update delivery/scenario evidence and report actual run evidence without promoting unverified gates",
+      "expected_behavior": "Before AR-EXTERNAL-REVIEW or the goal can complete, Issue #8 and its GitHub Project item must record and read back the exact repository, PR, HEAD, fingerprint, review round, external artifact, Consumer disposition, remaining limitations, rollback information, and preserved PA-HUMAN-1/NS-HUMAN-SMOKE/release_verified=false boundary.",
+      "observed_behavior": "No implementation path writes or validates Issue #8 or GitHub Project metadata. Once external_review-state already says PASS with no blocking findings, advance_after_pass skips the publication branch and marks AR-EXTERNAL-REVIEW complete, then can mark the entire goal GOAL_COMPLETE. Repository search finds no GitHub Issue or Project update/read-back command or receipt, so the explicit acceptance criterion can be bypassed.",
+      "evidence": [
+        "scripts/codex_orchestrator.py advance_after_pass falls through to `active[\"status\"] = \"complete\"` when the active package is AR-EXTERNAL-REVIEW and external_result is PASS with no blocking findings.",
+        "The same function can set PLAN status complete and orchestrator state GOAL_COMPLETE without checking Issue #8 or Project evidence.",
+        "Repository search found no `gh issue`, GitHub Project API, Issue #8 receipt, or project-item read-back in scripts or control-plane tests.",
+        ".ai/external-review-state.json has fields for PR publication/review and gates but no Issue/Project evidence object required by the milestone acceptance criterion."
+      ],
+      "affected_files_or_behavior": [
+        "scripts/codex_orchestrator.py AR-EXTERNAL-REVIEW completion gate",
+        "GitHub Issue #8 status/evidence",
+        "GitHub Project item status/evidence",
+        "Durable external-review completion receipt and read-back tests"
+      ],
+      "required_resolution": "Implement an authorized Issue #8 and GitHub Project update/read-back step, retain a durable exact-candidate receipt, and make missing or mismatched evidence block milestone/goal completion. Include remaining limitations, rollback instructions, and explicit preservation of all human/release gates.",
+      "verification_method": "Exercise the post-Consumer PASS path with mocked GitHub Issue/Project APIs and a live authorized read-back when available; assert GOAL_COMPLETE is impossible until both records match the exact PR/HEAD/fingerprint/round/artifact and preserved-gate values, and add negative tests for missing, stale, wrong-repository, or partially updated metadata.",
+      "status": "OPEN"
+    }
+  ],
+  "verified_requirements": [
+    "AR-EXTERNAL-REVIEW acceptance criterion 1: the manifest delta from the internally passed c99c182 candidate to the sealed 11db14f candidate changes only PLAN.md among fingerprinted paths; source-library product, test, and requirement bytes are unchanged",
+    "Canonical/candidate/trigger/review-request repository configuration consistently names joannalee20050914/KGnote-public and PR #23",
+    "Publication marker, candidate commit/fingerprint, review round, exact trigger-template, and remote-head fail-closed checks that are currently implemented",
+    "Existing Consumer schema and exact repository/PR/program/goal/commit/fingerprint/round/author checks in isolation",
+    "PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unpromoted",
+    "R-003 through R-007 remain VERIFIED for their historical exact c99c182 candidate and were not rebound to this candidate"
+  ],
+  "unverified_requirements": [
+    "AR-EXTERNAL-REVIEW acceptance criterion 2: exact Draft/head/base/dependency PR shape is not fail-closed or sealed",
+    "AR-EXTERNAL-REVIEW acceptance criteria 3 and 4: exact external result acquisition, Consumer invocation, persistence, and autonomous routing are not connected end to end",
+    "AR-EXTERNAL-REVIEW acceptance criterion 5: Issue #8 and GitHub Project exact-evidence update/read-back is absent",
+    "Goal completion for the Issue #8 external-review milestone"
+  ],
+  "human_decisions_required": [],
+  "human_gates_preserved": [
+    "PA-HUMAN-1",
+    "NS-HUMAN-SMOKE",
+    "release_verified=false"
+  ],
+  "reviewed_at": "2026-10-16T16:58:01+08:00"
+}
+```
+<!-- END KGNOTE REVIEW RESULT JSON -->
+
+Verdict: `CHANGES_REQUIRED`. Product bytes remain unchanged from the internally passed candidate, but R-008 through R-010 block exact external publication/review completion and durable Issue/Project closure. No human, native-device, external-product-review, or release gate is promoted.

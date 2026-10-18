@@ -2278,17 +2278,24 @@
       ],
       "delivery": {
         "status": "automated_verified",
-        "implementation_refs": [
-          "src/kgnote/ingestion/markdown_source.py",
-          "src/kgnote/extraction/run_adapter.py"
-        ],
-        "test_refs": [
-          "tests/test_markdown_source_importer.py",
-          "tests/test_extraction_run_adapter.py"
-        ],
-        "evidence_refs": [
-          "docs/requirements/evidence/baseline-20260920.json"
-        ]
+      "implementation_refs": [
+        "src/kgnote/ingestion/markdown_source.py",
+        "src/kgnote/extraction/run_adapter.py",
+        "src/kgnote/learning/source_library.py",
+        "scripts/serve_graph_view.py",
+        "web/import.html"
+      ],
+      "test_refs": [
+        "tests/test_markdown_source_importer.py",
+        "tests/test_extraction_run_adapter.py",
+        "tests/test_source_library.py",
+        "tests/test_source_library_http.py",
+        "web/tests/source-library-ui.test.js"
+      ],
+      "evidence_refs": [
+        "docs/requirements/evidence/baseline-20260920.json",
+        "docs/requirements/evidence/d2-t01-source-library-20261016.json"
+      ]
       },
       "change_history": []
     },
@@ -2314,13 +2321,24 @@
         "SC-31"
       ],
       "delivery": {
-        "status": "partial",
-        "implementation_refs": [
-          "src/kgnote/ingestion/markdown_source.py",
-          "src/kgnote/extraction/run_adapter.py"
-        ],
-        "test_refs": [],
-        "evidence_refs": []
+      "status": "automated_verified",
+      "implementation_refs": [
+        "src/kgnote/ingestion/markdown_source.py",
+        "src/kgnote/extraction/run_adapter.py",
+        "src/kgnote/learning/source_library.py",
+        "scripts/serve_graph_view.py",
+        "web/import.html",
+        "web/library.html",
+        "web/source.html"
+      ],
+      "test_refs": [
+        "tests/test_source_library.py",
+        "tests/test_source_library_http.py",
+        "web/tests/source-library-ui.test.js"
+      ],
+      "evidence_refs": [
+        "docs/requirements/evidence/d2-t01-source-library-20261016.json"
+      ]
       },
       "change_history": []
     },
@@ -2350,12 +2368,18 @@
       ],
       "delivery": {
         "status": "partial",
-        "implementation_refs": [
-          "src/kgnote/ingestion/markdown_source.py",
-          "src/kgnote/extraction/run_adapter.py"
-        ],
-        "test_refs": [],
-        "evidence_refs": []
+      "implementation_refs": [
+        "src/kgnote/ingestion/markdown_source.py",
+        "src/kgnote/extraction/run_adapter.py",
+        "src/kgnote/learning/source_library.py"
+      ],
+      "test_refs": [
+        "tests/test_source_library.py",
+        "tests/test_source_library_http.py"
+      ],
+      "evidence_refs": [
+        "docs/requirements/evidence/d2-t01-source-library-20261016.json"
+      ]
       },
       "change_history": []
     },
@@ -2590,8 +2614,10 @@
           "src/kgnote/review/attempts.py",
           "src/kgnote/review/feedback.py",
           "src/kgnote/review/scheduling.py",
-          "src/kgnote/review/exposure.py",
-          "src/kgnote/learning/continuity.py"
+        "src/kgnote/review/exposure.py",
+        "src/kgnote/learning/continuity.py",
+        "src/kgnote/learning/source_library.py",
+        "scripts/serve_graph_view.py"
         ],
         "test_refs": [
           "tests/test_graph_view_server.py",
@@ -2599,12 +2625,15 @@
           "tests/test_attempt_store.py",
           "tests/test_feedback_scheduling.py",
           "tests/test_exposure_store.py",
-          "tests/test_resume_context.py",
-          "tests/test_durability_scale.py"
+        "tests/test_resume_context.py",
+        "tests/test_durability_scale.py",
+        "tests/test_source_library.py",
+        "tests/test_source_library_http.py"
         ],
         "evidence_refs": [
-          "docs/requirements/evidence/baseline-20260920.json",
-          "docs/requirements/evidence/loop3-20260920.json"
+        "docs/requirements/evidence/baseline-20260920.json",
+        "docs/requirements/evidence/loop3-20260920.json",
+        "docs/requirements/evidence/d2-t01-source-library-20261016.json"
         ]
       },
       "change_history": []

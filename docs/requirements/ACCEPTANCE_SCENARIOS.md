@@ -436,7 +436,7 @@
 
 需求：KG-ING-02, KG-ING-03, KG-PLAT-01
 
-驗證方法：automated_and_manual；狀態：automated_partial；test binding：{"test_refs": [{"path": "tests/test_learning_catalog.py", "selector": "LearningCatalogTests.test_three_units_load_with_structure_assist_and_three_or_more_activity_types"}, {"path": "web/tests/learn-workspace.test.js", "selector": "SC-31 a third synthetic unit uses the same workspace renderer without unit-name branches"}], "evidence_refs": ["docs/requirements/evidence/loop3-20260920.json"]}。
+驗證方法：automated_and_manual；狀態：automated_partial；test binding：{"test_refs": [{"path": "tests/test_learning_catalog.py", "selector": "LearningCatalogTests.test_three_units_load_with_structure_assist_and_three_or_more_activity_types"}, {"path": "web/tests/learn-workspace.test.js", "selector": "SC-31 a third synthetic unit uses the same workspace renderer without unit-name branches"}, {"path": "tests/test_source_library.py", "selector": "SourceLibraryTests.test_ordinary_markdown_preserves_exact_bytes_and_provenance"}, {"path": "tests/test_source_library.py", "selector": "SourceLibraryTests.test_conversation_preserves_explicit_speakers_and_rejects_ambiguous_labels"}, {"path": "web/tests/source-library-ui.test.js", "selector": "product UI exposes multi-file, conversation, version update and read-back controls"}], "evidence_refs": ["docs/requirements/evidence/loop3-20260920.json", "docs/requirements/evidence/d2-t01-source-library-20261016.json"]}。
 
 ## SC-32 · 未授權外送與AI透明fallback
 
