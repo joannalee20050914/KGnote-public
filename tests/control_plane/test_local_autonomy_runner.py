@@ -18,6 +18,11 @@ class RunnerTests(unittest.TestCase):
         router = repo / "linux_worker_router.py"; router.write_text("")
         return tmp, repo, router
 
+    def pending(self, repo, status="PENDING_ELIGIBLE"):
+        path=repo/"pending.json"
+        value={"schema_version":"kgnote.pending-successor-goal.v1","goal_id":"GOAL-KGNOTE-SOURCE-LIBRARY-SUCCESSOR-20261019","status":status,"activation_not_before":"2026-10-19T09:00:00+08:00","work_window":{"timezone":"Asia/Taipei","start":"09:00","end":"18:00"},"authority":{"status":"APPROVED_FOR_FUTURE_WINDOW","source":"owner"},"scope":{"repository":"joannalee20050914/KGnote-public"},"legacy_inheritance":{"pull_request":23,"review_round":8,"cycle":20,"head":"4b6e6eebcddcbd4ef21259a3ece6d92b276473ea","candidate_fingerprint":"38eae708123a99a7abd04327ce079b05248e18646402285a6f83fb49f69a2330"},"continuous_budget":{"new_prs":{"authorized":3,"used":0},"claude_product_reviews":{"authorized":6,"used":0},"codex_implementation_or_repair_cycles":{"authorized":12,"used":0}},"cutover_epoch":"epoch","product_work_started":False,"new_product_pr_created":False}
+        path.write_text(json.dumps(value)); return path
+
     def test_approved_package_routes_one_linux_worker_order_without_host_fallback(self):
         tmp, repo, router=self.fixture(); calls=[]
         (repo / ".ai/linux-worker-order.json").write_text("{}")
@@ -99,5 +104,46 @@ class RunnerTests(unittest.TestCase):
             try:
                 self.assertEqual(0,RUNNER.run_once(repo,datetime(2026,10,day,10,tzinfo=ZoneInfo("Asia/Taipei")),lambda *a,**k:self.fail("must not run"),router))
             finally: tmp.cleanup()
+
+    def test_0859_keeps_successor_pending_and_does_not_create_pr(self):
+        tmp,repo,router=self.fixture(); pending=self.pending(repo); (repo/".ai/ORCHESTRATOR_STOP").write_text("stop\n"); calls=[]
+        def fake(command,**kwargs): calls.append(command); return subprocess.CompletedProcess(command,0,'{"status":"COMPLETED"}\n',"")
+        try:
+            self.assertEqual(0,RUNNER.run_once(repo,datetime(2026,10,19,8,59,tzinfo=ZoneInfo("Asia/Taipei")),fake,router,pending_goal=pending))
+            self.assertEqual("PENDING_ELIGIBLE",json.loads(pending.read_text())["status"])
+            self.assertFalse(any("pr" in command for command in calls))
+        finally: tmp.cleanup()
+
+    def test_0900_creates_one_successor_pr_and_dispatches_same_checkpoint(self):
+        tmp,repo,router=self.fixture(); pending=self.pending(repo); (repo/".ai/ORCHESTRATOR_STOP").write_text("stop\n"); calls=[]
+        head="4b6e6eebcddcbd4ef21259a3ece6d92b276473ea"
+        def fake(command,**kwargs):
+            calls.append(command); joined=" ".join(command)
+            if "git/ref/heads" in joined and "--method" not in command:
+                count=sum(1 for item in calls if "git/ref/heads" in " ".join(item) and "--method" not in item)
+                return subprocess.CompletedProcess(command,1 if count==1 else 0,"" if count==1 else json.dumps({"object":{"sha":head}}),"")
+            if "git/refs" in joined: return subprocess.CompletedProcess(command,0,"{}","")
+            if "pr list" in joined: return subprocess.CompletedProcess(command,0,"[]","")
+            if "pr create" in joined: return subprocess.CompletedProcess(command,0,"https://github.com/joannalee20050914/KGnote-public/pull/26\n","")
+            if "pr view" in joined: return subprocess.CompletedProcess(command,0,json.dumps({"number":26,"state":"OPEN","isDraft":True,"headRefName":"codex/source-library-successor-20261019","baseRefName":"codex/issue-19-real-review","url":"https://github.com/joannalee20050914/KGnote-public/pull/26"}),"")
+            return subprocess.CompletedProcess(command,0,'{"status":"COMPLETED"}\n',"")
+        try:
+            self.assertEqual(0,RUNNER.run_once(repo,datetime(2026,10,19,9,0,tzinfo=ZoneInfo("Asia/Taipei")),fake,router,pending_goal=pending))
+            value=json.loads(pending.read_text()); self.assertEqual("ACTIVE",value["status"]); self.assertEqual(26,value["successor_pull_request"])
+            order=json.loads((repo/".ai/linux-worker-order.json").read_text()); self.assertEqual("2026-10-19T18:00:00+08:00",order["deadline_at"])
+            self.assertEqual("CODEX_DISPATCHED",json.loads((repo/".ai/SUCCESSOR_HANDOFF.json").read_text())["status"])
+        finally: tmp.cleanup()
+
+    def test_repeated_pending_read_reuses_existing_pr(self):
+        tmp,repo,router=self.fixture(); pending=self.pending(repo); calls=[]; head="4b6e6eebcddcbd4ef21259a3ece6d92b276473ea"
+        def fake(command,**kwargs):
+            calls.append(command); joined=" ".join(command)
+            if "git/ref/heads" in joined: return subprocess.CompletedProcess(command,0,json.dumps({"object":{"sha":head}}),"")
+            if "pr list" in joined: return subprocess.CompletedProcess(command,0,json.dumps([{"number":26,"state":"OPEN","isDraft":True,"headRefName":"codex/source-library-successor-20261019","baseRefName":"codex/issue-19-real-review","url":"url"}]),"")
+            return subprocess.CompletedProcess(command,0,"","")
+        try:
+            order,errors=RUNNER.prepare_successor_handoff(repo,pending,datetime(2026,10,19,9,tzinfo=ZoneInfo("Asia/Taipei")),fake)
+            self.assertFalse(errors); self.assertIsNotNone(order); self.assertFalse(any("pr create" in " ".join(command) for command in calls))
+        finally: tmp.cleanup()
 
 if __name__ == "__main__": unittest.main()
