@@ -6,7 +6,7 @@
 
 - 啟用既有 `com.kgnote.local-autonomy-runner`，每 30 秒最多執行一次 bounded wake；只有 Asia/Taipei 09:00–18:30 會嘗試工作。
 - Runner 只呼叫既有 `codex_orchestrator.py resume --max-steps 1`。外部審查等待時只做一次非模型讀取；沒有新結果不啟動模型。
-- 每個工作包必須有 `.ai/work-package-envelope.json`，狀態為 `APPROVED`、綁定 exact goal/work-package 與本核准紀錄，且 used 不得超過 authorized。
+- 每個工作包必須有 `.ai/work-package-envelope.json`，並由既有 Orchestrator 在 verification／seal 前，依完整 reconciliation receipt、exact goal/work-package、active milestone scope、剩餘 internal/external review budget、當前 fingerprint 與 writer lock，原子地從 `RECONCILING` 轉為 `APPROVED`。Runner 還會要求該 transition receipt；手動只改 status 不構成授權。
 - 單一 writer lock、terminal states、人工 gate、受保護寫入與既有 GitHub exact-candidate checks 全部保留。
 
 ## 建議第一個真實 canary 工作包

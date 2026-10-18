@@ -13,7 +13,7 @@ class RunnerTests(unittest.TestCase):
         tmp = tempfile.TemporaryDirectory(); repo = Path(tmp.name)
         (repo / ".ai").mkdir(); (repo / "scripts").mkdir(); (repo / "scripts/codex_orchestrator.py").write_text("")
         (repo / ".ai/ORCHESTRATOR_STATE.json").write_text(json.dumps({"active_goal":"goal","work_package":"package","state":state}))
-        envelope={"schema_version":"kgnote.work-package-envelope.v1","status":"APPROVED" if approved else "PENDING_OWNER_APPROVAL","goal_id":"goal","work_package_id":"package","authority_record":"approval","work_window":{"timezone":"Asia/Taipei","start":"09:00","end":"18:30"},"budgets":{name:{"authorized":2,"used":0} for name in ("local_repairs","internal_reviews","external_reviews")}}
+        envelope={"schema_version":"kgnote.work-package-envelope.v1","status":"APPROVED" if approved else "PENDING_OWNER_APPROVAL","goal_id":"goal","work_package_id":"package","authority_record":"approval","approval":{"source_status":"RECONCILING","receipt":".ai/reconciliation-receipt.json"},"work_window":{"timezone":"Asia/Taipei","start":"09:00","end":"18:30"},"budgets":{name:{"authorized":2,"used":0} for name in ("local_repairs","internal_reviews","external_reviews")}}
         (repo / ".ai/work-package-envelope.json").write_text(json.dumps(envelope))
         return tmp, repo
 
@@ -36,6 +36,13 @@ class RunnerTests(unittest.TestCase):
         tmp, repo=self.fixture()
         try:
             envelope=json.loads((repo/".ai/work-package-envelope.json").read_text()); envelope["budgets"]["internal_reviews"]={"authorized":1,"used":2}; (repo/".ai/work-package-envelope.json").write_text(json.dumps(envelope))
+            self.assertEqual(2,RUNNER.run_once(repo,datetime(2026,10,17,10,tzinfo=ZoneInfo("Asia/Taipei")),lambda *a,**k:self.fail("must not run")))
+        finally: tmp.cleanup()
+
+    def test_manually_flipped_approved_status_without_transition_receipt_does_not_run(self):
+        tmp, repo=self.fixture()
+        try:
+            envelope=json.loads((repo/".ai/work-package-envelope.json").read_text()); envelope.pop("approval"); (repo/".ai/work-package-envelope.json").write_text(json.dumps(envelope))
             self.assertEqual(2,RUNNER.run_once(repo,datetime(2026,10,17,10,tzinfo=ZoneInfo("Asia/Taipei")),lambda *a,**k:self.fail("must not run")))
         finally: tmp.cleanup()
 

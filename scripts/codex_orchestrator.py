@@ -27,6 +27,7 @@ import publish_external_candidate
 
 
 STATE_PATH = ".ai/ORCHESTRATOR_STATE.json"
+ENVELOPE_PATH = ".ai/work-package-envelope.json"
 STOP_PATH = ".ai/ORCHESTRATOR_STOP"
 LOCK_PATH = ".ai/ORCHESTRATOR.lock"
 HISTORY_PATH = ".ai/ORCHESTRATION_HISTORY/events.jsonl"
@@ -371,7 +372,164 @@ def current_milestone(plan: dict[str, Any]) -> dict[str, Any] | None:
     return next((item for item in plan.get("milestones", []) if item.get("status") == "active"), None)
 
 
+def _load_json_object(path: Path, label: str) -> dict[str, Any]:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"{label}: must contain an object")
+    return value
+
+
+def _repo_record_exists(repo: Path, record: object) -> bool:
+    if not isinstance(record, str) or not record:
+        return False
+    if record.startswith(("https://", "http://")):
+        return True
+    path = Path(record)
+    return not path.is_absolute() and ".." not in path.parts and (repo / path).is_file()
+
+
+def approve_reconciled_envelope(repo: Path, state: dict[str, Any]) -> tuple[bool, list[str]]:
+    """Atomically authorize one reconciled package before verification/sealing.
+
+    The reconciliation receipt binds the pre-transition repository fingerprint.
+    The APPROVED envelope is then part of the fingerprint that verification and
+    the review request seal.  No historical review identity is reused.
+    """
+    path = repo / ENVELOPE_PATH
+    errors: list[str] = []
+    try:
+        envelope = _load_json_object(path, "work_package_envelope")
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        return False, [f"work_package_envelope: {exc}"]
+
+    if envelope.get("schema_version") != "kgnote.work-package-envelope.v1":
+        errors.append("work_package_envelope: unsupported schema_version")
+    if envelope.get("goal_id") != state.get("active_goal"):
+        errors.append("work_package_envelope: goal identity mismatch")
+    if envelope.get("work_package_id") != state.get("work_package"):
+        errors.append("work_package_envelope: work package identity mismatch")
+    if not _repo_record_exists(repo, envelope.get("authority_record")):
+        errors.append("work_package_envelope: authority record is missing or unavailable")
+
+    try:
+        plan, _ = control.load_plan_status(repo)
+        milestone = current_milestone(plan)
+    except (OSError, ValueError, json.JSONDecodeError, KeyError) as exc:
+        milestone = None
+        errors.append(f"work_package_envelope: PLAN/STATUS unavailable: {exc}")
+    if not milestone or milestone.get("id") != state.get("work_package"):
+        errors.append("work_package_envelope: active PLAN milestone mismatch")
+    else:
+        scope = envelope.get("scope")
+        owned = milestone.get("owned_paths")
+        if not isinstance(scope, list) or not scope or any(not isinstance(item, str) for item in scope):
+            errors.append("work_package_envelope: scope must be a non-empty path list")
+        elif not isinstance(owned, list) or sorted(set(scope)) != sorted(set(owned)):
+            errors.append("work_package_envelope: scope does not match active milestone owned_paths")
+
+    budgets = envelope.get("budgets")
+    if not isinstance(budgets, dict):
+        errors.append("work_package_envelope: budgets must be an object")
+    else:
+        for name in ("local_repairs", "internal_reviews", "external_reviews"):
+            item = budgets.get(name)
+            if not isinstance(item, dict):
+                errors.append(f"work_package_envelope: {name} budget is invalid")
+                continue
+            authorized, used = item.get("authorized"), item.get("used")
+            if any(isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in (authorized, used)):
+                errors.append(f"work_package_envelope: {name} budget is invalid")
+            elif used > authorized:
+                errors.append(f"work_package_envelope: {name} exceeds authorization")
+            elif name in {"internal_reviews", "external_reviews"} and used >= authorized:
+                errors.append(f"work_package_envelope: {name} has no remaining downstream review budget")
+
+    lock_path = repo / LOCK_PATH
+    try:
+        lock = _load_json_object(lock_path, "orchestrator_lock")
+        if lock.get("pid") != os.getpid() or lock.get("run_id") != state.get("run_id"):
+            errors.append("work_package_envelope: writer lock belongs to another runner")
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        errors.append(f"work_package_envelope: current writer lock is not proven: {exc}")
+
+    status = envelope.get("status")
+    if status == "APPROVED":
+        approval = envelope.get("approval")
+        if not isinstance(approval, dict) or approval.get("source_status") != "RECONCILING":
+            errors.append("work_package_envelope: APPROVED transition receipt is missing")
+        return not errors, errors
+    if status != "RECONCILING":
+        errors.append("work_package_envelope: status must be RECONCILING before approval")
+
+    reconciliation = envelope.get("reconciliation")
+    if not isinstance(reconciliation, dict) or reconciliation.get("status") != "COMPLETE":
+        errors.append("work_package_envelope: reconciliation is incomplete")
+        receipt = None
+    else:
+        receipt_name = reconciliation.get("receipt")
+        try:
+            if not isinstance(receipt_name, str) or not receipt_name:
+                raise ValueError("receipt path is missing")
+            receipt_path = Path(receipt_name)
+            if receipt_path.is_absolute() or ".." in receipt_path.parts:
+                raise ValueError("receipt path must be repository-relative")
+            receipt = _load_json_object(repo / receipt_path, "reconciliation_receipt")
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            receipt = None
+            errors.append(f"work_package_envelope: reconciliation receipt unavailable: {exc}")
+
+    fingerprint = control.repository_fingerprint(repo)
+    if receipt is not None:
+        expected = {
+            "schema_version": "kgnote.reconciliation-receipt.v1",
+            "status": "COMPLETE",
+            "goal_id": state.get("active_goal"),
+            "work_package_id": state.get("work_package"),
+            "authority_record": envelope.get("authority_record"),
+            "candidate_fingerprint": fingerprint["value"],
+        }
+        for key, value in expected.items():
+            if receipt.get(key) != value:
+                errors.append(f"work_package_envelope: reconciliation receipt {key} mismatch")
+    if state.get("candidate_fingerprint") not in {None, fingerprint["value"]}:
+        errors.append("work_package_envelope: orchestrator candidate fingerprint drift")
+    unexpected = control.unexpected_dirty_paths(control.changed_paths(repo), plan) if milestone else []
+    if unexpected:
+        errors.append(f"work_package_envelope: unauthorized dirty paths {unexpected}")
+    if errors:
+        return False, errors
+
+    envelope["status"] = "APPROVED"
+    envelope["approval"] = {
+        "source_status": "RECONCILING",
+        "approved_at": now(),
+        "pre_approval_fingerprint": fingerprint["value"],
+        "receipt": reconciliation["receipt"],
+    }
+    temporary = path.with_suffix(".json.tmp")
+    temporary.write_text(json.dumps(envelope, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    os.replace(temporary, path)
+    append_event(
+        repo,
+        state,
+        "WORK_PACKAGE_ENVELOPE_APPROVED",
+        pre_approval_fingerprint=fingerprint["value"],
+        reconciliation_receipt=reconciliation["receipt"],
+    )
+    return True, []
+
+
 def validate_and_request(repo: Path, state: dict[str, Any]) -> bool:
+    approved, approval_errors = approve_reconciled_envelope(repo, state)
+    if not approved:
+        state["blockers"] = [{"type": "envelope_reconciliation_rejected", "errors": approval_errors}]
+        update_state(
+            repo,
+            state,
+            "AUTOMATION_BLOCKED",
+            "Resolve the exact reconciliation/envelope blockers; verification and sealing were not started.",
+        )
+        return False
     update_state(repo, state, "VALIDATING", "Run deterministic verification for the current candidate.")
     control.sync_implementing_fingerprint(repo, "Implementation context completed; validation is pending.")
     evidence, exit_code = control.verify(repo)

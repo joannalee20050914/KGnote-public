@@ -145,6 +145,135 @@ class OrchestrationSimulationTests(unittest.TestCase):
             ORCH.orchestrate_step(root, state, runner)
         self.fail(f"orchestrator did not reach a terminal state: {state}")
 
+
+class EnvelopeSealOrderingTests(OrchestrationSimulationTests):
+    def fixture(self):
+        temporary = tempfile.TemporaryDirectory()
+        repo = Path(temporary.name)
+        (repo / ".ai").mkdir()
+        (repo / "docs/control-plane").mkdir(parents=True)
+        (repo / "docs/control-plane/owner-authorization.md").write_text("authorized\n", encoding="utf-8")
+        state = {
+            "run_id": "orch-envelope-test",
+            "active_goal": "G",
+            "work_package": "WP-1",
+            "candidate_fingerprint": None,
+            "state": "IMPLEMENTING",
+            "review_cycle": 0,
+        }
+        (repo / ORCH.LOCK_PATH).write_text(
+            json.dumps({"pid": os.getpid(), "run_id": state["run_id"]}), encoding="utf-8"
+        )
+        envelope = {
+            "schema_version": "kgnote.work-package-envelope.v1",
+            "status": "RECONCILING",
+            "goal_id": "G",
+            "work_package_id": "WP-1",
+            "scope": ["src/owned", "tests/owned"],
+            "authority_record": "docs/control-plane/owner-authorization.md",
+            "reconciliation": {"status": "COMPLETE", "receipt": ".ai/reconciliation-receipt.json"},
+            "budgets": {
+                "local_repairs": {"authorized": 3, "used": 3},
+                "internal_reviews": {"authorized": 2, "used": 1},
+                "external_reviews": {"authorized": 2, "used": 1},
+            },
+        }
+        receipt = {
+            "schema_version": "kgnote.reconciliation-receipt.v1",
+            "status": "COMPLETE",
+            "goal_id": "G",
+            "work_package_id": "WP-1",
+            "authority_record": "docs/control-plane/owner-authorization.md",
+            "candidate_fingerprint": "f" * 64,
+        }
+        (repo / ORCH.ENVELOPE_PATH).write_text(json.dumps(envelope), encoding="utf-8")
+        (repo / ".ai/reconciliation-receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
+        plan = {
+            "active_milestone_id": "WP-1",
+            "milestones": [{"id": "WP-1", "status": "active", "owned_paths": envelope["scope"]}],
+        }
+        patches = [
+            mock.patch.object(ORCH.control, "load_plan_status", return_value=(plan, {})),
+            mock.patch.object(ORCH.control, "repository_fingerprint", return_value={"value": "f" * 64}),
+            mock.patch.object(ORCH.control, "changed_paths", return_value=[]),
+            mock.patch.object(ORCH.control, "unexpected_dirty_paths", return_value=[]),
+        ]
+        for patcher in patches:
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.addCleanup(temporary.cleanup)
+        return repo, state, envelope, receipt
+
+    def write_envelope(self, repo, envelope):
+        (repo / ORCH.ENVELOPE_PATH).write_text(json.dumps(envelope), encoding="utf-8")
+
+    def test_a_valid_reconciliation_approves_before_seal_and_is_idempotent(self):
+        repo, state, _, _ = self.fixture()
+        self.assertEqual((True, []), ORCH.approve_reconciled_envelope(repo, state))
+        approved = json.loads((repo / ORCH.ENVELOPE_PATH).read_text())
+        self.assertEqual("APPROVED", approved["status"])
+        self.assertEqual("RECONCILING", approved["approval"]["source_status"])
+        first = (repo / ORCH.ENVELOPE_PATH).read_bytes()
+        self.assertEqual((True, []), ORCH.approve_reconciled_envelope(repo, state))
+        self.assertEqual(first, (repo / ORCH.ENVELOPE_PATH).read_bytes())
+
+    def test_b_incomplete_reconciliation_is_rejected(self):
+        repo, state, envelope, _ = self.fixture()
+        envelope["reconciliation"]["status"] = "PENDING"
+        self.write_envelope(repo, envelope)
+        ok, errors = ORCH.approve_reconciled_envelope(repo, state)
+        self.assertFalse(ok)
+        self.assertIn("reconciliation is incomplete", " ".join(errors))
+
+    def test_c_exhausted_external_budget_is_rejected_even_with_local_budget(self):
+        repo, state, envelope, _ = self.fixture()
+        envelope["budgets"]["local_repairs"] = {"authorized": 4, "used": 1}
+        envelope["budgets"]["external_reviews"] = {"authorized": 2, "used": 2}
+        self.write_envelope(repo, envelope)
+        ok, errors = ORCH.approve_reconciled_envelope(repo, state)
+        self.assertFalse(ok)
+        self.assertIn("external_reviews has no remaining", " ".join(errors))
+
+    def test_d_scope_mismatch_is_rejected(self):
+        repo, state, envelope, _ = self.fixture()
+        envelope["scope"] = ["src/not-owned"]
+        self.write_envelope(repo, envelope)
+        ok, errors = ORCH.approve_reconciled_envelope(repo, state)
+        self.assertFalse(ok)
+        self.assertIn("scope does not match", " ".join(errors))
+
+    def test_e_fingerprint_drift_is_rejected(self):
+        repo, state, _, _ = self.fixture()
+        state["candidate_fingerprint"] = "a" * 64
+        ok, errors = ORCH.approve_reconciled_envelope(repo, state)
+        self.assertFalse(ok)
+        self.assertIn("fingerprint drift", " ".join(errors))
+
+    def test_f_writer_conflict_is_rejected(self):
+        repo, state, _, _ = self.fixture()
+        (repo / ORCH.LOCK_PATH).write_text(json.dumps({"pid": os.getpid(), "run_id": "other"}))
+        ok, errors = ORCH.approve_reconciled_envelope(repo, state)
+        self.assertFalse(ok)
+        self.assertIn("another runner", " ".join(errors))
+
+    def test_g_receipt_identity_mismatch_is_rejected(self):
+        repo, state, _, receipt = self.fixture()
+        receipt["work_package_id"] = "WP-OTHER"
+        (repo / ".ai/reconciliation-receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
+        ok, errors = ORCH.approve_reconciled_envelope(repo, state)
+        self.assertFalse(ok)
+        self.assertIn("receipt work_package_id mismatch", " ".join(errors))
+
+    def test_h_rejection_never_enters_verification_or_seal(self):
+        repo, state, envelope, _ = self.fixture()
+        envelope["reconciliation"]["status"] = "PENDING"
+        self.write_envelope(repo, envelope)
+        with mock.patch.object(ORCH.control, "verify", side_effect=AssertionError("verification must not run")), \
+             mock.patch.object(ORCH, "update_state") as update:
+            self.assertFalse(ORCH.validate_and_request(repo, state))
+        self.assertEqual("envelope_reconciliation_rejected", state["blockers"][0]["type"])
+        self.assertEqual("AUTOMATION_BLOCKED", update.call_args.args[2])
+
     def test_1_implement_review_pass_automatically_continues(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -36,6 +36,9 @@ def envelope_errors(envelope: dict[str, object], state: dict[str, object]) -> li
     errors: list[str] = []
     if envelope.get("schema_version") != "kgnote.work-package-envelope.v1": errors.append("unsupported envelope schema")
     if envelope.get("status") != "APPROVED": errors.append("work package is not approved")
+    approval = envelope.get("approval", {})
+    if not isinstance(approval, dict) or approval.get("source_status") != "RECONCILING" or not approval.get("receipt"):
+        errors.append("pre-seal reconciliation approval receipt is missing")
     if envelope.get("goal_id") != state.get("active_goal"): errors.append("goal identity mismatch")
     if envelope.get("work_package_id") != state.get("work_package"): errors.append("work package identity mismatch")
     if not envelope.get("authority_record"): errors.append("authority record is missing")
