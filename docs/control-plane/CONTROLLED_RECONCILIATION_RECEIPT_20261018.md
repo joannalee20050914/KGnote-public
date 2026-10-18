@@ -12,8 +12,8 @@ The repair adds an ATX-heading interruption to Markdown block-quote lazy continu
 
 ## Runtime observations
 
-- Product worktree: `/Users/joanna/KGnote-public-rewrite-20261005`, branch `codex/issue-8-source-library`, HEAD `53c71a81a7c1a1483c7490f652007e5db1c7b6a5`.
-- Safety worktree: `/Users/joanna/KGnote-public-issue24-autonomy-safety`, branch `codex/issue-24-local-autonomy-safety`, HEAD `d50f239887184582e3d7bbc164c7664270430dd5`, clean at inspection.
+- Product worktree: repository-local checkout on branch `codex/issue-8-source-library`, starting HEAD `53c71a81a7c1a1483c7490f652007e5db1c7b6a5`.
+- Safety worktree: isolated checkout on branch `codex/issue-24-local-autonomy-safety`, HEAD `d50f239887184582e3d7bbc164c7664270430dd5`, clean at inspection.
 - No staged files, live orchestrator lock, orchestrator stop file, or active Codex/orchestrator writer was found. The local-autonomy LaunchAgent was not loaded.
 - Safety commit `d50f239` only makes the production runner worktree explicit and fixes a test-fixture interpreter; it is not accepted as the Budget Stop repair.
 
