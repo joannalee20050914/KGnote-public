@@ -23,7 +23,7 @@ class RunnerTests(unittest.TestCase):
         (repo / ".ai/linux-worker-order.json").write_text("{}")
         def fake(command, **kwargs): calls.append(command); return subprocess.CompletedProcess(command,0,"","")
         try:
-            self.assertEqual(0,RUNNER.run_once(repo,datetime(2026,10,17,10,tzinfo=ZoneInfo("Asia/Taipei")),fake,router))
+            self.assertEqual(0,RUNNER.run_once(repo,datetime(2026,10,19,10,tzinfo=ZoneInfo("Asia/Taipei")),fake,router))
             self.assertIn("--epoch",calls[0]); self.assertIn("--order",calls[0])
             self.assertEqual(["--order",str(repo/".ai/linux-worker-order.json")],calls[2][-2:])
             self.assertNotIn("codex_orchestrator.py", " ".join(sum(calls, [])))
@@ -69,28 +69,35 @@ class RunnerTests(unittest.TestCase):
     def test_missing_linux_order_fails_closed_without_host_execution(self):
         tmp, repo, router=self.fixture()
         try:
-            self.assertEqual(2,RUNNER.run_once(repo,datetime(2026,10,17,10,tzinfo=ZoneInfo("Asia/Taipei")),lambda *a,**k:self.fail("must not run"),router))
+            self.assertEqual(2,RUNNER.run_once(repo,datetime(2026,10,19,10,tzinfo=ZoneInfo("Asia/Taipei")),lambda *a,**k:self.fail("must not run"),router))
         finally: tmp.cleanup()
 
     def test_terminal_unapproved_outside_hours_and_overspend_do_not_run(self):
-        cases=[("AUTOMATION_BLOCKED",True,10,0),("IMPLEMENTING",False,10,2),("IMPLEMENTING",True,20,0)]
+        cases=[("AUTOMATION_BLOCKED",True,10,0),("IMPLEMENTING",False,10,2),("IMPLEMENTING",True,8,0),("IMPLEMENTING",True,18,0),("IMPLEMENTING",True,20,0)]
         for state, approved, hour, expected in cases:
             tmp, repo, router=self.fixture(state,approved)
             try:
-                result=RUNNER.run_once(repo,datetime(2026,10,17,hour,tzinfo=ZoneInfo("Asia/Taipei")),lambda *a,**k:self.fail("must not run"),router)
+                result=RUNNER.run_once(repo,datetime(2026,10,19,hour,tzinfo=ZoneInfo("Asia/Taipei")),lambda *a,**k:self.fail("must not run"),router)
                 self.assertEqual(expected,result)
             finally: tmp.cleanup()
         tmp, repo, router=self.fixture()
         try:
             envelope=json.loads((repo/".ai/work-package-envelope.json").read_text()); envelope["budgets"]["internal_reviews"]={"authorized":1,"used":2}; (repo/".ai/work-package-envelope.json").write_text(json.dumps(envelope))
-            self.assertEqual(2,RUNNER.run_once(repo,datetime(2026,10,17,10,tzinfo=ZoneInfo("Asia/Taipei")),lambda *a,**k:self.fail("must not run"),router))
+            self.assertEqual(2,RUNNER.run_once(repo,datetime(2026,10,19,10,tzinfo=ZoneInfo("Asia/Taipei")),lambda *a,**k:self.fail("must not run"),router))
         finally: tmp.cleanup()
 
     def test_manually_flipped_approved_status_without_transition_receipt_does_not_run(self):
         tmp, repo, router=self.fixture()
         try:
             envelope=json.loads((repo/".ai/work-package-envelope.json").read_text()); envelope.pop("approval"); (repo/".ai/work-package-envelope.json").write_text(json.dumps(envelope))
-            self.assertEqual(2,RUNNER.run_once(repo,datetime(2026,10,17,10,tzinfo=ZoneInfo("Asia/Taipei")),lambda *a,**k:self.fail("must not run"),router))
+            self.assertEqual(2,RUNNER.run_once(repo,datetime(2026,10,19,10,tzinfo=ZoneInfo("Asia/Taipei")),lambda *a,**k:self.fail("must not run"),router))
         finally: tmp.cleanup()
+
+    def test_weekend_never_dispatches_product_work(self):
+        for day in (17, 18):
+            tmp, repo, router=self.fixture()
+            try:
+                self.assertEqual(0,RUNNER.run_once(repo,datetime(2026,10,day,10,tzinfo=ZoneInfo("Asia/Taipei")),lambda *a,**k:self.fail("must not run"),router))
+            finally: tmp.cleanup()
 
 if __name__ == "__main__": unittest.main()

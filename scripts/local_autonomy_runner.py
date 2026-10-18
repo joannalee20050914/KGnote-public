@@ -31,11 +31,16 @@ def load(path: Path) -> dict[str, object]:
 def in_window(envelope: dict[str, object], current: datetime | None = None) -> bool:
     current, window = current or datetime.now(ZONE), envelope.get("work_window", {})
     if not isinstance(window, dict) or window.get("timezone") != "Asia/Taipei": return False
+    # Production product work is weekday-only.  The hard 18:00 ceiling is an
+    # execution safety boundary even when an older envelope still says 18:30.
+    if current.weekday() >= 5:
+        return False
     try:
         sh, sm = map(int, str(window["start"]).split(":")); eh, em = map(int, str(window["end"]).split(":"))
     except (KeyError, ValueError): return False
+    end = min(eh * 60 + em, 18 * 60)
     minute = current.hour * 60 + current.minute
-    return sh * 60 + sm <= minute < eh * 60 + em
+    return sh * 60 + sm <= minute < end
 
 def envelope_errors(envelope: dict[str, object], state: dict[str, object]) -> list[str]:
     errors: list[str] = []
