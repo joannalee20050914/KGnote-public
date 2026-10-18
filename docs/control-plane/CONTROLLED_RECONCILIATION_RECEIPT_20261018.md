@@ -1,6 +1,6 @@
 # KGnote Controlled Reconciliation Receipt — 2026-10-18
 
-Status: `IN_PROGRESS`.
+Status: `RECONCILED`; Runner restoration remains a separate exact-state transition.
 
 ## Preserved identities
 
@@ -27,7 +27,7 @@ The repair adds an ATX-heading interruption to Markdown block-quote lazy continu
 
 - Reconciliation checkpoints: `35105647898c8703c3c0d27ae9572f4052b7cce5` (preserved repair/history/authority) and `e69c30ee62304bd8144316b376dcbc9702a99343` (Budget Stop routing).
 - Reconciled candidate fingerprint: computed after this receipt is committed and recorded in excluded factual state `CODEX_STATUS.md`; embedding it here would create a self-referential fingerprint.
-- Verification evidence: pending.
-- Preflight: pending.
+- Verification evidence: `output/control-plane/verification-20261018T113855+0800.json` passed with stable fingerprint and evidence read-back; the final post-receipt checkpoint is reverified separately.
+- Preflight: PASS with no errors or warnings before final receipt checkpoint; the final checkpoint must also pass before resume.
 - Budget Stop routing evidence: 135 control-plane tests passed; exhausted/restart exact Implementer launch count is zero, independent package isolation passes, and an authorized path remains admitted.
-- Runner restoration eligibility: pending.
+- Runner restoration eligibility: eligible only after the final post-receipt verification/preflight passes and the existing exact `AUTOMATION_BLOCKED` resume entrypoint accepts the durable state.
