@@ -103,11 +103,24 @@ def idle_health_order(repo: Path) -> Path:
     return path
 
 
+def validate_canary_order(path: Path) -> None:
+    value = load(path)
+    if not str(value.get("event_id", "")).startswith("production-canary-"):
+        raise ValueError("canary event_id is not allowlisted")
+    if value.get("working_directory") != "/home/kgnote/.local/share/kgnote/smoke-repo":
+        raise ValueError("canary worktree is not the private smoke repository")
+    checkpoint = Path(str(value.get("checkpoint_path", "")))
+    allowed = Path("/Users/joanna/KGnote-claude-reviewer-integration/output/claude-reviewer-final")
+    if not checkpoint.is_absolute() or not checkpoint.is_relative_to(allowed):
+        raise ValueError("canary checkpoint is outside the integration evidence root")
+
+
 def run_once(
     repo: Path = REPO,
     current: datetime | None = None,
     command_runner=subprocess.run,
     router: Path = DEFAULT_ROUTER,
+    canary_order: Path | None = None,
 ) -> int:
     global OUT, LOCK, LOG
     OUT = repo / "output/control-plane/production-runner"; LOCK, LOG = OUT / "writer.lock", OUT / "runner.jsonl"
@@ -119,7 +132,13 @@ def run_once(
             state = load(repo / ".ai/ORCHESTRATOR_STATE.json"); envelope = load(repo / ".ai/work-package-envelope.json")
         except (OSError, ValueError, json.JSONDecodeError) as exc: append("configuration_rejected", reason=str(exc)); return 2
         if (repo / STOP_MARKER).exists():
-            result = route_order(repo, router, idle_health_order(repo), command_runner)
+            order = idle_health_order(repo)
+            if canary_order is not None:
+                try: validate_canary_order(canary_order)
+                except (OSError, ValueError, json.JSONDecodeError) as exc:
+                    append("canary_rejected", reason=str(exc)); return 2
+                order = canary_order
+            result = route_order(repo, router, order, command_runner)
             append("product_stop_marker_preserved_idle", linux_health_exit_code=result)
             return result
         persisted = str(state.get("state", ""))
@@ -139,7 +158,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, default=REPO)
     parser.add_argument("--router", type=Path, default=DEFAULT_ROUTER)
+    parser.add_argument("--canary-order", type=Path)
     args = parser.parse_args()
-    return run_once(args.repo.resolve(), router=args.router.resolve())
+    return run_once(
+        args.repo.resolve(), router=args.router.resolve(),
+        canary_order=args.canary_order.resolve() if args.canary_order else None,
+    )
 
 if __name__ == "__main__": raise SystemExit(main())

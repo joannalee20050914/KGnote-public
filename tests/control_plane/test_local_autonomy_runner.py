@@ -49,6 +49,22 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual("ssh",calls[0][0]); self.assertEqual(1,len(calls)); self.assertTrue(marker.exists())
         finally: tmp.cleanup()
 
+    def test_stop_marker_allows_only_private_smoke_canary_order(self):
+        tmp, repo, router=self.fixture(); (repo/".ai/ORCHESTRATOR_STOP").write_text("stop\n")
+        canary=Path("/Users/joanna/KGnote-claude-reviewer-integration/output/claude-reviewer-final/test-order.json")
+        original_exists=canary.exists(); original=canary.read_bytes() if original_exists else None
+        canary.parent.mkdir(parents=True,exist_ok=True)
+        canary.write_text(json.dumps({"event_id":"production-canary-test","working_directory":"/home/kgnote/.local/share/kgnote/smoke-repo","checkpoint_path":str(canary.with_name("test-checkpoint.json"))}))
+        calls=[]
+        def fake(command,**kwargs): calls.append(command); return subprocess.CompletedProcess(command,0,"","")
+        try:
+            self.assertEqual(0,RUNNER.run_once(repo,datetime(2026,10,17,10,tzinfo=ZoneInfo("Asia/Taipei")),fake,router,canary))
+            self.assertEqual(str(canary),calls[1][-1]); self.assertTrue((repo/".ai/ORCHESTRATOR_STOP").exists())
+        finally:
+            if original_exists: canary.write_bytes(original)
+            else: canary.unlink(missing_ok=True)
+            tmp.cleanup()
+
     def test_missing_linux_order_fails_closed_without_host_execution(self):
         tmp, repo, router=self.fixture()
         try:
