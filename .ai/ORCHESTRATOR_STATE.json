@@ -3,6 +3,7 @@
   "run_id": "orch-ac875fa2031a",
   "active_goal": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "work_package": "AR-EXTERNAL-REVIEW",
+  "external_review_required": true,
   "state": "AUTOMATION_BLOCKED",
   "current_agent": null,
   "candidate_fingerprint": "ae69844871ccb00f1d2058107d0008d78b86cf206e75e0dde49770e0c25ab7b7",

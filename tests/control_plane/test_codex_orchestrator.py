@@ -581,6 +581,53 @@ class OrchestrationSimulationTests(unittest.TestCase):
 
 
 class OrchestratorDurabilityTests(unittest.TestCase):
+    def test_required_external_budget_blocks_implementer_launch_and_restart(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".ai").mkdir()
+            envelope = {
+                "work_package_id": "AR-EXTERNAL-REVIEW",
+                "requires_external_review": True,
+                "budgets": {"external_reviews": {"authorized": 6, "used": 6}},
+                "publication": {"max_external_round": 6},
+            }
+            external = {"review_round": 6}
+            (root / ORCH.WORK_PACKAGE_ENVELOPE_PATH).write_text(json.dumps(envelope))
+            (root / ORCH.external_review_control.STATE_PATH).write_text(json.dumps(external))
+            state = {"run_id": "budget-stop-test", "active_goal": "goal", "work_package": "AR-EXTERNAL-REVIEW", "external_review_required": True, "state": "REPAIRING", "review_cycle": 19, "candidate_fingerprint": None, "blockers": []}
+            runner_calls = []
+            patches = (
+                mock.patch.object(ORCH, "recover_stale_candidate", return_value=False),
+                mock.patch.object(ORCH.control, "preflight", return_value={"status": "pass"}),
+                mock.patch.object(ORCH.control, "load_review_artifacts", return_value=({"status": "IMPLEMENTING"}, {"verdict": "CHANGES_REQUIRED"}, {})),
+            )
+            with patches[0], patches[1], patches[2]:
+                for _wake in range(2):
+                    ORCH.orchestrate_step(root, state, lambda *_args: runner_calls.append("implementer"))
+            self.assertEqual([], runner_calls)
+            self.assertEqual("AUTOMATION_BLOCKED", state["state"])
+            self.assertEqual("required_external_review_budget_exhausted", state["blockers"][0]["type"])
+
+    def test_external_budget_guard_isolated_by_work_package_and_allows_authorized_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".ai").mkdir()
+            (root / ORCH.WORK_PACKAGE_ENVELOPE_PATH).write_text(json.dumps({
+                "work_package_id": "AR-EXTERNAL-REVIEW",
+                "requires_external_review": True,
+                "budgets": {"external_reviews": {"authorized": 8, "used": 6}},
+                "publication": {"max_external_round": 8},
+            }))
+            (root / ORCH.external_review_control.STATE_PATH).write_text(json.dumps({"review_round": 6}))
+            authorized = {"work_package": "AR-EXTERNAL-REVIEW", "external_review_required": True}
+            self.assertEqual([], ORCH.implementer_launch_budget_errors(root, authorized))
+            independent = dict(authorized, work_package="INDEPENDENT-SAFETY-WORK")
+            exhausted = json.loads((root / ORCH.WORK_PACKAGE_ENVELOPE_PATH).read_text())
+            exhausted["budgets"]["external_reviews"]["used"] = 8
+            (root / ORCH.WORK_PACKAGE_ENVELOPE_PATH).write_text(json.dumps(exhausted))
+            self.assertEqual([], ORCH.implementer_launch_budget_errors(root, independent))
+            self.assertTrue(ORCH.implementer_launch_budget_errors(root, authorized))
+
     def copy_repository_snapshot(self, source_root, root):
         shutil.copytree(
             source_root,

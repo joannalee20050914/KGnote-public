@@ -6,6 +6,7 @@
   "repository": "joannalee20050914/KGnote-public",
   "issue": 8,
   "finding": "finding-r-004",
+  "requires_external_review": true,
   "worktree": "runtime_configured_local_checkout",
   "branch": "codex/issue-8-source-library",
   "authority_record": "docs/control-plane/CONTROLLED_RECONCILIATION_20261018.md",

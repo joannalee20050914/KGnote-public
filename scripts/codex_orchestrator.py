@@ -30,6 +30,7 @@ STATE_PATH = ".ai/ORCHESTRATOR_STATE.json"
 STOP_PATH = ".ai/ORCHESTRATOR_STOP"
 LOCK_PATH = ".ai/ORCHESTRATOR.lock"
 HISTORY_PATH = ".ai/ORCHESTRATION_HISTORY/events.jsonl"
+WORK_PACKAGE_ENVELOPE_PATH = ".ai/work-package-envelope.json"
 TERMINAL_STATES = {
     "HUMAN_CHECKPOINT_REQUIRED",
     "PRODUCT_DECISION_REQUIRED",
@@ -179,6 +180,7 @@ def derive_state(repo: Path, *, max_review_cycles: int = 5) -> dict[str, Any]:
         "run_id": f"orch-{uuid.uuid4().hex[:12]}",
         "active_goal": plan.get("goal_id"),
         "work_package": plan.get("active_milestone_id"),
+        "external_review_required": bool(plan.get("auto_advance", {}).get("external_review_required_before_human_gate")),
         "state": mapped,
         "current_agent": None,
         "candidate_fingerprint": request.get("candidate_fingerprint"),
@@ -214,6 +216,42 @@ def review_budget_limit(state: dict[str, Any]) -> int:
     return int(state.get("base_review_cycles", state.get("max_review_cycles", 5))) + int(
         state.get("supplemental_review_limit", 0)
     )
+
+
+def implementer_launch_budget_errors(repo: Path, state: dict[str, Any]) -> list[str]:
+    """Reject work that cannot reach its required external-review terminal.
+
+    The envelope is scoped to one work package. Exhaustion there must not
+    become a global stop for a different, independently authorized package.
+    """
+    if state.get("external_review_required") is not True:
+        return []
+    try:
+        envelope = json.loads((repo / WORK_PACKAGE_ENVELOPE_PATH).read_text(encoding="utf-8"))
+        external = external_review_control.load_json(repo / external_review_control.STATE_PATH)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        return [f"external_review_budget: durable budget state is unreadable: {exc}"]
+    if envelope.get("work_package_id") != state.get("work_package"):
+        return []
+    if envelope.get("requires_external_review") is not True:
+        return []
+    publication = envelope.get("publication")
+    budgets = envelope.get("budgets")
+    external_budget = budgets.get("external_reviews") if isinstance(budgets, dict) else None
+    if not isinstance(publication, dict) or not isinstance(external_budget, dict):
+        return ["external_review_budget: work-package envelope lacks publication or external-review budget"]
+    authorized = external_budget.get("authorized")
+    used = external_budget.get("used")
+    current_round = external.get("review_round")
+    max_round = publication.get("max_external_round")
+    if not all(isinstance(value, int) and value >= 0 for value in (authorized, used, current_round, max_round)):
+        return ["external_review_budget: counters must be non-negative integers"]
+    errors: list[str] = []
+    if used >= authorized:
+        errors.append(f"external_review_budget: exhausted ({used}/{authorized})")
+    if current_round >= max_round:
+        errors.append(f"external_review_budget: maximum round reached ({current_round}/{max_round})")
+    return errors
 
 
 def review_budget_blocker(state: dict[str, Any], unresolved: list[str]) -> dict[str, Any]:
@@ -974,6 +1012,20 @@ def orchestrate_step(repo: Path, state: dict[str, Any], runner: AgentRunner = ru
 
     if review_state == "IMPLEMENTING":
         phase = "REPAIRING" if result.get("verdict") == "CHANGES_REQUIRED" else "IMPLEMENTING"
+        budget_errors = implementer_launch_budget_errors(repo, state)
+        if budget_errors:
+            state["blockers"] = [{
+                "type": "required_external_review_budget_exhausted",
+                "work_package": state.get("work_package"),
+                "errors": budget_errors,
+            }]
+            update_state(
+                repo,
+                state,
+                "AUTOMATION_BLOCKED",
+                "Implementer launch blocked because this work package cannot reach its required external review.",
+            )
+            return
         update_state(repo, state, phase, "Invoke a fresh implementer context for the authorized work package.")
         if not run_role(repo, state, "implementer", runner):
             return
@@ -1245,6 +1297,7 @@ def start(
                 return state
             state["state"] = derived["state"]
             state["supplemental_review_limit"] = derived.get("supplemental_review_limit", 0)
+            state["external_review_required"] = derived.get("external_review_required", False)
             state["supplemental_review_authority"] = derived.get("supplemental_review_authority")
             state["supplemental_review_used"] = max(
                 int(state.get("supplemental_review_used", 0)),
