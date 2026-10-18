@@ -15,6 +15,8 @@ RUNNABLE = {"IMPLEMENTING", "VALIDATING", "READY_FOR_AI_REVIEW", "REVIEWING", "R
 STOP_MARKER = Path(".ai/ORCHESTRATOR_STOP")
 PRODUCT_ORDER = Path(".ai/linux-worker-order.json")
 DEFAULT_ROUTER = Path("/Users/joanna/KGnote-claude-reviewer-integration/scripts/linux_worker_router.py")
+DEFAULT_EPOCH = Path("/Users/joanna/KGnote-claude-reviewer-integration/.ai/CLAUDE_REVIEWER_CUTOVER_EPOCH.json")
+DEFAULT_ADMISSION = Path("/Users/joanna/KGnote-claude-reviewer-integration/scripts/epoch_scope_admission.py")
 
 def append(event: str, **fields: object) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
@@ -121,6 +123,8 @@ def run_once(
     command_runner=subprocess.run,
     router: Path = DEFAULT_ROUTER,
     canary_order: Path | None = None,
+    epoch_record: Path = DEFAULT_EPOCH,
+    admission: Path = DEFAULT_ADMISSION,
 ) -> int:
     global OUT, LOCK, LOG
     OUT = repo / "output/control-plane/production-runner"; LOCK, LOG = OUT / "writer.lock", OUT / "runner.jsonl"
@@ -151,6 +155,17 @@ def run_once(
         if not order_path.is_file():
             append("production_dispatch_failed_closed", reason="linux_worker_order_missing", status=persisted)
             return 2
+        if not epoch_record.is_file() or not admission.is_file():
+            append("epoch_admission_rejected", reason="epoch gate unavailable")
+            return 2
+        gate = command_runner(
+            [sys.executable, str(admission), "--epoch", str(epoch_record), "--order", str(order_path)],
+            cwd=repo, capture_output=True, text=True,
+        )
+        if gate.returncode:
+            append("epoch_admission_rejected", output_tail=(gate.stdout or "")[-1000:])
+            return 2
+        append("epoch_admission_passed", output_tail=(gate.stdout or "")[-1000:])
         append("linux_worker_dispatch_started", status=persisted, order=str(order_path))
         return route_order(repo, router, order_path, command_runner)
 
@@ -159,10 +174,13 @@ def main() -> int:
     parser.add_argument("--repo", type=Path, default=REPO)
     parser.add_argument("--router", type=Path, default=DEFAULT_ROUTER)
     parser.add_argument("--canary-order", type=Path)
+    parser.add_argument("--epoch-record", type=Path, default=DEFAULT_EPOCH)
+    parser.add_argument("--scope-admission", type=Path, default=DEFAULT_ADMISSION)
     args = parser.parse_args()
     return run_once(
         args.repo.resolve(), router=args.router.resolve(),
         canary_order=args.canary_order.resolve() if args.canary_order else None,
+        epoch_record=args.epoch_record.resolve(), admission=args.scope_admission.resolve(),
     )
 
 if __name__ == "__main__": raise SystemExit(main())

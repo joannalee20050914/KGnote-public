@@ -24,7 +24,8 @@ class RunnerTests(unittest.TestCase):
         def fake(command, **kwargs): calls.append(command); return subprocess.CompletedProcess(command,0,"","")
         try:
             self.assertEqual(0,RUNNER.run_once(repo,datetime(2026,10,17,10,tzinfo=ZoneInfo("Asia/Taipei")),fake,router))
-            self.assertEqual(["--order",str(repo/".ai/linux-worker-order.json")],calls[1][-2:])
+            self.assertIn("--epoch",calls[0]); self.assertIn("--order",calls[0])
+            self.assertEqual(["--order",str(repo/".ai/linux-worker-order.json")],calls[2][-2:])
             self.assertNotIn("codex_orchestrator.py", " ".join(sum(calls, [])))
         finally: tmp.cleanup()
 
