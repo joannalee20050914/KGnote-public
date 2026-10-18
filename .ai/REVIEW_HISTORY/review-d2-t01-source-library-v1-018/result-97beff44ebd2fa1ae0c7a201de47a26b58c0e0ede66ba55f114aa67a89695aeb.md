@@ -1,0 +1,62 @@
+# Current review result
+
+Writer after reviewer custody: independent reviewer only.
+
+<!-- BEGIN KGNOTE REVIEW RESULT JSON -->
+```json
+{
+  "schema_version": "kgnote.review-result.v1",
+  "protocol_version": "kgnote.review-protocol.v1",
+  "artifact_state": "SUBMITTED",
+  "review_id": "review-d2-t01-source-library-v1-018",
+  "author_role": "CHATGPT_WORK_REVIEWER",
+  "reviewer_identity": "codex-independent-reviewer:orch-b575297ce086:18",
+  "reviewed_revision": "90403822fca5bd53966192ab012e7e9c07572cfc+worktree:a9300d772eb14154cdd8474402c7234144df2aa1d959c6cf59c3b9b8272fb62e",
+  "reviewed_fingerprint": "a9300d772eb14154cdd8474402c7234144df2aa1d959c6cf59c3b9b8272fb62e",
+  "verdict": "CHANGES_REQUIRED",
+  "findings": [
+    {
+      "finding_id": "R-015",
+      "severity": "BLOCKER",
+      "authority_source": "docs/requirements/requirements.json KG-ING-01 and KG-ING-03; docs/DATA_MODEL.md speaker attribution and LearningEvent evidence boundary; PLAN.md D2-T01-SOURCE-LIBRARY conversation-speaker acceptance and forbidden substitutes; docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md finding-r-004 quoted-context scope; external finding finding-r-004 expected_behavior",
+      "expected_behavior": "Speaker-like text inside a Markdown quoted context must remain quoted example text rather than becoming a real user, assistant, system, or tool span. This includes a block quote paragraph's lazy continuation lines, where CommonMark permits continuation text without repeating the `>` marker. If attribution cannot be determined safely, import must reject rather than invent a speaker, while preserving raw bytes and exact line locators for accepted input.",
+      "observed_behavior": "The candidate treats only physical lines matching `^ {0,3}>` as quoted. A speaker prefix on the immediately following lazy continuation line is therefore scanned as a real marker and persisted as a new speaker span, even though it remains part of the same Markdown block quote paragraph.",
+      "evidence": [
+        "src/kgnote/learning/source_library.py constructs quoted_lines independently per physical line with `re.match(r\"^ {0,3}>\", line)` and excludes only those numbered lines; it does not carry block-quote paragraph state onto lazy continuation lines.",
+        "Independent reviewer domain reproduction imported `## User / Question / ## Assistant / > User: quoted example / User: lazy quoted continuation / [blank] / Assistant: real continuation` as created. Read-back persisted spans user L1-L3, assistant L4-L5, user L6-L7, assistant L8-L8, falsely turning quoted continuation line L6 into an actual user turn.",
+        "tests/test_source_library.py test_conversation_ignores_speaker_markers_in_html_comments_and_quotes covers an explicitly marked `> User:` line but has no lazy block-quote continuation fixture, so the sealed full-suite PASS does not exercise this quoted-context boundary.",
+        "The exact external eight-line HTML-comment counterexample is repaired, and the targeted direct/HTTP regression is present; this finding is limited to the still-incomplete quoted-context portion of finding-r-004."
+      ],
+      "affected_files_or_behavior": [
+        "src/kgnote/learning/source_library.py Markdown conversation quote detection and _speaker_spans",
+        "persisted revision speaker_spans and UI-visible speaker attribution",
+        "tests/test_source_library.py quoted-context regression coverage",
+        "tests/test_source_library_http.py end-to-end quoted-context read-back"
+      ],
+      "required_resolution": "Make quote protection follow Markdown block-quote paragraph semantics sufficiently to prevent speaker-like lazy continuation text from creating a real speaker span, or fail closed for such ambiguous input. Preserve detection of a real speaker marker after the quoted block ends, original bytes, hashes, and line locators. Keep the repair bounded to finding-r-004.",
+      "verification_method": "Add direct-domain and HTTP POST/GET fixtures containing an explicitly marked quoted speaker example followed by a lazy continuation line beginning with a recognized speaker prefix, then a blank line and a real speaker marker. Assert the quoted lines stay in the surrounding real speaker span (or the whole import rejects without mutation), the post-quote real marker is recognized when accepted, raw bytes and locators remain exact, and existing HTML-comment/fence regressions still pass.",
+      "status": "OPEN"
+    }
+  ],
+  "verified_requirements": [
+    "The external eight-line HTML-comment counterexample is resolved: comment-contained speaker text no longer creates a false span, accepted raw bytes and line locators remain exact, and an unclosed comment fails closed",
+    "Inline HTML-comment and explicitly `>`-marked quoted speaker examples are protected in the covered direct-domain fixture; the exact HTML-comment behavior also has HTTP POST/GET regression coverage",
+    "Candidate identity is exact and stable: review-d2-t01-source-library-v1-018, revision 90403822fca5bd53966192ab012e7e9c07572cfc, fingerprint a9300d772eb14154cdd8474402c7234144df2aa1d959c6cf59c3b9b8272fb62e",
+    "Negative requirements remain preserved: no PR #1/PR #22/main mutation, private-archive bulk copy, inferred learner understanding, or human/release gate promotion was observed"
+  ],
+  "unverified_requirements": [
+    "finding-r-004 quoted-context behavior is incomplete because Markdown lazy block-quote continuation text can still create false persisted speaker attribution",
+    "AR-EXTERNAL-REVIEW cannot progress to the next external review until R-015 is repaired and independently re-reviewed for a new exact candidate"
+  ],
+  "human_decisions_required": [],
+  "human_gates_preserved": [
+    "PA-HUMAN-1",
+    "NS-HUMAN-SMOKE",
+    "release_verified=false"
+  ],
+  "reviewed_at": "2026-10-17T16:44:20+08:00"
+}
+```
+<!-- END KGNOTE REVIEW RESULT JSON -->
+
+Verdict: `CHANGES_REQUIRED` for exact sealed cycle-18 candidate `90403822` / `a9300d772eb14154cdd8474402c7234144df2aa1d959c6cf59c3b9b8272fb62e`. The HTML-comment counterexample is repaired, but `R-015` shows that a Markdown block quote's lazy continuation line can still create false speaker attribution. PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unpromoted.

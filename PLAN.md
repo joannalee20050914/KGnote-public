@@ -123,11 +123,11 @@ This file contains exactly one active execution goal. It does not promote any hu
     "external_review_required_before_human_gate": true,
     "max_review_cycles_per_milestone": 5,
     "supplemental_review_cycles": {
-      "authority_url": "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md",
-      "scope": "Issue #8 bounded internal repair/reviews through the single cycle-17 review of PR #23 external findings finding-kg-src-revision-001, finding-r-004, and finding-r-005",
-      "authorized_total": 15,
+      "authority_url": "docs/control-plane/CONTROLLED_RECONCILIATION_20261018.md",
+      "scope": "Preserve all historical usage and permit the controlled Issue #8 continuation through Cycle 22 for finding-r-004 only, after reconciliation and Budget Stop verification",
+      "authorized_total": 17,
       "used": 14,
-      "remaining": 1,
+      "remaining": 3,
       "base_cycles_preserved": 5,
       "authorizations": [
         {
@@ -189,9 +189,14 @@ This file contains exactly one active execution goal. It does not promote any hu
           "cycles": 3,
           "scope": "First production canary for Issue #8 finding-r-004 only: Markdown speaker attribution in HTML comments, quoted contexts, and necessary regressions; internal cycles 18 through 20, with no-progress stop after two consecutive rounds",
           "authority_url": "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md"
+        },
+        {
+          "cycles": 3,
+          "scope": "Controlled continuation for the preserved post-Round-6 finding-r-004 repair, with at most internal cycles 20 through 22; historical Cycle 20 authority is not double-counted",
+          "authority_url": "docs/control-plane/CONTROLLED_RECONCILIATION_20261018.md"
         }
       ],
-      "stop_rule": "Preserve cycles 1 through 17. The approved production canary permits at most cycles 18 through 20 for finding-r-004 only. Stop after cycle 20, after two consecutive rounds without material progress, or at any protected gate; never auto-extend to cycle 21."
+      "stop_rule": "Preserve every historical cycle and usage record. Controlled continuation permits at most cycles 20 through 22 for finding-r-004 only. Stop after cycle 22, after two consecutive rounds without material progress, when any required downstream budget is exhausted, or at any protected gate; never auto-extend to cycle 23."
     },
     "post_review_local_repair": {
       "authority_url": "https://github.com/joannalee20050914/KGnote-public/issues/24#issuecomment-6231346877",
@@ -204,26 +209,30 @@ This file contains exactly one active execution goal. It does not promote any hu
       "stop_rule": "Start cycle 17 only for the committed clean candidate after every authorized gate passes, and never launch cycle 18; a started context is consumed even without a verdict. If cycle 17 passes, at most one remaining real external Work review may run and no third external review is authorized."
     },
     "production_canary_authorization": {
-      "status": "APPROVED",
-      "authority_record": "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md",
+      "status": "CONTROLLED_RECONCILIATION_APPROVED_RUNNER_BLOCKED_PENDING_VERIFICATION",
+      "authority_record": "docs/control-plane/CONTROLLED_RECONCILIATION_20261018.md",
       "issue": 8,
       "finding": "finding-r-004",
-      "local_repairs_authorized": 3,
-      "local_repairs_used": 2,
+      "local_repairs_authorized": 6,
+      "local_repairs_used": 3,
       "internal_cycles": [
         18,
         19,
-        20
+        20,
+        21,
+        22
       ],
       "external_rounds": [
         5,
-        6
+        6,
+        7,
+        8
       ],
       "no_progress_stop": 2,
       "work_window": "Asia/Taipei 09:00-18:30",
       "forbidden": [
-        "cycle 21",
-        "external round 7",
+        "cycle 23",
+        "external round 9",
         "paid API",
         "force push",
         "modify or merge PR #1, PR #22, or main",
@@ -332,6 +341,6 @@ This file contains exactly one active execution goal. It does not promote any hu
 
 ## Current recovery note
 
-Autonomous orchestration state: `AUTOMATION_BLOCKED`, with an exact owner-authorized resume pending. Active work package: `AR-EXTERNAL-REVIEW`.
-Next action: use the audited terminal-state resume for the approved Issue #8 finding-r-004 production canary. At most three local repairs, internal cycles 18–20, and external rounds 5–6 are authorized; two consecutive rounds without material progress stop the canary. Cycle 21 and external round 7 are forbidden.
+Autonomous orchestration state: `AUTOMATION_BLOCKED`; the work-package envelope is `RECONCILING` under `docs/control-plane/CONTROLLED_RECONCILIATION_20261018.md`. Active work package: `AR-EXTERNAL-REVIEW`.
+Next action: preserve and checkpoint the post-Round-6 repair separately from the historical sealed candidate, verify the Budget Stop routing, then run full deterministic verification, identity read-back, and preflight. The Runner remains stopped until those gates pass; controlled ceilings are local repair 6, internal Cycle 22, and external Round 8 without resetting historical usage.
 Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.

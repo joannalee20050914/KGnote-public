@@ -1,6 +1,6 @@
 {
   "schema_version": "kgnote.work-package-envelope.v1",
-  "status": "APPROVED",
+  "status": "RECONCILING",
   "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "work_package_id": "AR-EXTERNAL-REVIEW",
   "repository": "joannalee20050914/KGnote-public",
@@ -8,19 +8,19 @@
   "finding": "finding-r-004",
   "worktree": "runtime_configured_local_checkout",
   "branch": "codex/issue-8-source-library",
-  "authority_record": "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md",
-  "authority_version": "2026-10-17-first-production-canary",
+  "authority_record": "docs/control-plane/CONTROLLED_RECONCILIATION_20261018.md",
+  "authority_version": "2026-10-18-controlled-reconciliation",
   "scope": ["Markdown speaker attribution", "HTML comments", "quoted contexts", "necessary regression tests"],
   "work_window": {"timezone": "Asia/Taipei", "start": "09:00", "end": "18:30"},
   "budgets": {
-    "local_repairs": {"authorized": 3, "used": 2},
-    "internal_reviews": {"authorized": 20, "used": 18, "canary_authorized": 3},
-    "external_reviews": {"authorized": 6, "used": 4, "canary_authorized": 2}
+    "local_repairs": {"authorized": 6, "used": 3, "controlled_extension": 3},
+    "internal_reviews": {"authorized": 22, "used": 19, "controlled_extension": 3},
+    "external_reviews": {"authorized": 8, "used": 6, "controlled_extension": 2}
   },
   "stop_conditions": ["two_consecutive_rounds_without_material_progress", "budget_exhausted", "identity_mismatch", "human_gate", "github_permission_denied", "protected_write_not_authorized"],
-  "publication": {"pull_request": 23, "head_branch": "codex/issue-8-source-library", "base_branch": "codex/issue-19-real-review", "dependency_pull_request": 22, "max_external_round": 6},
+  "publication": {"pull_request": 23, "head_branch": "codex/issue-8-source-library", "base_branch": "codex/issue-19-real-review", "dependency_pull_request": 22, "max_external_round": 8},
   "human_gates": ["PA-HUMAN-1", "NS-HUMAN-SMOKE", "release_verified=false"],
-  "forbidden_operations": ["modify_or_merge_pr_1", "modify_or_merge_pr_22", "modify_or_merge_main", "force_push", "bypass_branch_protection", "paid_api", "cycle_21", "external_round_7", "other_product_issue"],
-  "next_action": "Use the audited AUTOMATION_BLOCKED resume path, repair finding-r-004, checkpoint, verify, seal, review, publish, and consume within this envelope.",
+  "forbidden_operations": ["modify_or_merge_pr_1", "modify_or_merge_pr_22", "modify_or_merge_main", "force_push", "bypass_branch_protection", "paid_api", "cycle_23", "external_round_9", "unready_or_unauthorized_product_issue"],
+  "next_action": "Complete controlled reconciliation and Budget Stop verification while AUTOMATION_BLOCKED; only then use the existing exact terminal-state resume path.",
   "rollback": "Boot out com.kgnote.local-autonomy-runner, preserve all checkpoints and review history, and set this envelope status to SUSPENDED before any later restart."
 }

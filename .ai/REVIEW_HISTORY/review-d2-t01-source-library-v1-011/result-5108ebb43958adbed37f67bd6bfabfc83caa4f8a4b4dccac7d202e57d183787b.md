@@ -1,0 +1,120 @@
+# Current review result
+
+Writer after reviewer custody: independent reviewer only.
+
+<!-- BEGIN KGNOTE REVIEW RESULT JSON -->
+```json
+{
+  "schema_version": "kgnote.review-result.v1",
+  "protocol_version": "kgnote.review-protocol.v1",
+  "artifact_state": "SUBMITTED",
+  "review_id": "review-d2-t01-source-library-v1-011",
+  "author_role": "CHATGPT_WORK_REVIEWER",
+  "reviewer_identity": "codex-independent-reviewer:orch-54fba20c9e7b:11",
+  "reviewed_revision": "db3b5edfa59b71549f66394734f1efc7a7dd8c17+worktree:78fc97547585a6c7f251004ea1af0bc23dd0c99b480637fd28311d2294d4af19",
+  "reviewed_fingerprint": "78fc97547585a6c7f251004ea1af0bc23dd0c99b480637fd28311d2294d4af19",
+  "verdict": "CHANGES_REQUIRED",
+  "findings": [
+    {
+      "finding_id": "R-008",
+      "severity": "BLOCKER",
+      "authority_source": "PLAN.md AR-EXTERNAL-REVIEW acceptance criterion 2 and base_strategy; .ai/GITHUB_WORK_PRODUCT_REVIEWER.md Draft/stacked-base constraint; docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md required pipeline and exact-publication fail-closed boundary",
+      "expected_behavior": "Before any candidate publication mutation or external-review trigger, the live target must be verified as Draft PR #23 with head codex/issue-8-source-library, base codex/issue-19-real-review, and open/unmerged dependency PR #22. Any mismatch must stop before changing the PR body or pushing candidate bytes.",
+      "observed_behavior": "The exact sealed candidate preserves the previously verified pre-mutation Draft/head/base/dependency checks, zero-mutation rejection matrix, and post-push exact identity and marker read-back. The cycle-11 changes are confined to the R-009 durable accepted-record repair, its tests, and authorized control records; they do not weaken the publication boundary.",
+      "evidence": [
+        "The cycle-10 and cycle-11 sealed manifests show no byte change to scripts/publish_external_candidate.py or tests/control_plane/test_publish_external_candidate.py.",
+        "The independent reviewer reran the complete 115-test control-plane suite on fingerprint 78fc97547585a6c7f251004ea1af0bc23dd0c99b480637fd28311d2294d4af19; all tests passed, including invalid PR/dependency zero-mutation coverage.",
+        "Repository preflight and review-validate both passed with HEAD db3b5edfa59b71549f66394734f1efc7a7dd8c17 and the exact sealed fingerprint."
+      ],
+      "affected_files_or_behavior": [
+        "scripts/publish_external_candidate.py mutation ordering",
+        "tests/control_plane/test_publish_external_candidate.py negative side-effect coverage",
+        "PR #23 Draft/head/base identity and PR #22 dependency boundary"
+      ],
+      "required_resolution": "No further resolution is required for R-008; preserve the pre-mutation validation and its zero-side-effect negative coverage.",
+      "verification_method": "Re-run the invalid PR/dependency matrix and confirm every invalid tuple is rejected before remote mutation, while the authorized tuple passes pre- and post-mutation exact read-back.",
+      "status": "VERIFIED",
+      "resolution_evidence": [
+        "The exact sealed candidate preserves the previously verified pre-mutation fail-closed publication boundary and its passing regressions."
+      ]
+    },
+    {
+      "finding_id": "R-009",
+      "severity": "BLOCKER",
+      "authority_source": "PLAN.md AR-EXTERNAL-REVIEW acceptance criteria 3 and 4 and the authorized cycle-11 R-009 complete lifecycle scope; docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md Required pipeline, State invariants 4 and 6, and External evidence boundary; .ai/REVIEW_PROTOCOL.md exact candidate identity, durable restart recovery, and fail-closed rules",
+      "expected_behavior": "The repository-owned handoff and every repository read-back, restart, human-gate, and completion boundary must accept only a complete external record bound to the canonical exact candidate. The accepted record must intrinsically validate a positive GitHub record ID, canonical GitHub PR-review/comment URL, trusted author, supported source, timezone-aware submission time, positive authorized round, 40-hex reviewed commit, 64-hex reviewed fingerprint, exact repository/PR, verdict, findings, Consumer acceptance, and original-body digest. Durable validation must anchor exact-candidate identity to the sealed publication/review authority rather than merely compare fields that coexist in the same mutable external-state document.",
+      "observed_behavior": "The cycle-11 shared accepted_external_review_blockers validator closes the prior single-field omission matrix and is called at first handoff, JSON reload/restart, human-gate eligibility, and delivery completion. It still treats any absolute HTTPS artifact URL as canonical and validates reviewed commit, fingerprint, and round only by equality to sibling fields in the same excluded .ai/external-review-state.json. Consequently a self-consistent durable PASS with a non-GitHub artifact URL, round 0, a non-SHA reviewed/candidate commit, or a non-digest reviewed/candidate fingerprint produces no human-gate blockers and reaches HUMAN_CHECKPOINT_REQUIRED when the dependent receipt fields are recomputed consistently.",
+      "evidence": [
+        "scripts/external_review_control.py:91-98 accepts every absolute HTTPS artifact_url without requiring github.com, the configured repository/PR path, the source-specific anchor, or equality between the URL suffix and record_id.",
+        "scripts/external_review_control.py:120-134 compares repository, PR, round, commit, and fingerprint to values taken from the same external state but does not validate review_round as a positive bounded integer, reviewed_commit as 40 lowercase hex, or reviewed_fingerprint as 64 lowercase hex, and does not bind them to the sealed internal request or canonical publication resolver.",
+        "Independent restart-shaped probe on the exact sealed code constructed complete PASS/publication/delivery records and recomputed the canonical Issue receipt after each mutation. Four invalid states—artifact_url=https://example.invalid/not-github, review_round=0 on both root and record, candidate/reviewed/publication commit=not-a-sha, and candidate/reviewed fingerprint=not-a-digest—each returned human_gate_blockers=[] and next_machine_state=HUMAN_CHECKPOINT_REQUIRED.",
+        "tests/control_plane/test_external_review_control.py:167-216 covers 51 missing or malformed accepted-record field cases, but it mutates only the nested accepted record while leaving the sibling root identity valid; its URL cases stop at non-HTTPS/non-URL shapes and do not cover a wrong-host or wrong-PR HTTPS URL. The green matrix therefore does not refute the self-consistent restart probe.",
+        "The independent reviewer reran 49 focused Consumer/handoff/integration/orchestrator tests and all 115 control-plane tests successfully; output/control-plane/verification-20261017T114946+0800.json separately records 329 Python product tests, 60 Node tests, requirements checks, safety scans, and fingerprint stability for this exact candidate.",
+        "Preflight after the probes still reports candidate fingerprint 78fc97547585a6c7f251004ea1af0bc23dd0c99b480637fd28311d2294d4af19, so the probes did not mutate candidate bytes."
+      ],
+      "affected_files_or_behavior": [
+        "scripts/external_review_control.py accepted_external_review_blockers, human_gate_blockers, and delivery_receipt_blockers",
+        "scripts/codex_orchestrator.py restart and advance_after_pass routing",
+        "tests/control_plane/test_external_review_control.py durable accepted-state restart matrix",
+        "AR-EXTERNAL-REVIEW acceptance criterion 4 and preserved human-checkpoint eligibility"
+      ],
+      "required_resolution": "Make durable accepted-record validation intrinsic and authority-anchored. Require a source-specific canonical github.com URL for the configured repository and PR whose review/comment anchor contains the same positive record_id; require review_round to be a non-boolean positive integer within the configured limit, reviewed_commit to be exactly 40 lowercase hex, and reviewed_fingerprint exactly 64 lowercase hex; and bind the accepted tuple to the canonical sealed internal request/publication resolution rather than accepting a self-consistent rewrite of .ai/external-review-state.json. Missing, malformed, wrong-host, wrong-PR, wrong-anchor, out-of-range, stale, or self-consistently rewritten values must remain machine-blocking and must not reach HUMAN_CHECKPOINT_REQUIRED or milestone completion. Preserve the already repaired first-consumption, field-omission, decision-queue, and delivery-receipt behavior.",
+      "verification_method": "Build a complete accepted PASS through the real handoff, reload it in a fresh process through the same repository functions used by orchestrator restart and completion, and verify the valid record alone can reach the next authorized state. Add negative restart cases for a valid-looking HTTPS URL on the wrong host/repository/PR/anchor/record ID; zero, negative, boolean, string, and over-limit rounds changed both at root and in the accepted record; malformed or stale commit/fingerprint changed consistently across mutable state; and mismatches against the sealed internal request/publication resolver. Each case must yield blockers, preserve the human gates, avoid completion, and leave the decision queue unchanged.",
+      "status": "OPEN",
+      "resolution_evidence": [
+        "The shared validator repairs the previous single-field restart gap, but the independent self-consistent restart probe demonstrates that malformed or non-canonical durable identity can still authorize the human checkpoint."
+      ]
+    },
+    {
+      "finding_id": "R-010",
+      "severity": "BLOCKER",
+      "authority_source": "PLAN.md AR-EXTERNAL-REVIEW acceptance criterion 5; AGENTS.md section 5 evidence/read-back obligations; docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md external evidence boundary and goal-completion invariants",
+      "expected_behavior": "AR-EXTERNAL-REVIEW and the goal must remain incomplete until Issue #8 and the configured Project item have exact, read-back evidence for the same repository, PR, HEAD, fingerprint, round, review artifact, Consumer disposition, limitations, rollback, and preserved gates. Missing, stale, malformed, wrong-repository, wrong-artifact, wrong-Issue, wrong-Project-item, or partial delivery receipts must block completion.",
+      "observed_behavior": "The exact candidate preserves exact Issue-comment body read-back, configured Project linkage/status verification, and delivery-receipt checks binding repository, PR, candidate identity, round, review artifact, Issue comment identity, Project item/status, body digest, and preserved gates. The remaining intrinsic/authority anchoring defect in the upstream durable accepted external record is tracked under R-009 and does not reopen the distinct Issue/Project receipt checks already verified by R-010.",
+      "evidence": [
+        "scripts/external_review_handoff.py still requires exact Issue receipt and Project linkage/status read-back before recording delivery_receipt.",
+        "scripts/external_review_control.py:211-249 preserves the delivery receipt field, Issue-comment identity, canonical-body digest, Project linkage/status, review-artifact, and preserved-gate checks.",
+        "The independent reviewer reran the complete 115-test control-plane suite and 49 focused Consumer/handoff/integration/orchestrator tests successfully on the exact sealed fingerprint.",
+        "output/control-plane/verification-20261017T114946+0800.json records the full exact-candidate deterministic verifier PASS and release_verified=false."
+      ],
+      "affected_files_or_behavior": [
+        "scripts/external_review_control.py delivery_receipt_blockers",
+        "scripts/external_review_handoff.py Issue/Project receipt construction",
+        "scripts/codex_orchestrator.py AR-EXTERNAL-REVIEW completion gate",
+        "tests/control_plane exact delivery-receipt negative coverage"
+      ],
+      "required_resolution": "No further resolution is required for R-010; preserve the exact remote read-back and complete delivery-receipt identity checks while repairing R-009's upstream durable accepted-record validation.",
+      "verification_method": "Continue exercising completion with missing and mismatched repository, PR, HEAD, fingerprint, round, review artifact, Issue, comment identity/author/body, Project linkage/status, rollback/limitations, and preserved-gate values. Only the canonical read-back receipt may pass.",
+      "status": "VERIFIED",
+      "resolution_evidence": [
+        "The exact sealed candidate preserves the previously verified Issue/Project delivery-receipt and goal-completion boundary."
+      ]
+    }
+  ],
+  "verified_requirements": [
+    "AR-EXTERNAL-REVIEW acceptance criterion 1: comparison of sealed cycle-10 and cycle-11 manifests shows no Issue #8 product implementation byte changes; the delta is bounded to the R-009 control repair, tests, PLAN authorization, and review artifacts",
+    "AR-EXTERNAL-REVIEW acceptance criterion 2: Draft PR #23 head/base shape and open/unmerged PR #22 dependency remain checked before remote mutation and after publication",
+    "AR-EXTERNAL-REVIEW acceptance criterion 3 for publication identity: Publication Receipt, PR marker, remote HEAD, fingerprint, round, repository, and PR checks remain exact and fail closed",
+    "AR-EXTERNAL-REVIEW acceptance criterion 5 delivery evidence: Issue #8 and configured Project Review Queue receipt identity remain exactly read back and cross-validated",
+    "R-008 and R-010 remain VERIFIED for candidate fingerprint 78fc97547585a6c7f251004ea1af0bc23dd0c99b480637fd28311d2294d4af19",
+    "R-009 partial repair: one shared validator now rejects missing and individually malformed accepted-record fields at first handoff, JSON reload/restart, human-gate, and delivery-completion boundaries",
+    "All 115 control-plane tests, 49 focused Consumer/handoff/integration/orchestrator tests, requirements guard, preflight, review validator, and git diff check passed during independent review; the repository verifier separately records 329 Python product and 60 Node tests PASS for the exact sealed fingerprint",
+    "Negative requirements remain preserved: the review changed only .ai/REVIEW_RESULT.md, introduced no private archive copy or inferred understanding, did not mutate PR #1/PR #22/main, and did not promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
+  ],
+  "unverified_requirements": [
+    "AR-EXTERNAL-REVIEW acceptance criterion 4 remains unsatisfied across restart because self-consistent malformed or non-canonical durable external identity can still be treated as an exact PASS and make HUMAN_CHECKPOINT_REQUIRED reachable",
+    "AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT External evidence boundary and State invariants 4 and 6 remain unsatisfied because a non-GitHub artifact URL, invalid round, malformed commit, or malformed fingerprint can pass when sibling mutable state is rewritten consistently",
+    "R-009 remains OPEN; this internal verdict does not establish candidate publication, an external product-review PASS, native-device behavior, learner acceptance, or release readiness"
+  ],
+  "human_decisions_required": [],
+  "human_gates_preserved": [
+    "PA-HUMAN-1",
+    "NS-HUMAN-SMOKE",
+    "release_verified=false"
+  ],
+  "reviewed_at": "2026-10-17T11:53:25+08:00"
+}
+```
+<!-- END KGNOTE REVIEW RESULT JSON -->
+
+Verdict: `CHANGES_REQUIRED`. R-008 and R-010 remain verified. R-009 remains open because the shared durable-record validator closes the single-field omission matrix but still accepts self-consistent non-canonical or malformed external identity and can incorrectly make the human checkpoint eligible. No external product-review, human, native-device, or release gate is promoted.

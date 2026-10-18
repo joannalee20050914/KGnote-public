@@ -202,6 +202,12 @@ def _markdown_block_quote_lines(lines: list[str]) -> set[int]:
         if not line.strip():
             in_quote_paragraph = False
             continue
+        # An ATX heading interrupts a Markdown paragraph, so it cannot be a
+        # lazy continuation of the preceding block quote. Keep the original
+        # line available to speaker-marker validation.
+        if in_quote_paragraph and _TITLE.match(line):
+            in_quote_paragraph = False
+            continue
         if in_quote_paragraph:
             quoted.add(number)
     return quoted

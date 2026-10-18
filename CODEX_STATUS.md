@@ -6,7 +6,7 @@ This file records facts and recovery state; it does not define product requireme
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-16T16:59:00+08:00",
+  "updated_at": "2026-10-18T00:00:00+08:00",
   "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "goal_status": "active",
   "active_milestone_id": "AR-EXTERNAL-REVIEW",
@@ -15,15 +15,15 @@ This file records facts and recovery state; it does not define product requireme
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/issue-8-source-library",
-    "head": "11db14fb9d385f21957f029ecd802e6ad42f6a21",
+    "head": "53c71a81a7c1a1483c7490f652007e5db1c7b6a5",
     "base_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
     "base_pull_request": 22,
     "base_pull_request_state": "OPEN_DRAFT_UNMERGED",
-    "checkpoint_commit": "ed2daa3d07414870b36a5965b56f62c5889ce9b9"
+    "checkpoint_commit": "53c71a81a7c1a1483c7490f652007e5db1c7b6a5"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
+    "fingerprint": "ae69844871ccb00f1d2058107d0008d78b86cf206e75e0dde49770e0c25ab7b7",
     "starting_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
     "expected_dirty_policy": "Issue #8 may change only its product import/source-library/UI paths, bounded tests, requirement delivery evidence, and necessary control/review state. Existing Issue #19 closure receipts are preserved; unrelated changes are forbidden.",
     "preserved_preexisting_dirty_paths": [
@@ -37,25 +37,23 @@ This file records facts and recovery state; it does not define product requireme
   "review": {
     "state": "IMPLEMENTING",
     "current_review_id": null,
-    "candidate_revision": "11db14fb9d385f21957f029ecd802e6ad42f6a21+worktree:cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
-    "candidate_fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
-    "unresolved_findings": [
-      "R-008",
-      "R-009",
-      "R-010"
-    ],
+    "candidate_revision": null,
+    "candidate_fingerprint": null,
+    "unresolved_findings": [],
     "human_decision_blockers": []
   },
   "external_review": {
     "repository": "joannalee20050914/KGnote-public",
     "pull_request": 23,
-    "status": "NOT_RUN_FOR_ISSUE_8",
-    "review_round": null,
-    "reviewed_commit": null,
-    "reviewed_fingerprint": null,
-    "artifact_url": null,
-    "consumer_status": "not_run",
-    "blocking_findings": [],
+    "status": "CHANGES_REQUIRED",
+    "review_round": 6,
+    "reviewed_commit": "53c71a81a7c1a1483c7490f652007e5db1c7b6a5",
+    "reviewed_fingerprint": "ae69844871ccb00f1d2058107d0008d78b86cf206e75e0dde49770e0c25ab7b7",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/23#pullrequestreview-5557141035",
+    "consumer_status": "accepted",
+    "blocking_findings": [
+      "finding-r-004"
+    ],
     "applies_to_current_worktree": false
   },
   "historical_external_review": {
@@ -72,15 +70,15 @@ This file records facts and recovery state; it does not define product requireme
     "unattended_writeback": "not_verified_human_approval_was_still_required"
   },
   "verification": {
-    "candidate_verified": true,
+    "candidate_verified": false,
     "release_verified": false,
-    "control_plane_ready": true,
+    "control_plane_ready": false,
     "last_green_milestone": "S2B-REVIEW-INTEGRATION-TASK",
-    "last_candidate_evidence": "output/control-plane/verification-20261016T165421+0800.json",
-    "last_verified_fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
-    "last_result": "Deterministic verification passed for the exact candidate; semantic review is pending."
+    "last_candidate_evidence": "output/control-plane/verification-20261017T165209+0800.json",
+    "last_verified_fingerprint": "ae69844871ccb00f1d2058107d0008d78b86cf206e75e0dde49770e0c25ab7b7",
+    "last_result": "External Round 6 CHANGES_REQUIRED remains bound to ae698448. The owner authorized controlled reconciliation of the separately preserved dirty finding-r-004 repair; it is still unverified and inherits no historical PASS."
   },
-  "next_action": "Implement only the authority-bounded resolutions, preserve finding IDs, rerun deterministic verification, and issue a new fingerprint-bound review request.",
+  "next_action": "While AUTOMATION_BLOCKED, checkpoint the preserved finding-r-004 repair and controlled-reconciliation records, verify Budget Stop routing, then run full verification/read-back/preflight before any exact terminal-state resume.",
   "external_or_human_gates": [
     {
       "id": "PR22-STACKED-BASE",
@@ -89,8 +87,8 @@ This file records facts and recovery state; it does not define product requireme
     },
     {
       "id": "ISSUE8-INDEPENDENT-REVIEW",
-      "status": "not_run",
-      "description": "A future exact Issue #8 candidate must pass the existing internal and external review flow; no old PASS is inherited."
+      "status": "cycle_14_pass_cycle_15_authorized_pending_clean_checkpoint",
+      "description": "Cycle 14 PASS remains valid only for revision db3b5ed+worktree:fe973f7b. Owner authorization permits exactly one replacement cycle 15 after a bounded checkpoint commit, shared clean-candidate gate, exact verification, read-only prepublication checks, pre-seal reservation, Seal, and identity read-back."
     },
     {
       "id": "PA-HUMAN-1",
@@ -119,6 +117,6 @@ This file records facts and recovery state; it does not define product requireme
 Goal `GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1` remains active at milestone `AR-EXTERNAL-REVIEW`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
-Unresolved findings: R-008, R-009, R-010. Human decision blockers: none.
-Exact next action: Implement only the authority-bounded resolutions, preserve finding IDs, rerun deterministic verification, and issue a new fingerprint-bound review request.
+Unresolved findings: none. Human decision blockers: none.
+Exact next action: While AUTOMATION_BLOCKED, checkpoint the preserved finding-r-004 repair and controlled-reconciliation records, verify Budget Stop routing, then run full verification/read-back/preflight before any exact terminal-state resume.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

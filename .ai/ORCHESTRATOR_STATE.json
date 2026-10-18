@@ -1,20 +1,31 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "orch-ad54c73103f7",
+  "run_id": "orch-ac875fa2031a",
   "active_goal": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "work_package": "AR-EXTERNAL-REVIEW",
-  "state": "REPAIRING",
+  "state": "AUTOMATION_BLOCKED",
   "current_agent": null,
-  "candidate_fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
+  "candidate_fingerprint": "ae69844871ccb00f1d2058107d0008d78b86cf206e75e0dde49770e0c25ab7b7",
   "review_id": null,
-  "review_cycle": 4,
+  "review_cycle": 19,
   "max_review_cycles": 5,
+  "base_review_cycles": 5,
+  "supplemental_review_limit": 15,
+  "supplemental_review_used": 14,
+  "supplemental_review_authority": "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md",
   "agent_failures": 0,
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
-  "blockers": [],
-  "next_action": "Automatically return reviewer findings to a fresh implementer context.",
-  "human_action_required": false,
+  "blockers": [
+    {
+      "type": "preflight_failure",
+      "errors": [
+        "status_drift: recorded working-state fingerprint does not match repository; expected ae69844871ccb00f1d2058107d0008d78b86cf206e75e0dde49770e0c25ab7b7, got 9a7e20721c615d59a7534102fdc51afe61cacff0ad78dfcf0ef9172a9ed8ce16"
+      ]
+    }
+  ],
+  "next_action": "Resolve the structured preflight blockers, then run orchestrator resume.",
+  "human_action_required": true,
   "candidate_custody": {
     "status": "NONE",
     "owner": null,
@@ -27,15 +38,30 @@
     "description": "Requires native product and learner evidence; deterministic tests and AI review cannot promote it."
   },
   "last_agent_run": {
-    "role": "reviewer",
+    "role": "implementer",
     "separate_ephemeral_context": true,
     "exit_code": 0,
-    "duration_seconds": 241.107,
-    "output_tail": "hestrator.py AR-EXTERNAL-REVIEW completion gate\",\n+        \"GitHub Issue #8 status/evidence\",\n+        \"GitHub Project item status/evidence\",\n+        \"Durable external-review completion receipt and read-back tests\"\n+      ],\n+      \"required_resolution\": \"Implement an authorized Issue #8 and GitHub Project update/read-back step, retain a durable exact-candidate receipt, and make missing or mismatched evidence block milestone/goal completion. Include remaining limitations, rollback instructions, and explicit preservation of all human/release gates.\",\n+      \"verification_method\": \"Exercise the post-Consumer PASS path with mocked GitHub Issue/Project APIs and a live authorized read-back when available; assert GOAL_COMPLETE is impossible until both records match the exact PR/HEAD/fingerprint/round/artifact and preserved-gate values, and add negative tests for missing, stale, wrong-repository, or partially updated metadata.\",\n+      \"status\": \"OPEN\"\n+    }\n+  ],\n+  \"verified_requirements\": [\n+    \"AR-EXTERNAL-REVIEW acceptance criterion 1: the manifest delta from the internally passed c99c182 candidate to the sealed 11db14f candidate changes only PLAN.md among fingerprinted paths; source-library product, test, and requirement bytes are unchanged\",\n+    \"Canonical/candidate/trigger/review-request repository configuration consistently names joannalee20050914/KGnote-public and PR #23\",\n+    \"Publication marker, candidate commit/fingerprint, review round, exact trigger-template, and remote-head fail-closed checks that are currently implemented\",\n+    \"Existing Consumer schema and exact repository/PR/program/goal/commit/fingerprint/round/author checks in isolation\",\n+    \"PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unpromoted\",\n+    \"R-003 through R-007 remain VERIFIED for their historical exact c99c182 candidate and were not rebound to this candidate\"\n+  ],\n+  \"unverified_requirements\": [\n+    \"AR-EXTERNAL-REVIEW acceptance criterion 2: exact Draft/head/base/dependency PR shape is not fail-closed or sealed\",\n+    \"AR-EXTERNAL-REVIEW acceptance criteria 3 and 4: exact external result acquisition, Consumer invocation, persistence, and autonomous routing are not connected end to end\",\n+    \"AR-EXTERNAL-REVIEW acceptance criterion 5: Issue #8 and GitHub Project exact-evidence update/read-back is absent\",\n+    \"Goal completion for the Issue #8 external-review milestone\"\n+  ],\n   \"human_decisions_required\": [],\n-  \"human_gates_preserved\": [],\n-  \"reviewed_at\": null\n+  \"human_gates_preserved\": [\n+    \"PA-HUMAN-1\",\n+    \"NS-HUMAN-SMOKE\",\n+    \"release_verified=false\"\n+  ],\n+  \"reviewed_at\": \"2026-10-16T16:58:01+08:00\"\n }\n ```\n <!-- END KGNOTE REVIEW RESULT JSON -->\n \n-Verdict: `PASS`. R-003 through R-007 are verified for the exact sealed candidate at HEAD `c99c182c80acff6047aba88ebb471760a66b8849` and fingerprint `6dc468b961387118a3f770c476096fbd9a96c892c041b350941f114a49bca5f6`. This internal verdict does not promote external product review, PA-HUMAN-1, NS-HUMAN-SMOKE, multi-process safety, or release verification.\n+Verdict: `CHANGES_REQUIRED`. Product bytes remain unchanged from the internally passed candidate, but R-008 through R-010 block exact external publication/review completion and durable Issue/Project closure. No human, native-device, external-product-review, or release gate is promoted.\n\ntokens used\n126,723\n獨立審查完成，Verdict：`CHANGES_REQUIRED`。\n\n- `R-008`：publication 未驗證 PR #23 的 Draft、head branch、stacked base 與 PR #22 狀態。\n- `R-009`：缺少外部 review 結果擷取、Consumer 執行及自動 routing 的完整回路。\n- `R-010`：Goal 可在未更新、讀回 Issue #8 與 GitHub Project 證據時完成。\n- Exact candidate：HEAD `11db14fb9d385f21957f029ecd802e6ad42f6a21`\n- Fingerprint：`cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17`\n- `review-validate-pending`：PASS\n- 僅修改 reviewer-owned [`.ai/REVIEW_RESULT.md`](/Users/joanna/KGnote-public-rewrite-20261005/.ai/REVIEW_RESULT.md)\n- 未執行 submit、resume 或任何候選檔案修改\n- `PA-HUMAN-1`、`NS-HUMAN-SMOKE`、`release_verified=false` 均保持不變。\n",
-    "last_message_path": "output/control-plane/orchestrator/orch-ad54c73103f7-reviewer-20261016T165459+0800.txt",
-    "created_at": "2026-10-16T16:59:00+08:00",
-    "transcript_path": "output/control-plane/orchestrator/orch-ad54c73103f7-reviewer-20261016T165459+0800.json"
+    "duration_seconds": 107.141,
+    "output_tail": "         \"## User\\nQuestion.\\n\\n## Assistant\\n> Example quoted text.\\n\"\n+                    \"## User\\nReal follow-up question.\\n\",\n+                    [(\"user\", \"L1-L3\"), (\"assistant\", \"L4-L5\"), (\"user\", \"L6-L7\")],\n+                ),\n+            )\n+            for index, (content, expected) in enumerate(cases, 1):\n+                with self.subTest(index=index):\n+                    status, accepted = import_source(root, request(\n+                        title=\"Post-quote speaker\", content=content,\n+                        source_kind=\"chatgpt_conversation\", file_name=f\"post-quote-{index}.md\",\n+                    ))\n+                    self.assertEqual(status, \"created\")\n+                    read_back = read_source(root, accepted[\"source\"][\"source_id\"])\n+                    self.assertEqual(read_back[\"content\"].encode(\"utf-8\"), content.encode(\"utf-8\"))\n+                    self.assertEqual(\n+                        [(span[\"role\"], span[\"locator\"][\"value\"]) for span in read_back[\"revision\"][\"speaker_spans\"]],\n+                        expected,\n+                    )\n+\n     def test_bom_is_semantic_neutral_for_blank_and_first_conversation_speaker(self) -> None:\n         with tempfile.TemporaryDirectory() as temporary:\n             root = Path(temporary) / \"library\"\ndiff --git a/tests/test_source_library_http.py b/tests/test_source_library_http.py\nindex 3f6c6dd4cc0ced63ac5e7c045d3e51c58f0be15b..800e6cbd5df5b0b35a4253c75117f200b856cbc7\n--- a/tests/test_source_library_http.py\n+++ b/tests/test_source_library_http.py\n@@ -248,6 +248,37 @@\n             [(\"user\", \"L1-L3\"), (\"assistant\", \"L4-L7\"), (\"assistant\", \"L8-L8\")],\n         )\n \n+    def test_post_block_quote_atx_speaker_heading_is_attributed_through_http(self) -> None:\n+        cases = (\n+            (\n+                \"## User\\n> My quotation.\\n## Assistant\\nReal assistant answer.\\n\",\n+                [(\"user\", \"L1-L2\"), (\"assistant\", \"L3-L4\")],\n+            ),\n+            (\n+                \"## User\\nQuestion.\\n\\n## Assistant\\n> Example quoted text.\\n\"\n+                \"## User\\nReal follow-up question.\\n\",\n+                [(\"user\", \"L1-L3\"), (\"assistant\", \"L4-L5\"), (\"user\", \"L6-L7\")],\n+            ),\n+        )\n+        for index, (content, expected) in enumerate(cases, 1):\n+            with self.subTest(index=index):\n+                raw = content.encode(\"utf-8\")\n+                status, accepted = self.request(\"POST\", \"/api/library/sources\", source_request(\n+                    title=\"Post-quote speaker\",\n+                    content=content,\n+                    source_kind=\"chatgpt_conversation\",\n+                    locator={\"kind\": \"file_name\", \"value\": f\"post-quote-speaker-{index}.md\"},\n+                ))\n+                self.assertEqual(status, 201)\n+                status, exact = self.request(\"GET\", f\"/api/library/sources/{accepted['source']['source_id']}\")\n+                self.assertEqual(status, 200)\n+                self.assertEqual(exact[\"content\"].encode(\"utf-8\"), raw)\n+                self.assertEqual(exact[\"revision\"][\"content_sha256\"], hashlib.sha256(raw).hexdigest())\n+                self.assertEqual(\n+                    [(span[\"role\"], span[\"locator\"][\"value\"]) for span in exact[\"revision\"][\"speaker_spans\"]],\n+                    expected,\n+                )\n+\n \n if __name__ == \"__main__\":\n     unittest.main()\n\ntokens used\n53,998\n`finding-r-004` 已修復並保留為 `FIXED_PENDING_REVIEW`。\n\n- ATX speaker heading 現在會中止 blockquote lazy continuation，不再吞掉緊接的 `## User`／`## Assistant`。\n- 保留既有非 heading lazy continuation、HTML comment 與 fenced-code 保護。\n- 新增兩個外部反例的 domain 與 HTTP POST/GET regression，驗證原始 bytes、SHA-256 與精確 line locator。\n- Domain tests：15/15 通過。\n- Requirements guard、syntax、`git diff --check`、review artifact validation 均通過。\n- HTTP suite 在本 sandbox 於 socket bind 階段被禁止，fixture 已準備供 orchestrator deterministic validation。\n- 新候選 fingerprint：`9a7e20721c615d59a7534102fdc51afe61cacff0ad78dfcf0ef9172a9ed8ce16`\n\n未提交、發布、執行 reviewer verdict，亦未提升任何 human/release gate。\n",
+    "last_message_path": "output/control-plane/orchestrator/orch-ac875fa2031a-implementer-20261017T170410+0800.txt",
+    "created_at": "2026-10-17T17:05:57+08:00",
+    "transcript_path": "output/control-plane/orchestrator/orch-ac875fa2031a-implementer-20261017T170410+0800.json"
   },
   "created_at": "2026-10-16T16:36:21+08:00",
-  "updated_at": "2026-10-16T16:59:00+08:00"
+  "updated_at": "2026-10-17T17:06:30+08:00",
+  "reviewer_context_launch": {
+    "context_id": "reviewer-context-7330530539054281a875a3c6ac1b2108",
+    "review_cycle": 19,
+    "review_id": "review-d2-t01-source-library-v1-019",
+    "candidate_fingerprint": "ae69844871ccb00f1d2058107d0008d78b86cf206e75e0dde49770e0c25ab7b7",
+    "status": "STARTED",
+    "started_at": "2026-10-17T16:53:57+08:00"
+  },
+  "review_budget_reservation": {
+    "review_cycle": 19,
+    "supplemental_used": 14,
+    "status": "CONSUMED",
+    "authority": "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md",
+    "consumed_at": "2026-10-17T16:53:57+08:00"
+  }
 }

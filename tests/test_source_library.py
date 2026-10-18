@@ -210,6 +210,34 @@ class SourceLibraryTests(unittest.TestCase):
                 [("user", "L1-L3"), ("assistant", "L4-L7"), ("assistant", "L8-L8")],
             )
 
+    def test_conversation_recognizes_atx_speaker_heading_immediately_after_block_quote(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "library"
+            cases = (
+                (
+                    "## User\n> My quotation.\n## Assistant\nReal assistant answer.\n",
+                    [("user", "L1-L2"), ("assistant", "L3-L4")],
+                ),
+                (
+                    "## User\nQuestion.\n\n## Assistant\n> Example quoted text.\n"
+                    "## User\nReal follow-up question.\n",
+                    [("user", "L1-L3"), ("assistant", "L4-L5"), ("user", "L6-L7")],
+                ),
+            )
+            for index, (content, expected) in enumerate(cases, 1):
+                with self.subTest(index=index):
+                    status, accepted = import_source(root, request(
+                        title="Post-quote speaker", content=content,
+                        source_kind="chatgpt_conversation", file_name=f"post-quote-{index}.md",
+                    ))
+                    self.assertEqual(status, "created")
+                    read_back = read_source(root, accepted["source"]["source_id"])
+                    self.assertEqual(read_back["content"].encode("utf-8"), content.encode("utf-8"))
+                    self.assertEqual(
+                        [(span["role"], span["locator"]["value"]) for span in read_back["revision"]["speaker_spans"]],
+                        expected,
+                    )
+
     def test_bom_is_semantic_neutral_for_blank_and_first_conversation_speaker(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "library"
