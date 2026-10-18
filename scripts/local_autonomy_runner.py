@@ -90,7 +90,7 @@ def route_order(
 def idle_health_order(repo: Path) -> Path:
     path = OUT / "linux-idle-health-order.json"
     value = {
-        "event_id": "production-idle-health-v1",
+        "event_id": "production-idle-health-v2",
         "stage": "ingestion",
         "working_directory": "/home/kgnote/.local/share/kgnote",
         "command": ["/usr/bin/true"],

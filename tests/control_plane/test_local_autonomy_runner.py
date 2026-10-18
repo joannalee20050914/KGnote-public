@@ -36,7 +36,7 @@ class RunnerTests(unittest.TestCase):
         try:
             self.assertEqual(0,RUNNER.run_once(repo,datetime(2026,10,17,20,tzinfo=ZoneInfo("Asia/Taipei")),fake,router))
             self.assertTrue(marker.exists())
-            self.assertEqual("production-idle-health-v1",json.loads((repo/"output/control-plane/production-runner/linux-idle-health-order.json").read_text())["event_id"])
+            self.assertEqual("production-idle-health-v2",json.loads((repo/"output/control-plane/production-runner/linux-idle-health-order.json").read_text())["event_id"])
             self.assertNotIn("codex_orchestrator.py", " ".join(sum(calls, [])))
         finally: tmp.cleanup()
 
