@@ -126,8 +126,8 @@ This file contains exactly one active execution goal. It does not promote any hu
       "authority_url": "docs/control-plane/CONTROLLED_RECONCILIATION_20261018.md",
       "scope": "Preserve all historical usage and permit the controlled Issue #8 continuation through Cycle 22 for finding-r-004 only, after reconciliation and Budget Stop verification",
       "authorized_total": 17,
-      "used": 14,
-      "remaining": 3,
+      "used": 15,
+      "remaining": 2,
       "base_cycles_preserved": 5,
       "authorizations": [
         {
