@@ -25,9 +25,9 @@ The repair adds an ATX-heading interruption to Markdown block-quote lazy continu
 
 ## Completion fields
 
-- Reconciliation checkpoint: pending.
-- Reconciled candidate fingerprint: pending.
+- Reconciliation checkpoints: `35105647898c8703c3c0d27ae9572f4052b7cce5` (preserved repair/history/authority) and `e69c30ee62304bd8144316b376dcbc9702a99343` (Budget Stop routing).
+- Reconciled candidate fingerprint: computed after this receipt is committed and recorded in excluded factual state `CODEX_STATUS.md`; embedding it here would create a self-referential fingerprint.
 - Verification evidence: pending.
 - Preflight: pending.
-- Budget Stop routing evidence: pending.
+- Budget Stop routing evidence: 135 control-plane tests passed; exhausted/restart exact Implementer launch count is zero, independent package isolation passes, and an authorized path remains admitted.
 - Runner restoration eligibility: pending.
