@@ -238,6 +238,32 @@ class SourceLibraryTests(unittest.TestCase):
                         expected,
                     )
 
+    def test_conversation_recognizes_prefix_after_nonparagraph_block_quote(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "library"
+            cases = (
+                ("> # Quoted heading", "Assistant: Real assistant answer.", "assistant"),
+                ("> ---", "Assistant: Real assistant answer.", "assistant"),
+                ("> ```text", "Assistant: Real assistant answer.", "assistant"),
+                ("> - quoted list item", "Assistant: Real assistant answer.", "assistant"),
+                ("> # Quoted heading", "User: Actual user follow-up.", "user"),
+            )
+            for index, (quoted, actual, role) in enumerate(cases, 1):
+                with self.subTest(index=index):
+                    first_role = "Assistant" if role == "user" else "User"
+                    content = f"## {first_role}\n{quoted}\n{actual}\n"
+                    status, accepted = import_source(root, request(
+                        title="Post-quote prefix", content=content,
+                        source_kind="chatgpt_conversation", file_name=f"post-quote-prefix-{index}.md",
+                    ))
+                    self.assertEqual(status, "created")
+                    read_back = read_source(root, accepted["source"]["source_id"])
+                    self.assertEqual(read_back["content"].encode("utf-8"), content.encode("utf-8"))
+                    self.assertEqual(
+                        [(span["role"], span["locator"]["value"]) for span in read_back["revision"]["speaker_spans"]],
+                        [(first_role.casefold(), "L1-L2"), (role, "L3-L3")],
+                    )
+
     def test_bom_is_semantic_neutral_for_blank_and_first_conversation_speaker(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "library"

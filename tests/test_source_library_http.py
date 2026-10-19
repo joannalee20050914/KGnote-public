@@ -279,6 +279,35 @@ class SourceLibraryHttpTests(unittest.TestCase):
                     expected,
                 )
 
+    def test_post_nonparagraph_block_quote_prefix_is_attributed_through_http(self) -> None:
+        cases = (
+            ("> # Quoted heading", "Assistant: Real assistant answer.", [("user", "L1-L2"), ("assistant", "L3-L3")]),
+            ("> ---", "Assistant: Real assistant answer.", [("user", "L1-L2"), ("assistant", "L3-L3")]),
+            ("> ```text", "Assistant: Real assistant answer.", [("user", "L1-L2"), ("assistant", "L3-L3")]),
+            ("> - quoted list item", "Assistant: Real assistant answer.", [("user", "L1-L2"), ("assistant", "L3-L3")]),
+            ("> # Quoted heading", "User: Actual user follow-up.", [("assistant", "L1-L2"), ("user", "L3-L3")]),
+        )
+        for index, (quoted, actual, expected) in enumerate(cases, 1):
+            with self.subTest(index=index):
+                first_role = "Assistant" if expected[0][0] == "assistant" else "User"
+                content = f"## {first_role}\n{quoted}\n{actual}\n"
+                raw = content.encode("utf-8")
+                status, accepted = self.request("POST", "/api/library/sources", source_request(
+                    title="Post-quote prefix",
+                    content=content,
+                    source_kind="chatgpt_conversation",
+                    locator={"kind": "file_name", "value": f"post-quote-prefix-{index}.md"},
+                ))
+                self.assertEqual(status, 201)
+                status, exact = self.request("GET", f"/api/library/sources/{accepted['source']['source_id']}")
+                self.assertEqual(status, 200)
+                self.assertEqual(exact["content"].encode("utf-8"), raw)
+                self.assertEqual(exact["revision"]["content_sha256"], hashlib.sha256(raw).hexdigest())
+                self.assertEqual(
+                    [(span["role"], span["locator"]["value"]) for span in exact["revision"]["speaker_spans"]],
+                    expected,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

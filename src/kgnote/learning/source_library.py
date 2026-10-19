@@ -189,6 +189,26 @@ def _markdown_without_html_comments(lines: list[str], ignored_lines: set[int]) -
     return visible
 
 
+def _markdown_quote_content_opens_paragraph(content: str) -> bool:
+    """Return whether quoted content may have a lazy paragraph continuation."""
+    remainder = content
+    while match := re.match(r"^ {0,3}> ?", remainder):
+        remainder = remainder[match.end():]
+    if not remainder.strip():
+        return False
+    if re.match(r"^ {0,3}#{1,6}(?:\s|$)", remainder):
+        return False
+    if re.match(r"^ {0,3}(?:`{3,}|~{3,})", remainder):
+        return False
+    if re.fullmatch(r" {0,3}(?:(?:\*\s*){3,}|(?:-\s*){3,}|(?:_\s*){3,})", remainder):
+        return False
+    if re.match(r"^ {0,3}(?:[-+*]|\d{1,9}[.)])(?:\s+|$)", remainder):
+        return False
+    if remainder.startswith("    ") or remainder.startswith("\t"):
+        return False
+    return True
+
+
 def _markdown_block_quote_lines(lines: list[str]) -> set[int]:
     """Return block-quote lines, including lazy paragraph continuations."""
     quoted: set[int] = set()
@@ -197,7 +217,7 @@ def _markdown_block_quote_lines(lines: list[str]) -> set[int]:
         if re.match(r"^ {0,3}>", line):
             quoted.add(number)
             quote_content = re.sub(r"^ {0,3}> ?", "", line, count=1)
-            in_quote_paragraph = bool(quote_content.strip())
+            in_quote_paragraph = _markdown_quote_content_opens_paragraph(quote_content)
             continue
         if not line.strip():
             in_quote_paragraph = False
