@@ -245,7 +245,6 @@ class SourceLibraryTests(unittest.TestCase):
                 ("> # Quoted heading", "Assistant: Real assistant answer.", "assistant"),
                 ("> ---", "Assistant: Real assistant answer.", "assistant"),
                 ("> ```text", "Assistant: Real assistant answer.", "assistant"),
-                ("> - quoted list item", "Assistant: Real assistant answer.", "assistant"),
                 ("> # Quoted heading", "User: Actual user follow-up.", "user"),
             )
             for index, (quoted, actual, role) in enumerate(cases, 1):
@@ -263,6 +262,50 @@ class SourceLibraryTests(unittest.TestCase):
                         [(span["role"], span["locator"]["value"]) for span in read_back["revision"]["speaker_spans"]],
                         [(first_role.casefold(), "L1-L2"), (role, "L3-L3")],
                     )
+
+    def test_conversation_ends_lazy_quote_at_unquoted_block_opener(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "library"
+            cases = (
+                "> Quoted note.\n```python\nprint(1)\n```\nAssistant: Here it is.\n",
+                "> Quoted note.\n***\nAssistant: After the break.\n",
+                "> Quoted note.\n- real list item\nAssistant: After the list.\n",
+                "> Quoted note.\n<div>\nreal block\n</div>\nAssistant: After HTML.\n",
+            )
+            for index, tail in enumerate(cases, 1):
+                with self.subTest(index=index):
+                    content = f"User: Show me.\n{tail}"
+                    status, accepted = import_source(root, request(
+                        title="Quote block termination", content=content,
+                        source_kind="chatgpt_conversation", file_name=f"quote-termination-{index}.md",
+                    ))
+                    self.assertEqual(status, "created")
+                    read_back = read_source(root, accepted["source"]["source_id"])
+                    self.assertEqual(read_back["content"].encode("utf-8"), content.encode("utf-8"))
+                    last_line = len(content.splitlines())
+                    self.assertEqual(
+                        [(span["role"], span["locator"]["value"]) for span in read_back["revision"]["speaker_spans"]],
+                        [("user", f"L1-L{last_line - 1}"), ("assistant", f"L{last_line}-L{last_line}")],
+                    )
+
+    def test_conversation_rejects_ambiguous_quoted_list_lazy_speaker(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "library"
+            for continuation, marker in (
+                ("", "Assistant: Real assistant answer."),
+                ("", "## Assistant"),
+                ("lazy list paragraph continuation\n", "Assistant: Real assistant answer."),
+            ):
+                with self.subTest(continuation=continuation, marker=marker):
+                    content = f"## User\n> - quoted list item\n{continuation}{marker}\n"
+                    before = tree_bytes(root)
+                    status, rejected = import_source(root, request(
+                        title="Ambiguous quoted list", content=content,
+                        source_kind="chatgpt_conversation", file_name=f"ambiguous-list-{len(marker)}.md",
+                    ))
+                    self.assertEqual(status, "rejected")
+                    self.assertEqual(rejected["problem"]["code"], "ambiguous_conversation_speaker")
+                    self.assertEqual(tree_bytes(root), before)
 
     def test_bom_is_semantic_neutral_for_blank_and_first_conversation_speaker(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

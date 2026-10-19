@@ -189,43 +189,71 @@ def _markdown_without_html_comments(lines: list[str], ignored_lines: set[int]) -
     return visible
 
 
-def _markdown_quote_content_opens_paragraph(content: str) -> bool:
-    """Return whether quoted content may have a lazy paragraph continuation."""
+_MARKDOWN_LIST_ITEM = re.compile(r"^ {0,3}(?:[-+*]|\d{1,9}[.)])(?:\s+|$)")
+_MARKDOWN_HTML_BLOCK = re.compile(
+    r"^ {0,3}(?:"
+    r"<!--|<\?|<![A-Z]|<!\[CDATA\[|"
+    r"</?(?:address|article|aside|base|basefont|blockquote|body|caption|center|"
+    r"col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|"
+    r"footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|"
+    r"link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|search|"
+    r"section|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(?:\s|/?>|$)"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def _markdown_line_interrupts_paragraph(line: str) -> bool:
+    """Return whether a CommonMark block opener interrupts paragraph text."""
+    return bool(
+        _TITLE.match(line)
+        or re.match(r"^ {0,3}(?:`{3,}|~{3,})", line)
+        or re.fullmatch(r" {0,3}(?:(?:\*\s*){3,}|(?:-\s*){3,}|(?:_\s*){3,})", line)
+        or _MARKDOWN_LIST_ITEM.match(line)
+        or _MARKDOWN_HTML_BLOCK.match(line)
+        or line.startswith("    ")
+        or line.startswith("\t")
+    )
+
+
+def _markdown_quote_content_kind(content: str) -> str:
+    """Classify quoted content for safe lazy-continuation handling."""
     remainder = content
     while match := re.match(r"^ {0,3}> ?", remainder):
         remainder = remainder[match.end():]
-    if not remainder.strip():
-        return False
-    if re.match(r"^ {0,3}#{1,6}(?:\s|$)", remainder):
-        return False
-    if re.match(r"^ {0,3}(?:`{3,}|~{3,})", remainder):
-        return False
-    if re.fullmatch(r" {0,3}(?:(?:\*\s*){3,}|(?:-\s*){3,}|(?:_\s*){3,})", remainder):
-        return False
-    if re.match(r"^ {0,3}(?:[-+*]|\d{1,9}[.)])(?:\s+|$)", remainder):
-        return False
-    if remainder.startswith("    ") or remainder.startswith("\t"):
-        return False
-    return True
+    if not remainder.strip() or _markdown_line_interrupts_paragraph(remainder):
+        return "list_container" if _MARKDOWN_LIST_ITEM.match(remainder) else "nonparagraph"
+    return "paragraph"
 
 
 def _markdown_block_quote_lines(lines: list[str]) -> set[int]:
     """Return block-quote lines, including lazy paragraph continuations."""
     quoted: set[int] = set()
     in_quote_paragraph = False
+    ambiguous_list_container = False
     for number, line in enumerate(lines, 1):
         if re.match(r"^ {0,3}>", line):
             quoted.add(number)
             quote_content = re.sub(r"^ {0,3}> ?", "", line, count=1)
-            in_quote_paragraph = _markdown_quote_content_opens_paragraph(quote_content)
+            quote_kind = _markdown_quote_content_kind(quote_content)
+            in_quote_paragraph = quote_kind == "paragraph"
+            ambiguous_list_container = quote_kind == "list_container"
             continue
         if not line.strip():
             in_quote_paragraph = False
+            ambiguous_list_container = False
             continue
-        # An ATX heading interrupts a Markdown paragraph, so it cannot be a
+        if ambiguous_list_container:
+            if _SPEAKER_HEADING.match(line) or _SPEAKER_PREFIX.match(line) or _POSSIBLE_PREFIX.match(line):
+                raise SourceLibraryError("ambiguous_conversation_speaker")
+            if not _markdown_line_interrupts_paragraph(line):
+                quoted.add(number)
+                continue
+            ambiguous_list_container = False
+        # A block opener interrupts a Markdown paragraph, so it cannot be a
         # lazy continuation of the preceding block quote. Keep the original
         # line available to speaker-marker validation.
-        if in_quote_paragraph and _TITLE.match(line):
+        if in_quote_paragraph and _markdown_line_interrupts_paragraph(line):
             in_quote_paragraph = False
             continue
         if in_quote_paragraph:

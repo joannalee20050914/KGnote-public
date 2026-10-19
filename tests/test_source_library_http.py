@@ -284,7 +284,6 @@ class SourceLibraryHttpTests(unittest.TestCase):
             ("> # Quoted heading", "Assistant: Real assistant answer.", [("user", "L1-L2"), ("assistant", "L3-L3")]),
             ("> ---", "Assistant: Real assistant answer.", [("user", "L1-L2"), ("assistant", "L3-L3")]),
             ("> ```text", "Assistant: Real assistant answer.", [("user", "L1-L2"), ("assistant", "L3-L3")]),
-            ("> - quoted list item", "Assistant: Real assistant answer.", [("user", "L1-L2"), ("assistant", "L3-L3")]),
             ("> # Quoted heading", "User: Actual user follow-up.", [("assistant", "L1-L2"), ("user", "L3-L3")]),
         )
         for index, (quoted, actual, expected) in enumerate(cases, 1):
@@ -307,6 +306,33 @@ class SourceLibraryHttpTests(unittest.TestCase):
                     [(span["role"], span["locator"]["value"]) for span in exact["revision"]["speaker_spans"]],
                     expected,
                 )
+
+    def test_quote_scope_termination_and_quoted_list_rejection_through_http(self) -> None:
+        content = "User: Show me code\n> Quoted note.\n```\nprint(1)\n```\nAssistant: Here it is.\n"
+        raw = content.encode("utf-8")
+        status, accepted = self.request("POST", "/api/library/sources", source_request(
+            title="Quote scope termination", content=content,
+            source_kind="chatgpt_conversation",
+            locator={"kind": "file_name", "value": "quote-scope-termination.md"},
+        ))
+        self.assertEqual(status, 201)
+        status, exact = self.request("GET", f"/api/library/sources/{accepted['source']['source_id']}")
+        self.assertEqual(status, 200)
+        self.assertEqual(exact["content"].encode("utf-8"), raw)
+        self.assertEqual(exact["revision"]["content_sha256"], hashlib.sha256(raw).hexdigest())
+        self.assertEqual(
+            [(span["role"], span["locator"]["value"]) for span in exact["revision"]["speaker_spans"]],
+            [("user", "L1-L5"), ("assistant", "L6-L6")],
+        )
+
+        ambiguous = "## User\n> - quoted list item\nAssistant: Real assistant answer.\n"
+        status, rejected = self.request("POST", "/api/library/sources", source_request(
+            title="Ambiguous quoted list", content=ambiguous,
+            source_kind="chatgpt_conversation",
+            locator={"kind": "file_name", "value": "ambiguous-quoted-list.md"},
+        ))
+        self.assertEqual(status, 400)
+        self.assertEqual(rejected["problem"]["code"], "ambiguous_conversation_speaker")
 
 
 if __name__ == "__main__":
