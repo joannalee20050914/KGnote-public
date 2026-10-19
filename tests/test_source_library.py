@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import tempfile
 import unittest
@@ -287,6 +288,50 @@ class SourceLibraryTests(unittest.TestCase):
                         [(span["role"], span["locator"]["value"]) for span in read_back["revision"]["speaker_spans"]],
                         [("user", f"L1-L{last_line - 1}"), ("assistant", f"L{last_line}-L{last_line}")],
                     )
+
+    def test_conversation_keeps_non_interrupting_lines_in_lazy_quote(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "library"
+            continuations = ("    still quoted", "\tstill quoted", "2) still quoted", "2. still quoted", "-", "1.")
+            for index, continuation in enumerate(continuations, 1):
+                with self.subTest(continuation=continuation):
+                    content = f"## User\n> Quoted note.\n{continuation}\nAssistant: quoted lazy line\n"
+                    raw = content.encode("utf-8")
+                    status, accepted = import_source(root, request(
+                        title="Lazy quote interruption",
+                        content=content,
+                        source_kind="chatgpt_conversation",
+                        file_name=f"lazy-non-interrupting-{index}.md",
+                    ))
+                    self.assertEqual(status, "created")
+                    read_back = read_source(root, accepted["source"]["source_id"])
+                    self.assertEqual(read_back["content"].encode("utf-8"), raw)
+                    self.assertEqual(read_back["revision"]["content_sha256"], hashlib.sha256(raw).hexdigest())
+                    self.assertEqual(
+                        [(span["role"], span["locator"]["value"]) for span in read_back["revision"]["speaker_spans"]],
+                        [("user", "L1-L4")],
+                    )
+
+    def test_conversation_ignores_quoted_list_example_inside_fence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "library"
+            content = (
+                "## User\nShow me.\n```markdown\n> - quoted item\n"
+                "Assistant: example\n```\n## Assistant\nAnswer\n"
+            )
+            status, accepted = import_source(root, request(
+                title="Fenced quoted list",
+                content=content,
+                source_kind="chatgpt_conversation",
+                file_name="fenced-quoted-list.md",
+            ))
+            self.assertEqual(status, "created")
+            read_back = read_source(root, accepted["source"]["source_id"])
+            self.assertEqual(read_back["content"].encode("utf-8"), content.encode("utf-8"))
+            self.assertEqual(
+                [(span["role"], span["locator"]["value"]) for span in read_back["revision"]["speaker_spans"]],
+                [("user", "L1-L6"), ("assistant", "L7-L8")],
+            )
 
     def test_conversation_rejects_ambiguous_quoted_list_lazy_speaker(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

@@ -334,6 +334,39 @@ class SourceLibraryHttpTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertEqual(rejected["problem"]["code"], "ambiguous_conversation_speaker")
 
+    def test_lazy_quote_non_interruptions_and_fenced_quote_example_through_http(self) -> None:
+        cases = (
+            ("## User\n> Quoted note.\n    still quoted\nAssistant: quoted lazy line\n", [("user", "L1-L4")]),
+            ("## User\n> Quoted note.\n\tstill quoted\nAssistant: quoted lazy line\n", [("user", "L1-L4")]),
+            ("## User\n> Quoted note.\n2) still quoted\nAssistant: quoted lazy line\n", [("user", "L1-L4")]),
+            ("## User\n> Quoted note.\n2. still quoted\nAssistant: quoted lazy line\n", [("user", "L1-L4")]),
+            ("## User\n> Quoted note.\n-\nAssistant: quoted lazy line\n", [("user", "L1-L4")]),
+            ("## User\n> Quoted note.\n1.\nAssistant: quoted lazy line\n", [("user", "L1-L4")]),
+            (
+                "## User\nShow me.\n```markdown\n> - quoted item\nAssistant: example\n```\n"
+                "## Assistant\nAnswer\n",
+                [("user", "L1-L6"), ("assistant", "L7-L8")],
+            ),
+        )
+        for index, (content, expected) in enumerate(cases, 1):
+            with self.subTest(index=index):
+                raw = content.encode("utf-8")
+                status, accepted = self.request("POST", "/api/library/sources", source_request(
+                    title="Quote context boundaries",
+                    content=content,
+                    source_kind="chatgpt_conversation",
+                    locator={"kind": "file_name", "value": f"quote-context-{index}.md"},
+                ))
+                self.assertEqual(status, 201)
+                status, exact = self.request("GET", f"/api/library/sources/{accepted['source']['source_id']}")
+                self.assertEqual(status, 200)
+                self.assertEqual(exact["content"].encode("utf-8"), raw)
+                self.assertEqual(exact["revision"]["content_sha256"], hashlib.sha256(raw).hexdigest())
+                self.assertEqual(
+                    [(span["role"], span["locator"]["value"]) for span in exact["revision"]["speaker_spans"]],
+                    expected,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

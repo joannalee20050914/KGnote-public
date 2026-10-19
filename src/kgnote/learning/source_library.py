@@ -189,7 +189,9 @@ def _markdown_without_html_comments(lines: list[str], ignored_lines: set[int]) -
     return visible
 
 
-_MARKDOWN_LIST_ITEM = re.compile(r"^ {0,3}(?:[-+*]|\d{1,9}[.)])(?:\s+|$)")
+_MARKDOWN_LIST_ITEM = re.compile(
+    r"^ {0,3}(?P<marker>[-+*]|(?P<number>\d{1,9})[.)])(?P<spacing>[ \t]+|$)(?P<body>.*)$"
+)
 _MARKDOWN_HTML_BLOCK = re.compile(
     r"^ {0,3}(?:"
     r"<!--|<\?|<![A-Z]|<!\[CDATA\[|"
@@ -205,14 +207,18 @@ _MARKDOWN_HTML_BLOCK = re.compile(
 
 def _markdown_line_interrupts_paragraph(line: str) -> bool:
     """Return whether a CommonMark block opener interrupts paragraph text."""
+    list_item = _MARKDOWN_LIST_ITEM.match(line)
+    list_interrupts = bool(
+        list_item
+        and list_item.group("body").strip()
+        and (list_item.group("number") is None or int(list_item.group("number")) == 1)
+    )
     return bool(
         _TITLE.match(line)
         or re.match(r"^ {0,3}(?:`{3,}|~{3,})", line)
         or re.fullmatch(r" {0,3}(?:(?:\*\s*){3,}|(?:-\s*){3,}|(?:_\s*){3,})", line)
-        or _MARKDOWN_LIST_ITEM.match(line)
+        or list_interrupts
         or _MARKDOWN_HTML_BLOCK.match(line)
-        or line.startswith("    ")
-        or line.startswith("\t")
     )
 
 
@@ -226,12 +232,16 @@ def _markdown_quote_content_kind(content: str) -> str:
     return "paragraph"
 
 
-def _markdown_block_quote_lines(lines: list[str]) -> set[int]:
+def _markdown_block_quote_lines(lines: list[str], fenced_lines: set[int]) -> set[int]:
     """Return block-quote lines, including lazy paragraph continuations."""
     quoted: set[int] = set()
     in_quote_paragraph = False
     ambiguous_list_container = False
     for number, line in enumerate(lines, 1):
+        if number in fenced_lines:
+            in_quote_paragraph = False
+            ambiguous_list_container = False
+            continue
         if re.match(r"^ {0,3}>", line):
             quoted.add(number)
             quote_content = re.sub(r"^ {0,3}> ?", "", line, count=1)
@@ -266,7 +276,7 @@ def _speaker_spans(content: str, source_kind: str) -> list[dict[str, Any]]:
         return []
     lines = content.splitlines()
     fenced_lines = _markdown_fenced_code_lines(lines)
-    quoted_lines = _markdown_block_quote_lines(lines)
+    quoted_lines = _markdown_block_quote_lines(lines, fenced_lines)
     protected_lines = fenced_lines | quoted_lines
     speaker_lines = _markdown_without_html_comments(lines, protected_lines)
     heading_matches = [
