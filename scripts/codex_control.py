@@ -74,7 +74,7 @@ FINGERPRINT_EXCLUDES = {
     ".ai/ORCHESTRATOR.lock",
     ".ai/external-review-state.json",
 }
-FINGERPRINT_EXCLUDE_PREFIXES = (".ai/REVIEW_HISTORY/", ".ai/ORCHESTRATION_HISTORY/")
+FINGERPRINT_EXCLUDE_PREFIXES = (".ai/REVIEW_HISTORY/", ".ai/WORK_ITEM_REVIEW_HISTORY/", ".ai/ORCHESTRATION_HISTORY/")
 PUBLICATION_RECEIPT_PATH = Path(".ai/PUBLICATION_RECEIPT.md")
 
 
@@ -806,8 +806,30 @@ def validate_review_result(
     return errors
 
 
+def review_history_directory(repo: Path) -> Path:
+    """Resolve the existing review bus to one admitted work-item history root."""
+    marker = repo / ".ai/CROSS_ISSUE_ADMISSION.json"
+    if marker.is_file():
+        try:
+            value = json.loads(marker.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"review_history: invalid cross-Issue admission marker: {exc}") from exc
+        relative = value.get("review_history_root")
+        if relative is not None:
+            if not isinstance(relative, str) or not re.fullmatch(r"\.ai/WORK_ITEM_REVIEW_HISTORY/issue-[1-9][0-9]*-d2-t[0-9]{2}", relative):
+                raise ValueError("review_history: invalid admitted work-item history root")
+            resolved = (repo / relative).resolve()
+            resolved.relative_to(repo.resolve())
+            return resolved
+    return repo / ".ai/REVIEW_HISTORY"
+
+
 def read_history_events(repo: Path) -> tuple[list[dict[str, Any]], list[str]]:
-    path = repo / ".ai/REVIEW_HISTORY/events.jsonl"
+    try:
+        history = review_history_directory(repo)
+    except ValueError as exc:
+        return [], [str(exc)]
+    path = history / "events.jsonl"
     errors: list[str] = []
     events: list[dict[str, Any]] = []
     try:
@@ -834,7 +856,8 @@ def read_history_events(repo: Path) -> tuple[list[dict[str, Any]], list[str]]:
         if (snapshot is None) != (digest is None):
             errors.append(f"review_history: {expected_id} snapshot path/digest must both be null or set")
         if snapshot is not None:
-            if not isinstance(snapshot, str) or not snapshot.startswith(".ai/REVIEW_HISTORY/"):
+            allowed_prefix = str(history.relative_to(repo)).rstrip("/") + "/"
+            if not isinstance(snapshot, str) or not snapshot.startswith(allowed_prefix):
                 errors.append(f"review_history: {expected_id} snapshot path escapes history")
             else:
                 path = repo / snapshot
@@ -940,7 +963,10 @@ def validate_review_history(
     decisions: dict[str, Any] | None = None,
 ) -> list[str]:
     events, errors = read_history_events(repo)
-    index_path = repo / ".ai/REVIEW_HISTORY/index.json"
+    try:
+        index_path = review_history_directory(repo) / "index.json"
+    except ValueError as exc:
+        return errors + [str(exc)]
     try:
         index = json.loads(index_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -1034,7 +1060,7 @@ def validate_review_history(
 
 
 def history_unresolved_finding_ids(repo: Path) -> list[str]:
-    index = json.loads((repo / ".ai/REVIEW_HISTORY/index.json").read_text(encoding="utf-8"))
+    index = json.loads((review_history_directory(repo) / "index.json").read_text(encoding="utf-8"))
     return sorted(
         finding_id
         for finding_id, item in index.get("findings", {}).items()
@@ -1175,10 +1201,11 @@ def append_history_event(repo: Path, event: dict[str, Any]) -> None:
         raise ValueError("; ".join(errors))
     event = dict(event)
     event["event_id"] = f"evt-{len(events) + 1:04d}"
-    path = repo / ".ai/REVIEW_HISTORY/events.jsonl"
+    history = review_history_directory(repo)
+    path = history / "events.jsonl"
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(event, separators=(",", ":"), ensure_ascii=False) + "\n")
-    index_path = repo / ".ai/REVIEW_HISTORY/index.json"
+    index_path = history / "index.json"
     index = json.loads(index_path.read_text(encoding="utf-8"))
     index["event_count"] = len(events) + 1
     index["last_event_id"] = event["event_id"]
@@ -1247,7 +1274,7 @@ def archive_review_artifact(
     source = repo / relative
     data = source.read_bytes()
     digest = sha256_bytes(data)
-    cycle = repo / ".ai/REVIEW_HISTORY" / review_id
+    cycle = review_history_directory(repo) / review_id
     cycle.mkdir(parents=True, exist_ok=True)
     target = cycle / f"{kind}-{digest}.md"
     if target.exists() and target.read_bytes() != data:

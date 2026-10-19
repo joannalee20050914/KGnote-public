@@ -151,6 +151,63 @@ def _status_markdown(admission: dict[str, Any], branch: str, source_commit: str)
     return "# KGnote Codex status\n\n<!-- BEGIN CODEX STATUS JSON -->\n```json\n" + json.dumps(status,ensure_ascii=False,indent=2) + "\n```\n<!-- END CODEX STATUS JSON -->\n\n## Human-readable handoff\n\nIssue #14 admitted for exactly one bounded Codex implementation dispatch.\n"
 
 
+def _initialize_review_scope(worktree: Path, admission: dict[str, Any]) -> list[str]:
+    """Start the existing review bus in a work-item scope without rewriting prior Issue history."""
+    history_relative = f".ai/WORK_ITEM_REVIEW_HISTORY/{admission['worktree_slug']}"
+    history = worktree / history_relative
+    _atomic_text(history / "events.jsonl", "")
+    _atomic_json(history / "index.json", {
+        "schema_version":"kgnote.review-history-index.v1", "protocol_version":"kgnote.review-protocol.v1",
+        "event_count":0, "last_event_id":None, "reviews":{}, "findings":{},
+    })
+    review_id = "review-issue-14-tutor-handoff-001"
+    request = {
+        "schema_version":"kgnote.review-request.v1", "protocol_version":"kgnote.review-protocol.v1",
+        "review_id":review_id, "goal_id":admission["goal_id"], "milestone_id":"D2-T07-BOUNDED-FEASIBILITY",
+        "status":"IMPLEMENTING", "author_role":"CODEX_IMPLEMENTER", "base_revision":admission["source_commit"],
+        "candidate_revision":None, "candidate_fingerprint":None, "candidate_manifest":None,
+        "authorized_human_decision_identities":["product owner"],
+        "authoritative_specs":["docs/control-plane/AUTHORITY.md","docs/requirements/FEATURE_DISPOSITION_LEDGER.md","PLAN.md"],
+        "changed_areas":["Issue #14 bounded manual tutor handoff and pasted-delta import"],
+        "acceptance_criteria":["official authorization proof or explicit unsupported conclusion","manual fallback round trip does not duplicate evidence"],
+        "negative_requirements":["no live provider","no cookies","no data egress","no paid API","no automatic merge"],
+        "validation_performed":[], "validation_results":[], "known_deviations":[], "known_uncertainties":[],
+        "reviewer_focus":[], "preserved_human_gates":["PA-HUMAN-1","NS-HUMAN-SMOKE","release_verified=false"],
+        "requested_at":None,
+    }
+    request_text = (
+        "# Current review request\n\nWriter: Codex implementation agent. The JSON block is canonical; prose outside it is explanatory only.\n\n"
+        "<!-- BEGIN KGNOTE REVIEW REQUEST JSON -->\n```json\n" + json.dumps(request,ensure_ascii=False,indent=2) +
+        "\n```\n<!-- END KGNOTE REVIEW REQUEST JSON -->\n\n## Human-readable status\n\n"
+        f"Review `{review_id}` is `IMPLEMENTING`.\n"
+        "It has no active candidate binding and cannot be interpreted as a review request or PASS.\n"
+        "Codex must complete deterministic verification before issuing this request.\n"
+    )
+    _atomic_text(worktree/".ai/REVIEW_REQUEST.md",request_text)
+    result = {
+        "schema_version":"kgnote.review-result.v1", "protocol_version":"kgnote.review-protocol.v1",
+        "artifact_state":"EMPTY", "review_id":None, "author_role":None, "reviewer_identity":None,
+        "reviewed_revision":None, "reviewed_fingerprint":None, "verdict":None, "findings":[],
+        "verified_requirements":[], "unverified_requirements":[], "human_decisions_required":[],
+        "human_gates_preserved":[], "reviewed_at":None,
+    }
+    _atomic_text(worktree/".ai/REVIEW_RESULT.md","# Current review result\n\nWriter after reviewer custody: independent reviewer only.\n\n<!-- BEGIN KGNOTE REVIEW RESULT JSON -->\n```json\n"+json.dumps(result,ensure_ascii=False,indent=2)+"\n```\n<!-- END KGNOTE REVIEW RESULT JSON -->\n")
+    decisions={"schema_version":"kgnote.review-decisions.v1","protocol_version":"kgnote.review-protocol.v1","decisions":[]}
+    _atomic_text(worktree/".ai/DECISIONS.md","# Product and architecture decision queue\n\n<!-- BEGIN KGNOTE DECISIONS JSON -->\n```json\n"+json.dumps(decisions,ensure_ascii=False,indent=2)+"\n```\n<!-- END KGNOTE DECISIONS JSON -->\n")
+    orchestrator={
+        "schema_version":"kgnote.orchestrator-state.v1", "run_id":"cross-issue-admission-14",
+        "active_goal":admission["goal_id"], "work_package":"D2-T07-BOUNDED-FEASIBILITY", "state":"IMPLEMENTING",
+        "current_agent":None, "candidate_fingerprint":None, "review_id":None, "review_cycle":0,
+        "max_review_cycles":1, "agent_failures":0, "max_agent_failures":1, "empty_reviewer_results":0,
+        "blockers":[], "next_action":"Execute the one authorized bounded implementation dispatch.",
+        "human_action_required":False, "candidate_custody":{"status":"NONE","owner":None,"review_id":None,"fingerprint":None},
+        "next_human_checkpoint":{"id":"D2-T14-FINAL-HUMAN-ACCEPTANCE","status":"not_eligible_incomplete_product_scope"},
+        "last_agent_run":None,
+    }
+    _atomic_json(worktree/".ai/ORCHESTRATOR_STATE.json",orchestrator)
+    return [history_relative+"/events.jsonl",history_relative+"/index.json",".ai/REVIEW_REQUEST.md",".ai/REVIEW_RESULT.md",".ai/DECISIONS.md",".ai/ORCHESTRATOR_STATE.json"]
+
+
 def _initialize_worktree(repo: Path, admission: dict[str, Any], runner: Callable[..., subprocess.CompletedProcess[str]]) -> tuple[Path, str]:
     worktree = _authorized_local_worktree(admission["local_worktree"])
     if worktree.parent != repo.parent.resolve() or worktree.name != "KGnote-public-issue14-tutor-handoff":
@@ -172,11 +229,15 @@ def _initialize_worktree(repo: Path, admission: dict[str, Any], runner: Callable
     if not marker_path.exists():
         _atomic_text(worktree/"PLAN.md",_plan_markdown(admission))
         _atomic_text(worktree/"CODEX_STATUS.md",_status_markdown(admission,branch,source))
-        marker={"schema_version":"kgnote.cross-issue-admission.v1","status":"SEALED","admission":admission,"implementation_dispatch_budget":{"authorized":1,"used":0},"claude_review_budget_added":0,"automatic_merge":False}
+        marker={"schema_version":"kgnote.cross-issue-admission.v1","status":"SEALED","admission":admission,"implementation_dispatch_budget":{"authorized":1,"used":0},"claude_review_budget_added":0,"automatic_merge":False,"review_history_root":f".ai/WORK_ITEM_REVIEW_HISTORY/{admission['worktree_slug']}"}
         _atomic_json(marker_path,marker)
         envelope={"schema_version":"kgnote.work-package-envelope.v1","status":"APPROVED","goal_id":admission["goal_id"],"work_package_id":"D2-T07-BOUNDED-FEASIBILITY","authority_record":admission["authority_record"],"approval":{"source_status":"RECONCILING","receipt":".ai/CROSS_ISSUE_ADMISSION.json"},"work_window":{"timezone":"Asia/Taipei","start":"09:00","end":"18:00"},"budgets":{"local_repairs":{"authorized":1,"used":0},"internal_reviews":{"authorized":0,"used":0},"external_reviews":{"authorized":0,"used":0}}}
         _atomic_json(worktree/".ai/work-package-envelope.json",envelope)
-        _run(["/usr/bin/git","add","--","PLAN.md","CODEX_STATUS.md",".ai/CROSS_ISSUE_ADMISSION.json",".ai/work-package-envelope.json"],cwd=worktree,runner=runner)
+        scoped_review_paths=_initialize_review_scope(worktree,admission)
+        shared_venv=repo/".venv"; worktree_venv=worktree/".venv"
+        if shared_venv.is_dir() and not worktree_venv.exists():
+            worktree_venv.symlink_to(shared_venv,target_is_directory=True)
+        _run(["/usr/bin/git","add","--","PLAN.md","CODEX_STATUS.md",".ai/CROSS_ISSUE_ADMISSION.json",".ai/work-package-envelope.json",*scoped_review_paths],cwd=worktree,runner=runner)
         _run(["/usr/bin/git","commit","-m","初始化 Issue #14 有界自動入場"],cwd=worktree,runner=runner)
     head=_run(["/usr/bin/git","rev-parse","HEAD"],cwd=worktree,runner=runner)
     return worktree,head
