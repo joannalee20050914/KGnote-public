@@ -131,7 +131,7 @@ def _plan_markdown(admission: dict[str, Any]) -> str:
         "explicit_direction":{"date":"2026-10-19","speaker":"product owner","source_path":admission["authority_record"],"durable_goal_record":"PLAN.md"},
         "requirement_context":{"github_issue":admission["authority_record"],"feature_dispositions":["FD-11"],"acceptance_criteria":["RC-20","RC-21","RC-28","RC-31"],"requirements":["KG-MEM-08","KG-PLAT-03"],"scenarios":["SC-03","SC-32"],"forbidden_substitutes":["browser-cookie automation","未授權資料外送","自動付費","把手動 fallback 當成自動 connector 已驗證"]},
         "auto_advance":{"enabled":True,"requires_dependencies_complete":True,"automatic_merge":False,"implementation_dispatch_budget":1,"claude_review_budget_added":0},
-        "milestones":[{"id":"D2-T07-BOUNDED-FEASIBILITY","title":"合法授權與手動備援有限驗證","status":"active","dependencies":[],"human_gate":"none","owned_paths":["PLAN.md","CODEX_STATUS.md",".ai/CROSS_ISSUE_ADMISSION.json",".ai/work-package-envelope.json","docs/control-plane/","src/kgnote/","tests/"],"acceptance":["官方授權能力有來源證據或明確 unsupported 結論","manual handoff/import fallback 可操作","round-trip delta 不重複 evidence","不啟用 live provider、cookie automation、資料外送或付費"],"stop_conditions":["需要 live data、付費、cookie 擷取、資料外送或新增 reviewer 額度","超出一次 Codex implementation dispatch"]}],
+        "milestones":[{"id":"D2-T07-BOUNDED-FEASIBILITY","title":"合法授權與手動備援有限驗證","status":"active","dependencies":[],"human_gate":"none","owned_paths":["PLAN.md","CODEX_STATUS.md",".ai/CROSS_ISSUE_ADMISSION.json",".ai/work-package-envelope.json",".ai/DECISIONS.md",".ai/ORCHESTRATOR_STATE.json",".ai/REVIEW_REQUEST.md",".ai/REVIEW_RESULT.md",f".ai/WORK_ITEM_REVIEW_HISTORY/{admission['worktree_slug']}/","docs/control-plane/","scripts/codex_control.py","scripts/cross_issue_admission.py","src/kgnote/","tests/"],"acceptance":["官方授權能力有來源證據或明確 unsupported 結論","manual handoff/import fallback 可操作","round-trip delta 不重複 evidence","不啟用 live provider、cookie automation、資料外送或付費"],"stop_conditions":["需要 live data、付費、cookie 擷取、資料外送或新增 reviewer 額度","超出一次 Codex implementation dispatch"]}],
     }
     return "# KGnote active execution plan\n\n<!-- BEGIN CODEX PLAN JSON -->\n```json\n" + json.dumps(plan,ensure_ascii=False,indent=2) + "\n```\n<!-- END CODEX PLAN JSON -->\n\n## Current recovery note\n\n由正式 cross-Issue admission 建立；先執行 preflight，僅處理 Issue #14 有界範圍。\n"
 
@@ -202,7 +202,7 @@ def _initialize_review_scope(worktree: Path, admission: dict[str, Any]) -> list[
         "blockers":[], "next_action":"Execute the one authorized bounded implementation dispatch.",
         "human_action_required":False, "candidate_custody":{"status":"NONE","owner":None,"review_id":None,"fingerprint":None},
         "next_human_checkpoint":{"id":"D2-T14-FINAL-HUMAN-ACCEPTANCE","status":"not_eligible_incomplete_product_scope"},
-        "last_agent_run":None,
+        "last_agent_run":None, "created_at":"2026-10-19T15:30:00+08:00", "updated_at":"2026-10-19T15:30:00+08:00",
     }
     _atomic_json(worktree/".ai/ORCHESTRATOR_STATE.json",orchestrator)
     return [history_relative+"/events.jsonl",history_relative+"/index.json",".ai/REVIEW_REQUEST.md",".ai/REVIEW_RESULT.md",".ai/DECISIONS.md",".ai/ORCHESTRATOR_STATE.json"]

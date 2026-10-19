@@ -17,6 +17,7 @@
     "authorized": 1,
     "used": 0
   },
+  "review_history_root": ".ai/WORK_ITEM_REVIEW_HISTORY/issue-14-d2-t07",
   "schema_version": "kgnote.cross-issue-admission.v1",
   "status": "SEALED"
 }

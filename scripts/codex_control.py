@@ -856,7 +856,10 @@ def read_history_events(repo: Path) -> tuple[list[dict[str, Any]], list[str]]:
         if (snapshot is None) != (digest is None):
             errors.append(f"review_history: {expected_id} snapshot path/digest must both be null or set")
         if snapshot is not None:
-            allowed_prefix = str(history.relative_to(repo)).rstrip("/") + "/"
+            try:
+                allowed_prefix = str(history.relative_to(repo)).rstrip("/") + "/"
+            except ValueError:
+                allowed_prefix = str(history.relative_to(repo.resolve())).rstrip("/") + "/"
             if not isinstance(snapshot, str) or not snapshot.startswith(allowed_prefix):
                 errors.append(f"review_history: {expected_id} snapshot path escapes history")
             else:
@@ -1281,7 +1284,10 @@ def archive_review_artifact(
         raise ValueError(f"review_history: immutable snapshot collision at {target}")
     if not target.exists():
         target.write_bytes(data)
-    snapshot = str(target.relative_to(repo))
+    try:
+        snapshot = str(target.relative_to(repo))
+    except ValueError:
+        snapshot = str(target.relative_to(repo.resolve()))
     actor_role = {
         "request": "CODEX_IMPLEMENTER",
         "resolution": (
