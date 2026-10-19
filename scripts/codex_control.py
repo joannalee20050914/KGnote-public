@@ -54,7 +54,8 @@ FINDING_STATUSES = {"OPEN", "FIXED_PENDING_REVIEW", "VERIFIED", "SUPERSEDED_BY_H
 ORCHESTRATOR_STATES = {
     "IMPLEMENTING", "VALIDATING", "READY_FOR_AI_REVIEW", "REVIEWING", "REPAIRING",
     "AWAITING_EXTERNAL_PRODUCT_REVIEW",
-    "HUMAN_CHECKPOINT_REQUIRED", "PRODUCT_DECISION_REQUIRED", "AUTHORITY_CONFLICT",
+    "HUMAN_CHECKPOINT_REQUIRED",  # historical state accepted for migration only
+    "FINAL_HUMAN_ACCEPTANCE_REQUIRED", "PRODUCT_DECISION_REQUIRED", "AUTHORITY_CONFLICT",
     "AUTOMATION_BLOCKED", "BUDGET_EXHAUSTED", "GOAL_COMPLETE", "STOPPED",
 }
 GENERATED_VIEWS = (
@@ -293,7 +294,8 @@ def validate_orchestrator_state(
         if not isinstance(custody, dict) or custody.get("status") != "NONE":
             errors.append("orchestrator_state: external-review wait requires released candidate custody")
     human_states = {
-        "HUMAN_CHECKPOINT_REQUIRED", "PRODUCT_DECISION_REQUIRED", "AUTHORITY_CONFLICT",
+        "HUMAN_CHECKPOINT_REQUIRED", "FINAL_HUMAN_ACCEPTANCE_REQUIRED",
+        "PRODUCT_DECISION_REQUIRED", "AUTHORITY_CONFLICT",
         "AUTOMATION_BLOCKED", "BUDGET_EXHAUSTED",
     }
     if bool(state.get("human_action_required")) != (state.get("state") in human_states):

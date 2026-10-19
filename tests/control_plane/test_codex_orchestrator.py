@@ -542,6 +542,14 @@ class OrchestratorDurabilityTests(unittest.TestCase):
         test_implementation_path = "docs/control-plane/test-decision-implementation.txt"
         if test_implementation_path not in target_milestone["owned_paths"]:
             target_milestone["owned_paths"].append(test_implementation_path)
+        # This isolated fixture intentionally creates/replaces the review bus,
+        # decisions, immutable review history, and orchestrator state below.
+        # Give only the fixture milestone ownership of that temporary surface;
+        # the repository's real PLAN remains unchanged.
+        if ".ai/" not in target_milestone["owned_paths"]:
+            target_milestone["owned_paths"].append(".ai/")
+        if "docs/requirements/human-decisions/" not in target_milestone["owned_paths"]:
+            target_milestone["owned_paths"].append("docs/requirements/human-decisions/")
         plan["status"] = "active"
         plan["active_milestone_id"] = target_milestone_id
         for milestone in plan["milestones"]:
@@ -918,7 +926,7 @@ class OrchestratorDurabilityTests(unittest.TestCase):
             with mock.patch.object(ORCH, "validate_and_request", side_effect=validate_and_request):
                 resumed = ORCH.start(root, resume=True, max_review_cycles=5, max_steps=1, runner=runner)
             current_request, current_result, _ = ORCH.control.load_review_artifacts(root)
-            self.assertEqual(runner_calls, ["implementer"])
+            self.assertEqual(runner_calls, ["implementer"], resumed)
             self.assertEqual(resumed["state"], "READY_FOR_AI_REVIEW")
             self.assertEqual(current_request["status"], "READY_FOR_REVIEW")
             self.assertEqual(current_result["artifact_state"], "EMPTY")
@@ -1119,6 +1127,59 @@ class OrchestratorDurabilityTests(unittest.TestCase):
                 )
             self.assertEqual(resumed["state"], "IMPLEMENTING")
             self.assertEqual((root / ORCH.STATE_PATH).read_bytes(), persisted)
+
+    def test_superseded_intermediate_human_gate_is_skipped_for_ready_work(self):
+        plan = {
+            "active_milestone_id": "COMPONENT",
+            "milestones": [
+                {"id": "COMPONENT", "status": "active", "dependencies": [], "human_gate": "none"},
+                {"id": "OLD-SMOKE", "status": "pending", "dependencies": ["COMPONENT"], "human_gate": "PA-HUMAN-1"},
+                {"id": "NEXT", "status": "pending", "dependencies": ["OLD-SMOKE"], "human_gate": "none"},
+            ],
+        }
+        status = {"working_state": {}, "verification": {}}
+        state = OrchestrationSimulationTests().base_state()
+
+        def update(_repo, value, new_state, next_action, **fields):
+            value.update(fields); value["state"] = new_state; value["next_action"] = next_action
+
+        with mock.patch.object(ORCH.control, "load_plan_status", side_effect=[(plan, status), (plan, status)]), \
+             mock.patch.object(ORCH.control, "repository_fingerprint", return_value={"value": "f" * 64}), \
+             mock.patch.object(ORCH.control, "write_status"), \
+             mock.patch.object(ORCH, "write_plan"), \
+             mock.patch.object(ORCH, "reset_review_bus_after_pass"), \
+             mock.patch.object(ORCH, "update_state", side_effect=update):
+            ORCH.advance_after_pass(Path("/tmp/unused"), state)
+        self.assertEqual("superseded", plan["milestones"][1]["status"])
+        self.assertEqual("NEXT", plan["active_milestone_id"])
+        self.assertEqual("IMPLEMENTING", state["state"])
+
+    def test_orchestrator_emits_only_final_human_acceptance_state(self):
+        plan = {
+            "active_milestone_id": "COMPONENT",
+            "milestones": [
+                {"id": "COMPONENT", "status": "active", "dependencies": [], "human_gate": "none"},
+                {"id": "FINAL", "status": "pending", "dependencies": ["COMPONENT"],
+                 "human_gate": "D2-T14-FINAL-HUMAN-ACCEPTANCE"},
+            ],
+        }
+        status = {"working_state": {}, "verification": {}}
+        state = OrchestrationSimulationTests().base_state()
+
+        def update(_repo, value, new_state, next_action, **fields):
+            value.update(fields); value["state"] = new_state; value["next_action"] = next_action
+            value["human_action_required"] = new_state == "FINAL_HUMAN_ACCEPTANCE_REQUIRED"
+
+        with mock.patch.object(ORCH.control, "load_plan_status", side_effect=[(plan, status), (plan, status)]), \
+             mock.patch.object(ORCH.control, "repository_fingerprint", return_value={"value": "f" * 64}), \
+             mock.patch.object(ORCH.control, "write_status"), \
+             mock.patch.object(ORCH.external_review_control, "repository_human_gate_blockers", return_value=[]), \
+             mock.patch.object(ORCH, "write_plan"), \
+             mock.patch.object(ORCH, "reset_review_bus_after_pass"), \
+             mock.patch.object(ORCH, "update_state", side_effect=update):
+            ORCH.advance_after_pass(Path("/tmp/unused"), state)
+        self.assertEqual("FINAL_HUMAN_ACCEPTANCE_REQUIRED", state["state"])
+        self.assertTrue(state["human_action_required"])
 
 
 if __name__ == "__main__":

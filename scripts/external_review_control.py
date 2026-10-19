@@ -16,6 +16,11 @@ ACTIVE_REPOSITORY_FIELDS = (
     "trigger_repository",
     "review_request_repository",
 )
+FINAL_HUMAN_GATE_ID = "D2-T14-FINAL-HUMAN-ACCEPTANCE"
+FINAL_HUMAN_GATE_AUTHORITY_REFS = {
+    "docs/requirements/PERSONAL_ALPHA_INTEGRATED_STAGE_DIRECTION_20260927.md",
+    "https://github.com/joannalee20050914/KGnote-public/issues/21",
+}
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -57,14 +62,14 @@ def repository_authority_errors(config: Mapping[str, Any]) -> list[str]:
     return errors
 
 
-def human_gate_blockers(
+def external_review_blockers(
     config: Mapping[str, Any],
     state: Mapping[str, Any],
     *,
     candidate_commit: str | None = None,
     candidate_fingerprint: str | None = None,
 ) -> list[str]:
-    """Return reasons an AI-dependent workflow cannot enter a human checkpoint."""
+    """Return exact-candidate review/publication reasons progression is blocked."""
     blockers = repository_authority_errors(config)
     for field in ACTIVE_REPOSITORY_FIELDS:
         if state.get(field) != config.get(field):
@@ -113,6 +118,83 @@ def human_gate_blockers(
     return blockers
 
 
+def final_human_acceptance_errors(
+    checkpoint: object,
+    *,
+    candidate_commit: str | None = None,
+    candidate_fingerprint: str | None = None,
+) -> list[str]:
+    """Validate the one current blocking product-experience gate.
+
+    Every prerequisite is positive evidence.  Missing fields, legacy gate IDs,
+    and an existing human verdict all keep the workflow out of the final wait.
+    """
+    if not isinstance(checkpoint, Mapping):
+        return ["final_acceptance: final human checkpoint is not explicitly scheduled"]
+    errors: list[str] = []
+    expected_scalars = {
+        "gate_id": FINAL_HUMAN_GATE_ID,
+        "status": "READY",
+        "candidate_scope": "COMPLETE_PRODUCT_DELIVERY",
+        "formal_human_acceptance_status": "NOT_EVALUATED",
+    }
+    for field, expected in expected_scalars.items():
+        if checkpoint.get(field) != expected:
+            errors.append(f"final_acceptance: {field} must equal {expected}")
+    required_evidence = (
+        "approved_required_scope_complete",
+        "required_features_complete",
+        "dependencies_complete",
+        "cross_module_integration_complete",
+        "required_scenarios_complete",
+        "delivery_evidence_complete",
+        "no_known_delivery_blockers",
+        "rc_evidence_complete",
+        "independent_review_complete",
+        "integrated_verification_complete",
+    )
+    for field in required_evidence:
+        if checkpoint.get(field) is not True:
+            errors.append(f"final_acceptance: {field} is not proven")
+    entrypoint = checkpoint.get("trial_entrypoint")
+    if not isinstance(entrypoint, str) or not entrypoint.strip():
+        errors.append("final_acceptance: complete trial entrypoint is missing")
+    authority_refs = checkpoint.get("authority_refs")
+    if not isinstance(authority_refs, list) or not FINAL_HUMAN_GATE_AUTHORITY_REFS.issubset(
+        {str(value) for value in authority_refs}
+    ):
+        errors.append("final_acceptance: final gate authority is incomplete")
+    if candidate_commit and checkpoint.get("candidate_commit") != candidate_commit:
+        errors.append("final_acceptance: candidate commit does not match the reviewed candidate")
+    if candidate_fingerprint and checkpoint.get("candidate_fingerprint") != candidate_fingerprint:
+        errors.append("final_acceptance: candidate fingerprint does not match the reviewed candidate")
+    return errors
+
+
+def human_gate_blockers(
+    config: Mapping[str, Any],
+    state: Mapping[str, Any],
+    *,
+    candidate_commit: str | None = None,
+    candidate_fingerprint: str | None = None,
+) -> list[str]:
+    """Compatibility entrypoint for the exact final human acceptance gate."""
+    expected_commit = candidate_commit or state.get("candidate_commit")
+    expected_fingerprint = candidate_fingerprint or state.get("candidate_fingerprint")
+    return external_review_blockers(
+        config,
+        state,
+        candidate_commit=candidate_commit,
+        candidate_fingerprint=candidate_fingerprint,
+    ) + final_human_acceptance_errors(
+        state.get("human_checkpoint"),
+        candidate_commit=expected_commit if isinstance(expected_commit, str) else None,
+        candidate_fingerprint=(
+            expected_fingerprint if isinstance(expected_fingerprint, str) else None
+        ),
+    )
+
+
 def next_machine_state(config: Mapping[str, Any], state: Mapping[str, Any]) -> str:
     """Derive the autonomous next state without promoting a human gate."""
     authority = repository_authority_errors(config)
@@ -123,9 +205,15 @@ def next_machine_state(config: Mapping[str, Any], state: Mapping[str, Any]) -> s
         return "WAITING_FOR_EXTERNAL_REVIEW"
     if review.get("status") == "CHANGES_REQUIRED" or review.get("blocking_findings"):
         return "REPAIRING_EXTERNAL_FINDINGS"
-    if not human_gate_blockers(config, state):
-        return "HUMAN_CHECKPOINT_REQUIRED"
-    return "WAITING_FOR_EXTERNAL_REVIEW"
+    if external_review_blockers(config, state):
+        return "WAITING_FOR_EXTERNAL_REVIEW"
+    if final_human_acceptance_errors(
+        state.get("human_checkpoint"),
+        candidate_commit=(state.get("candidate_commit") if isinstance(state.get("candidate_commit"), str) else None),
+        candidate_fingerprint=(state.get("candidate_fingerprint") if isinstance(state.get("candidate_fingerprint"), str) else None),
+    ):
+        return "COMPONENT_REVIEW_COMPLETE"
+    return "FINAL_HUMAN_ACCEPTANCE_REQUIRED"
 
 
 def publication_progression_blockers(
@@ -185,6 +273,9 @@ def repository_human_gate_blockers(repo: Path) -> list[str]:
 
 __all__ = [
     "ACTIVE_REPOSITORY_FIELDS",
+    "FINAL_HUMAN_GATE_ID",
+    "external_review_blockers",
+    "final_human_acceptance_errors",
     "human_gate_blockers",
     "next_machine_state",
     "publication_progression_blockers",

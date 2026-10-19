@@ -75,3 +75,57 @@ or lacking preference feedback is not a stop condition.
 - Existing orchestrator budget and recovery limits continue across the whole stage and may not be reset by renaming
   a subgoal.
 - `release_verified=false` until separately authorized and evidenced.
+
+## 2026-10-19 amendment: two-level human experience acceptance
+
+Status: current explicit product-owner decision. This amendment is the single current authority for the timing and
+blocking effect of human experience feedback. It changes neither the approved product scope nor the independent
+safety, privacy, consent, budget, destructive-operation, publication, or merge boundaries above.
+
+### SOFT_FEEDBACK_AVAILABLE
+
+During development, an operable local feature or integration may offer optional human feedback only when all of the
+following are present: a concrete usable result, a specific experience question that a human can meaningfully judge,
+a direct entry point, suggested steps, and an exact source/candidate identity. This is a non-blocking event:
+
+- no reply is neither PASS nor FAIL and never stops selection of the next otherwise eligible reversible work;
+- a late reply remains bound to the original candidate and experience scope, and creates or updates a bounded
+  follow-up only according to its demonstrated impact;
+- source-only completion, automated PASS, a backend repair, a UI skeleton, or a non-interactive demonstration is
+  insufficient;
+- the same goal, candidate identity, and experience scope may be notified at most once;
+- the notification must say that feedback is optional, identify the version and entry point, give suggested steps
+  and the concrete experience question, and say that development continues without a reply.
+
+### FINAL_HUMAN_ACCEPTANCE_REQUIRED
+
+The only product-experience state that blocks ordinary delivery progression is
+`FINAL_HUMAN_ACCEPTANCE_REQUIRED`, with final gate ID `D2-T14-FINAL-HUMAN-ACCEPTANCE` and authority in GitHub
+Issue #21. It is reachable only for one complete integrated product candidate after all formally approved required
+features and dependencies are complete; cross-module integration is complete; normal, error, conflict, restart,
+recovery, and safety scenarios have the required evidence; installation, first setup, daily use, backup, and restore
+have operable product evidence; no known delivery blocker remains; RC, independent review, and integration evidence
+bind the same candidate; and a complete user trial entry point exists. The product owner's formal result must still
+be absent when entering the state. Automation must never convert absence of a human verdict into acceptance.
+
+Issue #21, RC-01 through RC-34, and the existing approved delivery plan determine completeness. Future exploratory
+ideas do not become prerequisites automatically, and required features may not be removed, downgraded, deferred, or
+redefined merely to make this final gate reachable.
+
+### Supersession and preserved history
+
+`SUPERSEDED` below means “retained as history, but no longer executable as a current intermediate stop rule.” It
+does not rewrite any past verdict or candidate identity.
+
+| Earlier source and clause | Earlier runtime effect | Current applicability | Current rule | History retained |
+|---|---|---|---|---|
+| `PERSONAL_ALPHA_DIRECTION_20260922.md`, “工程 candidate … 之後停在真人 Obsidian usability gate” | every Personal Alpha engineering candidate stopped before later product work | **SUPERSEDED** as an intermediate stop | optional `SOFT_FEEDBACK_AVAILABLE`, or the single final gate only after Issue #21 completeness | yes; all candidate evidence remains |
+| `PERSONAL_ALPHA_HUMAN_FEEDBACK_20260923.md`, native-spike resume required a new smoke result | failed PA candidate blocked its dependent rejected-baseline spike | active only for that rejected candidate and dependent baseline; **SUPERSEDED** as a global development stop | preserve the failure; independent authorized work continues and later feedback is candidate-bound | yes; `manual_fail` remains |
+| `OBSIDIAN_LEARNER_PROJECTION_NATIVE_SPIKE_DIRECTION_20260923.md`, final handoff with nine smoke questions | supplied a stage-specific human trial after V3 | **SUPERSEDED** as a mandatory intermediate gate; questions remain reusable observations | may be soft feedback when operable, and must be included when relevant in final acceptance | yes; no native evidence is invented |
+| this file's earlier “single concentrated trial of the integrated candidate” | could be read as a stage-completion hard stop | **SUPERSEDED** if the candidate is less than the complete Issue #21 delivery scope | only `D2-T14-FINAL-HUMAN-ACCEPTANCE` is the blocking product-experience gate | yes; `PA-HUMAN-1` and `NS-HUMAN-SMOKE` remain not evaluated |
+| generic Runner/Reviewer rules that mapped any component PASS or external PASS to `HUMAN_CHECKPOINT_REQUIRED` | stopped the Runner after a subfeature | **SUPERSEDED** | record component evidence, optionally emit deduplicated soft feedback, then select the next eligible work | yes; exact review artifacts and failures remain |
+
+`PA-HUMAN-1` and `NS-HUMAN-SMOKE` therefore retain their exact historical failures, pending status, questions, and
+native-evidence requirements. They are not PASS and are not independently executable intermediate stop commands.
+Their still-relevant observations are inputs to the final gate. Native-device behavior remains unverified until it is
+actually observed. `release_verified` remains false until its separate release authority and evidence are satisfied.

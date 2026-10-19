@@ -6,210 +6,94 @@ This file contains exactly one active execution goal. It does not promote any hu
 ```json
 {
   "schema_version": "kgnote.codex-plan.v1",
-  "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
-  "objective": "以 GitHub Issue #8 為唯一主動工作，最大限度重用既有 Markdown 匯入、canonical store（正式資料儲存層）與 Release 1 source-library/UI 證據，只補足持久來源資料庫、多檔匯入、對話 speaker、來源版本與可追溯讀回的確認缺口。",
-  "status": "active",
-  "active_milestone_id": "AR-EXTERNAL-REVIEW",
+  "goal_id": "GOAL-KGNOTE-HUMAN-GATE-SCHEDULER-CONTINUITY-20261019",
+  "objective": "依 2026-10-19 產品擁有人決策，將既有 Human Gate 統一為非阻塞 SOFT_FEEDBACK_AVAILABLE 與僅適用完整正式產品的 FINAL_HUMAN_ACCEPTANCE_REQUIRED，明確 SUPERSEDE 衝突舊規則，並修正 Runner、external review 與 orchestrator 的自治接續而不弱化安全、授權、預算、Stop Marker、PR 保護或禁止自動 Merge。",
+  "status": "complete",
+  "active_milestone_id": null,
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
-  "explicit_direction": {
-    "date": "2026-10-16",
-    "speaker": "product owner",
-    "source_path": "PLAN.md",
-    "durable_goal_record": "PLAN.md"
-  },
+  "explicit_direction": {"date": "2026-10-19", "speaker": "product owner", "source_path": "PLAN.md", "durable_goal_record": "PLAN.md"},
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
     "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
     ".ai/REVIEW_PROTOCOL.md",
-    "docs/PRODUCT_CONTRACT.md",
-    "docs/DATA_MODEL.md",
-    "docs/REPRESENTATION_CONSISTENCY_CONTRACT.md",
     "docs/requirements/README.md",
     "docs/requirements/DECISIONS_AND_CONFLICTS.md",
-    "docs/requirements/requirements.json",
-    "docs/requirements/scenarios.json",
-    "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
     "DEVELOPMENT_PLAIN.md",
     "PLAN.md",
     "AGENTS.md"
   ],
   "requirement_context": {
-    "github_issue": "https://github.com/joannalee20050914/KGnote-public/issues/8",
-    "feature_dispositions": [
-      "FD-01",
-      "FD-02"
-    ],
-    "prerequisite_dispositions": [
-      "FD-17",
-      "FD-18",
-      "FD-19"
-    ],
-    "requirements": [
-      "KG-ING-01",
-      "KG-ING-02",
-      "KG-ING-03",
-      "KG-PLAT-05",
-      "KG-PLAT-06",
-      "KG-ALPHA-01"
-    ],
-    "acceptance_criteria": [
-      "RC-04",
-      "RC-05",
-      "RC-06",
-      "RC-10",
-      "RC-11",
-      "RC-21",
-      "RC-26",
-      "RC-31",
-      "RC-32"
-    ],
-    "scenarios": [
-      "SC-21",
-      "SC-28",
-      "SC-31",
-      "SC-44"
-    ],
-    "delivery_principle": "Existing Evidence First -> Reuse First -> Delta Only -> Verify Integration -> Build Missing Features",
+    "github_issue": "https://github.com/joannalee20050914/KGnote-public/issues/24",
+    "candidate_pull_request": "https://github.com/joannalee20050914/KGnote-public/pull/26",
+    "requirements": ["KG-GOV-07", "KG-PLAT-05"],
+    "scenarios": ["SC-32", "SC-33", "SC-35"],
     "forbidden_substitutes": [
-      "重寫既有 Markdown importer、canonical store 或 review transport",
-      "把 Release 1 舊測試直接當成本候選通過證據",
-      "從私人 archive 整批搬入未審核內容或可變控制狀態",
-      "把匯入過的來源重新改寫成摘要或失去原始 bytes",
-      "將遭遇概念或對話 speaker 推論為使用者已理解",
-      "把 PR #22 或任何舊 PASS 綁定到 Issue #8 的新候選"
+      "把單一 Human Gate 當成 Runner 全域停止",
+      "讓已 SUPERSEDED 的中途 smoke 或 component PASS → human checkpoint 規則由任何 Consumer 重新生效",
+      "為保持忙碌而建立未授權需求、branch 或 PR",
+      "以重啟或隔日工作時段重設 budget 或重跑完成工作",
+      "以相同候選重複呼叫 reviewer 直到得到 PASS",
+      "自動 Merge、解除 Legacy Stop Marker 或提升 PA-HUMAN-1、NS-HUMAN-SMOKE、release_verified",
+      "修改模型選擇或帳號額度管理"
     ]
-  },
-  "repository_authority": {
-    "canonical_repository": "joannalee20050914/KGnote-public",
-    "candidate_repository": "joannalee20050914/KGnote-public",
-    "trigger_repository": "joannalee20050914/KGnote-public",
-    "review_request_repository": "joannalee20050914/KGnote-public",
-    "archive_repository": "joannalee20050914/KGnote",
-    "base_pull_request": 22,
-    "candidate_pull_request": 23
-  },
-  "previous_goal_disposition": {
-    "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
-    "milestone_id": "S2B-REVIEW-INTEGRATION-TASK",
-    "disposition": "complete",
-    "issue": 19,
-    "candidate_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
-    "candidate_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
-    "external_review": {
-      "round": 2,
-      "status": "PASS",
-      "consumer_status": "accepted",
-      "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#pullrequestreview-5544513834"
-    },
-    "remaining_platform_limits": [
-      "Scheduled run 與 Comment ID 6210434280 的直接關聯未能獨立讀取",
-      "Work 寫回 GitHub 曾要求人工核准，無人值守發布仍未證明"
-    ],
-    "gate_rule": "Issue #19 的 PASS 只適用 f35669e/e9355f73；它不驗證 Issue #8、PA-HUMAN-1、NS-HUMAN-SMOKE 或 release readiness。"
-  },
-  "base_strategy": {
-    "branch": "codex/issue-8-source-library",
-    "base_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
-    "base_status": "PR #22 is open and unmerged",
-    "integration_rule": "Issue #8 may be developed as a stacked candidate; its future PR must use codex/issue-19-real-review as the temporary base until PR #22 is integrated, and must not modify or merge PR #22."
   },
   "auto_advance": {
     "enabled": true,
-    "requires_current_milestone_green": true,
     "requires_dependencies_complete": true,
-    "stop_on_human_gate": true,
-    "external_review_required_before_human_gate": true,
-    "max_review_cycles_per_milestone": 5,
-    "stop_on_review_state": [
-      "PRODUCT_DECISION_REQUIRED",
-      "AUTHORITY_CONFLICT",
-      "AUTOMATION_BLOCKED",
-      "BUDGET_EXHAUSTED",
-      "GOAL_COMPLETE",
-      "STOPPED"
-    ]
+    "requires_explicit_work_item_authority": true,
+    "requires_isolated_worktree": true,
+    "requires_sealed_worker_order": true,
+    "automatic_merge": false,
+    "work_window": "Asia/Taipei weekdays 09:00-18:00"
   },
   "preserved_human_gates": [
-    {
-      "id": "PA-HUMAN-1",
-      "status": "not_evaluated",
-      "release_verified": false,
-      "rule": "Requires native product and learner evidence; deterministic tests and AI review cannot promote it."
-    },
-    {
-      "id": "NS-HUMAN-SMOKE",
-      "status": "not_evaluated",
-      "release_verified": false,
-      "rule": "Requires native product evidence; deterministic tests and AI review cannot promote it."
-    }
+    {"id": "D2-T14-FINAL-HUMAN-ACCEPTANCE", "status": "not_eligible_incomplete_product_scope", "release_verified": false, "rule": "Issue #21 RC-01 through RC-34, all required features/dependencies/integration/delivery evidence and one exact complete candidate are not yet complete."},
+    {"id": "PA-HUMAN-1", "status": "not_evaluated", "release_verified": false, "applicability": "historical_and_final_acceptance_input_not_independent_stop"},
+    {"id": "NS-HUMAN-SMOKE", "status": "not_evaluated", "release_verified": false, "applicability": "historical_and_final_acceptance_input_not_independent_stop"}
   ],
   "milestones": [
     {
-      "id": "D2-T01-SOURCE-LIBRARY",
-      "title": "Issue #8：整合匯入與持久來源資料庫",
+      "id": "SCHEDULER-CONTINUITY-VERIFICATION",
+      "title": "Human Gate scope、Ready selection 與 restart continuity 修正",
       "status": "complete",
       "dependencies": [],
       "human_gate": "none",
       "owned_paths": [
+        "AGENTS.md",
         "PLAN.md",
         "CODEX_STATUS.md",
-        ".ai/",
+        ".ai/REVIEW_PROTOCOL.md",
+        ".ai/ORCHESTRATOR_STATE.json",
+        "docs/control-plane/AUTHORITY.md",
         "docs/control-plane/authority-lock.json",
-        "DEVELOPMENT_PLAIN.md",
-        "docs/requirements/",
-        "src/kgnote/ingestion/",
-        "src/kgnote/learning/",
-        "src/kgnote/storage/",
-        "scripts/serve_graph_view.py",
+        "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
+        "docs/control-plane/AUTONOMY_GO_LIVE_APPROVAL_PACKAGE.md",
+        "docs/requirements/PERSONAL_ALPHA_INTEGRATED_STAGE_DIRECTION_20260927.md",
         "scripts/codex_control.py",
-        "web/",
-        "tests/"
-      ],
-      "acceptance": [
-        "一般 Markdown 與明確 speaker 的對話 Markdown 可由現有產品 UI 匯入持久來源資料庫，原始 UTF-8 bytes、來源種類、speaker、locator 與 hash 可讀回",
-        "相同來源與內容重複匯入不產生無界重複資料；相同來源的新內容建立不可變 revision lineage，stale revision 更新會 fail closed",
-        "多檔匯入要嘛全部提交、要嘛安全回復；錯誤副檔名、空白、非 UTF-8、模糊對話 speaker、過大輸入及路徑逸出有可操作錯誤",
-        "匯入結果可從來源資料庫及 UI 讀回，且與既有 canonical ingestion/storage 整合，不重寫既有轉換管線",
-        "以 ordinary Markdown、conversation、duplicate、update、malformed、provenance、rollback 與 read-back fixtures 產生目前候選的實際測試證據",
-        "requirements guard、相關 Python/Node 測試、Repository Preflight、secret scan 與完整 verifier 對精確候選通過",
-        "Issue #8 與 Project 狀態、證據、剩餘限制及回復方式已讀回；不把舊測試或 PR #22 PASS 當成本候選 Done",
-        "候選使用既有 GitHub PR 與 independent product reviewer（獨立產品審查者）流程送審，結果只綁定精確 repository、PR、HEAD、fingerprint 與 round"
-      ],
-      "stop_conditions": [
-        "需要未授權來源資料、付費外部服務或新的產品裁決",
-        "會覆寫人工筆記、刪除 immutable evidence 或無法安全回復",
-        "PR #22 基準發生不相容變更，無法在不修改或合併 PR #22 的前提下繼續",
-        "平台要求新的人工授權或目前權限無法發布／接收精確候選"
-      ]
-    },
-    {
-      "id": "AR-EXTERNAL-REVIEW",
-      "title": "Issue #8：發布並接收精確候選的獨立產品審查",
-      "status": "active",
-      "dependencies": [
-        "D2-T01-SOURCE-LIBRARY"
-      ],
-      "human_gate": "none",
-      "owned_paths": [
-        "PLAN.md",
-        "CODEX_STATUS.md",
-        ".ai/",
-        "docs/requirements/",
-        "DEVELOPMENT_PLAIN.md",
         "scripts/codex_orchestrator.py",
         "scripts/external_review_control.py",
-        "scripts/external_review_handoff.py",
-        "scripts/publish_external_candidate.py",
-        "tests/control_plane/",
-        "GitHub PR and Issue metadata for joannalee20050914/KGnote-public"
+        "scripts/local_autonomy_runner.py",
+        "tests/control_plane/test_codex_orchestrator.py",
+        "tests/control_plane/test_exact_review_integration.py",
+        "tests/control_plane/test_external_review_control.py",
+        "tests/control_plane/test_local_autonomy_runner.py",
+        "GitHub Issue #24 and PR #26 status metadata"
       ],
       "acceptance": [
-        "Issue #8 product bytes remain unchanged after the verified implementation milestone except for required review/publication control receipts",
-        "a Draft PR on codex/issue-8-source-library uses codex/issue-19-real-review as its temporary stacked base while PR #22 remains unmerged",
-        "Publication Receipt, PR marker, remote HEAD, fingerprint, review round, repository and PR identity all match the exact Issue #8 candidate",
-        "the existing independent product reviewer writes PASS, CHANGES_REQUIRED, or PRODUCT_DECISION_REQUIRED for that exact candidate and the existing Consumer accepts or rejects it fail closed",
-        "Issue #8 and GitHub Project record the exact evidence without promoting PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
+        "既有 Authority 內有可追溯 supersession 對照；舊人工失敗、候選身分與 native evidence 缺口完整保留",
+        "SOFT_FEEDBACK_AVAILABLE 只有可操作入口、具體問題與真人價值齊全才建立，按 goal/candidate/scope 去重，無回覆不阻塞且晚到回饋綁定原候選",
+        "只有 D2-T14-FINAL-HUMAN-ACCEPTANCE 對完整正式產品候選、全部功能/相依/整合/情境/交付/RC/獨立審查證據與完整入口成立時進入 FINAL_HUMAN_ACCEPTANCE_REQUIRED，且不得自動通過",
+        "A-H 無模型 fixture 對 WORK_ITEM_BLOCKED、DEPENDENCY_BLOCKED、GLOBAL_BLOCKED、WAITING_HUMAN_ACCEPTANCE 與 NO_ELIGIBLE_READY_WORK 全數通過",
+        "PR #26 Round 3/4 exact identity 與 evidence delta 經一致性規則核對",
+        "已修正的 Landlock、PATH、重複派工、publisher parent、full verification、GitHub writeback 與 Human Gate scope 有回歸證據",
+        "Runner restart/next window 不重跑完成工作、不重設 budget、不解除 Stop Marker、PR 保護或 merge restriction",
+        "真實 Ready 工作只有在既有 authority、dependency、budget、window、isolation 與 sealed order 全部成立時才派遣"
+      ],
+      "stop_conditions": [
+        "需要擴張產品需求、安全權限、付費服務或 Merge authority",
+        "無法保留現有 dirty work、checkpoint 或歷史 budget",
+        "真實 Ready 工作缺少 execution authority 或安全隔離"
       ]
     }
   ]
@@ -219,6 +103,4 @@ This file contains exactly one active execution goal. It does not promote any hu
 
 ## Current recovery note
 
-Autonomous orchestration state: `IMPLEMENTING`. Active work package: `AR-EXTERNAL-REVIEW`.
-Next action: Automatically begin authorized work package AR-EXTERNAL-REVIEW.
-Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.
+本 Goal 已完成。雙層人工驗收 authority、Runner、external review 與 orchestrator Consumer 已統一；完整 verifier 綠燈。PR #26 Round 3 與 Round 4 綁定同一 commit/fingerprint，Round 4 未提供可解決 Round 3 blocking finding 的新結構化證據，仍以 `WORK_ITEM_BLOCKED` 保存，不得進入人工產品驗收。GitHub #14 雖標示 `queue:ready`，但尚無 active PLAN、隔離 worktree、bounded budget 與 sealed worker order；Runner 應記錄 `NO_ELIGIBLE_READY_WORK` 並正常 idle，未來合法 Ready work 可按既有 admission 自動接續。

@@ -32,7 +32,8 @@ STOP_PATH = ".ai/ORCHESTRATOR_STOP"
 LOCK_PATH = ".ai/ORCHESTRATOR.lock"
 HISTORY_PATH = ".ai/ORCHESTRATION_HISTORY/events.jsonl"
 TERMINAL_STATES = {
-    "HUMAN_CHECKPOINT_REQUIRED",
+    "HUMAN_CHECKPOINT_REQUIRED",  # historical state accepted for migration only
+    "FINAL_HUMAN_ACCEPTANCE_REQUIRED",
     "PRODUCT_DECISION_REQUIRED",
     "AUTHORITY_CONFLICT",
     "AUTOMATION_BLOCKED",
@@ -762,12 +763,31 @@ def advance_after_pass(repo: Path, state: dict[str, Any]) -> None:
             )
             return
     active["status"] = "complete"
-    completed = {item.get("id") for item in plan.get("milestones", []) if item.get("status") == "complete"}
+    completed = {
+        item.get("id")
+        for item in plan.get("milestones", [])
+        if item.get("status") in {"complete", "superseded"}
+    }
     ready = [
         item for item in plan.get("milestones", [])
         if item.get("status") == "pending" and set(item.get("dependencies", [])) <= completed
     ]
     next_package = ready[0] if ready else None
+    if next_package and next_package.get("human_gate", "none") not in {
+        "none",
+        "complete",
+        external_review_control.FINAL_HUMAN_GATE_ID,
+    }:
+        next_package["status"] = "superseded"
+        next_package["superseded_by"] = external_review_control.FINAL_HUMAN_GATE_ID
+        completed.add(next_package.get("id"))
+        ready = [
+            item
+            for item in plan.get("milestones", [])
+            if item.get("status") == "pending"
+            and set(item.get("dependencies", [])) <= completed
+        ]
+        next_package = ready[0] if ready else None
     if next_package and next_package.get("human_gate", "none") not in {"none", "complete"}:
         external_blockers = external_review_control.repository_human_gate_blockers(repo)
         if external_blockers:
@@ -778,10 +798,10 @@ def advance_after_pass(repo: Path, state: dict[str, Any]) -> None:
             active["status"] = "active"
             update_state(repo, state, "REPAIRING", next_action)
             return
-        plan["status"] = "human_checkpoint_required"
+        plan["status"] = "final_human_acceptance_required"
         plan["active_milestone_id"] = None
         next_action = f"Human checkpoint {next_package.get('human_gate')} is required before {next_package.get('id')}."
-        write_plan(repo, plan, "HUMAN_CHECKPOINT_REQUIRED", next_action)
+        write_plan(repo, plan, "FINAL_HUMAN_ACCEPTANCE_REQUIRED", next_action)
         reset_review_bus_after_pass(repo, next_action)
         _, status = control.load_plan_status(repo)
         status["goal_status"] = plan["status"]
@@ -789,7 +809,7 @@ def advance_after_pass(repo: Path, state: dict[str, Any]) -> None:
         status["milestone_status"] = "pending_human_checkpoint"
         status["working_state"]["fingerprint"] = control.repository_fingerprint(repo)["value"]
         control.write_status(repo, status)
-        update_state(repo, state, "HUMAN_CHECKPOINT_REQUIRED", next_action, work_package=None)
+        update_state(repo, state, "FINAL_HUMAN_ACCEPTANCE_REQUIRED", next_action, work_package=None)
         return
     if next_package:
         next_package["status"] = "active"
@@ -1089,7 +1109,11 @@ def start(
         if state["state"] == "PRODUCT_DECISION_REQUIRED":
             if not resume_after_product_decision(repo, state):
                 return state
-        elif state["state"] in {"HUMAN_CHECKPOINT_REQUIRED", "AUTHORITY_CONFLICT"}:
+        elif state["state"] in {
+            "HUMAN_CHECKPOINT_REQUIRED",  # superseded input migration
+            "FINAL_HUMAN_ACCEPTANCE_REQUIRED",
+            "AUTHORITY_CONFLICT",
+        }:
             # Re-derive after the human or authority artifact was durably updated.
             state = derive_state(repo, max_review_cycles=state.get("max_review_cycles", max_review_cycles))
         elif state["state"] in EXPLICIT_RESUME_STATES:

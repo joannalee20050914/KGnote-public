@@ -1,19 +1,19 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "orch-ad54c73103f7",
-  "active_goal": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
-  "work_package": "AR-EXTERNAL-REVIEW",
-  "state": "REPAIRING",
+  "run_id": "orch-5d51ba916fd0",
+  "active_goal": "GOAL-KGNOTE-HUMAN-GATE-SCHEDULER-CONTINUITY-20261019",
+  "work_package": null,
+  "state": "GOAL_COMPLETE",
   "current_agent": null,
   "candidate_fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
   "review_id": null,
-  "review_cycle": 4,
+  "review_cycle": 0,
   "max_review_cycles": 5,
   "agent_failures": 0,
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Automatically return reviewer findings to a fresh implementer context.",
+  "next_action": "Runner may select the next independently authorized Ready work. Current live scheduler evidence is NO_ELIGIBLE_READY_WORK; remain idle without requesting a general continue instruction.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -22,20 +22,11 @@
     "fingerprint": null
   },
   "next_human_checkpoint": {
-    "id": "PA-HUMAN-1",
-    "status": "not_evaluated",
-    "description": "Requires native product and learner evidence; deterministic tests and AI review cannot promote it."
+    "id": "D2-T14-FINAL-HUMAN-ACCEPTANCE",
+    "status": "not_eligible_incomplete_product_scope",
+    "description": "Issue #21 RC-01 through RC-34, all required features/dependencies/integration/delivery evidence and one exact complete candidate are not yet complete."
   },
-  "last_agent_run": {
-    "role": "reviewer",
-    "separate_ephemeral_context": true,
-    "exit_code": 0,
-    "duration_seconds": 241.107,
-    "output_tail": "hestrator.py AR-EXTERNAL-REVIEW completion gate\",\n+        \"GitHub Issue #8 status/evidence\",\n+        \"GitHub Project item status/evidence\",\n+        \"Durable external-review completion receipt and read-back tests\"\n+      ],\n+      \"required_resolution\": \"Implement an authorized Issue #8 and GitHub Project update/read-back step, retain a durable exact-candidate receipt, and make missing or mismatched evidence block milestone/goal completion. Include remaining limitations, rollback instructions, and explicit preservation of all human/release gates.\",\n+      \"verification_method\": \"Exercise the post-Consumer PASS path with mocked GitHub Issue/Project APIs and a live authorized read-back when available; assert GOAL_COMPLETE is impossible until both records match the exact PR/HEAD/fingerprint/round/artifact and preserved-gate values, and add negative tests for missing, stale, wrong-repository, or partially updated metadata.\",\n+      \"status\": \"OPEN\"\n+    }\n+  ],\n+  \"verified_requirements\": [\n+    \"AR-EXTERNAL-REVIEW acceptance criterion 1: the manifest delta from the internally passed c99c182 candidate to the sealed 11db14f candidate changes only PLAN.md among fingerprinted paths; source-library product, test, and requirement bytes are unchanged\",\n+    \"Canonical/candidate/trigger/review-request repository configuration consistently names joannalee20050914/KGnote-public and PR #23\",\n+    \"Publication marker, candidate commit/fingerprint, review round, exact trigger-template, and remote-head fail-closed checks that are currently implemented\",\n+    \"Existing Consumer schema and exact repository/PR/program/goal/commit/fingerprint/round/author checks in isolation\",\n+    \"PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unpromoted\",\n+    \"R-003 through R-007 remain VERIFIED for their historical exact c99c182 candidate and were not rebound to this candidate\"\n+  ],\n+  \"unverified_requirements\": [\n+    \"AR-EXTERNAL-REVIEW acceptance criterion 2: exact Draft/head/base/dependency PR shape is not fail-closed or sealed\",\n+    \"AR-EXTERNAL-REVIEW acceptance criteria 3 and 4: exact external result acquisition, Consumer invocation, persistence, and autonomous routing are not connected end to end\",\n+    \"AR-EXTERNAL-REVIEW acceptance criterion 5: Issue #8 and GitHub Project exact-evidence update/read-back is absent\",\n+    \"Goal completion for the Issue #8 external-review milestone\"\n+  ],\n   \"human_decisions_required\": [],\n-  \"human_gates_preserved\": [],\n-  \"reviewed_at\": null\n+  \"human_gates_preserved\": [\n+    \"PA-HUMAN-1\",\n+    \"NS-HUMAN-SMOKE\",\n+    \"release_verified=false\"\n+  ],\n+  \"reviewed_at\": \"2026-10-16T16:58:01+08:00\"\n }\n ```\n <!-- END KGNOTE REVIEW RESULT JSON -->\n \n-Verdict: `PASS`. R-003 through R-007 are verified for the exact sealed candidate at HEAD `c99c182c80acff6047aba88ebb471760a66b8849` and fingerprint `6dc468b961387118a3f770c476096fbd9a96c892c041b350941f114a49bca5f6`. This internal verdict does not promote external product review, PA-HUMAN-1, NS-HUMAN-SMOKE, multi-process safety, or release verification.\n+Verdict: `CHANGES_REQUIRED`. Product bytes remain unchanged from the internally passed candidate, but R-008 through R-010 block exact external publication/review completion and durable Issue/Project closure. No human, native-device, external-product-review, or release gate is promoted.\n\ntokens used\n126,723\n獨立審查完成，Verdict：`CHANGES_REQUIRED`。\n\n- `R-008`：publication 未驗證 PR #23 的 Draft、head branch、stacked base 與 PR #22 狀態。\n- `R-009`：缺少外部 review 結果擷取、Consumer 執行及自動 routing 的完整回路。\n- `R-010`：Goal 可在未更新、讀回 Issue #8 與 GitHub Project 證據時完成。\n- Exact candidate：HEAD `11db14fb9d385f21957f029ecd802e6ad42f6a21`\n- Fingerprint：`cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17`\n- `review-validate-pending`：PASS\n- 僅修改 reviewer-owned [`.ai/REVIEW_RESULT.md`](/Users/joanna/KGnote-public-rewrite-20261005/.ai/REVIEW_RESULT.md)\n- 未執行 submit、resume 或任何候選檔案修改\n- `PA-HUMAN-1`、`NS-HUMAN-SMOKE`、`release_verified=false` 均保持不變。\n",
-    "last_message_path": "output/control-plane/orchestrator/orch-ad54c73103f7-reviewer-20261016T165459+0800.txt",
-    "created_at": "2026-10-16T16:59:00+08:00",
-    "transcript_path": "output/control-plane/orchestrator/orch-ad54c73103f7-reviewer-20261016T165459+0800.json"
-  },
-  "created_at": "2026-10-16T16:36:21+08:00",
-  "updated_at": "2026-10-16T16:59:00+08:00"
+  "last_agent_run": null,
+  "created_at": "2026-10-19T14:46:21+08:00",
+  "updated_at": "2026-10-19T14:46:21+08:00"
 }

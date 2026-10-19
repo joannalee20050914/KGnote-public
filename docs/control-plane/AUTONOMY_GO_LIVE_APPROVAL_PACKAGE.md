@@ -32,7 +32,7 @@
 立即停止：
 
 ```bash
-launchctl bootout gui/501 /Users/joanna/Library/LaunchAgents/com.kgnote.local-autonomy-runner.plist
+launchctl bootout "gui/$(id -u)" "${HOME}/Library/LaunchAgents/com.kgnote.local-autonomy-runner.plist"
 ```
 
 停止後保留 envelope、Orchestrator state、review history、GitHub receipts 與 runner log；不 reset、clean 或刪除 checkpoint。回復只需保持 LaunchAgent 未載入，並將 envelope 狀態設為非 `APPROVED`。排程喚醒不得解除任何 terminal state。

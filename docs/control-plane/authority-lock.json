@@ -1,13 +1,13 @@
 {
   "schema_version": "kgnote.authority-lock.v1",
-  "generated_at": "2026-10-05",
+  "generated_at": "2026-10-19",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "conflict_policy": "fail_closed_authority_drift",
   "product_authority": [
     {
       "path": "docs/control-plane/AUTHORITY.md",
       "role": "authority_policy",
-      "sha256": "adcb9a5e08e04b46957ee24f43e3fdd32d4a2d4e59b86f0e6fdc620e42006507",
+      "sha256": "fb924fedd86cee5a6a052a9aaeb288c903dcec83475ce4dd88a23eaa38e1f446",
       "required_marker": "kgnote-obsidian-first-2026-09-22"
     },
     {
@@ -37,7 +37,7 @@
     {
       "path": "docs/requirements/PERSONAL_ALPHA_INTEGRATED_STAGE_DIRECTION_20260927.md",
       "role": "current_explicit_integrated_personal_alpha_stage_decision",
-      "sha256": "32a4bfd100952edbf80ec6ae9f8dc31c75c02dab295398554d3bac3cee7d22ab",
+      "sha256": "bf714d386cd822a7c6dd1c0427e882d55db5d016191c02bf7ecde88230bb3c9a",
       "required_marker": "kgnote-obsidian-first-2026-09-22"
     },
     {
@@ -90,7 +90,7 @@
         "path": "AGENTS.md",
         "role": "agent_behavior_policy",
         "validation": "sha256",
-        "sha256": "10e186bc15e282e656f46c3d9a8230a3149f21b123011790cbe480faff3aa50c",
+        "sha256": "780200fa40a9e6231f7ce6d8a82965edc7cc687d413c1b94adb18343e30974dc",
         "required_marker": "kgnote-obsidian-first-2026-09-22"
       },
       {

@@ -206,9 +206,10 @@ class ExactReviewIntegrationTests(unittest.TestCase):
             }
             self.assertEqual(COMMIT, publication["remote_head"])
             self.assertEqual(FINGERPRINT, publication["candidate_fingerprint"])
-            self.assertEqual([], external_control.human_gate_blockers(self.live_config, state))
+            self.assertEqual([], external_control.external_review_blockers(self.live_config, state))
+            self.assertTrue(external_control.human_gate_blockers(self.live_config, state))
             self.assertEqual(
-                "HUMAN_CHECKPOINT_REQUIRED",
+                "COMPONENT_REVIEW_COMPLETE",
                 external_control.next_machine_state(self.live_config, state),
             )
             self.assertFalse(state["release_verified"])

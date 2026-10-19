@@ -32,7 +32,7 @@ Execution documents may govern how Codex works, verifies, advances, or stops. Th
 
 | Document | Role | Authority status |
 |---|---|---|
-| `docs/requirements/PERSONAL_ALPHA_INTEGRATED_STAGE_DIRECTION_20260927.md` | Current integrated Personal Alpha stage, concentrated-human-review policy, and partial-feedback boundary | active |
+| `docs/requirements/PERSONAL_ALPHA_INTEGRATED_STAGE_DIRECTION_20260927.md` | Current integrated Personal Alpha stage and 2026-10-19 two-level human experience acceptance/supersession policy | active; sole current human-experience timing authority |
 | `docs/requirements/USER_DIRECTION_DELTA_20260922.md` | Current explicit product decision record | active |
 | `docs/requirements/PERSONAL_ALPHA_DIRECTION_20260922.md` | Current explicit Personal Alpha product and delivery decision | active |
 | `docs/requirements/PERSONAL_ALPHA_HUMAN_FEEDBACK_20260923.md` | Current Personal Alpha human result and native-spike interruption boundary | active |
@@ -54,6 +54,13 @@ Execution documents may govern how Codex works, verifies, advances, or stops. Th
 | `docs/requirements/TOOL_VALIDATION.txt` | Dated validation transcript | historical provenance |
 
 Historical provenance may support why a decision was made or what was once verified. Its incomplete work, imperative wording, or status claims never become current scope without a new explicit decision and SSOT update.
+
+For human experience acceptance, the 2026-10-19 amendment in
+`docs/requirements/PERSONAL_ALPHA_INTEGRATED_STAGE_DIRECTION_20260927.md` is controlling. Any earlier instruction
+that makes a partial feature, stage candidate, internal-review PASS, or external-review PASS wait for a human smoke
+is `SUPERSEDED` and must not be executed. Its historical result and exact candidate evidence remain immutable.
+Safety, privacy, consent, budget, destructive-operation, publication, and merge gates are independent and remain
+active.
 
 ## Drift control
 

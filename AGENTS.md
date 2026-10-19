@@ -12,7 +12,7 @@
 4. 執行 `scripts/codex_preflight.sh`。若 authority drift、PLAN/STATUS 不一致、非預期 dirty state 或 consent gate 出現，fail closed。
 5. 只執行 PLAN 中唯一 `active` milestone；不得從 superseded roadmap、歷史 AI review 或未完成 checkbox 自行恢復 scope。
 
-一個 PLAN 只表示一個 active goal，可含 ordered／dependency-aware milestones；任何時間最多一個 milestone 為 `active`。Milestone 驗證綠燈後，若下一 milestone dependencies 完成且沒有 human gate，更新 PLAN／STATUS 後自行前進，不要求重新派工。測試失敗先在同一 milestone 內修復；只有跨越產品裁決、資料授權、破壞性 migration、外部付費／外送或明示權限邊界才停止。
+一個 PLAN 只表示一個 active goal，可含 ordered／dependency-aware milestones；任何時間最多一個 milestone 為 `active`。Milestone 驗證綠燈後，若下一 milestone dependencies 完成且沒有現行有效的最終人工 gate，更新 PLAN／STATUS 後自行前進，不要求重新派工。`SOFT_FEEDBACK_AVAILABLE` 是可去重、可晚到的非阻塞事件；無回覆不成為 PASS／FAIL 或停止條件。只有完整正式產品符合 `D2-T14-FINAL-HUMAN-ACCEPTANCE` 全部前置證據時，才能進入 `FINAL_HUMAN_ACCEPTANCE_REQUIRED`。已被最新 authority 標成 `SUPERSEDED` 的中途 smoke／human-checkpoint 條款不得執行。測試失敗先在同一 milestone 內修復；只有跨越產品裁決、資料授權、破壞性 migration、外部付費／外送或明示權限邊界才停止。
 
 `candidate_verified` 只表示目前 fingerprint 的本地 deterministic verification 通過；`release_verified` 需要 PLAN 明定的外部／人工 gate，不得由 Codex 從測試結果自行提升。physical device、Obsidian 實機、真人 learning acceptance 或 live provider 行為一律保留為人工／外部證據。
 
@@ -35,11 +35,11 @@ candidate-complete 時依序：
 
 `CHANGES_REQUIRED` 時，orchestrator 在五次預設 review/repair budget 內自動把完整 findings 交回 fresh implementer context。Codex 必須保留所有 unresolved findings，只能將已處理項目標成 `FIXED_PENDING_REVIEW`，補 regression evidence、重跑 verification，並以新 candidate／review cycle 請求複審；`VERIFIED` 只能由 reviewer 寫入。五次仍未解決才以 structured evidence 進入 `AUTOMATION_BLOCKED`。`PRODUCT_DECISION_REQUIRED` 時，受影響 scope 立即停止；human 選擇必須先寫入既有適當 authority／decision record 並由 `.ai/DECISIONS.md` 連結，不能只留在對話。
 
-`PASS` 只對 result 中 exact review ID、revision 與 fingerprint 有效。任何 candidate byte drift 都使它 stale。orchestrator archive PASS 後，若下一 work package dependencies 完成且沒有該 package 的 human checkpoint，必須自動前進；不得因 routine test/build failure、review failure、agent/thread 結束或 context rollover 等待 human。PASS 仍須服從 PLAN dependency 與 explicit human checkpoints；尤其不得提升 `PA-HUMAN-1`、`NS-HUMAN-SMOKE`、`release_verified`、physical-device、真人學習或 live-provider 結論。
+`PASS` 只對 result 中 exact review ID、revision 與 fingerprint 有效。任何 candidate byte drift 都使它 stale。orchestrator archive PASS 後，若下一 work package dependencies 完成且未滿足唯一最終 gate 的完整資格，必須自動前進；不得因 routine test/build failure、review failure、agent/thread 結束、context rollover 或 optional feedback 未回覆而等待 human。PASS 仍須服從 PLAN dependency 與獨立安全／授權／發布 gate；尤其不得提升 `PA-HUMAN-1`、`NS-HUMAN-SMOKE`、`release_verified`、physical-device、真人學習或 live-provider 結論。
 
 Internal repository reviewer 與 ChatGPT Work external product reviewer 是兩個不同 gate。當 `docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md` 存在且 active goal 要求 external review 時，internal PASS 只能授權 exact-candidate publication，不能進入 human checkpoint。candidate repository、canonical repository、configured trigger repository 與 review-request repository 必須一致；external GitHub artifact 必須綁定同一 PR、HEAD 與 fingerprint。缺失、stale、wrong-repository 或仍含 blocking findings 時，orchestrator 必須停留在 autonomous repair/review loop，禁止把 owner 設為下一 actor。
 
-Orchestrator 的 start／resume／status／stop 介面為 `python3 scripts/codex_orchestrator.py --repo . {start,resume,status,stop}`。durable state 必須包含 active goal、work package、state、current agent、fingerprint、review cycle、blockers、next action、human action required 與 candidate custody。正常 human interruption 只允許 `HUMAN_CHECKPOINT_REQUIRED`、`PRODUCT_DECISION_REQUIRED`、`AUTHORITY_CONFLICT`、`AUTOMATION_BLOCKED`、`BUDGET_EXHAUSTED`、`GOAL_COMPLETE`；operator 明示 `stop` 另以 `STOPPED` 安全停止。
+Orchestrator 的 start／resume／status／stop 介面為 `python3 scripts/codex_orchestrator.py --repo . {start,resume,status,stop}`。durable state 必須包含 active goal、work package、state、current agent、fingerprint、review cycle、blockers、next action、human action required 與 candidate custody。正常 human interruption 只允許 `FINAL_HUMAN_ACCEPTANCE_REQUIRED`、`PRODUCT_DECISION_REQUIRED`、`AUTHORITY_CONFLICT`、`AUTOMATION_BLOCKED`、`BUDGET_EXHAUSTED`、`GOAL_COMPLETE`；operator 明示 `stop` 另以 `STOPPED` 安全停止。歷史 `HUMAN_CHECKPOINT_REQUIRED` 可讀取與遷移，但不得由現行 Consumer 新產生。
 
 ## 1. 產品目標
 

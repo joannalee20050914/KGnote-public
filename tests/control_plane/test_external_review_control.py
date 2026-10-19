@@ -53,6 +53,31 @@ class ExternalReviewControlTests(unittest.TestCase):
         })
         self.config["request_marker"] = "REQUEST_V2"
 
+    def final_checkpoint(self) -> dict:
+        return {
+            "gate_id": CONTROL.FINAL_HUMAN_GATE_ID,
+            "status": "READY",
+            "candidate_scope": "COMPLETE_PRODUCT_DELIVERY",
+            "candidate_commit": "a" * 40,
+            "candidate_fingerprint": "b" * 64,
+            "approved_required_scope_complete": True,
+            "required_features_complete": True,
+            "dependencies_complete": True,
+            "cross_module_integration_complete": True,
+            "required_scenarios_complete": True,
+            "delivery_evidence_complete": True,
+            "no_known_delivery_blockers": True,
+            "rc_evidence_complete": True,
+            "independent_review_complete": True,
+            "integrated_verification_complete": True,
+            "trial_entrypoint": "kgnote://final-candidate",
+            "formal_human_acceptance_status": "NOT_EVALUATED",
+            "authority_refs": [
+                "docs/requirements/PERSONAL_ALPHA_INTEGRATED_STAGE_DIRECTION_20260927.md",
+                "https://github.com/joannalee20050914/KGnote-public/issues/21",
+            ],
+        }
+
     def test_wrong_repository_publication_fails_closed(self) -> None:
         config = {**self.config, "candidate_repository": "joannalee20050914/KGnote"}
         self.assertIn("must match", " ".join(CONTROL.repository_authority_errors(config)))
@@ -90,9 +115,50 @@ class ExternalReviewControlTests(unittest.TestCase):
         self.assertTrue(any("exact candidate commit" in blocker for blocker in blockers))
         self.assertNotEqual("HUMAN_CHECKPOINT_REQUIRED", CONTROL.next_machine_state(self.config, state))
 
-    def test_exact_external_pass_allows_real_human_checkpoint(self) -> None:
+    def test_exact_component_pass_does_not_imply_human_checkpoint(self) -> None:
+        self.assertEqual([], CONTROL.external_review_blockers(self.config, self.state))
+        self.assertTrue(CONTROL.human_gate_blockers(self.config, self.state))
+        self.assertEqual("COMPONENT_REVIEW_COMPLETE", CONTROL.next_machine_state(self.config, self.state))
+
+    def test_exact_external_pass_allows_only_complete_final_candidate(self) -> None:
+        self.state["human_checkpoint"] = self.final_checkpoint()
         self.assertEqual([], CONTROL.human_gate_blockers(self.config, self.state))
-        self.assertEqual("HUMAN_CHECKPOINT_REQUIRED", CONTROL.next_machine_state(self.config, self.state))
+        self.assertEqual(
+            "FINAL_HUMAN_ACCEPTANCE_REQUIRED",
+            CONTROL.next_machine_state(self.config, self.state),
+        )
+
+    def test_legacy_or_partial_checkpoint_is_superseded_and_does_not_stop(self) -> None:
+        self.state["human_checkpoint"] = {
+            "status": "READY",
+            "candidate_scope": "INTEGRATED_CANDIDATE",
+            "gate_ids": ["PA-HUMAN-1", "NS-HUMAN-SMOKE"],
+            "dependencies_complete": True,
+            "required_evidence_complete": True,
+            "concentrated_trial_ready": True,
+        }
+        self.assertEqual("COMPONENT_REVIEW_COMPLETE", CONTROL.next_machine_state(self.config, self.state))
+
+    def test_every_final_prerequisite_and_exact_identity_is_required(self) -> None:
+        for field in (
+            "required_features_complete",
+            "cross_module_integration_complete",
+            "required_scenarios_complete",
+            "delivery_evidence_complete",
+            "no_known_delivery_blockers",
+            "rc_evidence_complete",
+            "independent_review_complete",
+            "integrated_verification_complete",
+        ):
+            with self.subTest(field=field):
+                state = copy.deepcopy(self.state)
+                state["human_checkpoint"] = self.final_checkpoint()
+                state["human_checkpoint"][field] = False
+                self.assertEqual("COMPONENT_REVIEW_COMPLETE", CONTROL.next_machine_state(self.config, state))
+        state = copy.deepcopy(self.state)
+        state["human_checkpoint"] = self.final_checkpoint()
+        state["human_checkpoint"]["formal_human_acceptance_status"] = "PASS"
+        self.assertEqual("COMPONENT_REVIEW_COMPLETE", CONTROL.next_machine_state(self.config, state))
 
     def test_exact_publication_readback_allows_publish_progression(self) -> None:
         self.assertEqual([], CONTROL.publication_progression_blockers(self.config, self.state))

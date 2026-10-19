@@ -6,30 +6,27 @@ This file records facts and recovery state; it does not define product requireme
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-16T16:59:00+08:00",
-  "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
-  "goal_status": "active",
-  "active_milestone_id": "AR-EXTERNAL-REVIEW",
-  "milestone_status": "active",
+  "updated_at": "2026-10-19T14:56:00+08:00",
+  "goal_id": "GOAL-KGNOTE-HUMAN-GATE-SCHEDULER-CONTINUITY-20261019",
+  "goal_status": "complete",
+  "active_milestone_id": null,
+  "milestone_status": "complete",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
-    "branch": "codex/issue-8-source-library",
-    "head": "11db14fb9d385f21957f029ecd802e6ad42f6a21",
-    "base_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
-    "base_pull_request": 22,
-    "base_pull_request_state": "OPEN_DRAFT_UNMERGED",
-    "checkpoint_commit": "ed2daa3d07414870b36a5965b56f62c5889ce9b9"
+    "branch": "codex/issue-24-local-autonomy-safety",
+    "head": "42a16a3a7f5c9d6f7233fa4bd3f2cf5138099098",
+    "base_commit": "42a16a3a7f5c9d6f7233fa4bd3f2cf5138099098",
+    "checkpoint_commit": "42a16a3a7f5c9d6f7233fa4bd3f2cf5138099098"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
-    "starting_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
-    "expected_dirty_policy": "Issue #8 may change only its product import/source-library/UI paths, bounded tests, requirement delivery evidence, and necessary control/review state. Existing Issue #19 closure receipts are preserved; unrelated changes are forbidden.",
+    "fingerprint": "6ebaba1fe791a6c1c2857b95b90f4280243acb1632594c389fd64a61f24af28b",
+    "starting_fingerprint": "18b1b595d062121eabb76c273d97fee27b6a4a14efedd868d9b04ecbc020a4d1",
+    "expected_dirty_policy": "Only the explicit 2026-10-19 two-level human-acceptance authority reconciliation, existing Runner/review/orchestrator Consumers, bounded tests, authority lock, PLAN/STATUS and factual GitHub status evidence may change.",
     "preserved_preexisting_dirty_paths": [
-      ".ai/ORCHESTRATOR_STATE.json",
-      ".ai/external-review-state.json",
-      "CODEX_STATUS.md"
+      "scripts/local_autonomy_runner.py",
+      "tests/control_plane/test_local_autonomy_runner.py"
     ],
     "unexpected_dirty_paths": []
   },
@@ -46,69 +43,95 @@ This file records facts and recovery state; it does not define product requireme
     ],
     "human_decision_blockers": []
   },
-  "external_review": {
-    "repository": "joannalee20050914/KGnote-public",
-    "pull_request": 23,
-    "status": "NOT_RUN_FOR_ISSUE_8",
-    "review_round": null,
-    "reviewed_commit": null,
-    "reviewed_fingerprint": null,
-    "artifact_url": null,
-    "consumer_status": "not_run",
-    "blocking_findings": [],
-    "applies_to_current_worktree": false
-  },
-  "historical_external_review": {
-    "repository": "joannalee20050914/KGnote-public",
-    "pull_request": 22,
-    "status": "PASS_HISTORICAL_EXACT_CANDIDATE",
-    "review_round": 2,
-    "reviewed_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
-    "reviewed_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
-    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#pullrequestreview-5544513834",
-    "consumer_status": "accepted_for_issue_19_only",
-    "applies_to_current_worktree": false,
-    "scheduled_run_linkage": "not_independently_verified",
-    "unattended_writeback": "not_verified_human_approval_was_still_required"
+  "scheduler_audit": {
+    "pr26_status": "WORK_ITEM_BLOCKED",
+    "pr26_round3": {
+      "verdict": "CHANGES_REQUIRED",
+      "commit": "514712da91128468d716181a66a38a6f5de66a42",
+      "fingerprint": "d6caad7014206a6b4ba6a612cde92661c91243bbc7275a9f47dd543fb0685ee0",
+      "blocking_findings": [
+        "finding-r-004"
+      ]
+    },
+    "pr26_round4": {
+      "verdict": "PASS_REJECTED_FOR_ROUTING",
+      "commit": "514712da91128468d716181a66a38a6f5de66a42",
+      "fingerprint": "d6caad7014206a6b4ba6a612cde92661c91243bbc7275a9f47dd543fb0685ee0",
+      "new_resolution_evidence": []
+    },
+    "runner_scope": "NOT_GLOBALLY_BLOCKED_BY_PR26",
+    "ready_candidates": [
+      "GitHub Issue #14"
+    ],
+    "eligible_ready_work": [],
+    "eligibility_reason": "Issue #14 has queue:ready but no active PLAN, isolated worktree, bounded execution budget, or sealed worker order.",
+    "expected_runner_status": "NO_ELIGIBLE_READY_WORK",
+    "legacy_stop_marker_scope": "legacy Issue #8/PR #23 work item; marker remains present",
+    "human_acceptance_policy": {
+      "version": "two-level-2026-10-19",
+      "soft_feedback_state": "SOFT_FEEDBACK_AVAILABLE_NON_BLOCKING",
+      "final_gate_id": "D2-T14-FINAL-HUMAN-ACCEPTANCE",
+      "final_state": "FINAL_HUMAN_ACCEPTANCE_REQUIRED",
+      "superseded_emissions": [
+        "HUMAN_CHECKPOINT_REQUIRED",
+        "AWAITING_HUMAN_ACCEPTANCE",
+        "component PASS -> human gate"
+      ]
+    },
+    "notification_capability": {
+      "github_token_scopes_verified": [
+        "repo",
+        "project",
+        "workflow"
+      ],
+      "chatgpt_work_trigger_permission": "NOT_INDEPENDENTLY_VERIFIED",
+      "unattended_writeback": "NOT_VERIFIED",
+      "claim_sent": false
+    },
+    "runner_runtime": {
+      "launch_agent": "com.kgnote.local-autonomy-runner",
+      "loaded": true,
+      "observed_runs": 2,
+      "last_exit_code": 0,
+      "post_restart_status": "NO_ELIGIBLE_READY_WORK",
+      "post_restart_work_item_status": "WORK_ITEM_BLOCKED",
+      "budget_preserved": {
+        "claude_product_reviews": "4/6",
+        "codex_implementation_or_repair_cycles": "6/12",
+        "reset_on_restart_or_next_day": false
+      }
+    }
   },
   "verification": {
     "candidate_verified": true,
     "release_verified": false,
     "control_plane_ready": true,
-    "last_green_milestone": "S2B-REVIEW-INTEGRATION-TASK",
-    "last_candidate_evidence": "output/control-plane/verification-20261016T165421+0800.json",
-    "last_verified_fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
-    "last_result": "Deterministic verification passed for the exact candidate; semantic review is pending."
+    "last_candidate_evidence": "output/control-plane/verification-20261019T144632+0800.json",
+    "last_verified_fingerprint": "6ebaba1fe791a6c1c2857b95b90f4280243acb1632594c389fd64a61f24af28b",
+    "last_result": "Final completion-state exact candidate verification PASS: stable fingerprint; requirements 16, control-plane 148, Python product 324, Node 60, diff/public-safety/whitespace PASS. release_verified remains false."
   },
-  "next_action": "Implement only the authority-bounded resolutions, preserve finding IDs, rerun deterministic verification, and issue a new fingerprint-bound review request.",
+  "next_action": "Runner may select the next independently authorized Ready work. Current live scheduler evidence is NO_ELIGIBLE_READY_WORK; remain idle without requesting a general continue instruction.",
   "external_or_human_gates": [
     {
-      "id": "PR22-STACKED-BASE",
-      "status": "open_unmerged_dependency",
-      "description": "Development can proceed on f35669e, but final integration must preserve the stacked dependency or rebase after PR #22 is integrated."
-    },
-    {
-      "id": "ISSUE8-INDEPENDENT-REVIEW",
-      "status": "not_run",
-      "description": "A future exact Issue #8 candidate must pass the existing internal and external review flow; no old PASS is inherited."
+      "id": "PR26-PRODUCT-ACCEPTANCE",
+      "status": "not_eligible_review_consistency_blocked"
     },
     {
       "id": "PA-HUMAN-1",
-      "status": "not_evaluated",
-      "description": "Native learner acceptance remains external and unverified."
+      "status": "not_evaluated"
     },
     {
       "id": "NS-HUMAN-SMOKE",
-      "status": "not_evaluated",
-      "description": "Native product smoke evidence remains external and unverified."
+      "status": "not_evaluated"
     }
   ],
   "forbidden_during_goal": [
-    "modify or merge PR #1, PR #22, or main",
-    "bulk-copy the private archive or discard pre-existing local receipts",
-    "replace existing importer, canonical store, Review Consumer, Publisher, or Orchestrator",
-    "bind the PR #22 Round 2 PASS to the Issue #8 candidate",
-    "promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
+    "automatic merge or modification of main",
+    "clear the legacy stop marker",
+    "create an unauthorized product branch or PR",
+    "reset budget or completed work on restart",
+    "promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified",
+    "change model selection or account quota policy"
   ]
 }
 ```
@@ -116,9 +139,9 @@ This file records facts and recovery state; it does not define product requireme
 
 ## Human-readable handoff
 
-Goal `GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1` remains active at milestone `AR-EXTERNAL-REVIEW`.
+Goal `GOAL-KGNOTE-HUMAN-GATE-SCHEDULER-CONTINUITY-20261019` remains complete at milestone `None`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: R-008, R-009, R-010. Human decision blockers: none.
-Exact next action: Implement only the authority-bounded resolutions, preserve finding IDs, rerun deterministic verification, and issue a new fingerprint-bound review request.
+Exact next action: Runner may select the next independently authorized Ready work. Current live scheduler evidence is NO_ELIGIBLE_READY_WORK; remain idle without requesting a general continue instruction.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.
