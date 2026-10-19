@@ -7,7 +7,7 @@ This file contains exactly one active execution goal. It does not promote any hu
 {
   "schema_version": "kgnote.codex-plan.v1",
   "goal_id": "GOAL-KGNOTE-HUMAN-GATE-SCHEDULER-CONTINUITY-20261019",
-  "objective": "依 2026-10-19 產品擁有人決策，將既有 Human Gate 統一為非阻塞 SOFT_FEEDBACK_AVAILABLE 與僅適用完整正式產品的 FINAL_HUMAN_ACCEPTANCE_REQUIRED，明確 SUPERSEDE 衝突舊規則，並修正 Runner、external review 與 orchestrator 的自治接續而不弱化安全、授權、預算、Stop Marker、PR 保護或禁止自動 Merge。",
+  "objective": "依 2026-10-19 產品擁有人決策，維持雙層 Human Gate 與 PR #26 局部阻擋，並以 Issue #14 完成一次受權、隔離、單次額度的跨 Issue 自動入場，使同一 Runner 可重用於後續完整授權的 Ready Issue。",
   "status": "complete",
   "active_milestone_id": null,
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
@@ -74,10 +74,12 @@ This file contains exactly one active execution goal. It does not promote any hu
         "scripts/codex_orchestrator.py",
         "scripts/external_review_control.py",
         "scripts/local_autonomy_runner.py",
+        "scripts/cross_issue_admission.py",
         "tests/control_plane/test_codex_orchestrator.py",
         "tests/control_plane/test_exact_review_integration.py",
         "tests/control_plane/test_external_review_control.py",
         "tests/control_plane/test_local_autonomy_runner.py",
+        "tests/control_plane/test_cross_issue_admission.py",
         "GitHub Issue #24 and PR #26 status metadata"
       ],
       "acceptance": [

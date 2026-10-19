@@ -1,14 +1,32 @@
 from __future__ import annotations
-import importlib.util, json, subprocess, tempfile, unittest
+import importlib.util, json, subprocess, sys, tempfile, unittest
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0,str(ROOT/"scripts"))
 SPEC = importlib.util.spec_from_file_location("runner", ROOT / "scripts/local_autonomy_runner.py")
 RUNNER = importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(RUNNER)
 
 class RunnerTests(unittest.TestCase):
+    def test_admission_pending_item_is_prepared_then_dispatched_once(self):
+        tmp=tempfile.TemporaryDirectory(); repo=Path(tmp.name)
+        try:
+            item=self.ready_item(); item["status"]="ADMISSION_PENDING"; item["admission"]={"sealed":True}
+            pending=self.scheduler_pending([item]); pending_path=repo/"pending.json"; pending_path.write_text(json.dumps(pending))
+            order=repo/item["order_path"]; order.parent.mkdir(parents=True); order.write_text("{}")
+            router=repo/"router.py"; router.write_text(""); epoch=repo/"epoch.json"; epoch.write_text("{}"); admission=repo/"admission.py"; admission.write_text("")
+            calls=[]
+            def fake(command,**kwargs): calls.append(command); return subprocess.CompletedProcess(command,0,"{}\n","")
+            receipt={"status":"READY","order_path":item["order_path"],"pull_request":27,"head":"a"*40,"fingerprint":"b"*64,"worktree":"/tmp/w","pull_request_url":"https://example/pr/27","issue_title":"Issue"}
+            with patch.object(RUNNER.cross_issue_admission,"prepare",return_value=receipt) as prepare:
+                result=RUNNER.route_next_ready_work(repo,pending_path,pending,datetime(2026,10,19,10,tzinfo=ZoneInfo("Asia/Taipei")),stop_marker_present=True,router=router,epoch_record=epoch,admission=admission,command_runner=fake)
+            self.assertEqual(0,result); prepare.assert_called_once()
+            saved=json.loads(pending_path.read_text()); self.assertEqual("DISPATCHED",saved["runner_status"])
+            self.assertEqual(1,saved["ready_queue"][0]["budget"]["used"])
+        finally: tmp.cleanup()
     def ready_item(self, work_item_id="D2-T07", dependencies=None):
         return {
             "work_item_id":work_item_id, "status":"READY",
@@ -52,6 +70,27 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual("DISPATCHED",saved["ready_queue"][0]["status"])
             self.assertEqual(1,saved["ready_queue"][0]["budget"]["used"])
             self.assertEqual(3,len(calls))
+        finally: tmp.cleanup()
+
+    def test_route_failure_consumes_the_single_reserved_dispatch(self):
+        tmp=tempfile.TemporaryDirectory(); repo=Path(tmp.name)
+        try:
+            item=self.ready_item(); item["budget"]={"authorized":1,"used":0}
+            pending=self.scheduler_pending([item]); pending_path=repo/"pending.json"; pending_path.write_text(json.dumps(pending))
+            order=repo/item["order_path"]; order.parent.mkdir(parents=True); order.write_text("{}")
+            router=repo/"router.py"; router.write_text(""); epoch=repo/"epoch.json"; epoch.write_text("{}")
+            admission=repo/"admission.py"; admission.write_text("")
+            calls=[]
+            def fake(command,**kwargs):
+                calls.append(command)
+                code=7 if command and command[0]==sys.executable and str(router) in command else 0
+                return subprocess.CompletedProcess(command,code,"{}\n","")
+            result=RUNNER.route_next_ready_work(repo,pending_path,pending,datetime(2026,10,19,10,tzinfo=ZoneInfo("Asia/Taipei")),stop_marker_present=True,router=router,epoch_record=epoch,admission=admission,command_runner=fake)
+            self.assertEqual(7,result)
+            saved=json.loads(pending_path.read_text())
+            self.assertEqual(1,saved["ready_queue"][0]["budget"]["used"])
+            self.assertEqual("DISPATCHING",saved["ready_queue"][0]["status"])
+            self.assertEqual("WORK_ITEM_BLOCKED",saved["runner_status"])
         finally: tmp.cleanup()
 
     def test_b_dependency_on_waiting_pr_is_not_dispatchable(self):

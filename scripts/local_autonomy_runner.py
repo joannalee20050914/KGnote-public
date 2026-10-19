@@ -7,6 +7,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import external_review_control
+import cross_issue_admission
 
 REPO = Path(__file__).resolve().parents[1]
 OUT = REPO / "output/control-plane/production-runner"
@@ -676,6 +677,52 @@ def route_next_ready_work(
     command_runner=subprocess.run,
 ) -> int:
     """Persist a scheduler decision and dispatch only a pre-sealed legal order."""
+    queue = pending.get("ready_queue", [])
+    states = pending.get("work_item_states", {})
+    states = states if isinstance(states, dict) else {}
+    if isinstance(queue, list):
+        for raw in queue:
+            if not isinstance(raw, dict) or raw.get("status") != "ADMISSION_PENDING":
+                continue
+            dependencies = raw.get("dependencies", [])
+            dependencies = dependencies if isinstance(dependencies, list) else []
+            missing = [str(dep) for dep in dependencies if states.get(str(dep)) != "COMPLETE"]
+            if missing:
+                pending["runner_status"] = "NO_ELIGIBLE_READY_WORK"
+                pending["scheduler"] = {
+                    "status":"NO_ELIGIBLE_READY_WORK", "evaluated_at":current.isoformat(timespec="seconds"),
+                    "selected_work_item":None,
+                    "blocks":[blocking_record(
+                        "DEPENDENCY_BLOCKED", scope="DEPENDENCY_SUBGRAPH",
+                        reason=f"unfinished dependencies: {missing}",
+                        affected_work=[str(raw.get("work_item_id")), *missing],
+                        release_condition="every named dependency reaches COMPLETE without bypassing its gates",
+                        next_legal_action="leave the Issue admission pending",
+                    )],
+                }
+                atomic_json(pending_path,pending); return 0
+            try:
+                receipt = cross_issue_admission.prepare(repo, raw, current, runner=command_runner)
+            except cross_issue_admission.AdmissionError as exc:
+                pending["runner_status"] = "NO_ELIGIBLE_READY_WORK"
+                pending["scheduler"] = {
+                    "status":"NO_ELIGIBLE_READY_WORK", "evaluated_at":current.isoformat(timespec="seconds"),
+                    "selected_work_item":None,
+                    "blocks":[blocking_record(
+                        "WORK_ITEM_BLOCKED", scope="WORK_ITEM", reason=f"cross-Issue admission rejected: {exc}",
+                        affected_work=[str(raw.get("work_item_id"))],
+                        release_condition="the existing authority, permission, isolation and sealed identity all validate",
+                        next_legal_action="preserve the pending admission; do not invent or broaden authority",
+                    )],
+                }
+                atomic_json(pending_path,pending); return 0
+            raw.update({
+                "status":"READY", "order_path":receipt["order_path"],
+                "admission_receipt":receipt,
+            })
+            atomic_json(pending_path,pending)
+            append("cross_issue_admission_ready",work_item_id=raw.get("work_item_id"),receipt=receipt)
+            break
     decision = select_ready_work(pending, current, stop_marker_present=stop_marker_present)
     pending["scheduler"] = {
         "status": decision["status"],
@@ -734,6 +781,15 @@ def route_next_ready_work(
         ))
         atomic_json(pending_path, pending)
         return 2
+    # Reserve the sole implementation dispatch before any external model can
+    # start. A route failure is still an attempted dispatch and must not make a
+    # second paid/model-bearing attempt appear authorized after restart.
+    budget = selected["budget"]
+    budget["used"] = int(budget["used"]) + 1
+    selected["status"] = "DISPATCHING"
+    pending["runner_status"] = "DISPATCHING"
+    pending["scheduler"]["status"] = "DISPATCHING"
+    atomic_json(pending_path, pending)
     result = route_order(repo, router, order_path, command_runner)
     if result:
         pending["runner_status"] = "WORK_ITEM_BLOCKED"
@@ -746,8 +802,6 @@ def route_next_ready_work(
         atomic_json(pending_path, pending)
         return result
     selected["status"] = "DISPATCHED"
-    budget = selected["budget"]
-    budget["used"] = int(budget["used"]) + 1
     pending["runner_status"] = "DISPATCHED"
     pending["scheduler"]["status"] = "DISPATCHED"
     atomic_json(pending_path, pending)

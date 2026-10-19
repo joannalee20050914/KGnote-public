@@ -6,7 +6,7 @@ This file records facts and recovery state; it does not define product requireme
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-19T14:56:00+08:00",
+  "updated_at": "2026-10-19T15:34:00+08:00",
   "goal_id": "GOAL-KGNOTE-HUMAN-GATE-SCHEDULER-CONTINUITY-20261019",
   "goal_status": "complete",
   "active_milestone_id": null,
@@ -15,15 +15,15 @@ This file records facts and recovery state; it does not define product requireme
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/issue-24-local-autonomy-safety",
-    "head": "42a16a3a7f5c9d6f7233fa4bd3f2cf5138099098",
+    "head": "64af5b88c7ea316e1142fa43c0a257bfba04a21b",
     "base_commit": "42a16a3a7f5c9d6f7233fa4bd3f2cf5138099098",
-    "checkpoint_commit": "42a16a3a7f5c9d6f7233fa4bd3f2cf5138099098"
+    "checkpoint_commit": "64af5b88c7ea316e1142fa43c0a257bfba04a21b"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "6ebaba1fe791a6c1c2857b95b90f4280243acb1632594c389fd64a61f24af28b",
+    "fingerprint": "d2e2f8f789a264efb468c6d8d6b41d97bf0d4d16ead353f93820dea9b61b31c3",
     "starting_fingerprint": "18b1b595d062121eabb76c273d97fee27b6a4a14efedd868d9b04ecbc020a4d1",
-    "expected_dirty_policy": "Only the explicit 2026-10-19 two-level human-acceptance authority reconciliation, existing Runner/review/orchestrator Consumers, bounded tests, authority lock, PLAN/STATUS and factual GitHub status evidence may change.",
+    "expected_dirty_policy": "Only the explicit 2026-10-19 two-level human-acceptance authority, bounded cross-Issue admission, existing Runner Consumers, tests, PLAN/STATUS and factual GitHub status evidence may change.",
     "preserved_preexisting_dirty_paths": [
       "scripts/local_autonomy_runner.py",
       "tests/control_plane/test_local_autonomy_runner.py"
@@ -106,11 +106,11 @@ This file records facts and recovery state; it does not define product requireme
     "candidate_verified": true,
     "release_verified": false,
     "control_plane_ready": true,
-    "last_candidate_evidence": "output/control-plane/verification-20261019T144632+0800.json",
-    "last_verified_fingerprint": "6ebaba1fe791a6c1c2857b95b90f4280243acb1632594c389fd64a61f24af28b",
-    "last_result": "Final completion-state exact candidate verification PASS: stable fingerprint; requirements 16, control-plane 148, Python product 324, Node 60, diff/public-safety/whitespace PASS. release_verified remains false."
+    "last_candidate_evidence": "output/control-plane/verification-20261019T153124+0800.json",
+    "last_verified_fingerprint": "d2e2f8f789a264efb468c6d8d6b41d97bf0d4d16ead353f93820dea9b61b31c3",
+    "last_result": "Cross-Issue admission exact candidate verification PASS: stable fingerprint; requirements 16, control-plane 153, Python product 324, Node 60, diff/public-safety/whitespace PASS. release_verified remains false."
   },
-  "next_action": "Runner may select the next independently authorized Ready work. Current live scheduler evidence is NO_ELIGIBLE_READY_WORK; remain idle without requesting a general continue instruction.",
+  "next_action": "Finish no-model verification, seal Issue #14 authority and single-dispatch budget, then let the existing Runner create its isolated Draft PR and Ubuntu checkpoint.",
   "external_or_human_gates": [
     {
       "id": "PR26-PRODUCT-ACCEPTANCE",
@@ -143,5 +143,5 @@ Goal `GOAL-KGNOTE-HUMAN-GATE-SCHEDULER-CONTINUITY-20261019` remains complete at 
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: R-008, R-009, R-010. Human decision blockers: none.
-Exact next action: Runner may select the next independently authorized Ready work. Current live scheduler evidence is NO_ELIGIBLE_READY_WORK; remain idle without requesting a general continue instruction.
+Exact next action: Finish no-model verification, seal Issue #14 authority and single-dispatch budget, then let the existing Runner create its isolated Draft PR and Ubuntu checkpoint.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.
