@@ -53,6 +53,11 @@ class CrossIssueAdmissionTests(unittest.TestCase):
         with self.assertRaises(MODULE.AdmissionError):
             MODULE._authorized_local_worktree("/opt/test-home/KGnote-public-issue14-tutor-handoff")
 
+    def test_worker_identity_carries_the_versioned_generic_contract(self):
+        admission=self.item()["admission"]
+        identity={"schema_version":"kgnote.authorized-work-identity.v1",**{k:admission[k] for k in ("repository","issue","goal_id","work_item_id","branch","worktree_slug","authority_record","authority_sha256")}}
+        self.assertEqual("kgnote.authorized-work-identity.v1",identity["schema_version"])
+
 
 if __name__ == "__main__":
     unittest.main()

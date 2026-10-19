@@ -203,7 +203,7 @@ def prepare(
     if pr.get("state")!="OPEN" or pr.get("isDraft") is not True or pr.get("headRefName")!=admission["branch"] or pr.get("baseRefName")!="main":
         raise AdmissionError("Draft PR exact identity read-back mismatch")
     fingerprint=json.loads(_run([sys.executable,str(worktree/"scripts/codex_control.py"),"--repo",str(worktree),"fingerprint"],cwd=worktree,runner=runner))["value"]
-    identity={k:admission[k] for k in ("repository","issue","goal_id","work_item_id","branch","worktree_slug","authority_record","authority_sha256")}
+    identity={"schema_version":"kgnote.authorized-work-identity.v1",**{k:admission[k] for k in ("repository","issue","goal_id","work_item_id","branch","worktree_slug","authority_record","authority_sha256")}}
     deadline=current.replace(hour=18,minute=0,second=0,microsecond=0)
     out=repo/"output/control-plane/production-runner"; order_path=out/"issue-14-d2-t07-linux-worker-order.json"
     prompt=("Implement only the owner-authorized Issue #14/D2-T07 bounded feasibility spike. Read AGENTS.md, PLAN.md, CODEX_STATUS.md and authority first. Preserve PR #26 and every existing budget. Verify supported official authorization documentation, implement the copy-safe manual handoff/import fallback and a delta de-dup round-trip fixture where missing. Do not use browser cookies, live user data, paid services, data egress, Claude review, automatic merge, or main. Run targeted deterministic tests and leave a durable checkpoint before exit.")
