@@ -13,13 +13,13 @@
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/issue-14-tutor-handoff-feasibility",
-    "head": "9b5f5151d383fcb283f20dc40e1d6dff1aa5eadf",
+    "head": "15af507b474cefcd97cc8601920961d80a274f29",
     "base_commit": "5e27492f7c891ab376489420f25bfa569ca0a14a",
     "checkpoint_commit": "e4ae1a110e848c795381f5025c78784b426e83c3"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "9a143471352116145acf97a6bfee69fc155d67a1215dc20e56728c48247540fc",
+    "fingerprint": "806dd3b36b0ef2efbf393c80f70c7487696008e8a4ab6e3d8c9ce353e5234701",
     "starting_fingerprint": "f27827d350de526303a554b65823d63d797b04c24ee73c532733dc12213e1a80",
     "expected_dirty_policy": "Only Issue #14 admission, bounded feasibility implementation, tests and evidence may change.",
     "preserved_preexisting_dirty_paths": [],
@@ -38,8 +38,8 @@
     "candidate_verified": true,
     "release_verified": false,
     "control_plane_ready": true,
-    "last_candidate_evidence": "output/control-plane/verification-20261019T155551+0800.json",
-    "last_verified_fingerprint": "9a143471352116145acf97a6bfee69fc155d67a1215dc20e56728c48247540fc",
+    "last_candidate_evidence": "output/control-plane/verification-20261019T155855+0800.json",
+    "last_verified_fingerprint": "806dd3b36b0ef2efbf393c80f70c7487696008e8a4ab6e3d8c9ce353e5234701",
     "last_result": "Exact Issue #14 candidate verification PASS after one Ubuntu dispatch and Trusted Publisher checkpoint: requirements 16, control-plane 154, Python 326, Node 60, diff/public-safety/whitespace PASS. release_verified remains false."
   },
   "next_action": "Keep PR #27 Draft and preserve the verified checkpoint; no Claude review, merge, live provider or additional implementation dispatch is authorized.",
