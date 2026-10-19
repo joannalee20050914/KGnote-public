@@ -1,0 +1,28 @@
+{
+  "schema_version": "kgnote.requirements-run-evidence.v1",
+  "run_id": "personal-alpha-pa1-20260922",
+  "goal_id": "GOAL-OBSIDIAN-PERSONAL-ALPHA-V1",
+  "milestone_id": "PA-1",
+  "repository_head": "47269690f3d389f6ce2ddf43a79b1e7e7f6324e2",
+  "branch": "codex/control-plane-bootstrap",
+  "working_tree": "dirty; approved checkpoint plus owned PA-0/PA-1 changes; no commit",
+  "runs": [
+    {
+      "command": "PYTHONPATH=src .venv/bin/python -m unittest -v tests.test_personal_alpha_analysis",
+      "result": "pass",
+      "tests": 4,
+      "scope": "zero-write deterministic preview, three materially different Markdown shapes, exact Evidence locator read-back, malformed source failures"
+    },
+    {
+      "command": "render hierarchical Personal Alpha preview to stdout",
+      "result": "pass",
+      "scope": "human-readable topic excerpt, nested sections, concept candidates, explicit and unresolved relations, source locators, planned Obsidian paths, review warnings"
+    }
+  ],
+  "limits": [
+    "PA-1 is preview-only and intentionally performs zero materialization writes.",
+    "Deterministic candidates are unreviewed and do not claim factual completeness.",
+    "Obsidian reopen, idempotent apply, rollback, and the daily-use command belong to PA-2 through PA-4.",
+    "This is engineering evidence, not product owner's usability acceptance or learning-effectiveness evidence."
+  ]
+}

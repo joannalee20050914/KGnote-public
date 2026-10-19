@@ -1,0 +1,23 @@
+{
+  "admission": {
+    "authority_record": "https://github.com/joannalee20050914/KGnote-public/issues/14",
+    "authority_sha256": "898511621512d9827f56305e02481b6e5c9ad4b0f2ed8be771d825ed20e27877",
+    "branch": "codex/issue-14-tutor-handoff-feasibility",
+    "goal_id": "GOAL-KGNOTE-TUTOR-HANDOFF-20261019",
+    "issue": 14,
+    "local_worktree": "${HOME}/KGnote-public-issue14-tutor-handoff",
+    "repository": "joannalee20050914/KGnote-public",
+    "source_commit": "5e27492f7c891ab376489420f25bfa569ca0a14a",
+    "work_item_id": "D2-T07",
+    "worktree_slug": "issue-14-d2-t07"
+  },
+  "automatic_merge": false,
+  "claude_review_budget_added": 0,
+  "implementation_dispatch_budget": {
+    "authorized": 1,
+    "used": 0
+  },
+  "review_history_root": ".ai/WORK_ITEM_REVIEW_HISTORY/issue-14-d2-t07",
+  "schema_version": "kgnote.cross-issue-admission.v1",
+  "status": "SEALED"
+}

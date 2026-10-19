@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/learning-note/v1/save-request.schema.json",
+  "title": "KGnote LearningNote save request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "note_id", "notebook_id", "learning_unit_id",
+    "title", "source_anchors", "markdown", "save_id"
+  ],
+  "properties": {
+    "schema_version": {"const": "kgnote.learning-note-save.v1"},
+    "note_id": {"type": "string", "pattern": "^note_[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"},
+    "notebook_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"},
+    "learning_unit_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"},
+    "title": {"type": "string", "minLength": 1, "maxLength": 200},
+    "source_anchors": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {"$ref": "learning-note.schema.json#/$defs/source_anchor"}
+    },
+    "markdown": {"type": "string", "maxLength": 262144},
+    "save_id": {"type": "string", "pattern": "^save_[A-Za-z0-9][A-Za-z0-9_-]{7,127}$"}
+  }
+}

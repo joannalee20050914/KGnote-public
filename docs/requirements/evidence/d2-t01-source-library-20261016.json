@@ -1,0 +1,75 @@
+{
+  "schema_version": "kgnote.requirements-run-evidence.v1",
+  "run_id": "d2-t01-source-library-20261016",
+  "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
+  "milestone_id": "D2-T01-SOURCE-LIBRARY",
+  "branch": "codex/issue-8-source-library",
+  "candidate_binding": {
+    "mechanism": "The final exact HEAD and fingerprint are recorded after commit in the fingerprint-excluded .ai/REVIEW_REQUEST.md and its referenced output/control-plane verification artifact.",
+    "tracked_file_scope": "This tracked evidence records reproducible commands and results but intentionally does not claim its own enclosing commit or fingerprint."
+  },
+  "recorded_at": "2026-10-16T16:42:14+08:00",
+  "requirements": ["KG-ING-01", "KG-ING-02", "KG-ING-03", "KG-PLAT-05", "KG-PLAT-06"],
+  "feature_dispositions": ["FD-01", "FD-02"],
+  "rc_scope": ["RC-04", "RC-05", "RC-06", "RC-10", "RC-11", "RC-21", "RC-26", "RC-31", "RC-32"],
+  "runs": [
+    {
+      "command": "PYTHONPATH=src .venv/bin/python -m unittest -v tests.test_source_library tests.test_source_library_http",
+      "result": "pass",
+      "tests": 12,
+      "scope": "ordinary Markdown exact bytes including a UTF-8 BOM through HTTP/storage, BOM-neutral blank rejection and first-speaker parsing, explicit and mixed-format conversation speakers, duplicate import, immutable update lineage, stale rejection, malformed/oversize/path/symlink/tamper negatives, atomic batch validation, injected transaction failure, HTTP list/import/read/update, and exact revision read-back"
+    },
+    {
+      "command": "node --test web/tests/source-library-ui.test.js",
+      "result": "pass",
+      "tests": 6,
+      "scope": "single and multi-file request construction, existing-source optimistic lock, UTF-8/extension/size rejection, byte-exact BOM preservation, exact revision URL, and UI control exposure"
+    },
+    {
+      "command": "scripts/run_tests.sh",
+      "result": "pass",
+      "requirements_guard_tests": 16,
+      "python_product_tests": 321,
+      "requirements": 98,
+      "scenarios": 48
+    },
+    {
+      "command": "npm test",
+      "result": "pass",
+      "tests": 59
+    },
+    {
+      "command": "in-app browser local Issue #8 journeys",
+      "result": "pass",
+      "scope": "ordinary pasted Markdown created and SHA-256 read back; second revision created while the first revision remained selectable and byte-exact; conversation import read back Learner L3-L4 and Tutor L5-L5; no console warnings or errors"
+    },
+    {
+      "command": "scripts/codex_preflight.sh",
+      "result": "pass",
+      "scope": "authority, PLAN/STATUS, branch/HEAD, owned dirty paths, review bus, and fingerprint alignment before final candidate sealing"
+    },
+    {
+      "command": "python3 scripts/codex_control.py --repo . verify",
+      "result": "pass",
+      "evidence": "output/control-plane/verification-20261016T164214+0800.json",
+      "binding": "pre-commit repair verification; the final sealed exact-candidate verifier is resolved through .ai/REVIEW_REQUEST.md validation_results after the candidate commit",
+      "control_plane_tests": 97,
+      "python_product_tests": 323,
+      "node_tests": 60,
+      "public_safety_scan": {"result": "pass", "scanned_files": 413, "scope": "exact fingerprint manifest"},
+      "release_verified": false
+    }
+  ],
+  "read_back": {
+    "ordinary_source": "current and previous raw Markdown revisions, including a valid UTF-8 BOM, returned exact bytes and verified SHA-256",
+    "conversation_source": "explicit and mixed-format speaker labels, canonical roles, and line-range locators returned from stored revision metadata; unknown labels reject without writes",
+    "integration": "a verified source revision reconstructs the existing kgnote.extraction-input.v1 payload through src/kgnote/ingestion/markdown_source.py"
+  },
+  "limits": [
+    "This is engineering evidence, not PA-HUMAN-1, NS-HUMAN-SMOKE, physical-device, learner-effectiveness, or release evidence.",
+    "RC-10, RC-11, RC-21, RC-26, RC-31, and RC-32 retain their broader cross-source, independent-review, tutor-delta, recovery, packaged-journey, and same-artifact obligations; this evidence covers only the Issue #8 source-library contribution.",
+    "PR #22 remains open and unmerged; Issue #8 is a stacked working candidate and has not yet received its own independent product review.",
+    "The local product server serializes transactions within one process; multi-process writers are not claimed.",
+    "No live AI provider, paid service, private source, or full private archive was used."
+  ]
+}

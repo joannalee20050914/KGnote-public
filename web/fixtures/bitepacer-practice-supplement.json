@@ -1,0 +1,5 @@
+{
+  "schema_version":"kgnote.practice-supplement.v1","learning_unit_id":"guided_map_bitepacer_message_delivery","items":[
+    {"item_id":"item_apply_bp_loopback_remote","revision":1,"activity_type":"application_prediction","label":"應用：LINE server 連 127.0.0.1","prompt":"如果 LINE server 嘗試連到 http://127.0.0.1:5050，它會找到 product owner 的 Mac 嗎？為什麼？","hint":"127.0.0.1 對每一台發出連線的主機分別代表誰？","claim_ref":{"claim_id":"edge_90a1b92e126e43975b3adcb9e9c54c8cf24d2f7e835784b793decb90435c75c8","revision":1},"source_refs":["src_bitepacer_mini_network_lesson"],"evidence_refs":["evidence_aec121284936da67958355799c00ecda1d0e2f4e521ddc26c1d66b8e0fadb0ab"],"canonical_answer":"不會。LINE server 的 127.0.0.1 指向 LINE server 自己，不是 product owner 的 Mac；需要像 ngrok 這樣的公開路徑。","rubric":["回答不會","說明 loopback 指向發出連線的主機自己","指出需要外界可達路徑"]}
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/guided-map/v1/guided-map-read-model.schema.json",
+  "title": "KGnote Guided Map read model v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "projection_version", "graph_snapshot_sha256", "source", "learning_unit", "groups", "concepts", "propositions", "evidence"],
+  "properties": {
+    "schema_version": {"const": "kgnote.guided-map-read-model.v1"},
+    "projection_version": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+    "graph_snapshot_sha256": {"$ref": "#/$defs/sha256"},
+    "source": {"$ref": "#/$defs/source"},
+    "learning_unit": {"$ref": "#/$defs/learningUnit"},
+    "groups": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/group"}},
+    "concepts": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/concept"}},
+    "propositions": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/proposition"}},
+    "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence"}}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "safeLabel": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^(?=.*\\S)[^\\[\\]|#^\\r\\n]+$"},
+    "displayText": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?=[\\s\\S]*\\S)[\\s\\S]+$"},
+    "idList": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "locator": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "value"],
+      "properties": {"kind": {"enum": ["line_range", "message_range", "page_range", "timestamp_range", "section"]}, "value": {"type": "string", "minLength": 1}}
+    },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "label", "source_kind", "captured_at", "content_sha256"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^src_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "label": {"$ref": "#/$defs/safeLabel"},
+        "source_kind": {"type": "string", "minLength": 1},
+        "captured_at": {"type": ["string", "null"], "format": "date-time"},
+        "content_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "learningUnit": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "display_locale", "title", "focus_question", "source_locator"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^guided_map_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "display_locale": {"type": "string", "pattern": "^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"},
+        "title": {"$ref": "#/$defs/displayText"},
+        "focus_question": {"$ref": "#/$defs/displayText"},
+        "source_locator": {"$ref": "#/$defs/locator"}
+      }
+    },
+    "group": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "label", "order", "concept_ids"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^group_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "label": {"$ref": "#/$defs/safeLabel"},
+        "order": {"type": "integer", "minimum": 1},
+        "concept_ids": {"$ref": "#/$defs/idList"}
+      }
+    },
+    "concept": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "label", "aliases", "summary", "status", "evidence_ids", "group_id"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^concept_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "label": {"$ref": "#/$defs/safeLabel"},
+        "aliases": {"type": "array", "items": {"$ref": "#/$defs/safeLabel"}, "uniqueItems": true},
+        "summary": {"type": "string"},
+        "status": {"enum": ["active", "needs_review", "deprecated"]},
+        "evidence_ids": {"$ref": "#/$defs/idList"},
+        "group_id": {"type": "string", "pattern": "^group_[A-Za-z0-9][A-Za-z0-9_-]*$"}
+      }
+    },
+    "proposition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["edge_id", "subject_concept_id", "subject_label", "linking_phrase", "object_concept_id", "object_label", "canonical_relation", "evidence_ids", "review_status", "projection_version"],
+      "properties": {
+        "edge_id": {"type": "string", "pattern": "^edge_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "subject_concept_id": {"type": "string", "pattern": "^concept_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "subject_label": {"$ref": "#/$defs/safeLabel"},
+        "linking_phrase": {"type": "string", "minLength": 2, "maxLength": 80, "pattern": "^(?=.*\\S)[^\\r\\n]+$"},
+        "object_concept_id": {"type": "string", "pattern": "^concept_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "object_label": {"$ref": "#/$defs/safeLabel"},
+        "canonical_relation": {"enum": ["is_a", "part_of", "prerequisite_of", "contrasts_with", "causes", "related_to"]},
+        "evidence_ids": {"$ref": "#/$defs/idList"},
+        "review_status": {"enum": ["accepted", "corrected"]},
+        "projection_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "label", "source_id", "locator", "proposition", "observed_at", "extractor_version", "extraction_confidence", "review_status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^evidence_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "label": {"$ref": "#/$defs/safeLabel"},
+        "source_id": {"type": "string", "minLength": 1},
+        "locator": {"$ref": "#/$defs/locator"},
+        "proposition": {"type": "string", "minLength": 1},
+        "observed_at": {"type": ["string", "null"], "format": "date-time"},
+        "extractor_version": {"type": "string", "minLength": 1},
+        "extraction_confidence": {"enum": ["high", "medium", "low", "unresolved"]},
+        "review_status": {"enum": ["accepted", "corrected"]}
+      }
+    }
+  }
+}

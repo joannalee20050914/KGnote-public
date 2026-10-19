@@ -1,0 +1,20 @@
+{
+  "schema_version": "kgnote.learning-note.v1",
+  "id": "note_causality_baseline",
+  "type": "learning_note",
+  "notebook_id": "notebook_local",
+  "learning_unit_id": "unit_causality",
+  "revision": 1,
+  "title": "Correlation 與 causation",
+  "source_anchors": [{
+    "id": "anchor_primary",
+    "source_id": "src_synthetic_causality_chat",
+    "locator": {"kind": "line_range", "value": "L3-L7"},
+    "label": "原始對話"
+  }],
+  "created_at": "2026-09-19T10:00:00+08:00",
+  "updated_at": "2026-09-19T10:00:00+08:00",
+  "last_save_id": "save_fixture0001",
+  "last_request_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "markdown": "## 我的解釋\n\nCorrelation 不等於 causation。\n"
+}

@@ -1,0 +1,76 @@
+{
+  "schema_version": "kgnote.external-product-review-state.v1",
+  "program_id": "program-kgnote-autonomous-external-review-v2",
+  "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
+  "canonical_repository": "joannalee20050914/KGnote-public",
+  "candidate_repository": "joannalee20050914/KGnote-public",
+  "trigger_repository": "joannalee20050914/KGnote-public",
+  "review_request_repository": "joannalee20050914/KGnote-public",
+  "archive_repository": "joannalee20050914/KGnote",
+  "pull_request": 23,
+  "phase": "IMPLEMENTING",
+  "review_round": 0,
+  "candidate_commit": null,
+  "candidate_fingerprint": null,
+  "internal_review": {
+    "status": "NOT_RUN_FOR_CURRENT_CANDIDATE",
+    "artifact": null
+  },
+  "publication": {
+    "status": "NOT_PUBLISHED",
+    "repository": "joannalee20050914/KGnote-public",
+    "pull_request": 23,
+    "remote_head": null,
+    "candidate_fingerprint": null,
+    "request_marker": "KGNOTE_PRODUCT_REVIEW_REQUEST_V2",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/23",
+    "trigger_comment": null,
+    "trigger_artifact_url": null
+  },
+  "external_review": {
+    "status": "NOT_RUN",
+    "reviewed_commit": null,
+    "reviewed_fingerprint": null,
+    "artifact_url": null,
+    "review_author": null,
+    "review_source": null,
+    "record_id": null,
+    "native_ui_observed": false,
+    "blocking_findings": [],
+    "consumer_accepted": false,
+    "consumer_reason": "No external result exists for the Issue #8 exact candidate.",
+    "schema": "schemas/product-review/v1/review-result.schema.json",
+    "trigger_linkage": null
+  },
+  "previous_external_review": {
+    "review_round": 1,
+    "status": "CHANGES_REQUIRED",
+    "reviewed_commit": "40489650a71ba09b26c8e9976dd38030ae2ddbd5",
+    "reviewed_fingerprint": "f0a90833d69e5397aa1fd1ff45ceee87ca70b12e87b0106cd15eca98343be823",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#pullrequestreview-5544290364",
+    "review_author": "joannalee20050914",
+    "review_source": "pull_request_review",
+    "record_id": 5544290364,
+    "blocking_findings": [
+      "KG-CTRL-STATE-001"
+    ],
+    "consumer_accepted": true
+  },
+  "historical_issue_19_review": {
+    "pull_request": 22,
+    "review_round": 2,
+    "status": "PASS",
+    "reviewed_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
+    "reviewed_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#pullrequestreview-5544513834",
+    "consumer_accepted": true,
+    "applies_to_current_candidate": false,
+    "scheduled_run_linkage": "not_independently_verified",
+    "unattended_writeback": "not_verified_human_approval_was_still_required"
+  },
+  "human_acceptance": {
+    "eligible": false,
+    "reason": "Issue #8 has no accepted exact-candidate external review, and no local or AI result may promote the preserved human product gates."
+  },
+  "release_verified": false
+}

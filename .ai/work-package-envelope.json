@@ -1,0 +1,30 @@
+{
+  "approval": {
+    "receipt": ".ai/CROSS_ISSUE_ADMISSION.json",
+    "source_status": "RECONCILING"
+  },
+  "authority_record": "https://github.com/joannalee20050914/KGnote-public/issues/14",
+  "budgets": {
+    "external_reviews": {
+      "authorized": 0,
+      "used": 0
+    },
+    "internal_reviews": {
+      "authorized": 0,
+      "used": 0
+    },
+    "local_repairs": {
+      "authorized": 1,
+      "used": 0
+    }
+  },
+  "goal_id": "GOAL-KGNOTE-TUTOR-HANDOFF-20261019",
+  "schema_version": "kgnote.work-package-envelope.v1",
+  "status": "APPROVED",
+  "work_package_id": "D2-T07-BOUNDED-FEASIBILITY",
+  "work_window": {
+    "end": "18:00",
+    "start": "09:00",
+    "timezone": "Asia/Taipei"
+  }
+}

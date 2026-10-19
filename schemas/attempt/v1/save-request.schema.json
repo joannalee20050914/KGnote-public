@@ -1,0 +1,30 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://kgnote.local/schemas/attempt/v1/save-request.schema.json",
+  "title":"KGnote Attempt save request v1",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["schema_version","attempt_id","review_item_id","item_revision","learning_unit_id","activity_type","state","started_at","submitted_at","raw_response","confidence","hint_events","support_state","answer_exposure_state","outcome","correction_feedback","entry_context","source_refs","claim_refs","evidence_refs"],
+  "properties":{
+    "schema_version":{"const":"kgnote.attempt-save-request.v1"},
+    "attempt_id":{"type":"string","pattern":"^attempt_[a-f0-9]{32}$"},
+    "review_item_id":{"type":"string","minLength":1,"maxLength":200},
+    "item_revision":{"type":"integer","minimum":1},
+    "learning_unit_id":{"type":"string","minLength":1,"maxLength":200},
+    "activity_type":{"enum":["relation_recall","free_explanation","application_prediction","distinction"]},
+    "state":{"enum":["draft","submitted","cancelled"]},
+    "started_at":{"type":"string","format":"date-time"},
+    "submitted_at":{"type":["string","null"],"format":"date-time"},
+    "raw_response":{"type":"string","maxLength":8000},
+    "confidence":{"enum":[null,"low","medium","high"]},
+    "hint_events":{"type":"array","maxItems":20,"items":{"type":"object","additionalProperties":false,"required":["kind","occurred_at"],"properties":{"kind":{"const":"requested"},"occurred_at":{"type":"string","format":"date-time"}}}},
+    "support_state":{"enum":["unassisted","hinted"]},
+    "answer_exposure_state":{"enum":["hidden","revealed_after_submission"]},
+    "outcome":{"enum":[null,"CORRECT","PARTIAL","INCORRECT","INSUFFICIENT_EVIDENCE"]},
+    "correction_feedback":{"type":["string","null"],"maxLength":4000},
+    "entry_context":{"type":"object","additionalProperties":false,"required":["route","from_route","entry_kind","due_id"],"properties":{"route":{"type":"string","maxLength":200},"from_route":{"type":"string","maxLength":200},"entry_kind":{"enum":["voluntary_practice","scheduled_review"]},"due_id":{"type":["string","null"],"maxLength":200}}},
+    "source_refs":{"type":"array","minItems":1,"items":{"type":"string","minLength":1,"maxLength":200}},
+    "claim_refs":{"type":"array","minItems":1,"items":{"type":"object","additionalProperties":false,"required":["claim_id","revision"],"properties":{"claim_id":{"type":"string","minLength":1,"maxLength":200},"revision":{"type":"integer","minimum":1}}}},
+    "evidence_refs":{"type":"array","minItems":1,"items":{"type":"string","minLength":1,"maxLength":200}}
+  }
+}

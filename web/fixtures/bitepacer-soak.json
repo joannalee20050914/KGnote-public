@@ -1,0 +1,22 @@
+{
+  "schema_version":"kgnote.soak-set.v1",
+  "learning_unit_id":"guided_map_bitepacer_message_delivery",
+  "items":[
+    {
+      "item_id":"soak_bitepacer_port_route",
+      "concept_id":"concept_ffaed4cca46d7aa7e4980dd7aa5509a73c69c46c6dfa6226b38a2d777e8632af",
+      "label":"再次遇見：連接埠",
+      "familiar_context":"同一台電腦可以同時跑很多網路服務；請求需要找到正確的服務入口。",
+      "answer":"連接埠是在同一個 IP 位址下區分服務入口的號碼；Flask 服務會在指定連接埠接收請求。",
+      "support_progression":[
+        {"stage":"high_similarity","label":"熟悉外觀","content":"回到同一個 127.0.0.1:5050 例子，再看一次主機與服務入口。","response_expected":false},
+        {"stage":"cued","label":"線索","content":"先找冒號左右：左邊定位主機，右邊定位該主機上的服務。","response_expected":false},
+        {"stage":"changed_context","label":"換情境","content":"若同一台主機同時跑 5050 與 8000，兩個號碼會把請求送往不同服務。","response_expected":false},
+        {"stage":"explanation","label":"自己解釋","content":"用自己的話說明 port 與 Flask route 為什麼不是同一層定位。","response_expected":true},
+        {"stage":"application","label":"應用","content":"看到新的 host:port/path，指出每一段分別定位什麼。","response_expected":true}
+      ],
+      "source_refs":["src_bitepacer_mini_network_lesson"],
+      "related_practice_item_id":"item_relation_edge_14416de645cb7f873be16c9a19ed021a7f2e61a1b57ac28c08bd49b59be70a23"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/reader/v1/query.schema.json",
+  "title": "KGnote explicit-source Reader query v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "snapshot_sha256", "source_id", "locator"],
+  "properties": {
+    "schema_version": {"const": "kgnote.reader-query.v1"},
+    "snapshot_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "source_id": {"type": "string", "pattern": "^src_[A-Za-z0-9][A-Za-z0-9_-]*$"},
+    "locator": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {"const": "line_range"},
+            "value": {"type": "string", "pattern": "^L[1-9][0-9]*-L[1-9][0-9]*$"}
+          }
+        }
+      ]
+    }
+  }
+}

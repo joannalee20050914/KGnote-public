@@ -1,0 +1,21 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://kgnote.local/schemas/claim-review-overlay/v1/overlay.schema.json",
+  "title":"KGnote Claim review overlay v1",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["schema_version","learning_unit_id","graph_snapshot_sha256","reviewed_at","reviewer","reviews"],
+  "properties":{
+    "schema_version":{"const":"kgnote.claim-review-overlay.v1"},
+    "learning_unit_id":{"type":"string","minLength":1},
+    "graph_snapshot_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},
+    "reviewed_at":{"type":"string","format":"date-time"},
+    "reviewer":{"type":"string","minLength":1},
+    "reviews":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["claim_id","claim_revision","proposition_sha256","source_support","factual_status","teaching_answer_status","reason"],"properties":{
+      "claim_id":{"type":"string","minLength":1},"claim_revision":{"type":"integer","minimum":1},"proposition_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},
+      "source_support":{"enum":["supported","unsupported","unknown"]},
+      "factual_status":{"enum":["unreviewed","needs_revision","verified","corrected","rejected","insufficient_evidence"]},
+      "teaching_answer_status":{"enum":["candidate","ready","blocked","retired"]},"reason":{"type":"string","minLength":1}
+    }}}
+  }
+}

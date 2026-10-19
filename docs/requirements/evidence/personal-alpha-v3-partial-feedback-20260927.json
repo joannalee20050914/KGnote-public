@@ -1,0 +1,82 @@
+{
+  "schema_version": "kgnote.human-feedback-evidence.v1",
+  "evidence_id": "personal-alpha-v3-partial-feedback-20260927",
+  "created_at": "2026-09-27T00:00:00+08:00",
+  "speaker": "product owner",
+  "source": {
+    "type": "explicit_current_task_instruction",
+    "decision_record": "docs/requirements/PERSONAL_ALPHA_INTEGRATED_STAGE_DIRECTION_20260927.md",
+    "conversation_date": "2026-09-27"
+  },
+  "gate": {
+    "id": "PA-HUMAN-1",
+    "result": "partial_formative_feedback",
+    "release_verified": false
+  },
+  "observed_artifact": "output/obsidian-native-spike/v3-vault/KGnote Alpha/network-path-a178f811",
+  "observations": [
+    {
+      "item": "topic_and_brevity",
+      "result": "accepted_for_this_candidate",
+      "observation": "The topic is clear and concise enough to know what is being learned."
+    },
+    {
+      "item": "learning_path",
+      "result": "accepted_with_open_expectation",
+      "observation": "The bullets communicate the key points and reading order, while richer relationship and hierarchy support remains an open expectation rather than a completed satisfaction claim."
+    },
+    {
+      "item": "port_concept_page",
+      "result": "accepted_for_this_candidate",
+      "observation": "For this material, the Port page explains the concept's use."
+    },
+    {
+      "item": "metadata_in_reading_view",
+      "result": "not_tested",
+      "observation": "Metadata was observed at the top of the file, but normal Reading-view non-interference has not been confirmed."
+    },
+    {
+      "item": "evidence",
+      "result": "accepted_with_unverified_precision",
+      "observation": "On-demand access is acceptable, but native links and exact source localization have not all been tested."
+    },
+    {
+      "item": "short_material_layout",
+      "result": "accepted_for_this_candidate_only",
+      "observation": "The reading arrangement is acceptable for this material and is not evidence about long material."
+    },
+    {
+      "item": "continue_here",
+      "result": "not_tested",
+      "observation": "The manual continuation workflow is not yet understood or operationally tested."
+    },
+    {
+      "item": "canvas_native_view",
+      "result": "not_tested",
+      "observation": "The Canvas has not been inspected in Obsidian Canvas view; plain-text inspection is neither PASS nor FAIL."
+    },
+    {
+      "item": "markdown_independent_value",
+      "result": "positive_but_not_final",
+      "observation": "There is positive textual feedback, but no final acceptance conclusion for independent Markdown value."
+    }
+  ],
+  "separation": {
+    "human_observation": "Only the nine observations above are product owner's formative product evidence.",
+    "static_ai_check": "Vault-root, Canvas-path, entry discoverability, metadata, continuation, and Evidence-anchor risks are static review findings until reproduced or repaired; they are not native human smoke."
+  },
+  "historical_evidence": {
+    "preserved_manual_fail": "docs/requirements/evidence/personal-alpha-human-feedback-20260923.json",
+    "rule": "This partial feedback does not overwrite or reinterpret the earlier candidate verdict."
+  },
+  "gate_state": {
+    "pa_human_1": "pending_human_review",
+    "ns_human_smoke": "not_run",
+    "release_verified": false
+  },
+  "limitations": [
+    "Formative evidence is local to the V3 network-path candidate.",
+    "It is not a long-material, mobile, native-link-completeness, learning-effectiveness, or release result.",
+    "No native Obsidian Canvas or continuation operation was completed in this observation."
+  ]
+}

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-Hant">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,33 +11,33 @@
     <main class="shell">
       <header class="masthead">
         <div>
-          <p class="eyebrow">KGNOTE / READ-ONLY MAP</p>
-          <h1>See how the ideas connect.</h1>
-          <p class="lede">Concepts and learning events stay distinct, with every relationship grounded in evidence.</p>
+          <p class="eyebrow">KGNOTE / <a class="map-entry-link" href="./learning-note.html">整理理解筆記</a> · <a class="map-entry-link" href="./guided-map.html">舊三視圖</a></p>
+          <h1>看見概念之間的連結。</h1>
+          <p class="lede">概念、學習事件與原始證據分開保存，讓每一條關係都能追回教材。</p>
         </div>
         <div class="status-stack" aria-label="Graph status">
-          <span id="view-mode" class="view-mode">Full graph</span>
-          <span id="graph-count" class="graph-count">Loading graph…</span>
+          <span id="view-mode" class="view-mode">完整知識圖</span>
+          <span id="graph-count" class="graph-count">正在載入…</span>
         </div>
       </header>
 
       <section class="filter-card" aria-labelledby="filter-title">
         <div class="filter-primary">
-          <div><p class="eyebrow">VIEW QUERY</p><h2 id="filter-title">Choose a neighborhood</h2></div>
-          <label>Focus
-            <select id="focus-node" aria-label="Focus node"></select>
+          <div><p class="eyebrow">檢視範圍</p><h2 id="filter-title">選擇要看的局部知識圖</h2></div>
+          <label>焦點
+            <select id="focus-node" aria-label="焦點節點"></select>
           </label>
-          <label>Hops
-            <select id="hop-depth" aria-label="Hop depth">
-              <option value="1">1 hop</option><option value="2">2 hops</option><option value="3">3 hops</option>
+          <label>距離
+            <select id="hop-depth" aria-label="圖譜距離">
+              <option value="1">1 層</option><option value="2">2 層</option><option value="3">3 層</option>
             </select>
           </label>
-          <div class="filter-actions"><button id="update-view" type="button">Update view</button><button id="reset-query" type="button">Reset</button></div>
+          <div class="filter-actions"><button id="update-view" type="button">更新畫面</button><button id="reset-query" type="button">重設</button></div>
         </div>
         <details class="filter-details">
-          <summary>Filters <span id="filter-count">None active</span></summary>
+          <summary>篩選條件 <span id="filter-count">未啟用</span></summary>
           <div id="filter-groups" class="filter-groups"></div>
-          <p class="filter-help">Selections use OR within each group and AND across groups. Filters run before hop traversal.</p>
+          <p class="filter-help">同一組內符合任一條件即可；不同組之間則必須同時符合。</p>
         </details>
         <p id="query-message" class="query-message" role="status" aria-live="polite"></p>
       </section>
@@ -46,13 +46,13 @@
       <section class="graph-card" aria-labelledby="canvas-title">
         <div class="canvas-bar">
           <div>
-            <h2 id="canvas-title">Causal inference</h2>
-            <p id="canvas-caption">A navigable map of concepts and observed learning activity.</p>
+            <h2 id="canvas-title">知識圖</h2>
+            <p id="canvas-caption">概念與已發生學習活動的可導覽地圖。</p>
           </div>
           <div class="zoom-controls" aria-label="Canvas zoom controls">
-            <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
-            <button type="button" id="reset-view">Reset</button>
-            <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+            <button type="button" id="zoom-out" aria-label="縮小">−</button>
+            <button type="button" id="reset-view">重設</button>
+            <button type="button" id="zoom-in" aria-label="放大">+</button>
           </div>
         </div>
         <div id="graph-stage" class="graph-stage" tabindex="0" aria-label="Knowledge graph canvas">
@@ -64,19 +64,19 @@
       <aside id="detail-panel" class="detail-panel" aria-labelledby="detail-title" hidden>
         <header class="detail-header">
           <div><p id="detail-kind" class="detail-kind"></p><h2 id="detail-title"></h2></div>
-          <button id="close-detail" class="close-detail" type="button" aria-label="Close details">×</button>
+          <button id="close-detail" class="close-detail" type="button" aria-label="關閉詳細內容">×</button>
         </header>
         <div id="detail-content" class="detail-content"></div>
       </aside>
       </section>
 
       <footer class="legend" aria-label="Graph legend">
-        <span><i class="dot concept"></i>Concept</span>
-        <span><i class="dot event"></i>Learning event</span>
-        <span><i class="line canonical"></i>Canonical</span>
-        <span><i class="line learning"></i>Learning evidence</span>
-        <span><i class="line unresolved"></i>Unresolved</span>
-        <span class="read-only">Read-only · source of truth stays in Markdown</span>
+        <span><i class="dot concept"></i>概念</span>
+        <span><i class="dot event"></i>學習事件</span>
+        <span><i class="line canonical"></i>知識關係</span>
+        <span><i class="line learning"></i>學習紀錄關係</span>
+        <span><i class="line unresolved"></i>關係未定</span>
+        <span class="read-only">知識圖唯讀 · 複習紀錄另行新增</span>
       </footer>
     </main>
     <script type="module" src="./app.js"></script>

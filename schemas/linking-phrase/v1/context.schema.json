@@ -1,0 +1,17 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://kgnote.local/schemas/linking-phrase/v1/context.schema.json",
+  "type":"object","additionalProperties":false,
+  "required":["schema_version","learning_unit_id","graph_snapshot_sha256","display_locale","focus_question","edges"],
+  "properties":{
+    "schema_version":{"const":"kgnote.linking-phrase-context.v1"},"learning_unit_id":{"type":"string","minLength":1},
+    "graph_snapshot_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"display_locale":{"type":"string","pattern":"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"},
+    "focus_question":{"$ref":"#/$defs/text"},"edges":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/edge"}}
+  },
+  "$defs":{
+    "text":{"type":"string","minLength":1,"maxLength":500,"pattern":"^(?=[\\s\\S]*\\S)[\\s\\S]+$"},
+    "locator":{"type":"object","additionalProperties":false,"required":["kind","value"],"properties":{"kind":{"enum":["line_range","message_range","page_range","timestamp_range","section"]},"value":{"type":"string","minLength":1}}},
+    "line":{"type":"object","additionalProperties":false,"required":["number","text"],"properties":{"number":{"type":"integer","minimum":1},"text":{"type":"string"}}},
+    "evidence":{"type":"object","additionalProperties":false,"required":["id","source_id","locator","proposition","review_status","source_excerpt"],"properties":{"id":{"type":"string","pattern":"^evidence_[A-Za-z0-9_-]+$"},"source_id":{"type":"string","pattern":"^src_[A-Za-z0-9_-]+$"},"locator":{"$ref":"#/$defs/locator"},"proposition":{"$ref":"#/$defs/text"},"review_status":{"enum":["unreviewed","accepted","corrected"]},"source_excerpt":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/line"}}}},
+    "edge":{"type":"object","additionalProperties":false,"required":["edge_id","edge_class","subject_concept_id","subject_label","canonical_relation","object_concept_id","object_label","evidence"],"properties":{"edge_id":{"type":"string","pattern":"^edge_[A-Za-z0-9_-]+$"},"edge_class":{"const":"canonical"},"subject_concept_id":{"type":"string","pattern":"^concept_[A-Za-z0-9_-]+$"},"subject_label":{"$ref":"#/$defs/text"},"canonical_relation":{"type":"string","minLength":1},"object_concept_id":{"type":"string","pattern":"^concept_[A-Za-z0-9_-]+$"},"object_label":{"$ref":"#/$defs/text"},"evidence":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/evidence"}}}}
+  }
+}

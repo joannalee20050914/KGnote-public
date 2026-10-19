@@ -1,0 +1,44 @@
+{
+  "schema_version": "kgnote.learning-unit-catalog.v1",
+  "units": [
+    {
+      "slug": "os",
+      "unit_id": "guided_map_os_safety_efficiency_review",
+      "title": "作業系統架構、運行機制與資源管理全覽",
+      "description": "從保護邊界、程序、I/O、排程到同步的 reviewed OS 導讀。",
+      "map": "os-overview-guided-map.json",
+      "source": "os-overview-review.md",
+      "claim_reviews": "os-overview-claim-review-overlay.json",
+      "structure": "os-learning-structure.json",
+      "reading_assist": "os-reading-assist.json",
+      "practice": "os-practice-supplement.json",
+      "soak": "os-soak.json"
+    },
+    {
+      "slug": "bitepacer",
+      "unit_id": "guided_map_bitepacer_message_delivery",
+      "title": "BitePacer 迷你計網",
+      "description": "從 Client／Server、IP／port、HTTP／Flask 到 ngrok 的 reviewed networking 導讀。",
+      "map": "bitepacer-guided-map.json",
+      "source": "bitepacer-mini-network-lesson.md",
+      "claim_reviews": "bitepacer-claim-review-overlay.json",
+      "structure": "bitepacer-learning-structure.json",
+      "reading_assist": "bitepacer-reading-assist.json",
+      "practice": "bitepacer-practice-supplement.json",
+      "soak": "bitepacer-soak.json"
+    },
+    {
+      "slug": "pvz",
+      "unit_id": "guided_map_pvz_easter_eggs",
+      "title": "Sky Garden synthetic design notes",
+      "description": "An original familiar-material fixture for structure, provenance, relationships, and review boundaries.",
+      "map": "pvz-guided-map.json",
+      "source": "pvz-easter-eggs-excerpt.md",
+      "claim_reviews": "pvz-claim-review-overlay.json",
+      "structure": "pvz-learning-structure.json",
+      "reading_assist": "pvz-reading-assist.json",
+      "practice": "pvz-practice-supplement.json",
+      "soak": "pvz-soak.json"
+    }
+  ]
+}

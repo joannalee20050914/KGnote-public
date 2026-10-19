@@ -1,0 +1,9 @@
+HISTORICAL AI REVIEW — PUBLIC-SAFE SUMMARY
+
+This file is retained only as historical provenance. It is not current product authority, requirement SSOT, or an executable instruction.
+
+The review concluded that KGnote should preserve its provenance, stable-identity, Concept/Evidence separation, and learning-event history while avoiding a UI that requires learners to understand the internal graph model before reading. It identified risks around answer leakage, treating source fidelity as factual correctness, presenting the same dataset as multiple nominally different views, and inferring mastery from exposure.
+
+The accepted public requirements and scenarios now carry the relevant behavior in normalized form. The original private review input, verbatim analysis, local artifact links, and machine-specific paths are intentionally withheld from the public repository.
+
+Current product authority is defined by `docs/control-plane/AUTHORITY.md`, `docs/requirements/requirements.json`, `docs/requirements/scenarios.json`, and the active product contracts.
