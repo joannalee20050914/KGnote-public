@@ -4,29 +4,87 @@
 ```json
 {
   "schema_version": "kgnote.codex-plan.v1",
-  "goal_id": "GOAL-KGNOTE-MAINLINE-INTEGRATION-20261020",
-  "objective": "以 main 為基準建立單一、可審查、可回復的正式整合候選，納入既有產品與 Source Library，採用現行 Ubuntu Claude Reviewer 與 Runner 契約，不合併 main。",
+  "goal_id": "GOAL-KGNOTE-D2-T02-TEACHING-PROJECTION",
+  "objective": "整合安全教材投影與 Obsidian 優先入口，只處理 Issue #9 已封存產品範圍。",
   "status": "active",
-  "active_milestone_id": "MAINLINE-INTEGRATION-CANDIDATE",
+  "active_milestone_id": "D2-T02-TEACHING-PROJECTION",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
-  "explicit_direction": {"date":"2026-10-20","speaker":"product owner","source_path":"current task: formal integration option A","durable_goal_record":"PLAN.md"},
-  "auto_advance": {"enabled":false,"automatic_merge":false,"requires_explicit_work_item_authority":true},
-  "preserved_human_gates": [
-    {"id":"D2-T14-FINAL-HUMAN-ACCEPTANCE","status":"not_eligible_incomplete_product_scope","release_verified":false},
-    {"id":"PA-HUMAN-1","status":"not_promoted","release_verified":false},
-    {"id":"NS-HUMAN-SMOKE","status":"not_promoted","release_verified":false}
-  ],
-  "milestones": [{
-    "id":"MAINLINE-INTEGRATION-CANDIDATE","title":"乾淨正式主線整合候選","status":"active","dependencies":[],"human_gate":"none",
-    "owned_paths":["PLAN.md","CODEX_STATUS.md",".ai/","docs/control-plane/","docs/requirements/","schemas/","scripts/","src/","tests/","web/"],
-    "acceptance":["main-based non-stacked Draft PR","Source Library and full deterministic verification pass","authority PLAN STATUS fingerprint and reviewer identity agree","new exact candidate receives Ubuntu Claude review through Runner GitHub relay","main merge remains protected and manual"],
-    "stop_conditions":["required GitHub approval missing","deterministic verification fails","review budget unavailable","would require force push, automatic merge, or history deletion"]
-  }]
+  "explicit_direction": {
+    "date": "2026-10-19",
+    "speaker": "product owner",
+    "source_path": "https://github.com/joannalee20050914/KGnote-public/issues/9",
+    "durable_goal_record": "PLAN.md"
+  },
+  "requirement_context": {
+    "acceptance_criteria": [
+      "RC-07",
+      "RC-08",
+      "RC-12",
+      "RC-14",
+      "RC-15",
+      "RC-16",
+      "RC-31",
+      "RC-32"
+    ],
+    "feature_dispositions": [
+      "FD-04",
+      "FD-05",
+      "FD-06",
+      "FD-21"
+    ],
+    "forbidden_substitutes": [
+      "Web-first",
+      "第二個 editor",
+      "猜測 unsupported content",
+      "產生新 concept identity"
+    ],
+    "github_issue": "https://github.com/joannalee20050914/KGnote-public/issues/9"
+  },
+  "auto_advance": {
+    "enabled": true,
+    "requires_dependencies_complete": true,
+    "automatic_merge": false,
+    "implementation_dispatch_budget": 1,
+    "claude_review_budget_added": 0
+  },
+  "milestones": [
+    {
+      "id": "D2-T02-TEACHING-PROJECTION",
+      "title": "整合安全教材投影與 Obsidian 優先入口，只處理 Issue #9 已封存產品範圍。",
+      "status": "active",
+      "dependencies": [],
+      "human_gate": "none",
+      "owned_paths": [
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "src/kgnote/learner_projection/",
+        "src/kgnote/obsidian_native/",
+        "src/kgnote/personal_alpha/",
+        "tests/",
+        "docs/requirements/",
+        "DEVELOPMENT_PLAIN.md"
+      ],
+      "acceptance": [
+        "held-out natural prose 與 unsupported clause fail-closed",
+        "same-input regeneration stable",
+        "Obsidian/Web identity read-back",
+        "render/click 與實際測試證據"
+      ],
+      "stop_conditions": [
+        "投影需要猜測 unsupported content",
+        "產生新 concept identity",
+        "取代普通筆記",
+        "需要 Claude 第 9 次審查",
+        "自動 merge main"
+      ]
+    }
+  ]
 }
 ```
 <!-- END CODEX PLAN JSON -->
 
 ## Current recovery note
 
-Integration source provenance: PR #1 historical product/control foundation, PR #22 reusable review plumbing only, PR #26 Source Library product candidate. Historical active snapshots are referenced by their original PRs and are not activated here.
+由正式 cross-Issue admission 建立；先執行 preflight，僅處理 Issue #9 封存有界範圍。

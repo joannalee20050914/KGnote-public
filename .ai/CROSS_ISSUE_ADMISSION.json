@@ -1,0 +1,76 @@
+{
+  "admission": {
+    "acceptance": [
+      "held-out natural prose 與 unsupported clause fail-closed",
+      "same-input regeneration stable",
+      "Obsidian/Web identity read-back",
+      "render/click 與實際測試證據"
+    ],
+    "authority_record": "https://github.com/joannalee20050914/KGnote-public/issues/9",
+    "authority_sha256": "7a31850394edd8e3eb5cdb9d8ed3486494d27050cbcaccdbcc9bfbe4b406fad4",
+    "branch": "codex/issue-9-teaching-projection",
+    "goal_id": "GOAL-KGNOTE-D2-T02-TEACHING-PROJECTION",
+    "issue": 9,
+    "local_worktree": "${HOME}/KGnote-public-issue-9-d2-t02",
+    "milestone_id": "D2-T02-TEACHING-PROJECTION",
+    "objective": "整合安全教材投影與 Obsidian 優先入口，只處理 Issue #9 已封存產品範圍。",
+    "owned_paths": [
+      "PLAN.md",
+      "CODEX_STATUS.md",
+      ".ai/",
+      "src/kgnote/learner_projection/",
+      "src/kgnote/obsidian_native/",
+      "src/kgnote/personal_alpha/",
+      "tests/",
+      "docs/requirements/",
+      "DEVELOPMENT_PLAIN.md"
+    ],
+    "pr_title": "[D2-T02] 整合安全教材投影與 Obsidian 優先入口",
+    "repository": "joannalee20050914/KGnote-public",
+    "requirement_context": {
+      "acceptance_criteria": [
+        "RC-07",
+        "RC-08",
+        "RC-12",
+        "RC-14",
+        "RC-15",
+        "RC-16",
+        "RC-31",
+        "RC-32"
+      ],
+      "feature_dispositions": [
+        "FD-04",
+        "FD-05",
+        "FD-06",
+        "FD-21"
+      ],
+      "forbidden_substitutes": [
+        "Web-first",
+        "第二個 editor",
+        "猜測 unsupported content",
+        "產生新 concept identity"
+      ],
+      "github_issue": "https://github.com/joannalee20050914/KGnote-public/issues/9"
+    },
+    "source_commit": "0b4adf8e3eebd48db3c240db63606a97ae0a7103",
+    "stop_conditions": [
+      "投影需要猜測 unsupported content",
+      "產生新 concept identity",
+      "取代普通筆記",
+      "需要 Claude 第 9 次審查",
+      "自動 merge main"
+    ],
+    "work_item_id": "D2-T02",
+    "worker_prompt": "Implement only the sealed Issue #9/D2-T02 scope from GitHub Issue #9 and the generated PLAN. Start from integrated main 0b4adf8e. Read AGENTS.md, authority, requirements and existing implementation first; reuse learner_projection, personal_alpha, obsidian_native and Web surfaces. Improve only the missing beginner prose, prerequisite-gap and packaged-entry behavior with identity-preserving read-back and deterministic tests. Do not change Source Library, invent concepts, restore Web-first, add a second editor, invoke Claude or ChatGPT Work, merge main, clear Stop Markers, or exceed this one Codex dispatch. Leave a durable worker checkpoint and publish only through the existing Runner path.",
+    "worktree_slug": "issue-9-d2-t02"
+  },
+  "automatic_merge": false,
+  "claude_review_budget_added": 0,
+  "implementation_dispatch_budget": {
+    "authorized": 1,
+    "used": 0
+  },
+  "review_history_root": ".ai/WORK_ITEM_REVIEW_HISTORY/issue-9-d2-t02",
+  "schema_version": "kgnote.cross-issue-admission.v1",
+  "status": "SEALED"
+}
