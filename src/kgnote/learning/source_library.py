@@ -203,6 +203,14 @@ _MARKDOWN_HTML_BLOCK = re.compile(
     r")",
     re.IGNORECASE,
 )
+_MARKDOWN_ATX_BLOCK = re.compile(r"^ {0,3}#{1,6}(?:[ \t]+|$)")
+_MARKDOWN_INDENTED_CODE = re.compile(r"^(?: {4}|\t)")
+_MARKDOWN_TYPE7_HTML_BLOCK = re.compile(
+    r"^ {0,3}</?[A-Za-z][A-Za-z0-9-]*"
+    r"(?:\s+[A-Za-z_:][A-Za-z0-9_.:-]*"
+    r"(?:\s*=\s*(?:[^ \"'=<>`]+|'[^']*'|\"[^\"]*\"))?)*"
+    r"\s*/?>\s*$"
+)
 
 
 def _markdown_line_interrupts_paragraph(line: str) -> bool:
@@ -227,8 +235,18 @@ def _markdown_quote_content_kind(content: str) -> str:
     remainder = content
     while match := re.match(r"^ {0,3}> ?", remainder):
         remainder = remainder[match.end():]
-    if not remainder.strip() or _markdown_line_interrupts_paragraph(remainder):
-        return "list_container" if _MARKDOWN_LIST_ITEM.match(remainder) else "nonparagraph"
+    if not remainder.strip():
+        return "nonparagraph"
+    list_item = _MARKDOWN_LIST_ITEM.match(remainder)
+    if list_item:
+        return "list_container" if list_item.group("body").strip() else "nonparagraph"
+    if (
+        _MARKDOWN_INDENTED_CODE.match(remainder)
+        or _MARKDOWN_ATX_BLOCK.match(remainder)
+        or _MARKDOWN_TYPE7_HTML_BLOCK.match(remainder)
+        or _markdown_line_interrupts_paragraph(remainder)
+    ):
+        return "nonparagraph"
     return "paragraph"
 
 

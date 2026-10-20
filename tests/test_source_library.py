@@ -246,6 +246,10 @@ class SourceLibraryTests(unittest.TestCase):
                 ("> # Quoted heading", "Assistant: Real assistant answer.", "assistant"),
                 ("> ---", "Assistant: Real assistant answer.", "assistant"),
                 ("> ```text", "Assistant: Real assistant answer.", "assistant"),
+                (">     print(1)", "Assistant: Real assistant answer.", "assistant"),
+                ("> #", "Assistant: Real assistant answer.", "assistant"),
+                ("> -", "Assistant: Real assistant answer.", "assistant"),
+                ("> <span>", "Assistant: Real assistant answer.", "assistant"),
                 ("> # Quoted heading", "User: Actual user follow-up.", "user"),
             )
             for index, (quoted, actual, role) in enumerate(cases, 1):
@@ -259,6 +263,10 @@ class SourceLibraryTests(unittest.TestCase):
                     self.assertEqual(status, "created")
                     read_back = read_source(root, accepted["source"]["source_id"])
                     self.assertEqual(read_back["content"].encode("utf-8"), content.encode("utf-8"))
+                    self.assertEqual(
+                        read_back["revision"]["content_sha256"],
+                        hashlib.sha256(content.encode("utf-8")).hexdigest(),
+                    )
                     self.assertEqual(
                         [(span["role"], span["locator"]["value"]) for span in read_back["revision"]["speaker_spans"]],
                         [(first_role.casefold(), "L1-L2"), (role, "L3-L3")],

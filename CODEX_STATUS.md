@@ -6,7 +6,7 @@ This file records facts and recovery state; it does not define product requireme
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-18T00:00:00+08:00",
+  "updated_at": "2026-10-20T17:32:21+08:00",
   "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "goal_status": "active",
   "active_milestone_id": "AR-EXTERNAL-REVIEW",
@@ -14,16 +14,16 @@ This file records facts and recovery state; it does not define product requireme
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
-    "branch": "codex/issue-8-source-library",
-    "head": "53c71a81a7c1a1483c7490f652007e5db1c7b6a5",
+    "branch": "codex/pr26-r004-repair-20261020",
+    "head": "514712da91128468d716181a66a38a6f5de66a42",
     "base_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
     "base_pull_request": 22,
     "base_pull_request_state": "OPEN_DRAFT_UNMERGED",
-    "checkpoint_commit": "53c71a81a7c1a1483c7490f652007e5db1c7b6a5"
+    "checkpoint_commit": "514712da91128468d716181a66a38a6f5de66a42"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "ae69844871ccb00f1d2058107d0008d78b86cf206e75e0dde49770e0c25ab7b7",
+    "fingerprint": "8628a2592772c0b819d4cb36bb3cd28db2c3d57786782846104d70cf2abda39f",
     "starting_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
     "expected_dirty_policy": "Issue #8 may change only its product import/source-library/UI paths, bounded tests, requirement delivery evidence, and necessary control/review state. Existing Issue #19 closure receipts are preserved; unrelated changes are forbidden.",
     "preserved_preexisting_dirty_paths": [
@@ -44,13 +44,13 @@ This file records facts and recovery state; it does not define product requireme
   },
   "external_review": {
     "repository": "joannalee20050914/KGnote-public",
-    "pull_request": 23,
-    "status": "CHANGES_REQUIRED",
-    "review_round": 6,
-    "reviewed_commit": "53c71a81a7c1a1483c7490f652007e5db1c7b6a5",
-    "reviewed_fingerprint": "ae69844871ccb00f1d2058107d0008d78b86cf206e75e0dde49770e0c25ab7b7",
-    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/23#pullrequestreview-5557141035",
-    "consumer_status": "accepted",
+    "pull_request": 26,
+    "status": "ROUND_3_CHANGES_REQUIRED_ROUND_4_PASS_REJECTED",
+    "review_round": 4,
+    "reviewed_commit": "514712da91128468d716181a66a38a6f5de66a42",
+    "reviewed_fingerprint": "d6caad7014206a6b4ba6a612cde92661c91243bbc7275a9f47dd543fb0685ee0",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/26",
+    "consumer_status": "blocked_by_round_consistency_guard",
     "blocking_findings": [
       "finding-r-004"
     ],
@@ -70,15 +70,15 @@ This file records facts and recovery state; it does not define product requireme
     "unattended_writeback": "not_verified_human_approval_was_still_required"
   },
   "verification": {
-    "candidate_verified": false,
+    "candidate_verified": true,
     "release_verified": false,
-    "control_plane_ready": false,
+    "control_plane_ready": true,
     "last_green_milestone": "S2B-REVIEW-INTEGRATION-TASK",
-    "last_candidate_evidence": "output/control-plane/verification-20261017T165209+0800.json",
-    "last_verified_fingerprint": "ae69844871ccb00f1d2058107d0008d78b86cf206e75e0dde49770e0c25ab7b7",
-    "last_result": "External Round 6 CHANGES_REQUIRED remains bound to ae698448. The owner authorized controlled reconciliation of the separately preserved dirty finding-r-004 repair; it is still unverified and inherits no historical PASS."
+    "last_candidate_evidence": "output/control-plane/verification-20261020T093221+0800.json",
+    "last_verified_fingerprint": "8628a2592772c0b819d4cb36bb3cd28db2c3d57786782846104d70cf2abda39f",
+    "last_result": "Bounded PR #26 repair attempt 1 passed complete deterministic verification with a stable 8628a259 fingerprint: requirements 16, control-plane 135, product Python 348, and Node 60 tests all passed. release_verified remains false."
   },
-  "next_action": "While AUTOMATION_BLOCKED, checkpoint the preserved finding-r-004 repair and controlled-reconciliation records, verify Budget Stop routing, then run full verification/read-back/preflight before any exact terminal-state resume.",
+  "next_action": "Create a path-explicit clean checkpoint, re-verify the exact commit, then publish the changed PR #26 candidate through the existing controlled review flow.",
   "external_or_human_gates": [
     {
       "id": "PR22-STACKED-BASE",
@@ -118,5 +118,5 @@ Goal `GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1` remains active at milestone `AR-EXTE
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: While AUTOMATION_BLOCKED, checkpoint the preserved finding-r-004 repair and controlled-reconciliation records, verify Budget Stop routing, then run full verification/read-back/preflight before any exact terminal-state resume.
+Exact next action: Create a path-explicit clean checkpoint, re-verify the exact commit, then publish the changed PR #26 candidate through the existing controlled review flow.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

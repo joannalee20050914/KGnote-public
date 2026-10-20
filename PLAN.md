@@ -239,6 +239,26 @@ This file contains exactly one active execution goal. It does not promote any hu
         "promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
       ]
     },
+    "pr26_recovery_authorization": {
+      "authority_source": "product owner instruction 2026-10-20 in current Codex task",
+      "pull_request": 26,
+      "finding": "finding-r-004",
+      "candidate_before_repair": "514712da91128468d716181a66a38a6f5de66a42",
+      "candidate_fingerprint_before_repair": "d6caad7014206a6b4ba6a612cde92661c91243bbc7275a9f47dd543fb0685ee0",
+      "codex_repairs_authorized": 2,
+      "codex_repairs_used": 1,
+      "claude_reviews_authorized": 2,
+      "claude_reviews_used_under_this_authorization": 0,
+      "existing_claude_budget": "4/6 used before recovery; total must not increase or reset",
+      "required_order": "reproduce without model -> bounded repair -> full deterministic verification -> publish exact changed candidate -> independent review",
+      "forbidden": [
+        "repeat review of unchanged candidate",
+        "restart PR #23 exhausted historical flow",
+        "increase or reset any budget",
+        "modify or merge PR #1, PR #22, or main",
+        "promote human or release gates from reviewer PASS"
+      ]
+    },
     "stop_on_review_state": [
       "PRODUCT_DECISION_REQUIRED",
       "AUTHORITY_CONFLICT",

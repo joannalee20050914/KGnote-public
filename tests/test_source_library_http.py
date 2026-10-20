@@ -279,6 +279,27 @@ class SourceLibraryHttpTests(unittest.TestCase):
                     expected,
                 )
 
+    def test_nonparagraph_quote_content_ends_before_real_speaker_through_http(self) -> None:
+        for index, quoted in enumerate(("    print(1)", "#", "-", "<span>"), 1):
+            with self.subTest(quoted=quoted):
+                content = f"## User\n> {quoted}\nAssistant: Real assistant answer.\n"
+                raw = content.encode("utf-8")
+                status, accepted = self.request("POST", "/api/library/sources", source_request(
+                    title="Nonparagraph quote boundary",
+                    content=content,
+                    source_kind="chatgpt_conversation",
+                    locator={"kind": "file_name", "value": f"nonparagraph-quote-{index}.md"},
+                ))
+                self.assertEqual(status, 201)
+                status, exact = self.request("GET", f"/api/library/sources/{accepted['source']['source_id']}")
+                self.assertEqual(status, 200)
+                self.assertEqual(exact["content"].encode("utf-8"), raw)
+                self.assertEqual(exact["revision"]["content_sha256"], hashlib.sha256(raw).hexdigest())
+                self.assertEqual(
+                    [(span["role"], span["locator"]["value"]) for span in exact["revision"]["speaker_spans"]],
+                    [("user", "L1-L2"), ("assistant", "L3-L3")],
+                )
+
     def test_post_nonparagraph_block_quote_prefix_is_attributed_through_http(self) -> None:
         cases = (
             ("> # Quoted heading", "Assistant: Real assistant answer.", [("user", "L1-L2"), ("assistant", "L3-L3")]),
