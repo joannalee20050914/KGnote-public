@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import hashlib
-import html
 import json
 import os
 import re
 import shutil
 from dataclasses import dataclass
-from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Iterable, Mapping
 
@@ -20,7 +18,6 @@ from .preview import PersonalAlphaPreview
 PERSONAL_ALPHA_WORKSPACE_VERSION = "kgnote.personal-alpha-workspace.v1"
 _MANIFEST_PATH = PurePosixPath(".kgnote/manifest.json")
 _PACKAGE_ENTRY_PATH = PurePosixPath(".kgnote/package-entry.json")
-_SECONDARY_WEB_PATH = PurePosixPath(".kgnote/web-learning.html")
 _USER_NOTES_PATH = PurePosixPath("My Notes.md")
 _CONTINUE_PATH = PurePosixPath("Continue Here.md")
 _WIKILINK = re.compile(
@@ -54,37 +51,6 @@ class PersonalAlphaMaterializationError(RuntimeError):
             "message": str(self),
             "action": self.action,
         }
-
-
-class _SecondaryWebSurfaceParser(HTMLParser):
-    """Collect rendered secondary-surface click targets without executing code."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.primary_link = False
-        self._current_identity: tuple[str, str] | None = None
-        self.identity_links: set[tuple[str, str, str]] = set()
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        values = dict(attrs)
-        if tag == "li":
-            identifier = values.get("id")
-            canonical_id = values.get("data-canonical-id")
-            self._current_identity = (
-                (identifier, canonical_id)
-                if isinstance(identifier, str) and isinstance(canonical_id, str)
-                else None
-            )
-        elif tag == "a":
-            href = values.get("href")
-            if href == "../Start%20Here.md":
-                self.primary_link = True
-            if self._current_identity and isinstance(href, str):
-                self.identity_links.add((*self._current_identity, href))
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag == "li":
-            self._current_identity = None
 
 
 @dataclass(frozen=True)
@@ -493,7 +459,7 @@ def _render_learner_entry(
     if not projection["concepts"]:
         lines.append("- The source does not mark a reusable concept explicitly.")
     if projection["prerequisite_gaps"]:
-        lines.extend(["", "## Before you rely on this", ""])
+        lines.extend(["", "## Check the source wording", ""])
         for gap in projection["prerequisite_gaps"]:
             target = _relative_link("Start Here.md", str(gap["path"]))
             lines.append(f"- [[{target}|{gap['label']}]] — {gap['message']}")
@@ -535,12 +501,7 @@ def _render_learner_entry(
 
 
 def _package_entry_bytes(projection: Mapping[str, Any]) -> bytes:
-    """Bind the ordinary-note entry to secondary Web learning interactions.
-
-    This is a packaged routing contract, not a Web editor or a claim that an
-    unavailable interaction has been installed.  It contains canonical IDs only
-    so a consumer can reject identity drift before opening a secondary surface.
-    """
+    """Bind the package entry to the ordinary Obsidian learning note only."""
 
     entry = projection["entry"]
     package_entry = {
@@ -548,12 +509,6 @@ def _package_entry_bytes(projection: Mapping[str, Any]) -> bytes:
         "primary": {
             "surface": entry["primary_surface"],
             "path": entry["primary_path"],
-        },
-        "secondary": {
-            "surface": "web_learning",
-            "role": entry["web_role"],
-            "generic_editor": entry["generic_editor"],
-            "path": str(_SECONDARY_WEB_PATH),
         },
         "identity": {
             "source_id": projection["source"]["id"],
@@ -566,54 +521,6 @@ def _package_entry_bytes(projection: Mapping[str, Any]) -> bytes:
     return (json.dumps(package_entry, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
         "utf-8"
     )
-
-
-def _render_secondary_web_learning(projection: Mapping[str, Any]) -> bytes:
-    """Render a small, read-only secondary surface over the canonical IDs.
-
-    The ordinary Obsidian note remains the package entry.  This document is a
-    portable secondary view: every visible row has a real hyperlink to the
-    generated Obsidian note/anchor carrying the same canonical identity.
-    """
-
-    def text(value: Any) -> str:
-        return html.escape(str(value), quote=True)
-
-    lines = [
-        "<!doctype html>",
-        '<html lang="en">',
-        "<head><meta charset=\"utf-8\"><title>KGnote learning references</title></head>",
-        "<body>",
-        "<main>",
-        "<p>This is a secondary, read-only learning view. <a href=\"../Start%20Here.md\">Open the primary Obsidian note</a>.</p>",
-        f'<section id="{text(projection["source"]["id"])}" data-canonical-id="{text(projection["source"]["id"])}">',
-        f"<h1>{text(projection['source']['title'])}</h1>",
-        "<h2>Concepts</h2><ul>",
-    ]
-    for concept in projection["concepts"]:
-        # Markdown paths are generated from safe filenames; HTML escaping keeps
-        # the attribute safe without changing the path a click follows.
-        lines.append(
-            f'<li id="{text(concept["id"])}" data-canonical-id="{text(concept["id"])}">'
-            f'<a href="../{text(concept["path"])}">{text(concept["label"])}</a></li>'
-        )
-    lines.extend(["</ul><h2>Relationships</h2><ul>"])
-    for relation in projection["relationships"]:
-        lines.append(
-            f'<li id="{text(relation["id"])}" data-canonical-id="{text(relation["id"])}">'
-            f'<a href="../Relationships.md#{text(relation["id"])}">'
-            f'{text(relation["subject_label"])} {text(relation["phrase"])} {text(relation["object_label"])}</a></li>'
-        )
-    lines.extend(["</ul><h2>Evidence</h2><ul>"])
-    for group in projection["evidence_groups"]:
-        for evidence_id in group["evidence_ids"]:
-            lines.append(
-                f'<li id="{text(evidence_id)}" data-canonical-id="{text(evidence_id)}">'
-                f'<a href="../Evidence.md#{text(evidence_id)}">'
-                f'Open source evidence at {text(group["locator"]["value"])}</a></li>'
-            )
-    lines.extend(["</ul></section></main>", "</body></html>", ""])
-    return "\n".join(lines).encode("utf-8")
 
 
 def _render_learner_concept_index(
@@ -860,7 +767,6 @@ def _artifact_bytes(
         ),
         "Evidence.md": _render_learner_evidence(projection, source_relative),
         str(_PACKAGE_ENTRY_PATH): _package_entry_bytes(projection),
-        str(_SECONDARY_WEB_PATH): _render_secondary_web_learning(projection),
         source_relative: source_bytes,
     }
     for concept in projection["concepts"]:
@@ -1238,7 +1144,6 @@ def read_back_learning_workspace(workspace: str | Path) -> dict[str, Any]:
         ) from error
     identity = package_entry.get("identity") if isinstance(package_entry, Mapping) else None
     primary = package_entry.get("primary") if isinstance(package_entry, Mapping) else None
-    secondary = package_entry.get("secondary") if isinstance(package_entry, Mapping) else None
     expected_identity = {
         "source_id": source.get("id"),
         "source_sha256": source.get("content_sha256"),
@@ -1250,55 +1155,10 @@ def read_back_learning_workspace(workspace: str | Path) -> dict[str, Any]:
         package_entry.get("schema_version") != "kgnote.personal-alpha-packaged-entry.v1"
         or identity != expected_identity
         or primary != {"surface": "obsidian_note", "path": str(manifest.get("entry_note"))}
-        or secondary != {
-            "surface": "web_learning",
-            "role": "secondary_learning_interaction",
-            "generic_editor": False,
-            "path": str(_SECONDARY_WEB_PATH),
-        }
     ):
         raise PersonalAlphaMaterializationError(
             "package_entry_identity_drift",
-            "The Obsidian entry and secondary Web-learning identity contract disagree.",
-            "Preserve the workspace and regenerate; do not hand-edit generated package files.",
-        )
-    web_path = root / Path(*_safe_relative(str(secondary["path"])).parts)
-    try:
-        web_surface = web_path.read_text(encoding="utf-8")
-        relationships_text = (root / "Relationships.md").read_text(encoding="utf-8")
-        evidence_text = (root / "Evidence.md").read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as error:
-        raise PersonalAlphaMaterializationError(
-            "web_surface_missing",
-            "The secondary Web-learning surface cannot be reopened.",
-            "Preserve the workspace and regenerate; do not hand-edit generated package files.",
-        ) from error
-    parser = _SecondaryWebSurfaceParser()
-    parser.feed(web_surface)
-    parser.close()
-    concept_paths = manifest.get("projected_concept_paths", {})
-    web_links_match = parser.primary_link
-    for concept_id in record_ids["concepts"]:
-        concept_path = concept_paths.get(str(concept_id)) if isinstance(concept_paths, Mapping) else None
-        web_links_match = web_links_match and isinstance(concept_path, str) and (
-            (str(concept_id), str(concept_id), f"../{concept_path}") in parser.identity_links
-        )
-    for relation_id in record_ids["relations"]:
-        web_links_match = web_links_match and (
-            (str(relation_id), str(relation_id), f"../Relationships.md#{relation_id}")
-            in parser.identity_links
-            and f'<a id="{relation_id}"></a>' in relationships_text
-        )
-    for evidence_id in record_ids["evidence"]:
-        web_links_match = web_links_match and (
-            (str(evidence_id), str(evidence_id), f"../Evidence.md#{evidence_id}")
-            in parser.identity_links
-            and f'<a id="{evidence_id}"></a>' in evidence_text
-        )
-    if not web_links_match:
-        raise PersonalAlphaMaterializationError(
-            "web_identity_readback_failed",
-            "The secondary Web-learning surface does not render click targets for the same canonical IDs.",
+            "The ordinary Obsidian entry identity contract disagrees with the workspace.",
             "Preserve the workspace and regenerate; do not hand-edit generated package files.",
         )
     return {
@@ -1310,7 +1170,6 @@ def read_back_learning_workspace(workspace: str | Path) -> dict[str, Any]:
         "checked_links": checked_links,
         "record_counts": {key: len(value) for key, value in record_ids.items()},
         "package_entry": str(package_entry_path.resolve()),
-        "web_learning": str(web_path.resolve()),
     }
 
 

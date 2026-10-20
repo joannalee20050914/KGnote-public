@@ -15,6 +15,7 @@ _SPACE = re.compile(r"\s+")
 _ILLEGAL_FILENAME = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
 _RESERVED_FILENAME = re.compile(r"^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$", re.I)
 _MARKUP = re.compile(r"(?:\*\*|__)")
+_WIKILINK_UNSAFE = re.compile(r"[\[\]#^]")
 _DEFINITION_VERBS = frozenset(
     {
         "are",
@@ -63,6 +64,11 @@ def _sentence(value: str) -> str:
 def _safe_label_filename(label: str) -> str:
     value = unicodedata.normalize("NFC", label)
     value = _ILLEGAL_FILENAME.sub("-", value)
+    # These characters are legal on some filesystems, but change the meaning of
+    # an Obsidian wikilink (heading, block, or link syntax).  The label and its
+    # canonical identity are kept elsewhere; the projected filename is only a
+    # safe navigation target.
+    value = _WIKILINK_UNSAFE.sub("-", value)
     value = _SPACE.sub(" ", value).strip(" .")
     if value in {"", ".", ".."}:
         value = "Concept"
@@ -163,18 +169,41 @@ def _concept_explanation(
 ) -> tuple[str, str | None, str]:
     name = str(concept["canonical_name_candidate"])
     definition = None
+    definition_tail = None
     for evidence_id in concept["evidence_ids"]:
         candidate = evidence_by_id[str(evidence_id)]
+        excerpt = str(candidate["excerpt"])
         match = re.search(
             r"(?:\*\*|__)([^\n]+?)(?:\*\*|__)\s*[:：]",
-            str(candidate["excerpt"]),
+            excerpt,
         )
         if match and _plain(match.group(1)).strip().casefold() == name.strip().casefold():
             definition = candidate
+            definition_tail = re.split(r"[:：]", excerpt, maxsplit=1)[1].strip()
+            break
+        # A source often defines a term in an ordinary sentence rather than a
+        # glossary row.  Recognise only a sentence that begins with this exact
+        # marked term and a conservative defining verb; do not turn co-mentions
+        # (for example, "Cache and Database are components") into definitions.
+        natural = re.match(
+            r"^\s*(?:\*\*|__)([^\n]+?)(?:\*\*|__)\s+"
+            r"((?:is|are|means|refers to|describes|identifies)\b.+)",
+            excerpt,
+            re.IGNORECASE,
+        )
+        if natural and _plain(natural.group(1)).strip().casefold() == name.strip().casefold():
+            definition = candidate
+            definition_tail = natural.group(2).strip()
             break
     if definition:
         excerpt = str(definition["excerpt"]).strip()
-        tail = re.split(r"[:：]", excerpt, maxsplit=1)[1].strip()
+        assert definition_tail is not None
+        tail = definition_tail
+        if not re.search(r"[:：]", excerpt):
+            explanation = (
+                f"In this material, the source states: “{_sentence(excerpt)}”"
+            )
+            return explanation, None, explanation
         first_word = _plain(tail).split(" ", 1)[0].casefold()
         if first_word in {"a", "an", "the"}:
             connector = "is "
@@ -233,8 +262,8 @@ def _concept_explanation(
         explanation = f"In this material, **{name}** appears in the selected source."
         role = explanation
     limitation = (
-        f"This source does not provide a broader standalone definition of {name}, "
-        "so KGnote does not invent one here."
+        f"This material names {name}, but KGnote did not recognise a source definition it can quote "
+        "without rewriting the passage."
     )
     return explanation, limitation, role
 
@@ -340,23 +369,24 @@ def _beginner_brief(
 
     defined = [item for item in concepts if item["limitation"] is None]
     if defined:
-        labels = ", ".join(f"**{item['label']}**" for item in defined[:2])
-        return (
-            f"Start with the original material. It introduces {labels}; use their notes "
-            "when those terms interrupt the reading."
+        examples = "; ".join(
+            str(item["explanation"]).replace("In this material, ", "", 1)
+            for item in defined[:2]
         )
+        return (
+            f"Begin with the original material, then use the concept notes when a term blocks "
+            f"the next sentence. This source explicitly says: {examples}"
+        )
+    named = [str(item["label"]) for item in concepts[:2]]
+    terms = ", ".join(named) if named else "the marked terms"
     return (
-        f"Start by reading the original material. {source_title} marks useful terms, "
-        "but it does not supply enough definition to teach them beyond this source."
+        f"Begin with the original material. {source_title} marks {terms}; open each term's "
+        "note to see the exact source passage where it appears before deciding what to learn next."
     )
 
 
 def _prerequisite_gaps(concepts: list[Mapping[str, Any]]) -> list[dict[str, str]]:
-    """Expose only source-proven gaps, reusing existing candidate identities.
-
-    A missing definition is not permission to infer a prerequisite or mint a new
-    Concept.  These rows deliberately point back to the already projected term.
-    """
+    """Expose source-context notes without inferring a prerequisite relation."""
 
     gaps: list[dict[str, str]] = []
     for item in concepts:
@@ -373,12 +403,13 @@ def _prerequisite_gaps(concepts: list[Mapping[str, Any]]) -> list[dict[str, str]
                 "concept_id": str(item["id"]),
                 "label": str(item["label"]),
                 "path": str(item["path"]),
-                "kind": "source_definition_gap",
+                "kind": "source_context_note",
                 "source_locator": locator,
                 "message": (
-                    f"This material uses **{item['label']}** at `{locator}` but does not give a "
-                    "broader standalone definition. Recheck that passage; if you need that depth, "
-                    "add a question in Continue Here or ask for a source-backed explanation before relying on it."
+                    f"This material names **{item['label']}** in source line {locator[1:] if locator.startswith('L') else locator}. "
+                    "KGnote did not recognise that passage as a definition, so it does not rewrite it. "
+                    "Recheck the original wording; if you need more context, add a question in Continue Here "
+                    "or ask for a source-backed explanation."
                 ),
             }
         )
@@ -490,8 +521,6 @@ def project_learner_workspace(payload: Mapping[str, Any]) -> LearnerProjection:
         "entry": {
             "primary_surface": "obsidian_note",
             "primary_path": "Start Here.md",
-            "web_role": "secondary_learning_interaction",
-            "generic_editor": False,
         },
         "evidence_groups": evidence_groups,
         "canonical_ids": {

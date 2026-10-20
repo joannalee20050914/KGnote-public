@@ -126,7 +126,7 @@ class PersonalAlphaPresentationTests(unittest.TestCase):
         _, text = self.concept_note("Port")
         body = primary_body(text)
         self.assertIn("unreviewed candidate connecting **Port**", body)
-        self.assertIn("This source does not provide a broader standalone definition", body)
+        self.assertIn("did not recognise a source definition", body)
         self.assertIn("## In this material", body)
         self.assertIn("## Related concepts", body)
         self.assertNotIn("identifies the host", body)
@@ -301,17 +301,17 @@ class LearnerProjectionTests(unittest.TestCase):
         gap = next(item for item in network["prerequisite_gaps"] if item["concept_id"] == port["id"])
         self.assertEqual(gap["label"], "Port")
         self.assertEqual(gap["path"], port["path"])
-        self.assertIn("does not give a broader standalone definition", gap["message"])
-        self.assertIn("Start with the original material", network["beginner_brief"])
+        self.assertEqual(gap["kind"], "source_context_note")
+        self.assertIn("did not recognise that passage as a definition", gap["message"])
+        self.assertIn("Begin with the original material", network["beginner_brief"])
         self.assertNotIn("browser", network["beginner_brief"].casefold())
         self.assertEqual(network["entry"]["primary_surface"], "obsidian_note")
-        self.assertEqual(network["entry"]["web_role"], "secondary_learning_interaction")
-        self.assertFalse(network["entry"]["generic_editor"])
+        self.assertEqual(network["entry"], {"primary_surface": "obsidian_note", "primary_path": "Start Here.md"})
 
         glossary = project_learner_workspace(
             build_learning_workspace_preview(GLOSSARY).payload
         ).as_dict()
-        self.assertTrue(glossary["beginner_brief"].startswith("Start with the original material"))
+        self.assertTrue(glossary["beginner_brief"].startswith("Begin with the original material"))
         self.assertNotIn("external", " ".join(item["message"] for item in glossary["prerequisite_gaps"]).casefold())
 
     def test_held_out_natural_prose_is_not_rewritten_or_fixture_scripted(self):
@@ -333,10 +333,37 @@ class LearnerProjectionTests(unittest.TestCase):
         self.assertNotIn("refers to work waiting", explanations["Queue"])
         self.assertNotIn("Establish the network path", projection["learning_path"])
         cache_gap = next(item for item in projection["prerequisite_gaps"] if item["label"] == "Cache")
-        self.assertEqual(cache_gap["kind"], "source_definition_gap")
+        self.assertEqual(cache_gap["kind"], "source_context_note")
         self.assertTrue(cache_gap["source_locator"].startswith("L"))
-        self.assertIn("Recheck that passage", cache_gap["message"])
+        self.assertIn("Recheck the original wording", cache_gap["message"])
         self.assertIn("Continue Here", cache_gap["message"])
+
+    def test_natural_prose_definition_is_quoted_without_a_false_definition_gap(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "natural-definition.md"
+            source.write_text(
+                "# Field notes\n\n**Cache** is a fast store for recent data.\n",
+                encoding="utf-8",
+            )
+            projection = project_learner_workspace(
+                build_learning_workspace_preview(source).payload
+            ).as_dict()
+        cache = next(item for item in projection["concepts"] if item["label"] == "Cache")
+        self.assertEqual(
+            cache["explanation"],
+            "In this material, the source states: “**Cache** is a fast store for recent data.”",
+        )
+        self.assertIsNone(cache["limitation"])
+        self.assertFalse(any(item["concept_id"] == cache["id"] for item in projection["prerequisite_gaps"]))
+
+    def test_projected_filenames_are_safe_wikilink_targets(self):
+        payload = copy.deepcopy(self.preview.payload)
+        labels = ["C#", "[Draft]", "Block^id"]
+        for concept, label in zip(payload["concepts"], labels, strict=False):
+            concept["canonical_name_candidate"] = label
+        projection = project_learner_workspace(payload).as_dict()
+        for concept in projection["concepts"][: len(labels)]:
+            self.assertNotRegex(concept["path"], r"[\[\]#^]")
 
     def test_definition_and_unreviewed_relation_do_not_leak_as_settled_truth(self):
         with tempfile.TemporaryDirectory() as directory:

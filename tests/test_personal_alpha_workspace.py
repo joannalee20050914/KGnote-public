@@ -67,7 +67,7 @@ class PersonalAlphaWorkspaceTests(unittest.TestCase):
                 read_back_learning_workspace(workspace)
             self.assertEqual(caught.exception.code, "package_entry_identity_drift")
 
-    def test_secondary_web_surface_renders_click_targets_for_existing_ids(self):
+    def test_packaged_entry_keeps_the_ordinary_obsidian_note_as_the_only_entry(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = self.make_source(root)
@@ -75,37 +75,11 @@ class PersonalAlphaWorkspaceTests(unittest.TestCase):
             vault.mkdir()
             preview = build_learning_workspace_preview(source, space="networking")
             workspace = Path(materialize_learning_workspace(preview, vault).workspace_path)
-            manifest = self.manifest(workspace)
             package = json.loads((workspace / ".kgnote" / "package-entry.json").read_text())
-            web_path = workspace / package["secondary"]["path"]
-            web_bytes = web_path.read_bytes()
-            web = web_bytes.decode("utf-8")
-            self.assertIn('href="../Start%20Here.md"', web)
-            for concept_id in manifest["record_ids"]["concepts"]:
-                path = manifest["projected_concept_paths"][concept_id]
-                self.assertIn(
-                    f'id="{concept_id}" data-canonical-id="{concept_id}"><a href="../{path}">',
-                    web,
-                )
-            for relation_id in manifest["record_ids"]["relations"]:
-                self.assertIn(f'href="../Relationships.md#{relation_id}"', web)
-                self.assertIn(f'<a id="{relation_id}"></a>', (workspace / "Relationships.md").read_text())
-            for evidence_id in manifest["record_ids"]["evidence"]:
-                self.assertIn(f'href="../Evidence.md#{evidence_id}"', web)
-                self.assertIn(f'<a id="{evidence_id}"></a>', (workspace / "Evidence.md").read_text())
-            self.assertEqual(read_back_learning_workspace(workspace)["web_learning"], str(web_path.resolve()))
-
-            tampered = web.replace('href="../Evidence.md#', 'href="../Evidence.md#wrong-', 1).encode()
-            web_path.write_bytes(tampered)
-            row = next(item for item in manifest["managed_files"] if item["path"] == package["secondary"]["path"])
-            row["sha256"] = hashlib.sha256(tampered).hexdigest()
-            (workspace / ".kgnote" / "manifest.json").write_text(
-                json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
-            with self.assertRaises(PersonalAlphaMaterializationError) as caught:
-                read_back_learning_workspace(workspace)
-            self.assertEqual(caught.exception.code, "web_identity_readback_failed")
+            self.assertEqual(package["primary"], {"surface": "obsidian_note", "path": "Start Here.md"})
+            self.assertNotIn("secondary", package)
+            self.assertFalse((workspace / ".kgnote" / "web-learning.html").exists())
+            self.assertNotIn("web_learning", read_back_learning_workspace(workspace))
 
     def test_read_back_rejects_missing_packaged_entry_before_claiming_identity(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -163,18 +137,15 @@ class PersonalAlphaWorkspaceTests(unittest.TestCase):
                 package_entry["primary"],
                 {"surface": "obsidian_note", "path": "Start Here.md"},
             )
-            self.assertEqual(package_entry["secondary"]["surface"], "web_learning")
-            self.assertFalse(package_entry["secondary"]["generic_editor"])
-            self.assertEqual(package_entry["secondary"]["path"], ".kgnote/web-learning.html")
+            self.assertNotIn("secondary", package_entry)
             self.assertEqual(
                 package_entry["identity"]["concept_ids"],
                 self.manifest(workspace)["record_ids"]["concepts"],
             )
             self.assertTrue(audit["package_entry"].endswith(".kgnote/package-entry.json"))
-            self.assertTrue(audit["web_learning"].endswith(".kgnote/web-learning.html"))
             first_bytes = {
                 path: (workspace / path).read_bytes()
-                for path in ("Start Here.md", ".kgnote/package-entry.json", ".kgnote/web-learning.html")
+                for path in ("Start Here.md", ".kgnote/package-entry.json")
             }
             self.assertEqual(second.status, "unchanged")
             self.assertEqual(second.created_files, 0)
