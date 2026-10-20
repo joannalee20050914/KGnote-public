@@ -344,6 +344,46 @@ def _learning_path(payload: Mapping[str, Any]) -> list[str]:
     ]
 
 
+def _beginner_brief(
+    source_title: str, concepts: list[Mapping[str, Any]]
+) -> str:
+    """Give a short, source-bounded orientation without filling in missing facts."""
+
+    defined = [item for item in concepts if item["limitation"] is None]
+    if defined:
+        labels = ", ".join(f"**{item['label']}**" for item in defined[:2])
+        return (
+            f"Start with the original material. It introduces {labels}; use their notes "
+            "when those terms interrupt the reading."
+        )
+    return (
+        f"Start by reading the original material. {source_title} marks useful terms, "
+        "but it does not supply enough definition to teach them beyond this source."
+    )
+
+
+def _prerequisite_gaps(concepts: list[Mapping[str, Any]]) -> list[dict[str, str]]:
+    """Expose only source-proven gaps, reusing existing candidate identities.
+
+    A missing definition is not permission to infer a prerequisite or mint a new
+    Concept.  These rows deliberately point back to the already projected term.
+    """
+
+    return [
+        {
+            "concept_id": str(item["id"]),
+            "label": str(item["label"]),
+            "path": str(item["path"]),
+            "message": (
+                f"This material uses **{item['label']}** but does not give a broader "
+                "standalone definition. Treat it as a gap to resolve before relying on it."
+            ),
+        }
+        for item in concepts
+        if item["limitation"] is not None
+    ]
+
+
 def project_learner_workspace(payload: Mapping[str, Any]) -> LearnerProjection:
     """Project canonical preview records into a deterministic learner-facing view model."""
 
@@ -427,6 +467,7 @@ def project_learner_workspace(payload: Mapping[str, Any]) -> LearnerProjection:
     if not structure and "-" in source_title:
         source_title = source_title.replace("-", " ").strip()
         source_title = source_title[:1].upper() + source_title[1:]
+    prerequisite_gaps = _prerequisite_gaps(projected_concepts)
     model = {
         "schema_version": LEARNER_PROJECTION_VERSION,
         "source": {
@@ -436,6 +477,7 @@ def project_learner_workspace(payload: Mapping[str, Any]) -> LearnerProjection:
         },
         "summary": payload["topic_summary"]["text"],
         "summary_locator": payload["topic_summary"]["source_locator"],
+        "beginner_brief": _beginner_brief(source_title, projected_concepts),
         "learning_goal": _learning_goal(source_title),
         "learning_path": _learning_path(payload),
         "structure": structure,
@@ -443,6 +485,13 @@ def project_learner_workspace(payload: Mapping[str, Any]) -> LearnerProjection:
         "source_shape": source_shape,
         "concepts": projected_concepts,
         "relationships": projected_relations,
+        "prerequisite_gaps": prerequisite_gaps,
+        "entry": {
+            "primary_surface": "obsidian_note",
+            "primary_path": "Start Here.md",
+            "web_role": "secondary_learning_interaction",
+            "generic_editor": False,
+        },
         "evidence_groups": evidence_groups,
         "canonical_ids": {
             "concepts": [item["id"] for item in concepts],

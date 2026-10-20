@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import tempfile
@@ -33,6 +34,39 @@ class PersonalAlphaWorkspaceTests(unittest.TestCase):
     def manifest(self, workspace: Path) -> dict:
         return json.loads((workspace / ".kgnote" / "manifest.json").read_text(encoding="utf-8"))
 
+    def test_packaged_entry_rejects_obsidian_web_identity_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = self.make_source(root)
+            vault = root / "vault"
+            vault.mkdir()
+            workspace = Path(
+                materialize_learning_workspace(
+                    build_learning_workspace_preview(source, space="networking"), vault
+                ).workspace_path
+            )
+            package_path = workspace / ".kgnote" / "package-entry.json"
+            package = json.loads(package_path.read_text(encoding="utf-8"))
+            package["identity"]["concept_ids"] = []
+            package_bytes = (
+                json.dumps(package, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+            ).encode("utf-8")
+            package_path.write_bytes(package_bytes)
+            manifest = self.manifest(workspace)
+            row = next(
+                item
+                for item in manifest["managed_files"]
+                if item["path"] == ".kgnote/package-entry.json"
+            )
+            row["sha256"] = hashlib.sha256(package_bytes).hexdigest()
+            (workspace / ".kgnote" / "manifest.json").write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(PersonalAlphaMaterializationError) as caught:
+                read_back_learning_workspace(workspace)
+            self.assertEqual(caught.exception.code, "package_entry_identity_drift")
+
     def test_materialize_reopen_links_source_bytes_and_idempotent_rerun(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -63,6 +97,20 @@ class PersonalAlphaWorkspaceTests(unittest.TestCase):
             self.assertIn("Start reading the original material", entry)
             self.assertTrue((workspace / "My Notes.md").is_file())
             self.assertTrue((workspace / "Continue Here.md").is_file())
+            package_entry = json.loads(
+                (workspace / ".kgnote" / "package-entry.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                package_entry["primary"],
+                {"surface": "obsidian_note", "path": "Start Here.md"},
+            )
+            self.assertEqual(package_entry["secondary"]["surface"], "web_learning")
+            self.assertFalse(package_entry["secondary"]["generic_editor"])
+            self.assertEqual(
+                package_entry["identity"]["concept_ids"],
+                self.manifest(workspace)["record_ids"]["concepts"],
+            )
+            self.assertTrue(audit["package_entry"].endswith(".kgnote/package-entry.json"))
             self.assertEqual(second.status, "unchanged")
             self.assertEqual(second.created_files, 0)
             self.assertEqual(second.updated_files, 0)

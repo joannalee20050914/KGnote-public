@@ -17,6 +17,7 @@ from .preview import PersonalAlphaPreview
 
 PERSONAL_ALPHA_WORKSPACE_VERSION = "kgnote.personal-alpha-workspace.v1"
 _MANIFEST_PATH = PurePosixPath(".kgnote/manifest.json")
+_PACKAGE_ENTRY_PATH = PurePosixPath(".kgnote/package-entry.json")
 _USER_NOTES_PATH = PurePosixPath("My Notes.md")
 _CONTINUE_PATH = PurePosixPath("Continue Here.md")
 _WIKILINK = re.compile(
@@ -429,6 +430,10 @@ def _render_learner_entry(
         "",
         str(projection["summary"]),
         "",
+        "## Start here",
+        "",
+        str(projection["beginner_brief"]),
+        "",
         "> [!question] Learning goal",
         f"> {projection['learning_goal']}",
         "",
@@ -453,6 +458,11 @@ def _render_learner_entry(
         lines.append(f"- [[{target}|{concept['label']}]] — {role}")
     if not projection["concepts"]:
         lines.append("- The source does not mark a reusable concept explicitly.")
+    if projection["prerequisite_gaps"]:
+        lines.extend(["", "## Before you rely on this", ""])
+        for gap in projection["prerequisite_gaps"]:
+            target = _relative_link("Start Here.md", str(gap["path"]))
+            lines.append(f"- [[{target}|{gap['label']}]] — {gap['message']}")
     lines.extend(["", "## Key relationships", ""])
     for relation in projection["relationships"]:
         subject = _relative_link("Start Here.md", str(relation["subject_path"]))
@@ -488,6 +498,39 @@ def _render_learner_entry(
         ]
     )
     return "\n".join(lines).encode("utf-8")
+
+
+def _package_entry_bytes(projection: Mapping[str, Any]) -> bytes:
+    """Bind the ordinary-note entry to secondary Web learning interactions.
+
+    This is a packaged routing contract, not a Web editor or a claim that an
+    unavailable interaction has been installed.  It contains canonical IDs only
+    so a consumer can reject identity drift before opening a secondary surface.
+    """
+
+    entry = projection["entry"]
+    package_entry = {
+        "schema_version": "kgnote.personal-alpha-packaged-entry.v1",
+        "primary": {
+            "surface": entry["primary_surface"],
+            "path": entry["primary_path"],
+        },
+        "secondary": {
+            "surface": "web_learning",
+            "role": entry["web_role"],
+            "generic_editor": entry["generic_editor"],
+        },
+        "identity": {
+            "source_id": projection["source"]["id"],
+            "source_sha256": projection["source"]["content_sha256"],
+            "concept_ids": projection["canonical_ids"]["concepts"],
+            "relation_ids": projection["canonical_ids"]["relations"],
+            "evidence_ids": projection["canonical_ids"]["evidence"],
+        },
+    }
+    return (json.dumps(package_entry, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
+        "utf-8"
+    )
 
 
 def _render_learner_concept_index(
@@ -731,6 +774,7 @@ def _artifact_bytes(
             projection, concept_paths, source_relative
         ),
         "Evidence.md": _render_learner_evidence(projection, source_relative),
+        str(_PACKAGE_ENTRY_PATH): _package_entry_bytes(projection),
         source_relative: source_bytes,
     }
     for concept in projection["concepts"]:
@@ -764,6 +808,7 @@ def _manifest_bytes(
         "learner_projection_version": projection["schema_version"],
         "workspace_version": PERSONAL_ALPHA_WORKSPACE_VERSION,
         "entry_note": "Start Here.md",
+        "package_entry": str(_PACKAGE_ENTRY_PATH),
         "managed_files": [
             {"path": path, "sha256": _sha256(content)}
             for path, content in sorted(artifacts.items())
@@ -1089,6 +1134,47 @@ def read_back_learning_workspace(workspace: str | Path) -> dict[str, Any]:
             "The generated learning entry note is missing.",
             "Preserve the workspace and rerun in a separate destination.",
         )
+    package_entry_value = manifest.get("package_entry")
+    if not isinstance(package_entry_value, str):
+        raise PersonalAlphaMaterializationError(
+            "package_entry_missing",
+            "The workspace has no packaged entry contract.",
+            "Regenerate this workspace with the current KGnote version.",
+        )
+    package_entry_path = root / Path(*_safe_relative(package_entry_value).parts)
+    try:
+        package_entry = json.loads(package_entry_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise PersonalAlphaMaterializationError(
+            "package_entry_invalid",
+            "The packaged entry contract cannot be read safely.",
+            "Preserve the workspace and regenerate in a separate destination.",
+        ) from error
+    identity = package_entry.get("identity") if isinstance(package_entry, Mapping) else None
+    primary = package_entry.get("primary") if isinstance(package_entry, Mapping) else None
+    secondary = package_entry.get("secondary") if isinstance(package_entry, Mapping) else None
+    expected_identity = {
+        "source_id": source.get("id"),
+        "source_sha256": source.get("content_sha256"),
+        "concept_ids": record_ids.get("concepts"),
+        "relation_ids": record_ids.get("relations"),
+        "evidence_ids": record_ids.get("evidence"),
+    }
+    if (
+        package_entry.get("schema_version") != "kgnote.personal-alpha-packaged-entry.v1"
+        or identity != expected_identity
+        or primary != {"surface": "obsidian_note", "path": str(manifest.get("entry_note"))}
+        or secondary != {
+            "surface": "web_learning",
+            "role": "secondary_learning_interaction",
+            "generic_editor": False,
+        }
+    ):
+        raise PersonalAlphaMaterializationError(
+            "package_entry_identity_drift",
+            "The Obsidian entry and secondary Web-learning identity contract disagree.",
+            "Preserve the workspace and regenerate; do not hand-edit generated package files.",
+        )
     return {
         "status": "loaded",
         "workspace_path": str(root.resolve()),
@@ -1097,6 +1183,7 @@ def read_back_learning_workspace(workspace: str | Path) -> dict[str, Any]:
         "managed_files": len(manifest["managed_files"]),
         "checked_links": checked_links,
         "record_counts": {key: len(value) for key, value in record_ids.items()},
+        "package_entry": str(package_entry_path.resolve()),
     }
 
 

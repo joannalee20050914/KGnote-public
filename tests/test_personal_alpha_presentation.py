@@ -294,6 +294,25 @@ class LearnerProjectionTests(unittest.TestCase):
         self.assertIn("Record temperature and germination together", procedural["learning_path"][-1])
         self.assertNotIn("causes", {item["relation"] for item in procedural["relationships"]})
 
+    def test_beginner_brief_and_prerequisite_gaps_stay_source_bounded(self):
+        network = project_learner_workspace(self.preview.payload).as_dict()
+        port = next(item for item in network["concepts"] if item["label"] == "Port")
+        gap = next(item for item in network["prerequisite_gaps"] if item["concept_id"] == port["id"])
+        self.assertEqual(gap["label"], "Port")
+        self.assertEqual(gap["path"], port["path"])
+        self.assertIn("does not give a broader standalone definition", gap["message"])
+        self.assertIn("Start with the original material", network["beginner_brief"])
+        self.assertNotIn("browser", network["beginner_brief"].casefold())
+        self.assertEqual(network["entry"]["primary_surface"], "obsidian_note")
+        self.assertEqual(network["entry"]["web_role"], "secondary_learning_interaction")
+        self.assertFalse(network["entry"]["generic_editor"])
+
+        glossary = project_learner_workspace(
+            build_learning_workspace_preview(GLOSSARY).payload
+        ).as_dict()
+        self.assertTrue(glossary["beginner_brief"].startswith("Start with the original material"))
+        self.assertNotIn("external", " ".join(item["message"] for item in glossary["prerequisite_gaps"]).casefold())
+
     def test_definition_and_unreviewed_relation_do_not_leak_as_settled_truth(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

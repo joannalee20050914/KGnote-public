@@ -87,4 +87,4 @@
 
 ## Current recovery note
 
-由正式 cross-Issue admission 建立；先執行 preflight，僅處理 Issue #9 封存有界範圍。
+本次唯一 Codex dispatch 已完成 D2-T02 的有界程式修改，未碰 Source Library、概念 identity、Web-first 或第二 editor。候選加入 source-bounded 初學者入口文字、既有 concept identity 的先備缺口，以及 Obsidian 主入口／Web 次要學習互動的封裝 identity read-back。局部 deterministic suite（42 tests）通過；完整 suite 受此 worker 缺少 `.venv`、`referencing`、Node/npm 與 `gh` 阻擋，尚不得提升 `candidate_verified` 或觸發 review。下一步只能由既有 Runner 在受支援環境重新驗證並處理 publication；不得由本 dispatch 直接發布、merge 或啟動 Claude／ChatGPT Work。
