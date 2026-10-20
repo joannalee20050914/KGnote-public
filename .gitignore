@@ -19,6 +19,7 @@ tmp/
 temp/
 logs/
 *.log
+.venv
 
 # Browser captures and support/debug exports stay local.
 *.har
