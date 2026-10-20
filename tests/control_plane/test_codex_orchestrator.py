@@ -379,6 +379,25 @@ class EnvelopeSealOrderingTests(OrchestrationSimulationTests):
             self.assertFalse(result["human_action_required"])
             self.assertEqual(result["state"], "AWAITING_EXTERNAL_PRODUCT_REVIEW")
 
+    def test_approved_role_cutover_never_invokes_codex_as_routine_reviewer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); (root/"docs/control-plane").mkdir(parents=True)
+            (root/"docs/control-plane/CLAUDE_REVIEWER_ROLE_DECISION_20261020.md").write_text(
+                "Status: `APPROVED`\nUbuntu Claude is the sole routine independent AI product reviewer\n"
+            )
+            request={"status":"READY_FOR_REVIEW","review_id":"review-1","candidate_fingerprint":"a"*64}
+            state=self.base_state(); state["state"]="READY_FOR_AI_REVIEW"
+            runner=mock.Mock()
+            with mock.patch.object(ORCH,"recover_stale_candidate",return_value=False), \
+                 mock.patch.object(ORCH.control,"load_review_artifacts",return_value=(request,{"artifact_state":"EMPTY"},{})), \
+                 mock.patch.object(ORCH.control,"preflight",return_value={"status":"pass"}), \
+                 mock.patch.object(ORCH,"update_state",side_effect=lambda _r,s,new,next_action,**_k:s.update(state=new,next_action=next_action)):
+                ORCH.orchestrate_step(root,state,runner)
+            runner.assert_not_called()
+            self.assertEqual("AWAITING_EXTERNAL_PRODUCT_REVIEW",state["state"])
+            self.assertEqual("PRODUCTION_RUNNER",state["candidate_custody"]["owner"])
+            self.assertIn("Ubuntu Claude",state["next_action"])
+
     def test_internal_pass_executes_exact_publication_before_external_wait(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -407,6 +426,8 @@ class EnvelopeSealOrderingTests(OrchestrationSimulationTests):
             publish.assert_called_once_with(root)
             self.assertEqual(state["state"], "AWAITING_EXTERNAL_PRODUCT_REVIEW")
             self.assertFalse(state["human_action_required"])
+            self.assertIn("Runner must dispatch Ubuntu Claude", state["next_action"])
+            self.assertNotIn("ChatGPT Work", state["next_action"])
             prepared = json.loads((root / ".ai/external-review-state.json").read_text())
             self.assertEqual(prepared["review_round"], 4)
             self.assertEqual(prepared["internal_review"]["status"], "PASS")
@@ -968,7 +989,7 @@ class OrchestratorDurabilityTests(unittest.TestCase):
         self.assertLess(command.index("-s"), exec_index)
         self.assertLess(command.index("-C"), exec_index)
         self.assertGreater(command.index("--ephemeral"), exec_index)
-        self.assertIn("YOU are the required independent reviewer", command[-1])
+        self.assertIn("YOU are the authorized Ubuntu Claude independent reviewer", command[-1])
 
     def test_real_pass_consumption_completes_plan_and_preserves_auditable_review(self):
         with tempfile.TemporaryDirectory() as tmp:

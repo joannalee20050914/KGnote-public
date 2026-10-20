@@ -252,8 +252,8 @@ def release_lock(repo: Path, descriptor: int) -> None:
 def role_prompt(role: str) -> str:
     if role == "reviewer":
         return (
-            "YOU are the required independent reviewer. Perform the review now; do not defer to ChatGPT Work "
-            "or ask a human to continue. Reconstruct authority solely from the repository, follow "
+            "YOU are the authorized Ubuntu Claude independent reviewer. Perform the review now; do not ask "
+            "ChatGPT Work or a human to continue. Reconstruct authority solely from the repository, follow "
             ".ai/REVIEWER_BOOTSTRAP.md, inspect the exact sealed candidate, and write a complete reviewer-owned "
             ".ai/REVIEW_RESULT.md. Do not modify candidate files. The orchestrator already owns machine handoff "
             "and will submit and route your verdict."
@@ -266,6 +266,15 @@ def role_prompt(role: str) -> str:
         "select a product decision, promote human gates, or wait for the human to type continue. Finish when the "
         "candidate is ready for deterministic validation; the orchestrator will validate and hand it off."
     )
+
+
+def ubuntu_claude_routine_review_active(repo: Path) -> bool:
+    """Return true only for repositories carrying the approved role cutover."""
+    path = repo / "docs/control-plane/CLAUDE_REVIEWER_ROLE_DECISION_20261020.md"
+    if not path.is_file():
+        return False
+    text = path.read_text(encoding="utf-8")
+    return "Status: `APPROVED`" in text and "Ubuntu Claude is the sole routine independent AI product reviewer" in text
 
 
 def codex_agent_command(repo: Path, role: str, output_path: Path) -> list[str]:
@@ -743,7 +752,7 @@ def advance_after_pass(repo: Path, state: dict[str, Any]) -> None:
                 repo,
                 state,
                 "AWAITING_EXTERNAL_PRODUCT_REVIEW",
-                f"Exact candidate published at {publication['artifact_url']}; await and consume the configured ChatGPT Work event result automatically.",
+                f"Exact candidate published at {publication['artifact_url']}; Runner must dispatch Ubuntu Claude, relay the exact result to GitHub, and require canonical Consumer read-back.",
                 review_id=request.get("review_id"),
                 candidate_fingerprint=fingerprint,
                 candidate_custody={"status": "NONE", "owner": None, "review_id": None, "fingerprint": None},
@@ -921,6 +930,16 @@ def orchestrate_step(repo: Path, state: dict[str, Any], runner: AgentRunner = ru
         return
 
     if review_state == "READY_FOR_REVIEW":
+        if ubuntu_claude_routine_review_active(repo):
+            state["candidate_custody"] = {
+                "status": "SEALED", "owner": "PRODUCTION_RUNNER",
+                "review_id": request["review_id"], "fingerprint": request["candidate_fingerprint"],
+            }
+            update_state(
+                repo, state, "AWAITING_EXTERNAL_PRODUCT_REVIEW",
+                "Production Runner must dispatch Ubuntu Claude for the sealed candidate, relay the exact result to GitHub, and require canonical Consumer read-back.",
+            )
+            return
         if state["review_cycle"] >= state["max_review_cycles"]:
             state["blockers"] = [{
                 "type": "repair_budget_exhausted",
@@ -949,6 +968,16 @@ def orchestrate_step(repo: Path, state: dict[str, Any], runner: AgentRunner = ru
             return
 
     elif review_state == "UNDER_REVIEW" and result.get("artifact_state") == "EMPTY":
+        if ubuntu_claude_routine_review_active(repo):
+            state["candidate_custody"] = {
+                "status": "SEALED", "owner": "PRODUCTION_RUNNER",
+                "review_id": request["review_id"], "fingerprint": request["candidate_fingerprint"],
+            }
+            update_state(
+                repo, state, "AWAITING_EXTERNAL_PRODUCT_REVIEW",
+                "Legacy local reviewer custody is not resumed; Production Runner must dispatch Ubuntu Claude and consume canonical GitHub evidence.",
+            )
+            return
         # Crash/context restart recovery: custody and fingerprint remain durable,
         # so a new independent reviewer context resumes the same sealed review.
         review_state = execute_reviewer(repo, state, runner)
