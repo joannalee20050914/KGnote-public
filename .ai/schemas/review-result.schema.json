@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kgnote.review-result.v1",
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["finding_id", "severity", "authority_source", "expected_behavior", "observed_behavior", "evidence", "affected_files_or_behavior", "required_resolution", "verification_method", "status"],
+      "properties": {
+        "finding_id": {"type": "string", "pattern": "^R-[0-9]{3,}$"},
+        "severity": {"enum": ["BLOCKER", "MAJOR", "MINOR"]},
+        "authority_source": {"type": "string", "minLength": 1},
+        "expected_behavior": {"type": "string", "minLength": 1},
+        "observed_behavior": {"type": "string", "minLength": 1},
+        "evidence": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "affected_files_or_behavior": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "required_resolution": {"type": "string", "minLength": 1},
+        "verification_method": {"type": "string", "minLength": 1},
+        "status": {"enum": ["OPEN", "FIXED_PENDING_REVIEW", "VERIFIED", "SUPERSEDED_BY_HUMAN_DECISION"]},
+        "resolution_evidence": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "protocol_version", "artifact_state", "review_id", "author_role", "reviewer_identity", "reviewed_revision", "reviewed_fingerprint", "verdict", "findings", "verified_requirements", "unverified_requirements", "human_decisions_required", "human_gates_preserved", "reviewed_at"],
+  "properties": {
+    "schema_version": {"const": "kgnote.review-result.v1"},
+    "protocol_version": {"const": "kgnote.review-protocol.v1"},
+    "artifact_state": {"enum": ["EMPTY", "SUBMITTED"]},
+    "review_id": {"type": ["string", "null"]},
+    "author_role": {"type": ["string", "null"]},
+    "reviewer_identity": {"type": ["string", "null"]},
+    "reviewed_revision": {"type": ["string", "null"]},
+    "reviewed_fingerprint": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "verdict": {"type": ["string", "null"], "enum": [null, "PASS", "CHANGES_REQUIRED", "PRODUCT_DECISION_REQUIRED"]},
+    "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
+    "verified_requirements": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "unverified_requirements": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "human_decisions_required": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "human_gates_preserved": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "reviewed_at": {"type": ["string", "null"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"artifact_state": {"const": "EMPTY"}}},
+      "then": {
+        "properties": {
+          "review_id": {"const": null},
+          "author_role": {"const": null},
+          "reviewer_identity": {"const": null},
+          "reviewed_revision": {"const": null},
+          "reviewed_fingerprint": {"const": null},
+          "verdict": {"const": null},
+          "findings": {"maxItems": 0},
+          "verified_requirements": {"maxItems": 0},
+          "unverified_requirements": {"maxItems": 0},
+          "human_decisions_required": {"maxItems": 0},
+          "human_gates_preserved": {"maxItems": 0},
+          "reviewed_at": {"const": null}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"artifact_state": {"const": "SUBMITTED"}}},
+      "then": {
+        "properties": {
+          "review_id": {"type": "string", "minLength": 1},
+          "author_role": {"const": "CHATGPT_WORK_REVIEWER"},
+          "reviewer_identity": {"type": "string", "minLength": 1},
+          "reviewed_revision": {"type": "string", "minLength": 1},
+          "reviewed_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "verdict": {"enum": ["PASS", "CHANGES_REQUIRED", "PRODUCT_DECISION_REQUIRED"]},
+          "reviewed_at": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  ]
+}
