@@ -767,10 +767,23 @@
           {
             "path": "web/tests/learn-workspace.test.js",
             "selector": "SC-31 a third synthetic unit uses the same workspace renderer without unit-name branches"
+          },
+          {
+            "path": "tests/test_source_library.py",
+            "selector": "SourceLibraryTests.test_ordinary_markdown_preserves_exact_bytes_and_provenance"
+          },
+          {
+            "path": "tests/test_source_library.py",
+            "selector": "SourceLibraryTests.test_conversation_preserves_explicit_speakers_and_rejects_ambiguous_labels"
+          },
+          {
+            "path": "web/tests/source-library-ui.test.js",
+            "selector": "product UI exposes multi-file, conversation, version update and read-back controls"
           }
         ],
         "evidence_refs": [
-          "docs/requirements/evidence/loop3-20260920.json"
+          "docs/requirements/evidence/loop3-20260920.json",
+          "docs/requirements/evidence/d2-t01-source-library-20261016.json"
         ]
       },
       "run_status": "automated_partial",

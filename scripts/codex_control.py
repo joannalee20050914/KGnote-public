@@ -1337,6 +1337,12 @@ def prepare_review_request(
     known_deviations: list[str],
     known_uncertainties: list[str],
 ) -> dict[str, Any]:
+    unpublished = fingerprinted_unpublished_paths(repo)
+    if unpublished:
+        raise ValueError(
+            "clean_candidate_gate: fingerprinted candidate files are not committed: "
+            + ", ".join(unpublished)
+        )
     preflight_result = preflight(repo)
     if preflight_result.get("status") != "pass":
         raise ValueError(f"review_request: preflight failed: {preflight_result.get('errors')}")
@@ -1974,6 +1980,21 @@ def fingerprint_excluded(relative: str) -> bool:
     )
 
 
+def fingerprinted_unpublished_paths(repo: Path) -> list[str]:
+    """Return dirty candidate paths that publication cannot reproduce from HEAD."""
+    rows = run_git(repo, "status", "--porcelain=v1", "-z").stdout.split(b"\0")
+    unpublished: list[str] = []
+    for row in rows:
+        if not row:
+            continue
+        if len(row) < 4:
+            raise ValueError("clean_candidate_gate: malformed git status row")
+        relative = row[3:].decode("utf-8", "surrogateescape")
+        if not fingerprint_excluded(relative):
+            unpublished.append(relative)
+    return sorted(set(unpublished))
+
+
 def repository_manifest(repo: Path) -> dict[str, Any]:
     tracked = run_git(repo, "ls-files", "-z").stdout.split(b"\0")
     untracked = run_git(repo, "ls-files", "--others", "--exclude-standard", "-z").stdout.split(b"\0")
@@ -2365,6 +2386,38 @@ def untracked_whitespace_errors(repo: Path) -> list[str]:
     return errors
 
 
+PUBLIC_SAFETY_PATTERNS: tuple[tuple[str, re.Pattern[bytes]], ...] = (
+    ("private_key_material", re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")),
+    ("github_access_token", re.compile(rb"gh[pousr]_[A-Za-z0-9_]{30,}")),
+    ("aws_access_key", re.compile(rb"AKIA[0-9A-Z]{16}")),
+    ("credential_in_url", re.compile(rb"https?://[^/\s:@]+:[^@\s]+@")),
+    ("private_home_path", re.compile(rb"/Users/[A-Za-z0-9._-]+/")),
+)
+
+
+def public_safety_errors(repo: Path) -> tuple[list[str], int]:
+    """Scan the exact fingerprint manifest without echoing matched material."""
+    errors: list[str] = []
+    scanned = 0
+    manifest = repository_manifest(repo)
+    for entry in manifest["entries"]:
+        relative = entry.get("path")
+        if entry.get("kind") != "file" or not isinstance(relative, str):
+            continue
+        name = Path(relative).name
+        if name == ".env" or (name.startswith(".env.") and name != ".env.example"):
+            errors.append(f"{relative}: forbidden_environment_file")
+            continue
+        data = (repo / relative).read_bytes()
+        if b"\0" in data[:8192]:
+            continue
+        scanned += 1
+        for rule, pattern in PUBLIC_SAFETY_PATTERNS:
+            if pattern.search(data):
+                errors.append(f"{relative}: {rule}")
+    return sorted(errors), scanned
+
+
 def execute_gate(name: str, command: list[str], repo: Path, env: dict[str, str] | None = None) -> dict[str, Any]:
     started = time.monotonic()
     result = subprocess.run(
@@ -2449,6 +2502,21 @@ def verify(repo: Path) -> tuple[dict[str, Any], int]:
             execute_gate("node_tests", ["npm", "test"], repo, base_env),
             execute_gate("strict_git_diff_check", ["git", "diff", "--check"], repo, base_env),
         ]
+        safety, scanned_files = public_safety_errors(repo)
+        gates.append(
+            {
+                "name": "public_safety_scan",
+                "command": ["internal", "public_safety_errors", "--scope", "fingerprint-manifest"],
+                "scope": "all regular text files in the exact repository fingerprint manifest",
+                "scan_policy": [rule for rule, _pattern in PUBLIC_SAFETY_PATTERNS] + ["forbidden_environment_file"],
+                "scanned_files": scanned_files,
+                "exit_code": 0 if not safety else 2,
+                "duration_seconds": 0.0,
+                "output_sha256": sha256_bytes("\n".join(safety).encode()),
+                "output_tail": "\n".join(safety),
+                "passed": not safety,
+            }
+        )
         whitespace = untracked_whitespace_errors(repo)
         gates.append(
             {

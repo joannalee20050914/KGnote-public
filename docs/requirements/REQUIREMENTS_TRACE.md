@@ -1129,7 +1129,7 @@
 
 **驗收：** 來源匯入驗收與renderer fixture驗收分列。
 
-**情境：** SC-31。**依據類別：** user_explicit。**採納標記：** carried_user_intent。**交付：** partial。
+**情境：** SC-31。**依據類別：** user_explicit。**採納標記：** carried_user_intent。**交付：** automated_verified。
 
 **來源：**
 - `B27-U`：Public-safe normalized source B27-U

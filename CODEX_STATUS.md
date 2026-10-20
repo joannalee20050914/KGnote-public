@@ -6,25 +6,31 @@ This file records facts and recovery state; it does not define product requireme
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-16T15:00:00+08:00",
-  "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
+  "updated_at": "2026-10-20T01:40:17+00:00",
+  "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "goal_status": "active",
-  "active_milestone_id": "S2B-REVIEW-INTEGRATION-TASK",
+  "active_milestone_id": "AR-EXTERNAL-REVIEW",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
-    "branch": "codex/issue-19-real-review",
-    "head": "ed2daa3d07414870b36a5965b56f62c5889ce9b9",
-    "checkpoint_commit": "ed2daa3d07414870b36a5965b56f62c5889ce9b9",
-    "checkpoint_manifest": "docs/control-plane/checkpoints/public-readiness-pre-rewrite-20261005.json",
-    "checkpoint_manifest_sha256": "6450347a61a671dd7b30cb9f8444b7bde60945794e6cefad9fdf3537a22f8d8f"
+    "branch": "codex/source-library-successor-20261019",
+    "head": "f061211a79f283afd6172091849b21fcbdd88dde",
+    "base_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
+    "base_pull_request": 22,
+    "base_pull_request_state": "OPEN_DRAFT_UNMERGED",
+    "checkpoint_commit": "f061211a79f283afd6172091849b21fcbdd88dde"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "2806e58c4c9a0bed3e1002a99b0703f5100f06cc5535d1ebe595092dce53c2a2",
-    "starting_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
-    "expected_dirty_policy": "The authorized Issue #19 candidate may contain the preserved AGENTS/authority-lock changes, bounded exact-review integration test, and only the minimum review configuration/control documentation needed for Draft PR #22; no product source changes are allowed.",
+    "fingerprint": "0293d366fe96775881b8e1384ab3af6002f3ea201ddff413cfcacf2c909a42f5",
+    "starting_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
+    "expected_dirty_policy": "Issue #8 may change only its product import/source-library/UI paths, bounded tests, requirement delivery evidence, and necessary control/review state. Existing Issue #19 closure receipts are preserved; unrelated changes are forbidden.",
+    "preserved_preexisting_dirty_paths": [
+      ".ai/ORCHESTRATOR_STATE.json",
+      ".ai/external-review-state.json",
+      "CODEX_STATUS.md"
+    ],
     "unexpected_dirty_paths": []
   },
   "implementation_state": "IMPLEMENTING",
@@ -38,59 +44,73 @@ This file records facts and recovery state; it does not define product requireme
   },
   "external_review": {
     "repository": "joannalee20050914/KGnote-public",
-    "pull_request": 22,
-    "status": "NOT_RUN",
-    "review_round": 1,
-    "reviewed_commit": null,
-    "reviewed_fingerprint": null,
-    "artifact_url": null,
-    "consumer_status": "not_run",
-    "blocking_findings": [],
+    "pull_request": 26,
+    "status": "ROUND_3_CHANGES_REQUIRED_ROUND_4_PASS_REJECTED",
+    "review_round": 4,
+    "reviewed_commit": "514712da91128468d716181a66a38a6f5de66a42",
+    "reviewed_fingerprint": "d6caad7014206a6b4ba6a612cde92661c91243bbc7275a9f47dd543fb0685ee0",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/26",
+    "consumer_status": "blocked_by_round_consistency_guard",
+    "blocking_findings": [
+      "finding-r-004"
+    ],
     "applies_to_current_worktree": false
   },
   "historical_external_review": {
     "repository": "joannalee20050914/KGnote-public",
-    "pull_request": 1,
+    "pull_request": 22,
     "status": "PASS_HISTORICAL_EXACT_CANDIDATE",
-    "review_round": 14,
-    "reviewed_commit": "b975bb5def2ae26e379e5390cbde01c15fa40b46",
-    "reviewed_fingerprint": "c38fe014aacfe1562728a6cc0c6ca7784ae2b7f2e817bee5f1afff7380a586a4",
-    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/1#pullrequestreview-5444572548",
-    "consumer_status": "accepted",
-    "applies_to_current_worktree": false
+    "review_round": 2,
+    "reviewed_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
+    "reviewed_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#pullrequestreview-5544513834",
+    "consumer_status": "accepted_for_issue_19_only",
+    "applies_to_current_worktree": false,
+    "scheduled_run_linkage": "not_independently_verified",
+    "unattended_writeback": "not_verified_human_approval_was_still_required"
   },
   "verification": {
     "candidate_verified": false,
     "release_verified": false,
-    "control_plane_ready": true,
-    "last_green_milestone": "S2B-GITHUB-HUMAN-READABILITY",
-    "last_candidate_evidence": "AGENTS.md plus live read-back of GitHub Project #1 and Issues #2 through #21",
-    "last_verified_fingerprint": "360f9f3b4287cf0dbac9e2d6dd1a1a1b4d4d42b6386c758762256009d6759dfe",
-    "last_result": "GitHub human-readable content slice PASS: the durable rule is present in AGENTS.md and its authority lock is reconciled; all 20 existing Issues were revised and read back; all 6 parent and 14 child relationships, issue states, Project statuses, RC/FD evidence text, and four view filters remained unchanged; the focused schema test passed and the complete control-plane suite passed 95/95. No Issue, product code, commit, push, PR #1 change, or release promotion occurred."
+    "control_plane_ready": false,
+    "last_green_milestone": "S2B-REVIEW-INTEGRATION-TASK",
+    "last_candidate_evidence": "output/control-plane/verification-20261020T093221+0800.json",
+    "last_verified_fingerprint": "8628a2592772c0b819d4cb36bb3cd28db2c3d57786782846104d70cf2abda39f",
+    "last_result": "Round 8 review 5561321715 remains preserved as CHANGES_REQUIRED for PR #23/4b6e6ee/38eae708. Its bounded nonparagraph-quote R-004 counterexamples pass on f061211: 20 source-library domain tests and 11 HTTP POST/GET read-back tests passed in a temporary pinned-dependency environment. Full deterministic verification for the exact f061211 candidate remains pending because this checkout lacks the repository venv, Node/npm, and gh; release_verified remains false."
   },
-  "next_action": "Verify and publish exactly one public-safe candidate on short-lived branch codex/issue-19-real-review to Draft PR #22, emit one exact trigger, consume one real ChatGPT Work result, record Issue #19 evidence, and stop.",
+  "next_action": "Keep finding-r-004 open and preserve External Round 8/Cycle 20/budget history. No further local R-004 change is justified by the inspected Round 8 evidence; provision the required repository toolchain, run the full deterministic verifier for the exact f061211 candidate, then use the separately authorized controlled PR #26 publication and independent-review flow. Do not push, merge, or promote human/release gates in this checkpoint.",
   "external_or_human_gates": [
     {
-      "id": "EXTERNAL-PRODUCT-REVIEW",
-      "status": "pass_for_superseded_b975bb5_candidate_only",
-      "description": "Round-14 has zero findings but is not inherited by the Stage 2B documentation delta."
+      "id": "PR22-STACKED-BASE",
+      "status": "open_unmerged_dependency",
+      "description": "Development can proceed on f35669e, but final integration must preserve the stacked dependency or rebase after PR #22 is integrated."
+    },
+    {
+      "id": "ISSUE8-INDEPENDENT-REVIEW",
+      "status": "cycle_14_pass_cycle_15_authorized_pending_clean_checkpoint",
+      "description": "Cycle 14 PASS remains valid only for revision db3b5ed+worktree:fe973f7b. Owner authorization permits exactly one replacement cycle 15 after a bounded checkpoint commit, shared clean-candidate gate, exact verification, read-only prepublication checks, pre-seal reservation, Seal, and identity read-back."
+    },
+    {
+      "id": "EXTERNAL-ROUND-8",
+      "status": "changes_required_historical_preserved",
+      "description": "External Round 8 review 5561321715 remains bound only to PR #23 commit 4b6e6eebcddcbd4ef21259a3ece6d92b276473ea and fingerprint 38eae708123a99a7abd04327ce079b05248e18646402285a6f83fb49f69a2330; it keeps finding-r-004 open and cannot be rebound to PR #26 or f061211."
     },
     {
       "id": "PA-HUMAN-1",
-      "status": "not_evaluated_by_stage2b_planning",
+      "status": "not_evaluated",
       "description": "Native learner acceptance remains external and unverified."
     },
     {
       "id": "NS-HUMAN-SMOKE",
-      "status": "not_evaluated_by_stage2b_planning",
+      "status": "not_evaluated",
       "description": "Native product smoke evidence remains external and unverified."
     }
   ],
   "forbidden_during_goal": [
-    "push or update PR #1",
-    "start Release 1 through 4 product migration",
-    "re-run Stage 2A or the classified 26-commit inventory",
-    "bind the b975bb5 round-14 PASS to a later commit or fingerprint",
+    "modify or merge PR #1, PR #22, or main",
+    "bulk-copy the private archive or discard pre-existing local receipts",
+    "replace existing importer, canonical store, Review Consumer, Publisher, or Orchestrator",
+    "bind the PR #22 Round 2 PASS to the Issue #8 candidate",
     "promote PA-HUMAN-1, NS-HUMAN-SMOKE, or release_verified"
   ]
 }
@@ -99,9 +119,9 @@ This file records facts and recovery state; it does not define product requireme
 
 ## Human-readable handoff
 
-Goal `GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1` remains active at milestone `S2B-REVIEW-INTEGRATION-TASK`.
+Goal `GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1` remains active at milestone `AR-EXTERNAL-REVIEW`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Verify and publish exactly one public-safe candidate on short-lived branch codex/issue-19-real-review to Draft PR #22, emit one exact trigger, consume one real ChatGPT Work result, record Issue #19 evidence, and stop.
+Exact next action: Keep finding-r-004 open and preserve External Round 8/Cycle 20/budget history. No further local R-004 change is justified by the inspected Round 8 evidence; provision the required repository toolchain, run the full deterministic verifier for the exact f061211 candidate, then use the separately authorized controlled PR #26 publication and independent-review flow. Do not push, merge, or promote human/release gates in this checkpoint.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

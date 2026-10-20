@@ -29,18 +29,20 @@ def validated_review_round(config: dict[str, Any], value: Any) -> int:
 
 
 def resolve_pr_candidate(config: dict[str, Any], snapshot: dict[str, Any], recomputed_fingerprint: str) -> dict[str, Any]:
-    pattern = re.compile(
-        rf"<!--\s*{re.escape(config['request_marker'])}\s+candidate_commit=([0-9a-f]{{40}})\s+"
-        rf"candidate_fingerprint=([0-9a-f]{{64}})\s+review_round=([1-9][0-9]*)\s*-->"
-    )
-    matches = pattern.findall(str(snapshot.get("body", "")))
-    if len(matches) != 1:
-        raise PublicationError("candidate resolver requires exactly one request marker")
-    commit, fingerprint, review_round = matches[0]
-    if commit != snapshot.get("headRefOid") or fingerprint != recomputed_fingerprint:
-        raise PublicationError("candidate resolver identity mismatch")
-    round_number = validated_review_round(config, int(review_round))
-    return {"candidate_commit": commit, "candidate_fingerprint": fingerprint, "review_round": round_number}
+    canonical_snapshot = {
+        **snapshot,
+        "repository": config.get("canonical_repository"),
+        "pull_request": config.get("review_pr_number"),
+    }
+    try:
+        authority = external_review_control.resolve_canonical_publication_authority(
+            config, canonical_snapshot, recomputed_fingerprint
+        )
+        return {key: authority[key] for key in (
+            "candidate_commit", "candidate_fingerprint", "review_round"
+        )}
+    except external_review_control.CanonicalAuthorityError as exc:
+        raise PublicationError(str(exc)) from exc
 
 
 def request_marker(config: dict[str, Any], state: dict[str, Any]) -> str:
@@ -81,6 +83,11 @@ def remote_snapshot_errors(
         "candidate_fingerprint": state.get("candidate_fingerprint"),
         "request_marker": config.get("request_marker"),
     }
+    if config.get("dependency_pr_number") is not None:
+        expected.update({"is_draft": config.get("review_pr_expected_draft"),
+            "head_branch": config.get("review_pr_head_branch"), "base_branch": config.get("review_pr_base_branch"),
+            "dependency_pr": config.get("dependency_pr_number"), "dependency_state": config.get("dependency_pr_required_state"),
+            "dependency_merged": False})
     for field, value in expected.items():
         if snapshot.get(field) != value:
             errors.append(f"publication_readback: mismatch for {field}")
@@ -88,6 +95,27 @@ def remote_snapshot_errors(
         errors.append("publication_readback: exact request marker is absent")
     if snapshot.get("state") != "OPEN":
         errors.append("publication_readback: canonical PR is not open")
+    return errors
+
+
+def prepublication_snapshot_errors(
+    config: dict[str, Any], snapshot: dict[str, Any]
+) -> list[str]:
+    """Validate immutable PR/dependency routing before any remote mutation."""
+    errors = external_review_control.repository_authority_errors(config)
+    expected = {"pull_request": config.get("review_pr_number"), "state": "OPEN"}
+    if config.get("dependency_pr_number") is not None:
+        expected.update({
+            "is_draft": config.get("review_pr_expected_draft"),
+            "head_branch": config.get("review_pr_head_branch"),
+            "base_branch": config.get("review_pr_base_branch"),
+            "dependency_pr": config.get("dependency_pr_number"),
+            "dependency_state": config.get("dependency_pr_required_state"),
+            "dependency_merged": False,
+        })
+    for field, value in expected.items():
+        if snapshot.get(field) != value:
+            errors.append(f"publication_preflight: mismatch for {field}")
     return errors
 
 
@@ -111,15 +139,10 @@ def publish(repo: Path, runner: Callable[..., str] | None = None) -> dict[str, A
     head = runner(["git", "rev-parse", "HEAD"], cwd=repo)
     fingerprint = codex_control.repository_fingerprint(repo)["value"]
     status_rows = runner(["git", "status", "--porcelain"], cwd=repo).splitlines()
-    mutable_exact = {
-        ".ai/ORCHESTRATOR.lock", ".ai/ORCHESTRATOR_STATE.json", ".ai/REVIEW_REQUEST.md",
-        ".ai/REVIEW_RESULT.md", ".ai/external-review-state.json", "CODEX_STATUS.md",
-    }
-    mutable_prefixes = (".ai/ORCHESTRATION_HISTORY/", ".ai/REVIEW_HISTORY/")
     unpublished = []
     for row in status_rows:
         path = row[3:].split(" -> ")[-1]
-        if path not in mutable_exact and not path.startswith(mutable_prefixes):
+        if not codex_control.fingerprint_excluded(path):
             unpublished.append(path)
     if unpublished:
         raise PublicationError(
@@ -132,10 +155,28 @@ def publish(repo: Path, runner: Callable[..., str] | None = None) -> dict[str, A
         raise PublicationError("origin is not the canonical repository")
     branch = runner(["git", "branch", "--show-current"], cwd=repo)
     pr_json = runner(
-        ["gh", "pr", "view", str(config["review_pr_number"]), "--repo", config["canonical_repository"], "--json", "body"],
+        ["gh", "pr", "view", str(config["review_pr_number"]), "--repo", config["canonical_repository"], "--json", "number,body,state,isDraft,headRefName,baseRefName"],
         cwd=repo,
     )
-    body = json.loads(pr_json).get("body", "")
+    pr_before = json.loads(pr_json)
+    dependency_before = ({"number": None, "state": None, "mergedAt": None}
+        if config.get("dependency_pr_number") is None else json.loads(runner(
+            ["gh", "pr", "view", str(config["dependency_pr_number"]), "--repo", config["canonical_repository"], "--json", "number,state,mergedAt"], cwd=repo,
+        )))
+    preflight_snapshot = {
+        "pull_request": pr_before.get("number"),
+        "state": pr_before.get("state"),
+        "is_draft": pr_before.get("isDraft"),
+        "head_branch": pr_before.get("headRefName"),
+        "base_branch": pr_before.get("baseRefName"),
+        "dependency_pr": dependency_before.get("number"),
+        "dependency_state": dependency_before.get("state"),
+        "dependency_merged": dependency_before.get("mergedAt") is not None,
+    }
+    preflight_errors = prepublication_snapshot_errors(config, preflight_snapshot)
+    if preflight_errors:
+        raise PublicationError("; ".join(preflight_errors))
+    body = pr_before.get("body", "")
     marker = request_marker(config, state)
     if marker not in body:
         body_file = repo / ".git" / "kgnote-review-request-body.md"
@@ -146,15 +187,20 @@ def publish(repo: Path, runner: Callable[..., str] | None = None) -> dict[str, A
             body_file.unlink(missing_ok=True)
     runner(["git", "push", "origin", f"HEAD:{branch}"], cwd=repo)
     observed = json.loads(runner(
-        ["gh", "pr", "view", str(config["review_pr_number"]), "--repo", config["canonical_repository"], "--json", "headRefOid,body,state,url"],
+        ["gh", "pr", "view", str(config["review_pr_number"]), "--repo", config["canonical_repository"], "--json", "headRefOid,body,state,url,isDraft,headRefName,baseRefName"],
         cwd=repo,
     ))
+    dependency = ({"number": None, "state": None, "mergedAt": None} if config.get("dependency_pr_number") is None else json.loads(runner(
+        ["gh", "pr", "view", str(config["dependency_pr_number"]), "--repo", config["canonical_repository"], "--json", "number,state,mergedAt"], cwd=repo)))
     resolve_pr_candidate(config, observed, fingerprint)
     snapshot = {
         "repository": config["canonical_repository"], "pull_request": config["review_pr_number"],
         "remote_head": observed.get("headRefOid"), "candidate_fingerprint": fingerprint,
         "request_marker": config["request_marker"], "body": observed.get("body"),
         "state": observed.get("state"), "artifact_url": observed.get("url"),
+        "is_draft": observed.get("isDraft") if config.get("dependency_pr_number") is not None else None, "head_branch": observed.get("headRefName") if config.get("dependency_pr_number") is not None else None,
+        "base_branch": observed.get("baseRefName") if config.get("dependency_pr_number") is not None else None, "dependency_pr": dependency.get("number"),
+        "dependency_state": dependency.get("state"), "dependency_merged": dependency.get("mergedAt") is not None,
     }
     errors = remote_snapshot_errors(config, state, snapshot)
     if errors:
@@ -180,7 +226,8 @@ def publish(repo: Path, runner: Callable[..., str] | None = None) -> dict[str, A
     state["phase"] = "AWAITING_EXTERNAL_PRODUCT_REVIEW"
     state["publication"] = {"status": "PUBLISHED", **{k: snapshot[k] for k in (
         "repository", "pull_request", "remote_head", "candidate_fingerprint",
-        "request_marker", "artifact_url")}, "trigger_comment": trigger_body,
+        "request_marker", "artifact_url", "is_draft", "head_branch", "base_branch",
+        "dependency_pr", "dependency_state", "dependency_merged")}, "trigger_comment": trigger_body,
         "trigger_artifact_url": trigger_artifact_url}
     temporary = repo / ".ai/external-review-state.json.tmp"
     temporary.write_text(json.dumps(state, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

@@ -1,44 +1,122 @@
 {
   "schema_version": "kgnote.external-product-review-state.v1",
   "program_id": "program-kgnote-autonomous-external-review-v2",
-  "goal_id": "GOAL-KGNOTE-STAGE2B-DELIVERY-PLANNING-V1",
+  "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "canonical_repository": "joannalee20050914/KGnote-public",
   "candidate_repository": "joannalee20050914/KGnote-public",
   "trigger_repository": "joannalee20050914/KGnote-public",
   "review_request_repository": "joannalee20050914/KGnote-public",
   "archive_repository": "joannalee20050914/KGnote",
-  "pull_request": 22,
-  "phase": "PREPARING_CANDIDATE",
-  "review_round": 1,
-  "candidate_commit": null,
-  "candidate_fingerprint": null,
+  "pull_request": 23,
+  "phase": "EXTERNAL_PRODUCT_REVIEW_ACCEPTED",
+  "review_round": 6,
+  "candidate_commit": "53c71a81a7c1a1483c7490f652007e5db1c7b6a5",
+  "candidate_fingerprint": "ae69844871ccb00f1d2058107d0008d78b86cf206e75e0dde49770e0c25ab7b7",
   "internal_review": {
-    "status": "LOCAL_DETERMINISTIC_EVIDENCE_ONLY",
-    "artifact": "tests/control_plane/test_exact_review_integration.py"
+    "status": "PASS",
+    "artifact": ".ai/REVIEW_RESULT.md#review-d2-t01-source-library-v1-019"
   },
   "publication": {
-    "status": "NOT_PUBLISHED",
+    "status": "PUBLISHED",
     "repository": "joannalee20050914/KGnote-public",
-    "pull_request": 22,
-    "remote_head": null,
-    "candidate_fingerprint": null,
+    "pull_request": 23,
+    "remote_head": "53c71a81a7c1a1483c7490f652007e5db1c7b6a5",
+    "candidate_fingerprint": "ae69844871ccb00f1d2058107d0008d78b86cf206e75e0dde49770e0c25ab7b7",
     "request_marker": "KGNOTE_PRODUCT_REVIEW_REQUEST_V2",
-    "artifact_url": null
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/23",
+    "is_draft": true,
+    "head_branch": "codex/issue-8-source-library",
+    "base_branch": "codex/issue-19-real-review",
+    "dependency_pr": 22,
+    "dependency_state": "OPEN",
+    "dependency_merged": false,
+    "trigger_comment": "@kgnote-ai-review 53c71a81a7c1a1483c7490f652007e5db1c7b6a5",
+    "trigger_artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/23#issuecomment-6232004146"
   },
   "external_review": {
-    "status": "NOT_RUN",
-    "reviewed_commit": null,
-    "reviewed_fingerprint": null,
-    "artifact_url": null,
-    "review_author": null,
-    "review_source": null,
-    "record_id": null,
+    "status": "CHANGES_REQUIRED",
+    "reviewed_commit": "53c71a81a7c1a1483c7490f652007e5db1c7b6a5",
+    "reviewed_fingerprint": "ae69844871ccb00f1d2058107d0008d78b86cf206e75e0dde49770e0c25ab7b7",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/23#pullrequestreview-5557141035",
+    "review_author": "joannalee20050914",
+    "review_source": "pull_request_review",
+    "record_id": 5557141035,
     "native_ui_observed": false,
-    "blocking_findings": []
+    "repository": "joannalee20050914/KGnote-public",
+    "pull_request": 23,
+    "review_round": 6,
+    "submitted_at": "2026-10-17T09:03:07Z",
+    "original_body_sha256": "753b62daf80989277c918e8c02011ec1a107d5368ebbd7f6862046fdd895fa4d",
+    "findings": [
+      {
+        "id": "finding-r-004",
+        "severity": "blocking",
+        "category": "semantic",
+        "observation": "R-004 仍未完整修復：新增 block-quote 保護把引用段落後、沒有空行分隔的真正 ATX speaker heading 也當成 lazy continuation（省略 > 的段落續行）。四行合法對話 ## User／> My quotation.／## Assistant／Real assistant answer. 經真實 HTTP POST 201、GET 200 後，持久 speaker_spans 只有 user L1-L4，Assistant 的回答被歸給使用者。反向 user heading 也被吞掉。",
+        "expected_behavior": "只將實際引用內容排除於對話邊界；省略 > 的段落續行不能吞掉真正的新 heading。明確 User／Assistant 標題應正確建立各自 speaker span，無法安全支援的格式須明確拒收，不能接受後默默誤歸屬；原文 bytes、hash 與行號必須保持。",
+        "authority_refs": [
+          "docs/requirements/requirements.json KG-ING-01 / KG-ING-03",
+          "docs/DATA_MODEL.md Source / LearningEvent speaker and AI-versus-user evidence boundary",
+          "PLAN.md D2-T01-SOURCE-LIBRARY conversation speaker acceptance and forbidden substitutes",
+          "docs/requirements/FEATURE_DISPOSITION_LEDGER.md FD-01 / FD-02; RC-04 / RC-05",
+          "Historical finding R-004 / finding-r-004"
+        ],
+        "candidate_evidence": [
+          "src/kgnote/learning/source_library.py:192-207 在第一個非空 > 行後，將所有非空行無條件加入 quoted，直到空白；210-241 跳過這些 protected lines 的 speaker heading/prefix。",
+          "Exact HEAD domain 及真實 handler_for HTTP：四行輸入 ## User\\n> My quotation.\\n## Assistant\\nReal assistant answer.\\n；POST 201、GET 200；觀察 user L1-L4，預期 user L1-L2 / assistant L3-L4；raw UTF-8 bytes 與 SHA-256 相符。",
+          "反向七行輸入 ## User\\nQuestion.\\n\\n## Assistant\\n> Example quoted text.\\n## User\\nReal follow-up question.\\n；POST 201、GET 200；觀察 user L1-L3 / assistant L4-L7，預期另有 user L6-L7。",
+          "加入空行的同類對照、真正 > ## User 引用、舊 HTML-comment 與 lazy-quote 反例，以及 fenced-code 反例本輪正確；337 Python / 60 Node / 133 control-plane tests 全通過仍未捕捉上述 scope-termination 缺陷。",
+          "web/source-app.js:33-34 直接顯示持久 speaker_spans，將錯誤歸屬投影為已驗證 hash 後的發言者資訊；此輪未主張已發生錯誤 mastery。"
+        ]
+      }
+    ],
+    "blocking_findings": [
+      "finding-r-004"
+    ],
+    "consumer_accepted": true
+  },
+  "implementation_resolutions": [
+    {
+      "finding_id": "finding-r-004",
+      "status": "FIXED_PENDING_REVIEW",
+      "resolution_evidence": [
+        "src/kgnote/learning/source_library.py masks multiline and inline Markdown HTML comments before speaker-marker matching, excludes blockquote lines alongside fenced-code lines, preserves original line numbering, and rejects unclosed comments as ambiguous.",
+        "tests/test_source_library.py reproduces the external eight-line HTML-comment counterexample, quoted and inline examples, a real post-example follow-up, raw UTF-8 read-back, exact locators, and fail-closed unclosed-comment behavior.",
+        "tests/test_source_library_http.py covers POST/GET read-back for the exact HTML-comment attribution boundary; the domain suite passes 13 tests in the repository virtual environment.",
+        "R-015 follow-up for finding-r-004: src/kgnote/learning/source_library.py now protects nonblank lazy continuations of a Markdown block-quote paragraph and resumes real speaker recognition after the terminating blank line. Direct raw-byte and exact-locator regression coverage passes in tests/test_source_library.py (14-test domain suite); tests/test_source_library_http.py adds the equivalent POST/GET read-back fixture for orchestrator verification.",
+        "Cycle-20 repair for finding-r-004: Markdown ATX headings now interrupt lazy block-quote paragraph protection, so immediate ## User/## Assistant boundaries remain visible to speaker parsing while non-heading lazy continuations stay protected. tests/test_source_library.py covers both external counterexamples with exact UTF-8 bytes and line locators (15 tests pass); tests/test_source_library_http.py covers POST/GET, SHA-256, bytes, and exact attribution for both counterexamples. Local HTTP execution was sandbox-blocked at socket bind before tests; the fixture is pending orchestrator deterministic validation."
+      ]
+    }
+  ],
+  "previous_external_review": {
+    "review_round": 1,
+    "status": "CHANGES_REQUIRED",
+    "reviewed_commit": "40489650a71ba09b26c8e9976dd38030ae2ddbd5",
+    "reviewed_fingerprint": "f0a90833d69e5397aa1fd1ff45ceee87ca70b12e87b0106cd15eca98343be823",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#pullrequestreview-5544290364",
+    "review_author": "joannalee20050914",
+    "review_source": "pull_request_review",
+    "record_id": 5544290364,
+    "blocking_findings": [
+      "KG-CTRL-STATE-001"
+    ],
+    "consumer_accepted": true
+  },
+  "historical_issue_19_review": {
+    "pull_request": 22,
+    "review_round": 2,
+    "status": "PASS",
+    "reviewed_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
+    "reviewed_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
+    "artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/22#pullrequestreview-5544513834",
+    "consumer_accepted": true,
+    "applies_to_current_candidate": false,
+    "scheduled_run_linkage": "not_independently_verified",
+    "unattended_writeback": "not_verified_human_approval_was_still_required"
   },
   "human_acceptance": {
     "eligible": false,
-    "reason": "The single-round transport verification cannot promote product or human acceptance gates."
+    "reason": "Exact external product review is pending."
   },
   "release_verified": false
 }

@@ -38,7 +38,20 @@ KGnote Obsidian learning layer
 
 對應需求：`KG-WF-01–03`、`KG-PLAT-08`、`KG-UI-01`、`KG-GOV-07`；驗收：`SC-01`、`SC-38`。
 
-## 目前 active 產品交付：Personal Alpha integrated candidate
+## 目前 active 產品交付：D2 Issue #8 持久來源資料庫
+
+目前唯一 active 切片是 `D2-T01-SOURCE-LIBRARY`。它不重做既有 importer、canonical store 或
+Personal Alpha workspace；只把 Release 1 source-library/UI 候選中可重用的原子保存與讀回模式，接到
+public extraction contract，補上一般／對話 Markdown、多檔原子匯入、明確 speaker、不可變 revision
+lineage、stale update 拒收及 UI 版本讀回。
+
+工程候選已完成本機 targeted tests、完整 Python／Node regression 與實際瀏覽器 create／update／old-version／conversation read-back；證據記錄於
+`docs/requirements/evidence/d2-t01-source-library-20261016.json`。Issue #8 尚需精確候選 Commit、public-safety
+scan、完整 verifier 及獨立產品審查才能結案。PR #22 仍未合併，所以本切片暫時以 `f35669e` 作 stacked
+base；不得把 PR #22 Round 2 PASS 套用到本候選，也不提升 PA-HUMAN-1、NS-HUMAN-SMOKE 或
+`release_verified`。
+
+## 已保留的 Personal Alpha integrated candidate 基線
 
 最新明示目標把目前交付順序收斂為一條可日常使用的端到端路徑：
 
@@ -473,19 +486,14 @@ Space 是導航與權限邊界，不是另一套資料模型。Computer Science�
 
 ## 下一個單一切片
 
-目前唯一 active 工程切片是 **RP-PA-3 integrated candidate**：由 orchestrator 對 exact repository
-fingerprint 執行 deterministic validation 與獨立 review。若 reviewer 要求修改，仍只在 RP-PA-3 內修復
-並保留 finding IDs；不得先開始新產品能力。
+目前唯一 active 工程切片是 **GitHub Issue #8／D2-T01-SOURCE-LIBRARY**。完成條件是同一精確候選對
+一般 Markdown、明確 speaker 的對話、duplicate、update、malformed、provenance、rollback 與 UI
+read-back 全部綠燈，並通過既有 independent product reviewer；任何舊 PASS 都不可繼承。
 
-RP-PA-3 通過後，下一個 coherent checkpoint 是 product owner 對
-`docs/obsidian/PERSONAL_ALPHA_INTEGRATED_TRIAL.md` 所列 exact candidate 的一次集中試用：
-
-1. 從 Start Here 讀 source、concepts、source-supported structure／relationships，按需開 Evidence。
-2. 在 My Notes 與 Continue Here 留下 learner-owned bytes，關閉重開後回到 exact heading/block。
-3. Markdown 路徑先獨立完成，再選擇性檢查 Canvas 與 vault-local Reading view。
-
-同一操作可提供兩類 evidence，但 `PA-HUMAN-1` 與 `NS-HUMAN-SMOKE` 必須各自判定。自動 read-back、
-reviewer PASS 或 Canvas JSON 正確都不得替代真人／native 結果，也不得把 `release_verified` 提升為 true。
+Issue #8 完成後，下一個 Ready Issue 必須由既有 GitHub Project 的真實依賴與狀態決定。現有
+Orchestrator 可延續同一 PLAN 內已排序的 milestone，但目前沒有從 GitHub Projects 自動挑選並建立新 PLAN
+的已驗證能力；在有直接證據前不得宣稱跨 Issue 持續自治。`PA-HUMAN-1`、`NS-HUMAN-SMOKE` 與
+`release_verified=false` 仍各自保留。
 
 ## 驗收層級
 
