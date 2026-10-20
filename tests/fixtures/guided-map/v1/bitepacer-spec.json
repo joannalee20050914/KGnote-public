@@ -1,0 +1,119 @@
+{
+  "schema_version": "kgnote.guided-map-spec.v1",
+  "id": "guided_map_bitepacer_message_delivery",
+  "graph_snapshot_sha256": "9fe29c60b397fb78179a7d6c19be747b19b7d4bb1ec634b497f5b7c213046d68",
+  "projection_version": "manual.bitepacer.guided-map.v1",
+  "display_locale": "zh-Hant",
+  "title": "BitePacer 訊息傳遞導覽圖",
+  "focus_question": "一則 LINE 訊息如何抵達 product owner Mac 上的 BitePacer？",
+  "source_id": "src_bitepacer_mini_network_lesson",
+  "source_locator": {"kind": "line_range", "value": "L3-L84"},
+  "groups": [
+    {
+      "id": "group_communication_roles",
+      "label": "誰在溝通",
+      "order": 1,
+      "concept_ids": [
+        "concept_470e5cac522d492b99b5530a908c36b412ee3b1f5ebd219b65421375720d5ec1",
+        "concept_d18b2812af2ceef6d4d683eb766686b01b608336e89cc608b30c687218d858cf"
+      ]
+    },
+    {
+      "id": "group_addressing",
+      "label": "如何找到位置",
+      "order": 2,
+      "concept_ids": [
+        "concept_29bc756291762577b4a5a056788f71b6fdb51df50792ba958cc8a49cccf3c563",
+        "concept_c1f041f6fb10bdfb212b04abdc7294c95e2adc5b99f39f568a89a2b102898feb",
+        "concept_ffaed4cca46d7aa7e4980dd7aa5509a73c69c46c6dfa6226b38a2d777e8632af"
+      ]
+    },
+    {
+      "id": "group_http_exchange",
+      "label": "如何交換資料",
+      "order": 3,
+      "concept_ids": [
+        "concept_360e50eb00c9ea5f82793fa1d103b34ac2ce91d2e6d14f14459d89426fdbe8a5",
+        "concept_ac75ffef5130f55c93c86161757813ed3ad92aadf3dd5344d742737031de97e2"
+      ]
+    },
+    {
+      "id": "group_program_handling",
+      "label": "程式如何處理",
+      "order": 4,
+      "concept_ids": [
+        "concept_010718e5930570467930dd014f2f36fe79423cc95f8280ae614738058887848c"
+      ]
+    },
+    {
+      "id": "group_public_entry",
+      "label": "外部如何進入",
+      "order": 5,
+      "concept_ids": [
+        "concept_4979cd636c95b67d9e5b6db2cfb1f14fa06823cda1e0ddbc384d64f119c50704"
+      ]
+    }
+  ],
+  "teaching_propositions": [
+    {
+      "edge_id": "edge_14416de645cb7f873be16c9a19ed021a7f2e61a1b57ac28c08bd49b59be70a23",
+      "linking_phrase": "把服務入口指向",
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce",
+        "evidence_86c0656b647b9501afd4dd7b807756584db51ea1114b6d68a75662209c0cc860"
+      ],
+      "review_status": "accepted"
+    },
+    {
+      "edge_id": "edge_33c3c2af37bc306d48f90d5bf6616edb6e5dc3de293d6ec52fc315c455613c86",
+      "linking_phrase": "處理後回傳",
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce",
+        "evidence_b1861d12c500f976ca0364f6ec0ac869851ab741a5cc2110cd5714c39d4f3bed"
+      ],
+      "review_status": "accepted"
+    },
+    {
+      "edge_id": "edge_3852d91a3eb001ad73300521137f7cb6f05b16ef6ffe287fdae9afc75c61fea2",
+      "linking_phrase": "把公開流量導向",
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce",
+        "evidence_a0be170fb64697eda88e5ddaa74ef50ce40f2007b0f227cc9e8c1ca72c222939"
+      ],
+      "review_status": "accepted"
+    },
+    {
+      "edge_id": "edge_6626ad4038e07657f0b204df174eb58ddaee5739914e39dc7e0ec98d36042e97",
+      "linking_phrase": "用來比對收到的",
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce"
+      ],
+      "review_status": "accepted"
+    },
+    {
+      "edge_id": "edge_80042c4f448d92b2d8311f064b6189e7259615ff1c0babd38bb817adcf561c4a",
+      "linking_phrase": "主動送出",
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce",
+        "evidence_b1861d12c500f976ca0364f6ec0ac869851ab741a5cc2110cd5714c39d4f3bed"
+      ],
+      "review_status": "accepted"
+    },
+    {
+      "edge_id": "edge_90a1b92e126e43975b3adcb9e9c54c8cf24d2f7e835784b793decb90435c75c8",
+      "linking_phrase": "是一種只指向本機的",
+      "evidence_ids": [
+        "evidence_aec121284936da67958355799c00ecda1d0e2f4e521ddc26c1d66b8e0fadb0ab"
+      ],
+      "review_status": "accepted"
+    },
+    {
+      "edge_id": "edge_aad5805e9a5690b8e3eef61e3a75c10ef74e0ecd90acfbfb1ec3d81886674cc3",
+      "linking_phrase": "引導處理以產生",
+      "evidence_ids": [
+        "evidence_3a0f087ea18e82057fe8900359d67ca3b527f7c1d260e05859b7cb0bfbfb97ce"
+      ],
+      "review_status": "accepted"
+    }
+  ]
+}

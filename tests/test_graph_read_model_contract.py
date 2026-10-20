@@ -88,7 +88,7 @@ class GraphReadModelContractTests(unittest.TestCase):
         cases = [
         (lambda p: p.update(schema_version="kgnote.graph-read-model.v2"), "invalid_graph_read_model"),
         (lambda p: p.update(raw_markdown="private"), "invalid_graph_read_model"),
-        (lambda p: p["sources"][0].update(uri_or_path="/private/user/secret.md"), "invalid_graph_read_model"),
+        (lambda p: p["sources"][0].update(uri_or_path="local-source-withheld"), "invalid_graph_read_model"),
         (lambda p: p["nodes"][0].update(understood=True), "invalid_graph_read_model"),
         (lambda p: p["nodes"][0].update(label="bad [[ label"), "invalid_graph_read_model"),
         (lambda p: p["links"][0].update(relation="related_to"), "invalid_graph_read_model"),

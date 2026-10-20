@@ -1,0 +1,54 @@
+{
+  "schema_version": "kgnote.claim-review-overlay.v1",
+  "learning_unit_id": "guided_map_pvz_easter_eggs",
+  "graph_snapshot_sha256": "a69d3f86631cc8ce634ddcb3cb262e1dd530d7d26f1c290a65fac0d6daf918cc",
+  "reviewed_at": "2026-09-22T00:00:00+08:00",
+  "reviewer": "synthetic.fixture-review.v1",
+  "reviews": [
+    {
+      "claim_id": "edge_pvz_peashooter_tomato",
+      "claim_revision": 1,
+      "proposition_sha256": "9fe2749a0ae41d7dd665e0502c6fb18aefab1799095bc4daaf4b4d209f0e8f88",
+      "source_support": "supported",
+      "factual_status": "verified",
+      "teaching_answer_status": "ready",
+      "reason": "Verified against the original synthetic fixture; this establishes source support only."
+    },
+    {
+      "claim_id": "edge_pvz_heatwave_microphone",
+      "claim_revision": 1,
+      "proposition_sha256": "8f652e428140232783180044d9d1e0b42664234a940fce55b72d0f3850e8370a",
+      "source_support": "supported",
+      "factual_status": "verified",
+      "teaching_answer_status": "ready",
+      "reason": "Verified against the original synthetic fixture; this establishes source support only."
+    },
+    {
+      "claim_id": "edge_pvz_sunflower_frankenstein",
+      "claim_revision": 1,
+      "proposition_sha256": "48c5c3387ba88af2d497db614d426a9f04b08b42a104164caea0417d710e1b49",
+      "source_support": "supported",
+      "factual_status": "verified",
+      "teaching_answer_status": "ready",
+      "reason": "Verified against the original synthetic fixture; this establishes source support only."
+    },
+    {
+      "claim_id": "edge_pvz_transfer_garlic",
+      "claim_revision": 1,
+      "proposition_sha256": "dfe71214932f028c5e013c1b7a2e0095303959edf706e91ada3becc5f8f1f376",
+      "source_support": "supported",
+      "factual_status": "verified",
+      "teaching_answer_status": "ready",
+      "reason": "Verified against the original synthetic fixture; this establishes source support only."
+    },
+    {
+      "claim_id": "edge_pvz_potato_wallnut",
+      "claim_revision": 1,
+      "proposition_sha256": "288d79aaca8ba06e9b60ed3ad667183384b40602550bc91e3768ba2bd297e96c",
+      "source_support": "supported",
+      "factual_status": "verified",
+      "teaching_answer_status": "ready",
+      "reason": "Verified against the original synthetic fixture; this establishes source support only."
+    }
+  ]
+}

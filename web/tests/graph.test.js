@@ -70,9 +70,9 @@ test("empty graph is a valid read-only scene", () => {
   assert.deepEqual(buildScene(empty.view).nodes, []);
 });
 
-test("HTML exposes navigation only and contains no mutation controls", async () => {
+test("HTML keeps graph navigation free of canonical mutation controls", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   assert.match(html, /Knowledge graph canvas/);
-  assert.match(html, /Read-only/);
-  assert.doesNotMatch(html, /<form|contenteditable|\b(save|delete|merge|rename|apply)\b/i);
+  assert.match(html, /read-only/i);
+  assert.doesNotMatch(html, /contenteditable|\b(delete|merge|rename|apply canonical)\b/i);
 });

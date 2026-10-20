@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test web/tests/*.test.js",
-    "serve:web": ".venv/bin/python scripts/serve_graph_view.py --store fixtures/phase0-obsidian --port 4173"
+    "serve:web": ".venv/bin/python scripts/serve_graph_view.py --store fixtures/phase0-obsidian --guided-map-model web/fixtures/os-overview-guided-map.json --guided-review-root tmp/os-guided-reviews --learning-unit-catalog web/fixtures/learning-units.json --attempts-root tmp/os-learning --notes-root tmp/local-notebook --enable-note-writes --host 127.0.0.1 --port 4173"
   },
   "engines": {"node": ">=20"}
 }

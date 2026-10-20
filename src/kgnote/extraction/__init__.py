@@ -9,6 +9,7 @@ from .run_adapter import (
     RUN_ADAPTER_VERSION,
     ExtractionPreview,
     ExtractionRunResult,
+    ExtractionTransport,
     RedactionReport,
     TransportConfig,
     TransportFailure,
@@ -21,6 +22,7 @@ from .gemini_transport import (
     GEMINI_PROVIDER,
     GeminiExtractionTransport,
 )
+from .gemini_linking_phrase import GeminiLinkingPhraseTransport
 
 __all__ = [
     "ExtractionAttempt",
@@ -29,6 +31,7 @@ __all__ = [
     "RUN_ADAPTER_VERSION",
     "ExtractionPreview",
     "ExtractionRunResult",
+    "ExtractionTransport",
     "RedactionReport",
     "TransportConfig",
     "TransportFailure",
@@ -38,4 +41,5 @@ __all__ = [
     "GEMINI_MODEL",
     "GEMINI_PROVIDER",
     "GeminiExtractionTransport",
+    "GeminiLinkingPhraseTransport",
 ]

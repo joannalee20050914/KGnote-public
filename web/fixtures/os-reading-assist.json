@@ -1,0 +1,9 @@
+{
+  "schema_version":"kgnote.reading-assist.v1","learning_unit_id":"guided_map_os_safety_efficiency_review","revision":1,
+  "glosses":[
+    {"id":"gloss_os_pid_l18","term":"PID","concept_ref":null,"source_id":"src_os_overview_review","locator":{"kind":"line_range","value":"L18-L18"},"required_depth":"define","minimum_explanation":"PID（Process ID）是作業系統核心用來唯一識別一個執行中 Process 的整數值。所以 PID 1 就是「識別碼為 1 的程序」。","why_needed_here":"這一句用 PID 1 指稱共同祖先，但沒有先定義 PID。","defer_for_now":["PID allocation","PID reuse","/proc/<pid>","PID namespace"],"detailed_explanation":"PID 讓核心與工具能穩定指向某個程序；更進階的配置、重用與 namespace 行為不影響目前段落。","provenance":{"kind":"external_supplement","reviewer":"manual.context-gloss.v1","label":"外部補充 / contextual explanation"},"revision":1}
+  ],
+  "prior_knowledge":[
+    {"id":"prior_pid_linux_synthetic","term":"PID","current_gloss_id":"gloss_os_pid_l18","prior_unit_id":"synthetic_linux_process_note","prior_title":"Linux process 工具筆記（synthetic reviewed fixture）","summary":"先前用 ps 與 /proc/<pid> 找過以 PID 識別的程序。","source_label":"Synthetic Linux process note","source_locator":{"kind":"line_range","value":"L3-L5"},"source_excerpt":"ps 顯示程序的 PID；/proc/<pid> 以同一識別碼提供該程序的資訊。","provenance":{"kind":"synthetic_reviewed_fixture","reviewer":"manual.prior-link.v1"},"revision":1}
+  ]
+}

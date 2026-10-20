@@ -59,10 +59,12 @@ test("UI exposes all query controls and delegates execution to the read-only end
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   for (const id of ["focus-node", "hop-depth", "filter-groups", "update-view", "reset-query"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(app, /fetch\("\/api\/graph-view"/);
+  assert.match(app, /body: "null"/);
+  assert.doesNotMatch(app, /phase0-graph-view\.json|fixtureUrl/);
   assert.match(app, /closeDetails\(\{restoreFocus: false\}\)/);
   assert.match(app, /function rejectView/);
   assert.match(app, /payload = null/);
-  assert.match(app, /modeLabel\.textContent = "View unavailable"/);
-  assert.match(app, /rejectView\("The requested view is unavailable\."\)/);
-  assert.doesNotMatch(html + app, /<form|contenteditable|\b(save|delete|merge|rename|apply)\b/i);
+  assert.match(app, /modeLabel\.textContent = "畫面無法使用"/);
+  assert.match(app, /rejectView\("無法顯示要求的知識圖。 /);
+  assert.doesNotMatch(html + app, /contenteditable|\b(delete|merge|rename|apply canonical)\b/i);
 });

@@ -11,5 +11,8 @@ if [ ! -x "$test_python" ]; then
 fi
 
 cd "$project_root"
+"$test_python" docs/requirements/requirements_guard.py check --repo "$project_root"
+PYTHONPATH="$project_root/docs/requirements${PYTHONPATH:+:$PYTHONPATH}" \
+  "$test_python" -m unittest discover -s docs/requirements -p 'test_requirements_guard.py' -v
 PYTHONPATH="$project_root/src${PYTHONPATH:+:$PYTHONPATH}" \
   "$test_python" -m unittest discover -s tests -p 'test_*.py' -v

@@ -1,0 +1,15 @@
+{
+  "schema_version": "kgnote.requirements-baseline-import.v1",
+  "imported_at": "2026-09-20T00:00:00+08:00",
+  "imported_from": "local-path-redacted",
+  "canonical_location": "docs/requirements",
+  "repository_head": "7d1c8011619f5c87f8bf88d87f6cdcc5c0a1b4b1",
+  "branch": "main",
+  "raw_dialogue": {
+    "recorded_name": "private-source-withheld",
+    "sha256": "withheld-from-public-repository",
+    "copied_into_repository": false
+  },
+  "imported_file_sha256": "7c149f8df98339579524d85db21d4a4b51c3e2f279626f41dbed16c6382b622f",
+  "note": "Private import identity is retained only in the verified offline recovery bundle. Public requirements preserve normalized semantics and stable source-role IDs."
+}

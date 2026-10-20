@@ -1,0 +1,29 @@
+{
+  "schema_version": "kgnote.human-feedback-evidence.v1",
+  "evidence_id": "personal-alpha-human-feedback-20260923",
+  "created_at": "2026-09-23T02:00:00+08:00",
+  "speaker": "product owner",
+  "source": {
+    "path": "local-source-withheld",
+    "sha256": "2d49d73f6e36cb16c435f6f4aae14b2ecc1de794e54ff1c32de4cf692711c370",
+    "line_count": 1332,
+    "decision_record": "docs/requirements/PERSONAL_ALPHA_HUMAN_FEEDBACK_20260923.md"
+  },
+  "gate": {
+    "id": "PA-HUMAN-1",
+    "result": "not_accepted_remediation_required",
+    "release_verified": false
+  },
+  "observed_artifact": "output/personal-alpha/pa4-vault/KGnote Alpha/network-path-a178f811/Start Here.md",
+  "observations": [
+    "The entry is closer to a directory than a sufficient learning overview.",
+    "System classification and review labels are visually mixed with the actual learning text.",
+    "The short source's separate structure surface provides limited benefit relative to its navigation cost.",
+    "Knowledge grounding appears broadly sound, so the blocking regression is the learner-facing projection rather than provenance integrity."
+  ],
+  "decision": "Interrupt the native capability spike after NS-0 and repair the learner-facing Markdown projection before resuming it.",
+  "limitations": [
+    "This is formative N=1 human feedback on the hierarchical network fixture, not mobile or learning-effectiveness evidence.",
+    "Assistant-authored detailed redesign suggestions in the attachment are proposals, not automatically accepted product requirements."
+  ]
+}

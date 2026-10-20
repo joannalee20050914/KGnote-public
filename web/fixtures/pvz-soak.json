@@ -1,0 +1,43 @@
+{
+  "schema_version": "kgnote.soak-set.v1",
+  "learning_unit_id": "guided_map_pvz_easter_eggs",
+  "items": [
+    {
+      "item_id": "soak_pvz_design_reuse",
+      "concept_id": "concept_pvz_transfer_potato",
+      "label": "Low-pressure re-exposure: how a design idea is reused",
+      "familiar_context": "Review how one synthetic prototype contributes different characteristics to later components; no answer is required yet.",
+      "answer": "The movable bracket's relocation behavior goes to the controller, while its mounting form goes to the weatherproof housing.",
+      "support_progression": [
+        {
+          "stage": "high_similarity",
+          "label": "Recognize the parts",
+          "content": "Notice the bracket, controller, and housing without answering.",
+          "response_expected": false
+        },
+        {
+          "stage": "cued",
+          "label": "Follow one characteristic",
+          "content": "Track behavior separately from physical form.",
+          "response_expected": false
+        },
+        {
+          "stage": "changed_context",
+          "label": "Change perspective",
+          "content": "Treat the prototype as one idea split across two later components.",
+          "response_expected": false
+        },
+        {
+          "stage": "explanation",
+          "label": "Explain it",
+          "content": "Describe in your own words where behavior and form went.",
+          "response_expected": true
+        }
+      ],
+      "source_refs": [
+        "src_pvz_easter_eggs_excerpt"
+      ],
+      "related_practice_item_id": "item_relation_edge_pvz_transfer_garlic"
+    }
+  ]
+}

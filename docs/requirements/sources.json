@@ -1,0 +1,1034 @@
+{
+  "original_file_sha256": "255497ba823d1c265e115b82362fbaf2f69d1a3f4237dab265359272fdc7b213",
+  "sources": [
+    {
+      "id": "B01-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B01-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B01-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B01-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B01-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B01-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B02-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B02-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B02-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B02-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B02-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B02-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B03-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B03-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B03-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B03-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B03-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B03-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B04-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B04-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B04-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B04-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B04-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B04-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B05-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B05-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B05-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B05-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B05-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B05-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B06-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B06-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B06-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B06-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B06-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B06-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B07-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B07-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B07-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B07-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B07-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B07-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B08-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B08-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B08-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B08-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B08-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B08-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B09-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B09-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B09-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B09-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B09-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B09-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B10-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B10-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B10-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B10-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B10-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B10-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B11-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B11-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B11-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B11-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B11-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B11-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B12-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B12-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B12-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B12-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B12-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B12-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B13-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B13-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B13-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B13-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B13-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B13-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B14-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B14-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B14-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B14-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B14-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B14-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B15-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B15-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B15-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B15-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B15-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B15-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B16-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B16-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B16-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B16-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B16-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B16-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B17-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B17-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B17-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B17-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B17-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B17-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B18-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B18-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B18-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B18-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B18-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B18-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B19-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B19-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B19-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B19-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B19-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B19-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B20-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B20-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B20-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B20-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B20-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B20-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B21-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B21-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B21-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B21-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B21-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B21-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B22-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B22-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B22-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B22-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B22-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B22-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B23-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B23-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B23-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B23-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B23-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B23-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B24-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B24-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B24-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B24-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B24-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B24-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B25-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B25-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B25-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B25-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B25-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B25-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B26-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B26-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B26-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B26-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B26-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B26-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B27-U",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source B27-U",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B27-U"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B27-A",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source B27-A",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B27-A"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "B-EXPORT-ICLOUD-20260814",
+      "type": "private_source_withheld",
+      "speaker": "mixed",
+      "title": "Public-safe normalized source B-EXPORT-ICLOUD-20260814",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "B-EXPORT-ICLOUD-20260814"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification.",
+      "related_baseline_source": {
+        "recorded_name": "private-source-withheld",
+        "sha256": "withheld-from-public-repository",
+        "relationship": "same private-source lineage; original formatting and anchors are retained only in the offline recovery bundle"
+      }
+    },
+    {
+      "id": "U-READ",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source U-READ",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "U-READ"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "U-STRUCT",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source U-STRUCT",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "U-STRUCT"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "U-GLOSS",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source U-GLOSS",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "U-GLOSS"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "U-RECALL",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source U-RECALL",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "U-RECALL"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "U-NIGHT",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source U-NIGHT",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "U-NIGHT"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "U-GOV",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source U-GOV",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "U-GOV"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "R-PRODUCT",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source R-PRODUCT",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "R-PRODUCT"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "R-DATA",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source R-DATA",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "R-DATA"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "R-PRACTICE",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source R-PRACTICE",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "R-PRACTICE"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "R-RELIABILITY",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source R-RELIABILITY",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "R-RELIABILITY"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "R-EXPERIMENT",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source R-EXPERIMENT",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "R-EXPERIMENT"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "R-READING",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source R-READING",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "R-READING"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "N-GOV",
+      "type": "private_source_withheld",
+      "speaker": "assistant",
+      "title": "Public-safe normalized source N-GOV",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "N-GOV"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "O-AGENTS",
+      "type": "official_reference",
+      "speaker": "external",
+      "title": "OpenAI：AGENTS.md",
+      "url": "https://developers.openai.com/codex/agent-configuration/agents-md",
+      "checked_on": "2026-09-20",
+      "scope_note": "僅支持對應工程機制，不是 KGnote 學習效益證據；封存文件不作最新模型或 API 依據。"
+    },
+    {
+      "id": "O-PLANS",
+      "type": "official_reference",
+      "speaker": "external",
+      "title": "OpenAI Cookbook：Using PLANS.md for multi-hour problem solving（2025-10-07，已封存）",
+      "url": "https://cookbook.openai.com/articles/codex_exec_plans",
+      "checked_on": "2026-09-20",
+      "scope_note": "僅支持對應工程機制，不是 KGnote 學習效益證據；封存文件不作最新模型或 API 依據。"
+    },
+    {
+      "id": "O-TRACE",
+      "type": "official_reference",
+      "speaker": "external",
+      "title": "NASA SWE-052：Bidirectional Traceability（Handbook Ver C）",
+      "url": "https://swehb.nasa.gov/display/SWEHBVC/SWE-052+-+Bidirectional+Traceability",
+      "checked_on": "2026-09-20",
+      "scope_note": "僅支持對應工程機制，不是 KGnote 學習效益證據；封存文件不作最新模型或 API 依據。"
+    },
+    {
+      "id": "O-CI",
+      "type": "official_reference",
+      "speaker": "external",
+      "title": "GitHub：About protected branches",
+      "url": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches",
+      "checked_on": "2026-09-20",
+      "scope_note": "僅支持對應工程機制，不是 KGnote 學習效益證據；封存文件不作最新模型或 API 依據。"
+    },
+    {
+      "id": "U-LONGRUN",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source U-LONGRUN",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "U-LONGRUN"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "U-OBS-FIRST",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source U-OBS-FIRST",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "U-OBS-FIRST"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification."
+    },
+    {
+      "id": "U-ROADMAP-REINTEGRATION",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source U-ROADMAP-REINTEGRATION",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "U-ROADMAP-REINTEGRATION"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification.",
+      "requirement_refs": [
+        "KG-WF-04",
+        "KG-MEM-01",
+        "KG-MEM-07",
+        "KG-MEM-08",
+        "KG-MEM-09",
+        "KG-SOAK-01",
+        "KG-SOAK-04",
+        "KG-SOAK-07",
+        "KG-ING-02",
+        "KG-ING-03",
+        "KG-ING-04",
+        "KG-KNOW-02",
+        "KG-KNOW-07",
+        "KG-PLAT-01"
+      ]
+    },
+    {
+      "id": "U-PERSONAL-ALPHA",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source U-PERSONAL-ALPHA",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "U-PERSONAL-ALPHA"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification.",
+      "requirement_refs": [
+        "KG-ALPHA-01",
+        "KG-ALPHA-02",
+        "KG-ALPHA-03",
+        "KG-ALPHA-04",
+        "KG-ING-01",
+        "KG-ING-02",
+        "KG-ING-04",
+        "KG-PLAT-06",
+        "KG-PLAT-08",
+        "KG-UI-01"
+      ]
+    },
+    {
+      "id": "U-PA-HUMAN-FEEDBACK",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source U-PA-HUMAN-FEEDBACK",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "U-PA-HUMAN-FEEDBACK"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification.",
+      "requirement_refs": [
+        "KG-ALPHA-02",
+        "KG-UI-01",
+        "KG-GOV-07"
+      ]
+    },
+    {
+      "id": "U-OBSIDIAN-LEARNER-PROJECTION-V3",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source U-OBSIDIAN-LEARNER-PROJECTION-V3",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "U-OBSIDIAN-LEARNER-PROJECTION-V3"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification.",
+      "requirement_refs": [
+        "KG-ALPHA-01",
+        "KG-ALPHA-02",
+        "KG-ALPHA-03",
+        "KG-ALPHA-04",
+        "KG-PLAT-06",
+        "KG-PLAT-07",
+        "KG-PLAT-08",
+        "KG-UI-01",
+        "KG-STR-01",
+        "KG-STR-02",
+        "KG-STR-03",
+        "KG-STR-04",
+        "KG-STR-08",
+        "KG-GOV-07"
+      ]
+    },
+    {
+      "id": "U-PERSONAL-ALPHA-INTEGRATED-STAGE",
+      "type": "private_source_withheld",
+      "speaker": "user",
+      "title": "Public-safe normalized source U-PERSONAL-ALPHA-INTEGRATED-STAGE",
+      "locator": {
+        "kind": "withheld_private_source",
+        "value": "U-PERSONAL-ALPHA-INTEGRATED-STAGE"
+      },
+      "summary": "Original private wording and machine-specific provenance are withheld. Normative behavior is preserved by the linked requirements, decisions, and acceptance scenarios.",
+      "scope_note": "This stable source-role anchor is not a public quotation and must not be treated as independent factual verification.",
+      "requirement_refs": [
+        "KG-ALPHA-01",
+        "KG-ALPHA-02",
+        "KG-ALPHA-03",
+        "KG-ALPHA-04",
+        "KG-ALPHA-05",
+        "KG-PLAT-08",
+        "KG-STR-01",
+        "KG-STR-08",
+        "KG-KNOW-06",
+        "KG-GOV-07"
+      ]
+    },
+    {
+      "id": "O-OBS-LINKS",
+      "type": "official_reference",
+      "speaker": "external",
+      "title": "Obsidian Help：Internal links",
+      "url": "https://obsidian.md/help/links",
+      "checked_on": "2026-09-22",
+      "scope_note": "只支持note／heading／block links、aliases與hover preview等平台能力，不支持KGnote學習效果。"
+    },
+    {
+      "id": "O-OBS-CANVAS",
+      "type": "official_reference",
+      "speaker": "external",
+      "title": "Obsidian Help：Canvas",
+      "url": "https://obsidian.md/help/plugins/canvas",
+      "checked_on": "2026-09-22",
+      "scope_note": "只支持Canvas note cards、directed labeled/colored connections與JSON Canvas格式，不表示原生Canvas已滿足自動tree、hover詳述或複習投影。"
+    },
+    {
+      "id": "O-OBS-MOBILE",
+      "type": "official_reference",
+      "speaker": "external",
+      "title": "Obsidian Developer Docs：Mobile development",
+      "url": "https://docs.obsidian.md/Plugins/Getting%20started/Mobile%20development",
+      "checked_on": "2026-09-22",
+      "scope_note": "只支持mobile plugin無Node.js／Electron API等工程邊界；實際Mac／iPad／iPhone可用性仍須本專案驗收。"
+    }
+  ]
+}

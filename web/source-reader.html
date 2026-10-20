@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KGnote · H0 Source Reader</title>
+  <link rel="stylesheet" href="source-reader.css">
+</head>
+<body>
+  <main class="source-shell">
+    <header>
+      <p>H0 · SOURCE ONLY · NO GRAPH · NO AI</p>
+      <h1 id="session-title">指定來源片段</h1>
+      <div class="protocol-note">
+        <strong>Phase A：普通 Markdown</strong>
+        <span>請只閱讀這段來源，使用你平常的 Markdown 方法整理；這個頁面不提供筆記功能。</span>
+      </div>
+    </header>
+    <section aria-labelledby="source-heading">
+      <div class="source-meta">
+        <div><p>IMMUTABLE SOURCE</p><h2 id="source-heading">正在讀取…</h2></div>
+        <span id="source-locator"></span>
+      </div>
+      <ol id="source-lines" class="source-lines"></ol>
+      <p id="source-status" role="status"></p>
+    </section>
+    <footer>關閉這頁不會產生學習紀錄；只有你實際保存的 Markdown 才是本條件的產物。</footer>
+  </main>
+  <script type="module" src="source-reader.js"></script>
+</body>
+</html>

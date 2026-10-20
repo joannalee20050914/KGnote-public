@@ -1,0 +1,59 @@
+{
+  "schema_version": "kgnote.actual-run-evidence.v1",
+  "evidence_id": "RUN-PERSONAL-ALPHA-RP-PA-1-20260927",
+  "recorded_at": "2026-09-27T21:00:00+08:00",
+  "goal_id": "GOAL-OBSIDIAN-PERSONAL-ALPHA-INTEGRATED-V1",
+  "milestone_id": "RP-PA-1",
+  "result": "automated_pass_pending_orchestrator_validation_and_review",
+  "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r7",
+  "requirement_ids": ["KG-ALPHA-02", "KG-ALPHA-05", "KG-PLAT-08"],
+  "scenario_ids": ["SC-38", "SC-45", "SC-48"],
+  "commands": [
+    "PYTHONPATH=src python3 -m unittest -v tests.test_personal_alpha_analysis tests.test_personal_alpha_cli tests.test_personal_alpha_presentation tests.test_personal_alpha_workspace tests.test_obsidian_native_spike",
+    "python3 docs/requirements/requirements_guard.py check --repo .",
+    "git diff --check",
+    "python3 scripts/kgnote_obsidian_spike.py tests/fixtures/personal-alpha/hierarchical/network-path.md --vault <ephemeral-disposable-parent> --space rp-pa-1"
+  ],
+  "test_result": {
+    "tests_run": 37,
+    "failures": 0,
+    "errors": 0
+  },
+  "generated_artifact_read_back": {
+    "shape": "hierarchical",
+    "source_sha256": "2df7ea0ff998afb4afe369b38d5a3b5830e8f24397091a083e5cf15364078e2a",
+    "nodes": 5,
+    "edges": 4,
+    "checked_files": 5,
+    "checked_anchors": 4,
+    "canonical_digest": "41bdbfdadde0b0bf94dbd09a812d12eaa2c4f5280129d8501b26b777ec83ff36",
+    "markdown_digest": "8a44890da6d4cae6e8b075eb4d91b6a90db2ce6589698f8cc6ea78842e380194",
+    "same_input_rerun": "unchanged",
+    "artifact_location": "ephemeral disposable directory; no private or formal vault accessed"
+  },
+  "assertions": {
+    "printed_workspace_equals_documented_obsidian_vault_root": "pass",
+    "all_canvas_file_nodes_resolve_from_exact_vault_root": "pass",
+    "start_here_golden_section_order_preserved": "pass",
+    "start_here_optional_canvas_entry_after_golden_sections": "pass",
+    "canvas_remains_secondary_to_complete_markdown_flow": "pass",
+    "vault_local_reading_view_snippet_present_and_enabled": "pass",
+    "frontmatter_and_provenance_bytes_preserved": "pass",
+    "heading_free_hierarchy_not_invented": "pass",
+    "procedural_order_not_promoted_to_causality": "pass",
+    "native_managed_edits_and_path_escapes_fail_closed": "pass"
+  },
+  "evidence_boundary": {
+    "static_path_and_presentation_checks": "automated_pass",
+    "native_obsidian_application_behavior": "not_run",
+    "human_usability": "not_run",
+    "mobile_behavior": "not_run"
+  },
+  "claims": {
+    "candidate_verified": false,
+    "release_verified": false,
+    "pa_human_1": "pending_human_review",
+    "ns_human_smoke": "not_run",
+    "learning_effectiveness_verified": false
+  }
+}

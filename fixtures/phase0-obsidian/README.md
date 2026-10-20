@@ -1,7 +1,7 @@
 # Phase 0 Obsidian fixture
 
 這是一組 synthetic、人工製作的 fixture，用來驗證 KGnote v0 Markdown/YAML contract，
-不是 learner 的真實學習紀錄。
+不是 product owner 的真實學習紀錄。
 
 在 Obsidian 以本目錄作為 vault 開啟後，從
 [[concepts/concept_correlation|Correlation]] 開始。預期可在第一次點選抵達

@@ -1,0 +1,97 @@
+schema_version: kgnote.formative-test-manifest.v1
+id: experiment_h0_bitepacer_p4_backup_v1
+hypothesis_id: H0
+title: BitePacer P4 backup micro-source：普通 Markdown 與 KGnote 無 Graph baseline
+source:
+  source_id: src_bitepacer_p4_backup_micro
+  content_sha256: 1894be5e931ab49dba123d4a57f0ea2dbcd7bfe372faa5f3bd99bff70d385916
+  revision: bitepacer-3679c9be-p4-backup-walkthrough-v1
+  fixture_path: experiments/fixtures/h0-bitepacer-p4-backup-v1/store/raw/bitepacer-p4-backup-micro-source.md
+  selected_range: L1-L52
+  upstream:
+    repository: BitePacer-bot
+    commit: 3679c9be4fbd518e7677f62e7f9c277fb579018e
+    path: p4_sqlite_backup.py
+    content_sha256: d08982e517338e4bd0d37c834f1cb4623d852be95ad213e3fa6c943f28d92472
+  reviewed_claims:
+    - id: claim_create_verifies_before_manifest
+      statement: create_online_backup 拒絕同目錄／覆寫，使用 SQLite backup API，並在寫 manifest 前檢查 integrity、migration 與 core table counts。
+      source_range: L8-L22
+      upstream_ranges: [L47-L72, L92-L137]
+      review_status: source_verified
+    - id: claim_manifest_recomputes_current_state
+      statement: verify_backup_manifest 會重新驗 backup，並比較 SHA-256、latest migration 與 table counts，不只解析 JSON。
+      source_range: L24-L35
+      upstream_ranges: [L75-L89]
+      review_status: source_verified
+    - id: claim_restore_is_non_destructive
+      statement: restore_to_new_file 拒絕覆寫既有 destination，驗證 backup 與 restored database 並比較 counts，但不自動替換 live database 或要求兩檔 bytes 相同。
+      source_range: L37-L46
+      upstream_ranges: [L140-L158]
+      review_status: source_verified
+pretest:
+  prompt: 未看到教材前，你目前能否說出 BitePacer P4 SQLite 流程中 create-time verification、later manifest verification、restore-to-new-file verification 各自檢查什麼，以及 restore 明確不會自動做什麼？
+  rating_scale:
+    - value: 0
+      label: 完全陌生；現在無法說出三階段差異
+    - value: 1
+      label: 看過或有模糊印象，但無法可靠說出三階段差異
+    - value: 2
+      label: 已能說出三階段的主要檢查與 non-destructive 邊界
+  eligible_ratings: [0]
+  must_run_before_source_visible: true
+conditions:
+  - condition_id: baseline_markdown
+    interface: 使用者平常使用的普通 Markdown／既有筆記方法；不使用 KGnote、Graph 或 AI
+    source_range: L8-L22
+    task: 用自己的結構整理「建立 backup 到寫 manifest 前」的流程、每一步 evidence 與失敗處理；組織方式不限。
+    timebox_seconds: 480
+    allowed_tools: [指定來源片段, 使用者平常的 Markdown 編輯器]
+    lookup_prompt: 請在筆記中找到並指出「backup 驗證失敗時 destination 如何處理」。
+    unaided_prompt: 關閉來源與筆記後，請解釋為什麼 create_online_backup 不能只因 destination file 存在就回報成功。
+  - condition_id: kgnote_no_graph
+    interface: KGnote LearningNote baseline；無 Graph、無 live AI
+    source_range: L24-L46
+    task: 用 headings／lists／paragraphs 整理 later manifest verification 與 restore-to-new-file 的差異、各自 evidence 與沒有自動做的事。
+    timebox_seconds: 480
+    allowed_tools: [指定來源片段, KGnote LearningNote editor, 回來源入口, notebook literal search]
+    lookup_prompt: 請用 KGnote 搜尋並回到原文，指出 restored file 是否必須和 backup file 有相同 SHA-256。
+    unaided_prompt: 關閉來源與筆記後，請區分 later manifest verification 與 restore-to-new-file verification 增加的 evidence，並說明 non-destructive 的邊界。
+primary_metrics:
+  - organizing_seconds
+  - help_count
+  - save_reopen_success
+  - lookup_seconds
+  - lookup_errors
+  - unaided_rubric_score
+  - reported_friction
+rubric:
+  - dimension: stage_sequence
+    description: 能以自己的組織方式說明該條件涵蓋的步驟與先後，不要求複製教材 headings。
+    max_points: 2
+  - dimension: evidence_distinction
+    description: 能區分 file existence／SHA、SQLite integrity、migration 與 table counts 所提供的 evidence，不把它們說成同一件事。
+    max_points: 2
+  - dimension: failure_boundary
+    description: 能指出失敗時的 fail-closed 或拒絕覆寫行為，以及流程沒有自動完成的破壞性操作。
+    max_points: 2
+  - dimension: source_retrievability
+    description: 能從自己的筆記回找到指定 claim 與對應原文位置；不要求背誦。
+    max_points: 2
+exclusion_criteria:
+  - pretest rating 不為 0；材料不再視為真正陌生，停止本 run 並換題。
+  - 開始前已看過本 fixture、manifest reviewed_claims 或教材正文。
+  - 任一條件中使用 live AI 生成或改寫筆記。
+abort_criteria:
+  - Source hash、upstream commit/hash 或 reviewed claim 對照失敗。
+  - KGnote 保存後文字遺失、無法重開，或無法回到指定來源。
+  - 使用者希望中止，或時間不足以完成兩條件。
+decision_rules:
+  continue: KGnote 條件能保存、重開、搜尋與回源，沒有遺失文字；unaided 與 lookup 至少可用，且操作負擔沒有明顯壓倒內容整理。這只允許繼續改良 baseline，不證明優於 Markdown。
+  modify: 核心資料安全成功，但 KGnote 的整理／搜尋／回源出現可重現摩擦，或回答品質未受益；先修具體摩擦，再用新陌生材料重跑。
+  stop: KGnote 無法可靠保存／重開／回源，穩定增加負擔卻沒有 lookup 價值，或需要 Graph／AI 才能完成基本筆記閉環。
+limitations:
+  - N=1 formative run 不能推論群體效果或因果優勢。
+  - 兩個條件使用相鄰但不同內容，並非等價 item；分數只作產品診斷，不作效應量。
+  - 條件順序未隨機化，可能有暖身、疲勞與同主題 transfer。
+  - 本 run 只看立即整理、回找與無工具回答，不代表 7／21 天保持。
