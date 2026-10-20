@@ -13,10 +13,10 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Complete deterministic verification and seal the new main-based candidate before using the one remaining Ubuntu Claude review round.",
+  "next_action": "Complete deterministic verification, seal the integration-local request, then stop READY_FOR_REVIEW_BUDGET_BLOCKED because successor Ubuntu Claude usage is 6/6.",
   "human_action_required": false,
   "candidate_custody": {"status":"NONE","owner":null,"review_id":null,"fingerprint":null},
-  "next_human_checkpoint": {"id":"GITHUB-REQUIRED-APPROVAL","status":"not_eligible_candidate_unreviewed","description":"Required GitHub approval applies only after exact-candidate verification and Ubuntu Claude review."},
+  "next_human_checkpoint": {"id":"REVIEW-BUDGET-AUTHORITY","status":"not_authorized","description":"A future reviewer round requires separate owner authority; this repair must not invoke a model."},
   "last_agent_run": null,
   "created_at": "2026-10-20T11:10:00+08:00",
   "updated_at": "2026-10-20T11:10:00+08:00"

@@ -1,1 +1,20 @@
-{"schema_version":"kgnote.review-history-index.v1","protocol_version":"kgnote.review-protocol.v1","event_count":0,"last_event_id":null,"reviews":{},"findings":{}}
+{
+  "schema_version": "kgnote.review-history-index.v1",
+  "protocol_version": "kgnote.review-protocol.v1",
+  "event_count": 2,
+  "last_event_id": "evt-0002",
+  "reviews": {
+    "review-mainline-integration-20261020-001": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-mainline-integration-20261020-001/request-a21dd96f6c2af4a87c4e5048a8abb895b9b2f6b4cfeaa6a0cb986205604a2944.md",
+          "sha256": "a21dd96f6c2af4a87c4e5048a8abb895b9b2f6b4cfeaa6a0cb986205604a2944",
+          "event_id": "evt-0001"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "f768959692c8d3444364665b49add54e51a605b1b340f4911fded9d5d84ffcee"
+    }
+  },
+  "findings": {}
+}

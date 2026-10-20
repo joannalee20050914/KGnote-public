@@ -94,6 +94,8 @@ The protocol document, schemas, both role bootstraps, orchestrator implementatio
 
 Every request, result, and history snapshot records candidate revision and fingerprint. The request also seals the canonical per-path candidate manifest and the positive human-decision identity set derived from the reviewed PLAN. A result whose `review_id`, revision, or fingerprint differs from the current request is stale and cannot authorize progression.
 
+Tracked checkpoint and sealed publication identity are deliberately two phases. A commit cannot contain its own final SHA, and this fingerprint algorithm includes HEAD. Therefore committed `CODEX_STATUS.md` and review-bus files describe the last checkpoint; after the commit, the verifier and review-request helper may update only fingerprint-excluded bus files. The Publisher then binds the live PR HEAD and recomputed fingerprint in exactly one marker, and the Consumer read-back is the authority for the final published tuple. A clean detached publication checkout may treat older committed bus bytes as historical only when the live marker, recomputed fingerprint, repository, PR and HEAD all match; otherwise it fails closed.
+
 While `PRODUCT_DECISION_REQUIRED` is pending, decision resume compares the live repository with that sealed manifest. Only the exact validated external authority-record path(s) named by the required decisions may differ; a PLAN/identity-anchor change or any unrelated implementation, protocol, test, or owned-path drift remains terminal without changing STATUS, history, request, or custody. The live identity anchor must still equal the sealed positive identity set.
 
 ## Field ownership
