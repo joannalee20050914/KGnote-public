@@ -71,6 +71,11 @@ def _trusted_author(config: dict[str, Any]) -> str | None:
 def _validate_record_shape(record: Any, index: int) -> dict[str, Any]:
     if not isinstance(record, dict):
         raise ConsumerInputError(f"records[{index}] must be an object")
+    record_id = record.get("record_id")
+    if isinstance(record_id, bool) or not isinstance(record_id, int) or record_id <= 0:
+        raise ConsumerInputError(
+            f"records[{index}].record_id must be a positive integer"
+        )
     for field in ("source", "author_login", "body"):
         if not isinstance(record.get(field), str):
             raise ConsumerInputError(f"records[{index}].{field} must be a string")
@@ -126,6 +131,26 @@ def _identity_mismatches(
         "review_round": identity.review_round,
     }
     return [field for field, value in expected.items() if result.get(field) != value]
+
+
+def _semantic_errors(result: dict[str, Any]) -> list[str]:
+    """Validate cross-field invariants JSON Schema cannot express."""
+    errors: list[str] = []
+    finding_ids = [item["id"] for item in result["findings"]]
+    if len(finding_ids) != len(set(finding_ids)):
+        errors.append("finding IDs must be unique")
+    proposals = result.get("human_decisions", [])
+    decision_ids = [item["decision_id"] for item in proposals]
+    if len(decision_ids) != len(set(decision_ids)):
+        errors.append("human decision IDs must be unique")
+    known_findings = set(finding_ids)
+    for proposal in proposals:
+        unknown = sorted(set(proposal["linked_findings"]) - known_findings)
+        if unknown:
+            errors.append(
+                f"human decision {proposal['decision_id']} links unknown findings {unknown}"
+            )
+    return errors
 
 
 def consume_records(
@@ -207,6 +232,13 @@ def consume_records(
             rejected.append(rejection)
             continue
 
+        semantic_errors = _semantic_errors(result)
+        if semantic_errors:
+            rejection["reason"] = "semantic_invalid"
+            rejection["errors"] = semantic_errors
+            rejected.append(rejection)
+            continue
+
         if record["source"] == "pull_request_review":
             expected_state = FORMAL_STATE_BY_VERDICT[result["verdict"]]
             if record["review_state"].upper() != expected_state:
@@ -219,7 +251,7 @@ def consume_records(
                 "index": index,
                 "source": record["source"],
                 "author_login": record["author_login"],
-                "record_id": record.get("record_id"),
+                "record_id": record["record_id"],
                 "result": result,
             }
         )
@@ -256,6 +288,7 @@ def consume_records(
         "verdict": result["verdict"],
         "finding_count": len(result["findings"]),
         "findings": result["findings"],
+        "human_decisions": result.get("human_decisions", []),
         "native_ui_observed": result["native_ui_observed"],
         "rejected": rejected,
     }
