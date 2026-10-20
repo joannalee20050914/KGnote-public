@@ -252,8 +252,8 @@ def release_lock(repo: Path, descriptor: int) -> None:
 def role_prompt(role: str) -> str:
     if role == "reviewer":
         return (
-            "YOU are the required independent reviewer. Perform the review now; do not defer to ChatGPT Work "
-            "or ask a human to continue. Reconstruct authority solely from the repository, follow "
+            "YOU are the authorized Ubuntu Claude independent reviewer. Perform the review now; do not ask "
+            "ChatGPT Work or a human to continue. Reconstruct authority solely from the repository, follow "
             ".ai/REVIEWER_BOOTSTRAP.md, inspect the exact sealed candidate, and write a complete reviewer-owned "
             ".ai/REVIEW_RESULT.md. Do not modify candidate files. The orchestrator already owns machine handoff "
             "and will submit and route your verdict."
@@ -743,7 +743,7 @@ def advance_after_pass(repo: Path, state: dict[str, Any]) -> None:
                 repo,
                 state,
                 "AWAITING_EXTERNAL_PRODUCT_REVIEW",
-                f"Exact candidate published at {publication['artifact_url']}; await and consume the configured ChatGPT Work event result automatically.",
+                f"Exact candidate published at {publication['artifact_url']}; Runner must dispatch Ubuntu Claude, relay the exact result to GitHub, and require canonical Consumer read-back.",
                 review_id=request.get("review_id"),
                 candidate_fingerprint=fingerprint,
                 candidate_custody={"status": "NONE", "owner": None, "review_id": None, "fingerprint": None},

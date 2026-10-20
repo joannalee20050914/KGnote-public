@@ -407,6 +407,8 @@ class EnvelopeSealOrderingTests(OrchestrationSimulationTests):
             publish.assert_called_once_with(root)
             self.assertEqual(state["state"], "AWAITING_EXTERNAL_PRODUCT_REVIEW")
             self.assertFalse(state["human_action_required"])
+            self.assertIn("Runner must dispatch Ubuntu Claude", state["next_action"])
+            self.assertNotIn("ChatGPT Work", state["next_action"])
             prepared = json.loads((root / ".ai/external-review-state.json").read_text())
             self.assertEqual(prepared["review_round"], 4)
             self.assertEqual(prepared["internal_review"]["status"], "PASS")
@@ -968,7 +970,7 @@ class OrchestratorDurabilityTests(unittest.TestCase):
         self.assertLess(command.index("-s"), exec_index)
         self.assertLess(command.index("-C"), exec_index)
         self.assertGreater(command.index("--ephemeral"), exec_index)
-        self.assertIn("YOU are the required independent reviewer", command[-1])
+        self.assertIn("YOU are the authorized Ubuntu Claude independent reviewer", command[-1])
 
     def test_real_pass_consumption_completes_plan_and_preserves_auditable_review(self):
         with tempfile.TemporaryDirectory() as tmp:

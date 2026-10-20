@@ -131,8 +131,8 @@ class ControlPlaneNegativeTests(unittest.TestCase):
             "protocol_version": "kgnote.review-protocol.v1",
             "artifact_state": "SUBMITTED",
             "review_id": request["review_id"],
-            "author_role": "CHATGPT_WORK_REVIEWER",
-            "reviewer_identity": "work-session-1",
+            "author_role": "UBUNTU_CLAUDE_REVIEWER",
+            "reviewer_identity": "claude-code:ubuntu-review-only",
             "reviewed_revision": request["candidate_revision"],
             "reviewed_fingerprint": request["candidate_fingerprint"],
             "verdict": verdict,
@@ -304,7 +304,46 @@ class ControlPlaneNegativeTests(unittest.TestCase):
         result = self.submitted_result()
         result["author_role"] = "CODEX_IMPLEMENTER"
         errors = CONTROL.validate_review_result(self.base_review_request(), result, {"decisions": []})
-        self.assertTrue(any("CHATGPT_WORK_REVIEWER" in error for error in errors))
+        self.assertTrue(any("UBUNTU_CLAUDE_REVIEWER" in error for error in errors))
+
+    def test_legacy_work_role_cannot_author_a_new_candidate_result(self):
+        result = self.submitted_result()
+        result["author_role"] = "CHATGPT_WORK_REVIEWER"
+        errors = CONTROL.validate_review_result(self.base_review_request(), result, {"decisions": []})
+        self.assertTrue(any("UBUNTU_CLAUDE_REVIEWER" in error for error in errors))
+
+    def test_legacy_work_history_is_read_only_across_role_cutover(self):
+        historical = {"event_id":"evt-0001","event_type":"PASS","actor_role":"CHATGPT_WORK_REVIEWER",
+            "created_at":"2026-10-19T12:00:00+08:00"}
+        errors,roles = CONTROL.validate_history_event_actors([historical])
+        self.assertEqual([], errors)
+        self.assertEqual("UBUNTU_CLAUDE_REVIEWER", roles["evt-0001"])
+        current = {**historical,"created_at":"2026-10-20T12:00:00+08:00"}
+        errors,_ = CONTROL.validate_history_event_actors([current])
+        self.assertTrue(any("requires actor UBUNTU_CLAUDE_REVIEWER" in error for error in errors))
+
+    def test_generated_routine_review_handoff_names_claude_runner_and_not_work(self):
+        request = self.base_review_request(); request["status"] = "READY_FOR_REVIEW"
+        rendered = CONTROL.render_review_request_summary(request)
+        self.assertIn("Runner must dispatch Ubuntu Claude", rendered)
+        self.assertNotIn("ChatGPT Work", rendered)
+
+    def test_post_commit_sync_updates_head_and_fingerprint_through_helper(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            status = self.base_status(); status["working_state"]={"fingerprint":"0"*64}
+            status["verification"].update({"candidate_verified":False,"control_plane_ready":False})
+            request = self.base_review_request(); request["status"] = "IMPLEMENTING"
+            request["candidate_revision"] = None; request["candidate_fingerprint"] = None
+            with mock.patch.object(CONTROL,"load_review_artifacts",return_value=(request,self.empty_review_result(),{"decisions":[]})), \
+                 mock.patch.object(CONTROL,"repository_fingerprint",return_value={"value":"f"*64,"head":"e"*40,"branch":"codex/test"}), \
+                 mock.patch.object(CONTROL,"load_plan_status",return_value=(self.base_plan(),status)), \
+                 mock.patch.object(CONTROL,"write_status") as write_status:
+                CONTROL.sync_implementing_fingerprint(root,"post-commit sync")
+            written = write_status.call_args.args[1]
+            self.assertEqual("e"*40,written["git"]["head"])
+            self.assertEqual("e"*40,written["git"]["checkpoint_commit"])
+            self.assertEqual("f"*64,written["working_state"]["fingerprint"])
 
     def test_preserved_human_gate_is_not_silently_promoted_or_used_as_routine_continue_prompt(self):
         plan = self.base_plan()
@@ -878,12 +917,12 @@ class ReviewFlowSimulationTests(unittest.TestCase):
 
     def test_implement_review_pass_flow(self):
         self.assertEqual(CONTROL.validate_review_transition("IMPLEMENTING", "READY_FOR_REVIEW", "CODEX_IMPLEMENTER"), [])
-        self.assertEqual(CONTROL.validate_review_transition("READY_FOR_REVIEW", "UNDER_REVIEW", "CHATGPT_WORK_REVIEWER"), [])
+        self.assertEqual(CONTROL.validate_review_transition("READY_FOR_REVIEW", "UNDER_REVIEW", "UBUNTU_CLAUDE_REVIEWER"), [])
         request = self.fixture.base_review_request()
         request["status"] = "UNDER_REVIEW"
         result = self.fixture.submitted_result("PASS")
         self.assertEqual(CONTROL.validate_review_result(request, result, {"decisions": []}), [])
-        self.assertEqual(CONTROL.validate_review_transition("UNDER_REVIEW", "PASS", "CHATGPT_WORK_REVIEWER"), [])
+        self.assertEqual(CONTROL.validate_review_transition("UNDER_REVIEW", "PASS", "UBUNTU_CLAUDE_REVIEWER"), [])
 
     def test_changes_fix_rereview_pass_flow_preserves_finding(self):
         request = self.fixture.base_review_request()
@@ -891,7 +930,7 @@ class ReviewFlowSimulationTests(unittest.TestCase):
         changes = self.fixture.submitted_result("CHANGES_REQUIRED")
         changes["findings"] = [self.finding("OPEN")]
         self.assertEqual(CONTROL.validate_review_result(request, changes, {"decisions": []}), [])
-        self.assertEqual(CONTROL.validate_review_transition("UNDER_REVIEW", "CHANGES_REQUIRED", "CHATGPT_WORK_REVIEWER"), [])
+        self.assertEqual(CONTROL.validate_review_transition("UNDER_REVIEW", "CHANGES_REQUIRED", "UBUNTU_CLAUDE_REVIEWER"), [])
         self.assertEqual(CONTROL.validate_review_transition("CHANGES_REQUIRED", "IMPLEMENTING", "CODEX_IMPLEMENTER"), [])
         self.assertEqual(CONTROL.validate_finding_transition("OPEN", "FIXED_PENDING_REVIEW", "CODEX_IMPLEMENTER"), [])
         changes["findings"][0]["status"] = "FIXED_PENDING_REVIEW"
@@ -913,7 +952,7 @@ class ReviewFlowSimulationTests(unittest.TestCase):
             "human_decisions_required": [],
         })
         passed["findings"][0]["status"] = "VERIFIED"
-        self.assertEqual(CONTROL.validate_finding_transition("FIXED_PENDING_REVIEW", "VERIFIED", "CHATGPT_WORK_REVIEWER"), [])
+        self.assertEqual(CONTROL.validate_finding_transition("FIXED_PENDING_REVIEW", "VERIFIED", "UBUNTU_CLAUDE_REVIEWER"), [])
         self.assertEqual(CONTROL.validate_review_result(rerequest, passed, {"decisions": []}), [])
         self.assertEqual(passed["findings"][0]["finding_id"], "R-001")
 
@@ -943,7 +982,7 @@ class ReviewFlowSimulationTests(unittest.TestCase):
         result["human_decisions_required"] = ["D-001"]
         self.assertEqual(CONTROL.validate_decisions(decisions), [])
         self.assertEqual(CONTROL.validate_review_result(request, result, decisions), [])
-        self.assertEqual(CONTROL.validate_review_transition("UNDER_REVIEW", "PRODUCT_DECISION_REQUIRED", "CHATGPT_WORK_REVIEWER"), [])
+        self.assertEqual(CONTROL.validate_review_transition("UNDER_REVIEW", "PRODUCT_DECISION_REQUIRED", "UBUNTU_CLAUDE_REVIEWER"), [])
         decision.update({
             "status": "DECIDED",
             "selected_option": "A",
@@ -1283,7 +1322,7 @@ class ReviewHelperIntegrationTests(unittest.TestCase):
             CONTROL.append_history_event(root, {
                 "event_type": "FIXES_PROPOSED",
                 "review_id": request["review_id"],
-                "actor_role": "CHATGPT_WORK_REVIEWER",
+                "actor_role": "UBUNTU_CLAUDE_REVIEWER",
                 "candidate_fingerprint": request["candidate_fingerprint"],
                 "snapshot_path": None,
                 "snapshot_sha256": None,

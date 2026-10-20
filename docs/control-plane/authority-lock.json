@@ -90,7 +90,7 @@
         "path": "AGENTS.md",
         "role": "agent_behavior_policy",
         "validation": "sha256",
-        "sha256": "10e186bc15e282e656f46c3d9a8230a3149f21b123011790cbe480faff3aa50c",
+        "sha256": "407f9a883f59b5ee93822fb47bcfd130b5e3791ec0734c061f402ab07ba37dfa",
         "required_marker": "kgnote-obsidian-first-2026-09-22"
       },
       {

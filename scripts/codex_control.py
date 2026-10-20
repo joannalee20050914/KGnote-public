@@ -41,6 +41,9 @@ HUMAN_DECISION_AUTHORITY_BEGIN = "<!-- BEGIN KGNOTE HUMAN DECISION AUTHORITY JSO
 HUMAN_DECISION_AUTHORITY_END = "<!-- END KGNOTE HUMAN DECISION AUTHORITY JSON -->"
 HUMAN_DECISION_AUTHORITY_DIRECTORY = "docs/requirements/human-decisions"
 REVIEW_PROTOCOL_VERSION = "kgnote.review-protocol.v1"
+ACTIVE_REVIEWER_ROLE = "UBUNTU_CLAUDE_REVIEWER"
+LEGACY_REVIEWER_ROLE = "CHATGPT_WORK_REVIEWER"
+REVIEWER_ROLE_CUTOVER = "2026-10-20T00:00:00+08:00"
 REVIEW_STATES = {
     "IMPLEMENTING",
     "READY_FOR_REVIEW",
@@ -192,8 +195,8 @@ def render_review_request_summary(request: dict[str, Any]) -> str:
         lines.append("It has no active candidate binding and cannot be interpreted as a review request or PASS.")
     next_actions = {
         "IMPLEMENTING": "Codex must complete deterministic verification before issuing this request.",
-        "READY_FOR_REVIEW": "ChatGPT Work must accept custody and inspect the exact repository candidate.",
-        "UNDER_REVIEW": "The candidate is frozen while ChatGPT Work performs semantic review.",
+        "READY_FOR_REVIEW": "The Runner must dispatch Ubuntu Claude against the exact sealed candidate.",
+        "UNDER_REVIEW": "The candidate is frozen while Ubuntu Claude performs independent review.",
         "CHANGES_REQUIRED": "Codex must preserve every finding, resume implementation, and request re-review.",
         "PRODUCT_DECISION_REQUIRED": "Affected implementation is blocked until a durable human decision exists.",
         "PASS": "This PASS applies only to the recorded candidate and does not promote explicit human gates.",
@@ -729,8 +732,8 @@ def validate_review_result(
         return errors
     if state != "SUBMITTED":
         return errors + ["review_result: artifact_state must be EMPTY or SUBMITTED"]
-    if result.get("author_role") != "CHATGPT_WORK_REVIEWER":
-        errors.append("review_result: submitted result must be authored by CHATGPT_WORK_REVIEWER")
+    if result.get("author_role") != ACTIVE_REVIEWER_ROLE:
+        errors.append(f"review_result: submitted result must be authored by {ACTIVE_REVIEWER_ROLE}")
     if not result.get("reviewer_identity"):
         errors.append("review_result: reviewer_identity is required")
     if result.get("review_id") != request.get("review_id"):
@@ -884,11 +887,11 @@ def expected_history_actor(event: dict[str, Any]) -> str | None:
         "PROTOCOL_INITIALIZED": "CODEX_IMPLEMENTER",
         "READY_FOR_REVIEW": "CODEX_IMPLEMENTER",
         "INVALIDATED": "CODEX_IMPLEMENTER",
-        "UNDER_REVIEW": "CHATGPT_WORK_REVIEWER",
-        "CHANGES_REQUIRED": "CHATGPT_WORK_REVIEWER",
-        "PRODUCT_DECISION_REQUIRED": "CHATGPT_WORK_REVIEWER",
-        "PASS": "CHATGPT_WORK_REVIEWER",
-        "STALE_CANDIDATE": "CHATGPT_WORK_REVIEWER",
+        "UNDER_REVIEW": ACTIVE_REVIEWER_ROLE,
+        "CHANGES_REQUIRED": ACTIVE_REVIEWER_ROLE,
+        "PRODUCT_DECISION_REQUIRED": ACTIVE_REVIEWER_ROLE,
+        "PASS": ACTIVE_REVIEWER_ROLE,
+        "STALE_CANDIDATE": ACTIVE_REVIEWER_ROLE,
         "FIXES_PROPOSED": "CODEX_IMPLEMENTER",
         "HUMAN_DECISION_RECORDED": "HUMAN_DECISION_AUTHORITY",
         "STALE_CANDIDATE_INVALIDATED": "ORCHESTRATOR",
@@ -923,7 +926,11 @@ def validate_history_event_actors(
         corrected = event.get("corrected_actor_role")
         if expected is None:
             errors.append(f"review_history: {event_id} targets unsupported event type {target.get('event_type')!r}")
-        elif corrected != expected:
+        elif corrected != expected and not (
+            corrected == LEGACY_REVIEWER_ROLE
+            and expected == ACTIVE_REVIEWER_ROLE
+            and str(target.get("created_at", "")) < REVIEWER_ROLE_CUTOVER
+        ):
             errors.append(
                 f"review_history: {event_id} corrected_actor_role must be {expected}, got {corrected}"
             )
@@ -938,11 +945,19 @@ def validate_history_event_actors(
         effective = corrections.get(event_id, event.get("actor_role"))
         if expected is None:
             errors.append(f"review_history: {event_id} has unsupported event type {event.get('event_type')!r}")
-        elif effective != expected:
+        elif effective != expected and not (
+            effective == LEGACY_REVIEWER_ROLE
+            and expected == ACTIVE_REVIEWER_ROLE
+            and str(event.get("created_at", "")) < REVIEWER_ROLE_CUTOVER
+        ):
             errors.append(
                 f"review_history: {event_id} {event.get('event_type')} requires actor {expected}, got {effective}"
             )
-        effective_roles[event_id] = str(effective)
+        effective_roles[event_id] = (
+            ACTIVE_REVIEWER_ROLE
+            if effective == LEGACY_REVIEWER_ROLE and expected == ACTIVE_REVIEWER_ROLE
+            else str(effective)
+        )
     return errors, effective_roles
 
 
@@ -998,9 +1013,9 @@ def validate_review_history(
             new_status = finding.get("status")
             previous = replayed.get(finding_id)
             if previous is None:
-                if effective_roles.get(event_id) != "CHATGPT_WORK_REVIEWER":
+                if effective_roles.get(event_id) != ACTIVE_REVIEWER_ROLE:
                     errors.append(
-                        f"review_history: {event_id} finding {finding_id} creation requires CHATGPT_WORK_REVIEWER"
+                        f"review_history: {event_id} finding {finding_id} creation requires {ACTIVE_REVIEWER_ROLE}"
                     )
             elif previous.get("status") != new_status:
                 transition_actor = effective_roles.get(event_id, "")
@@ -1042,7 +1057,7 @@ def validate_review_history(
             actor_role = (
                 "CODEX_IMPLEMENTER"
                 if request is not None and request.get("status") == "IMPLEMENTING"
-                else "CHATGPT_WORK_REVIEWER"
+                else ACTIVE_REVIEWER_ROLE
             )
             if new_status == "SUPERSEDED_BY_HUMAN_DECISION":
                 linked_decisions = [
@@ -1134,11 +1149,11 @@ def validate_pending_review_result(repo: Path) -> tuple[list[str], dict[str, Any
 def validate_review_transition(old: str, new: str, actor_role: str) -> list[str]:
     allowed = {
         ("IMPLEMENTING", "READY_FOR_REVIEW"): "CODEX_IMPLEMENTER",
-        ("READY_FOR_REVIEW", "UNDER_REVIEW"): "CHATGPT_WORK_REVIEWER",
+        ("READY_FOR_REVIEW", "UNDER_REVIEW"): ACTIVE_REVIEWER_ROLE,
         ("READY_FOR_REVIEW", "IMPLEMENTING"): "CODEX_IMPLEMENTER",
-        ("UNDER_REVIEW", "CHANGES_REQUIRED"): "CHATGPT_WORK_REVIEWER",
-        ("UNDER_REVIEW", "PRODUCT_DECISION_REQUIRED"): "CHATGPT_WORK_REVIEWER",
-        ("UNDER_REVIEW", "PASS"): "CHATGPT_WORK_REVIEWER",
+        ("UNDER_REVIEW", "CHANGES_REQUIRED"): ACTIVE_REVIEWER_ROLE,
+        ("UNDER_REVIEW", "PRODUCT_DECISION_REQUIRED"): ACTIVE_REVIEWER_ROLE,
+        ("UNDER_REVIEW", "PASS"): ACTIVE_REVIEWER_ROLE,
         ("CHANGES_REQUIRED", "IMPLEMENTING"): "CODEX_IMPLEMENTER",
         ("PRODUCT_DECISION_REQUIRED", "IMPLEMENTING"): "HUMAN_DECISION_AUTHORITY",
     }
@@ -1153,8 +1168,8 @@ def validate_review_transition(old: str, new: str, actor_role: str) -> list[str]
 def validate_finding_transition(old: str, new: str, actor_role: str) -> list[str]:
     allowed = {
         ("OPEN", "FIXED_PENDING_REVIEW"): "CODEX_IMPLEMENTER",
-        ("FIXED_PENDING_REVIEW", "VERIFIED"): "CHATGPT_WORK_REVIEWER",
-        ("FIXED_PENDING_REVIEW", "OPEN"): "CHATGPT_WORK_REVIEWER",
+        ("FIXED_PENDING_REVIEW", "VERIFIED"): ACTIVE_REVIEWER_ROLE,
+        ("FIXED_PENDING_REVIEW", "OPEN"): ACTIVE_REVIEWER_ROLE,
         ("OPEN", "SUPERSEDED_BY_HUMAN_DECISION"): "HUMAN_DECISION_AUTHORITY",
         ("FIXED_PENDING_REVIEW", "SUPERSEDED_BY_HUMAN_DECISION"): "HUMAN_DECISION_AUTHORITY",
     }
@@ -1295,7 +1310,7 @@ def archive_review_artifact(
             if event_type == "HUMAN_DECISION_RECORDED"
             else "CODEX_IMPLEMENTER"
         ),
-    }.get(kind, "CHATGPT_WORK_REVIEWER")
+    }.get(kind, ACTIVE_REVIEWER_ROLE)
     append_history_event(
         repo,
         {
@@ -1492,8 +1507,8 @@ def prepare_review_request(
         "Deterministic verification passed for the exact candidate; semantic review is pending."
     )
     status["next_action"] = (
-        "STOP semantic progression. ChatGPT Work must follow .ai/REVIEWER_BOOTSTRAP.md and review "
-        f"{request['review_id']} at the recorded fingerprint."
+        "STOP implementation mutation. The production Runner must dispatch Ubuntu Claude for "
+        f"{request['review_id']}, relay the result to GitHub, and require canonical Consumer read-back."
     )
     write_status(repo, status)
     return {"review_id": request["review_id"], "candidate_fingerprint": fingerprint["value"], "snapshot": snapshot}
@@ -1503,7 +1518,7 @@ def accept_review_custody(repo: Path, reviewer_identity: str) -> None:
     request, result, _ = load_review_artifacts(repo)
     fingerprint = repository_fingerprint(repo)
     errors, _ = validate_review_artifacts(repo, fingerprint=fingerprint)
-    errors.extend(validate_review_transition(request.get("status"), "UNDER_REVIEW", "CHATGPT_WORK_REVIEWER"))
+    errors.extend(validate_review_transition(request.get("status"), "UNDER_REVIEW", ACTIVE_REVIEWER_ROLE))
     if result.get("artifact_state") != "EMPTY":
         errors.append("review_custody: result must be EMPTY")
     if not reviewer_identity:
@@ -1523,7 +1538,7 @@ def accept_review_custody(repo: Path, reviewer_identity: str) -> None:
         {
             "event_type": "UNDER_REVIEW",
             "review_id": request["review_id"],
-            "actor_role": "CHATGPT_WORK_REVIEWER",
+            "actor_role": ACTIVE_REVIEWER_ROLE,
             "candidate_fingerprint": request["candidate_fingerprint"],
             "snapshot_path": None,
             "snapshot_sha256": None,
@@ -1696,6 +1711,9 @@ def sync_implementing_fingerprint(
     fingerprint = repository_fingerprint(repo)
     _, status = load_plan_status(repo)
     status["updated_at"] = datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds")
+    status["git"]["branch"] = fingerprint.get("branch")
+    status["git"]["head"] = fingerprint.get("head")
+    status["git"]["checkpoint_commit"] = fingerprint.get("head")
     status["working_state"]["fingerprint"] = fingerprint["value"]
     status["verification"]["candidate_verified"] = False
     status["verification"]["control_plane_ready"] = False
@@ -1796,7 +1814,7 @@ def archive_submitted_result(repo: Path) -> dict[str, Any]:
     errors.extend(validate_decisions(decisions, repo, request))
     errors.extend(validate_review_result(request, result, decisions))
     errors.extend(validate_review_history(repo, result, request, decisions))
-    errors.extend(validate_review_transition(request.get("status"), result.get("verdict"), "CHATGPT_WORK_REVIEWER"))
+    errors.extend(validate_review_transition(request.get("status"), result.get("verdict"), ACTIVE_REVIEWER_ROLE))
     if errors:
         raise ValueError("; ".join(errors))
     snapshot = archive_review_artifact(
