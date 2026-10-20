@@ -6,7 +6,7 @@ This file records facts and recovery state; it does not define product requireme
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-20T17:32:21+08:00",
+  "updated_at": "2026-10-20T01:40:17+00:00",
   "goal_id": "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1",
   "goal_status": "active",
   "active_milestone_id": "AR-EXTERNAL-REVIEW",
@@ -14,16 +14,16 @@ This file records facts and recovery state; it does not define product requireme
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
-    "branch": "codex/pr26-r004-repair-20261020",
-    "head": "514712da91128468d716181a66a38a6f5de66a42",
+    "branch": "codex/source-library-successor-20261019",
+    "head": "f061211a79f283afd6172091849b21fcbdd88dde",
     "base_commit": "f35669e11970e42f6a3d0a9fe218fb2b904ed835",
     "base_pull_request": 22,
     "base_pull_request_state": "OPEN_DRAFT_UNMERGED",
-    "checkpoint_commit": "514712da91128468d716181a66a38a6f5de66a42"
+    "checkpoint_commit": "f061211a79f283afd6172091849b21fcbdd88dde"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "8628a2592772c0b819d4cb36bb3cd28db2c3d57786782846104d70cf2abda39f",
+    "fingerprint": "0293d366fe96775881b8e1384ab3af6002f3ea201ddff413cfcacf2c909a42f5",
     "starting_fingerprint": "e9355f736f6cd352955dae3311c7f86d5f9d4b01f10634ed4afce3360eaf61f8",
     "expected_dirty_policy": "Issue #8 may change only its product import/source-library/UI paths, bounded tests, requirement delivery evidence, and necessary control/review state. Existing Issue #19 closure receipts are preserved; unrelated changes are forbidden.",
     "preserved_preexisting_dirty_paths": [
@@ -70,15 +70,15 @@ This file records facts and recovery state; it does not define product requireme
     "unattended_writeback": "not_verified_human_approval_was_still_required"
   },
   "verification": {
-    "candidate_verified": true,
+    "candidate_verified": false,
     "release_verified": false,
-    "control_plane_ready": true,
+    "control_plane_ready": false,
     "last_green_milestone": "S2B-REVIEW-INTEGRATION-TASK",
     "last_candidate_evidence": "output/control-plane/verification-20261020T093221+0800.json",
     "last_verified_fingerprint": "8628a2592772c0b819d4cb36bb3cd28db2c3d57786782846104d70cf2abda39f",
-    "last_result": "Bounded PR #26 repair attempt 1 passed complete deterministic verification with a stable 8628a259 fingerprint: requirements 16, control-plane 135, product Python 348, and Node 60 tests all passed. release_verified remains false."
+    "last_result": "Round 8 review 5561321715 remains preserved as CHANGES_REQUIRED for PR #23/4b6e6ee/38eae708. Its bounded nonparagraph-quote R-004 counterexamples pass on f061211: 20 source-library domain tests and 11 HTTP POST/GET read-back tests passed in a temporary pinned-dependency environment. Full deterministic verification for the exact f061211 candidate remains pending because this checkout lacks the repository venv, Node/npm, and gh; release_verified remains false."
   },
-  "next_action": "Create a path-explicit clean checkpoint, re-verify the exact commit, then publish the changed PR #26 candidate through the existing controlled review flow.",
+  "next_action": "Keep finding-r-004 open and preserve External Round 8/Cycle 20/budget history. No further local R-004 change is justified by the inspected Round 8 evidence; provision the required repository toolchain, run the full deterministic verifier for the exact f061211 candidate, then use the separately authorized controlled PR #26 publication and independent-review flow. Do not push, merge, or promote human/release gates in this checkpoint.",
   "external_or_human_gates": [
     {
       "id": "PR22-STACKED-BASE",
@@ -89,6 +89,11 @@ This file records facts and recovery state; it does not define product requireme
       "id": "ISSUE8-INDEPENDENT-REVIEW",
       "status": "cycle_14_pass_cycle_15_authorized_pending_clean_checkpoint",
       "description": "Cycle 14 PASS remains valid only for revision db3b5ed+worktree:fe973f7b. Owner authorization permits exactly one replacement cycle 15 after a bounded checkpoint commit, shared clean-candidate gate, exact verification, read-only prepublication checks, pre-seal reservation, Seal, and identity read-back."
+    },
+    {
+      "id": "EXTERNAL-ROUND-8",
+      "status": "changes_required_historical_preserved",
+      "description": "External Round 8 review 5561321715 remains bound only to PR #23 commit 4b6e6eebcddcbd4ef21259a3ece6d92b276473ea and fingerprint 38eae708123a99a7abd04327ce079b05248e18646402285a6f83fb49f69a2330; it keeps finding-r-004 open and cannot be rebound to PR #26 or f061211."
     },
     {
       "id": "PA-HUMAN-1",
@@ -118,5 +123,5 @@ Goal `GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1` remains active at milestone `AR-EXTE
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Create a path-explicit clean checkpoint, re-verify the exact commit, then publish the changed PR #26 candidate through the existing controlled review flow.
+Exact next action: Keep finding-r-004 open and preserve External Round 8/Cycle 20/budget history. No further local R-004 change is justified by the inspected Round 8 evidence; provision the required repository toolchain, run the full deterministic verifier for the exact f061211 candidate, then use the separately authorized controlled PR #26 publication and independent-review flow. Do not push, merge, or promote human/release gates in this checkpoint.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.
