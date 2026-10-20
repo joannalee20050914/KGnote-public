@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/linking-phrase/v1/reviewed-set.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "candidate_set_id", "graph_snapshot_sha256", "reviewer_version", "reviewed_at", "summary", "decisions"],
+  "properties": {
+    "schema_version": {"const": "kgnote.linking-phrase-reviewed-set.v1"},
+    "candidate_set_id": {"type": "string", "pattern": "^linking_phrase_candidates_[0-9a-f]{64}$"},
+    "graph_snapshot_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "reviewer_version": {"const": "human-linking-phrase-review.v1"},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["accepted", "corrected", "rejected", "guided_map_ready"],
+      "properties": {
+        "accepted": {"type": "integer", "minimum": 0},
+        "corrected": {"type": "integer", "minimum": 0},
+        "rejected": {"type": "integer", "minimum": 0},
+        "guided_map_ready": {"type": "integer", "minimum": 0}
+      }
+    },
+    "decisions": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["edge_id", "action", "candidate_linking_phrase", "effective_linking_phrase", "subject_concept_id", "object_concept_id", "evidence_ids", "evidence_review_statuses", "guided_map_promotion_eligible"],
+        "properties": {
+          "edge_id": {"type": "string"},
+          "action": {"enum": ["accept", "correct", "reject"]},
+          "candidate_linking_phrase": {"type": "string", "minLength": 2, "maxLength": 80},
+          "effective_linking_phrase": {"type": ["string", "null"], "minLength": 2, "maxLength": 80},
+          "subject_concept_id": {"type": "string"},
+          "object_concept_id": {"type": "string"},
+          "evidence_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+          "evidence_review_statuses": {"type": "array", "minItems": 1, "items": {"enum": ["unreviewed", "accepted", "corrected"]}},
+          "guided_map_promotion_eligible": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f2eee6">
+    <title>KGnote · 學習地圖</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body class="guided-map-page">
+    <main class="map-shell">
+      <nav class="view-nav" role="tablist" aria-label="學習模式">
+        <button type="button" role="tab" id="reader-tab" aria-controls="reader-view" aria-selected="false" data-view="reader">閱讀</button>
+        <button type="button" role="tab" id="map-tab" aria-controls="map-view" aria-selected="true" data-view="map">學習地圖</button>
+        <button type="button" role="tab" id="graph-tab" aria-controls="graph-view" aria-selected="false" data-view="graph">探索</button>
+      </nav>
+
+      <header class="map-hero">
+        <div>
+          <p class="map-kicker">KGNOTE / GUIDED REVIEW</p>
+          <h1 id="map-title">學習地圖</h1>
+          <p class="map-intro">先沿著少量核心階段喚回輪廓，再用完整句子確認概念如何連接。需要核對時，可直接展開未改寫的原文。</p>
+        </div>
+        <div class="map-meta">
+          <span id="map-status">正在載入…</span>
+          <span id="map-counts"></span>
+        </div>
+      </header>
+
+      <section class="focus-card" aria-labelledby="focus-label">
+        <p id="focus-label">這張地圖只回答一個問題</p>
+        <h2 id="focus-question">正在載入焦點問題…</h2>
+      </section>
+
+      <aside class="selection-bar" aria-live="polite">
+        <span>目前焦點</span>
+        <strong id="selection-summary">尚未選取概念或關係</strong>
+        <span id="selection-candidates"></span>
+      </aside>
+
+      <section id="reader-view" class="view-panel" role="tabpanel" aria-labelledby="reader-tab" hidden>
+        <section class="map-section reader-section" aria-labelledby="reader-title">
+          <header class="section-heading">
+            <div><p>原文閱讀</p><h2 id="reader-title">教材原文</h2></div>
+            <p>原文逐行呈現、不改寫。選一段 Evidence 後，學習地圖與探索圖會保留同一組 Concept／Edge。</p>
+          </header>
+          <div id="reader-evidence" class="reader-evidence" aria-label="原文標註"></div>
+          <div id="reader-source" class="reader-source" aria-label="完整教材原文"></div>
+        </section>
+      </section>
+
+      <section id="map-view" class="view-panel" role="tabpanel" aria-labelledby="map-tab">
+        <section class="map-section" aria-labelledby="outline-title">
+          <header class="section-heading">
+            <div><p>第一層</p><h2 id="outline-title">核心輪廓</h2></div>
+            <p>點概念名稱可看固定定義；群組只負責閱讀順序，不是知識節點。</p>
+          </header>
+          <div id="map-outline" class="skeleton" aria-live="polite"></div>
+        </section>
+
+        <section class="map-section relation-section" aria-labelledby="relation-title">
+          <header class="section-heading">
+            <div><p>第二層</p><h2 id="relation-title">核心關係</h2></div>
+            <p>點一句關係即可同步選取；展開後可看到支持它的原文行。</p>
+          </header>
+          <div id="relationship-list" class="relationship-list"></div>
+        </section>
+      </section>
+
+      <section id="graph-view" class="view-panel" role="tabpanel" aria-labelledby="graph-tab" hidden>
+        <section class="map-section exploration-section" aria-labelledby="exploration-title">
+          <header class="section-heading">
+            <div><p>局部探索</p><h2 id="exploration-title">同一焦點的知識圖</h2></div>
+            <p>節點與關係沿用學習地圖的 ID、名稱、方向和 Teaching Proposition；點選後可切回原文定位。</p>
+          </header>
+          <div id="exploration-canvas" class="exploration-canvas" tabindex="0" aria-label="局部知識圖">
+            <svg id="exploration-graph" viewBox="0 0 1000 600" role="img" aria-labelledby="exploration-title"></svg>
+          </div>
+          <div id="graph-detail" class="graph-selection-detail" aria-live="polite"></div>
+        </section>
+      </section>
+
+      <section class="practice-card" aria-labelledby="practice-title">
+        <header>
+          <div><p>關係提取練習</p><h2 id="practice-title">補上中間的關係詞</h2></div>
+          <label>選一條關係
+            <select id="practice-edge" aria-label="要練習的關係"></select>
+          </label>
+        </header>
+        <p class="practice-note">這裡只比較你寫的關係詞和人工審核版本，不換算理解分數。</p>
+        <p id="practice-prompt" class="practice-prompt"></p>
+        <label class="practice-answer">你的關係詞
+          <input id="practice-input" type="text" maxlength="80" autocomplete="off" placeholder="例如：主動送出">
+        </label>
+        <div class="practice-actions">
+          <button id="practice-hint" type="button">顯示小提示</button>
+          <button id="practice-check" type="button">對照教材</button>
+          <button id="practice-save" type="button" disabled>保存這次練習</button>
+        </div>
+        <p id="practice-hint-text" class="practice-hint" hidden></p>
+        <p id="practice-message" class="practice-message" role="status" aria-live="polite"></p>
+        <div id="practice-result" class="practice-result" hidden></div>
+      </section>
+
+      <footer class="map-footer">
+        <p>原文、概念與關係不會被畫面改寫 · 練習另存為追加式紀錄</p>
+      </footer>
+    </main>
+    <script type="module" src="./guided-map-app.js"></script>
+  </body>
+</html>

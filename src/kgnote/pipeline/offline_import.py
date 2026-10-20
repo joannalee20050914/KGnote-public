@@ -5,9 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Mapping
 
 from kgnote.extraction import replay_extraction_response
 from kgnote.ingestion import SourceMetadata, import_markdown_source
@@ -90,6 +91,76 @@ def _source_record(extraction_input: dict[str, Any], registered_at: str) -> dict
     }
 
 
+def _locator_problem(candidate_result: Mapping[str, Any], content: str) -> str | None:
+    line_count = len(content.splitlines())
+    for collection in ("evidence", "learning_events"):
+        items = candidate_result.get(collection)
+        if not isinstance(items, list):
+            return "source_locator_invalid"
+        for item in items:
+            locator = item.get("locator") if isinstance(item, Mapping) else None
+            if not isinstance(locator, Mapping) or locator.get("kind") != "line_range":
+                return "source_locator_invalid"
+            match = re.fullmatch(r"L([1-9][0-9]*)-L([1-9][0-9]*)", str(locator.get("value", "")))
+            if match is None:
+                return "source_locator_invalid"
+            start, end = map(int, match.groups())
+            if start > end or end > line_count:
+                return "source_locator_out_of_bounds"
+    return None
+
+
+def build_candidate_import_preview(
+    *, extraction_input: Mapping[str, Any], candidate_result: Mapping[str, Any],
+    generated_at: str, store_root: str | os.PathLike[str],
+) -> OfflineImportPreview:
+    """Plan canonical integration for an already validated provider candidate."""
+
+    root = Path(store_root)
+    try:
+        source = extraction_input["source"]
+        source_id = source["id"]
+        source_bytes = source["content"].encode("utf-8")
+    except (KeyError, TypeError, AttributeError, UnicodeError):
+        return _rejected(root, "", "invalid_extraction_input")
+    locator_problem = _locator_problem(candidate_result, source["content"])
+    if locator_problem:
+        return _rejected(root, source_id, locator_problem)
+    normalized = normalize_candidate_result(candidate_result)
+    if normalized.status != "normalized":
+        return _rejected(root, source_id, f"normalization_{normalized.status}")
+    snapshot = read_canonical_store(root)
+    if snapshot.status != "loaded":
+        return _rejected(root, source_id, f"store_{snapshot.problem.code}")
+    raw_directory = root / "raw"
+    if raw_directory.is_symlink() or not raw_directory.is_dir():
+        return _rejected(root, source_id, "unsafe_raw_directory")
+    source_record = _source_record(dict(extraction_input), generated_at)
+    plan = plan_dry_run(normalized, snapshot.records, source_candidate=source_record)
+    if plan.status != "planned":
+        return _rejected(root, source_id, f"plan_{plan.problem.code}")
+    raw_relative_path = source_record["uri_or_path"]
+    raw_target = root / raw_relative_path
+    if raw_target.is_symlink():
+        return _rejected(root, source_id, "unsafe_raw_target")
+    if raw_target.exists() and raw_target.read_bytes() != source_bytes:
+        return _rejected(root, source_id, "raw_source_conflict")
+    approval_payload = {
+        "pipeline_version": OFFLINE_IMPORT_VERSION,
+        "plan_digest": plan_digest(plan),
+        "raw_relative_path": raw_relative_path,
+        "source_sha256": _sha256(source_bytes),
+        "store_root": snapshot.root,
+    }
+    approval_digest = _sha256(_canonical_json(approval_payload))
+    return OfflineImportPreview(
+        status="planned", store_root=snapshot.root, source_id=source_id,
+        source_bytes=len(source_bytes), source_sha256=_sha256(source_bytes),
+        raw_relative_path=raw_relative_path, plan=plan, approval_digest=approval_digest,
+        _source_bytes=source_bytes,
+    )
+
+
 def build_offline_import_preview(
     *, source_path: str | os.PathLike[str], response_path: str | os.PathLike[str],
     metadata: SourceMetadata, extractor_version: str, generated_at: str,
@@ -113,38 +184,11 @@ def build_offline_import_preview(
     )
     if attempt.status != "accepted":
         return _rejected(root, metadata.source_id, f"response_{attempt.rejection.code}")
-    normalized = normalize_candidate_result(attempt.candidate_result)
-    if normalized.status != "normalized":
-        return _rejected(root, metadata.source_id, f"normalization_{normalized.status}")
-    snapshot = read_canonical_store(root)
-    if snapshot.status != "loaded":
-        return _rejected(root, metadata.source_id, f"store_{snapshot.problem.code}")
-    raw_directory = root / "raw"
-    if raw_directory.is_symlink() or not raw_directory.is_dir():
-        return _rejected(root, metadata.source_id, "unsafe_raw_directory")
-    source_record = _source_record(extraction_input, generated_at)
-    plan = plan_dry_run(normalized, snapshot.records, source_candidate=source_record)
-    if plan.status != "planned":
-        return _rejected(root, metadata.source_id, f"plan_{plan.problem.code}")
-    raw_relative_path = source_record["uri_or_path"]
-    raw_target = root / raw_relative_path
-    if raw_target.is_symlink():
-        return _rejected(root, metadata.source_id, "unsafe_raw_target")
-    if raw_target.exists() and raw_target.read_bytes() != source_bytes:
-        return _rejected(root, metadata.source_id, "raw_source_conflict")
-    approval_payload = {
-        "pipeline_version": OFFLINE_IMPORT_VERSION,
-        "plan_digest": plan_digest(plan),
-        "raw_relative_path": raw_relative_path,
-        "source_sha256": _sha256(source_bytes),
-        "store_root": snapshot.root,
-    }
-    approval_digest = _sha256(_canonical_json(approval_payload))
-    return OfflineImportPreview(
-        status="planned", store_root=snapshot.root, source_id=metadata.source_id,
-        source_bytes=len(source_bytes), source_sha256=_sha256(source_bytes),
-        raw_relative_path=raw_relative_path, plan=plan, approval_digest=approval_digest,
-        _source_bytes=source_bytes,
+    return build_candidate_import_preview(
+        extraction_input=extraction_input,
+        candidate_result=attempt.candidate_result,
+        generated_at=generated_at,
+        store_root=root,
     )
 
 

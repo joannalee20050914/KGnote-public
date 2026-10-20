@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/import-review/v1/preview.schema.json",
+  "title": "KGnote human-readable import review preview v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source", "summary", "concepts", "evidence", "relationships", "learning_events", "blocking_items"],
+  "properties": {
+    "schema_version": {"const": "kgnote.import-review-preview.v1"},
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "title", "content_sha256", "line_count"],
+      "properties": {
+        "id": {"type": "string"}, "title": {"type": "string"},
+        "content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "line_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["concepts", "evidence", "relationships", "learning_events", "conflicts", "rejects", "apply_blocked"],
+      "properties": {
+        "concepts": {"type": "integer", "minimum": 0}, "evidence": {"type": "integer", "minimum": 0},
+        "relationships": {"type": "integer", "minimum": 0}, "learning_events": {"type": "integer", "minimum": 0},
+        "conflicts": {"type": "integer", "minimum": 0}, "rejects": {"type": "integer", "minimum": 0},
+        "apply_blocked": {"type": "boolean"}
+      }
+    },
+    "concepts": {"type": "array", "items": {"$ref": "#/$defs/concept"}},
+    "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
+    "relationships": {"type": "array", "items": {"$ref": "#/$defs/relationship"}},
+    "learning_events": {"type": "array", "items": {"$ref": "#/$defs/event"}},
+    "blocking_items": {"type": "array", "items": {"$ref": "#/$defs/blocking"}}
+  },
+  "$defs": {
+    "operation": {"enum": ["CREATE", "UPDATE", "UNCHANGED", "CONFLICT", "REJECT"]},
+    "endpoint": {
+      "type": "object", "additionalProperties": false, "required": ["id", "label", "type"],
+      "properties": {"id": {"type": "string"}, "label": {"type": "string"}, "type": {"enum": ["concept", "learning_event"]}}
+    },
+    "excerptLine": {
+      "type": "object", "additionalProperties": false, "required": ["number", "text"],
+      "properties": {"number": {"type": "integer", "minimum": 1}, "text": {"type": "string"}}
+    },
+    "concept": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "operation", "name", "aliases", "summary", "evidence_ids"],
+      "properties": {
+        "id": {"type": "string"}, "operation": {"$ref": "#/$defs/operation"}, "name": {"type": "string"},
+        "aliases": {"type": "array", "items": {"type": "string"}}, "summary": {"type": "string"},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "operation", "proposition", "locator", "source_excerpt"],
+      "properties": {
+        "id": {"type": "string"}, "operation": {"$ref": "#/$defs/operation"}, "proposition": {"type": "string"},
+        "locator": {"type": "object", "additionalProperties": false, "required": ["kind", "value"], "properties": {"kind": {"const": "line_range"}, "value": {"type": "string"}}},
+        "source_excerpt": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/excerptLine"}}
+      }
+    },
+    "relationship": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "operation", "edge_class", "subject", "relation", "linking_phrase", "linking_phrase_status", "object", "evidence_ids", "source_excerpts"],
+      "properties": {
+        "id": {"type": "string"}, "operation": {"$ref": "#/$defs/operation"}, "edge_class": {"enum": ["canonical", "learning", "soft_association"]},
+        "subject": {"$ref": "#/$defs/endpoint"}, "relation": {"type": ["string", "null"]},
+        "linking_phrase": {"type": ["string", "null"]}, "linking_phrase_status": {"const": "not_proposed"},
+        "object": {"$ref": "#/$defs/endpoint"}, "evidence_ids": {"type": "array", "items": {"type": "string"}},
+        "source_excerpts": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["evidence_id", "locator", "lines"], "properties": {"evidence_id": {"type": "string"}, "locator": {"type": "string"}, "lines": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/excerptLine"}}}}}
+      }
+    },
+    "event": {
+      "type": "object", "additionalProperties": false, "required": ["id", "operation", "event_type", "context", "concept_ids", "evidence_ids"],
+      "properties": {"id": {"type": "string"}, "operation": {"$ref": "#/$defs/operation"}, "event_type": {"type": "string"}, "context": {"type": "string"}, "concept_ids": {"type": "array", "items": {"type": "string"}}, "evidence_ids": {"type": "array", "items": {"type": "string"}}}
+    },
+    "blocking": {
+      "type": "object", "additionalProperties": false, "required": ["operation", "record_id", "record_type", "problem_code"],
+      "properties": {"operation": {"enum": ["CONFLICT", "REJECT"]}, "record_id": {"type": ["string", "null"]}, "record_type": {"type": ["string", "null"]}, "problem_code": {"type": "string"}}
+    }
+  }
+}

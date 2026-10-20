@@ -1,0 +1,18 @@
+:root { color-scheme: light; --ink: #192722; --muted: #65706b; --green: #173f35; --rust: #a45334; --paper: #f3eee4; --line: rgba(25,39,34,.16); }
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--ink); background: radial-gradient(circle at 94% 0, rgba(164,83,52,.14), transparent 30rem), var(--paper); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.source-shell { width: min(920px, 100%); margin: 0 auto; padding: clamp(24px, 6vw, 72px); }
+header > p, .source-meta p { margin: 0 0 10px; color: var(--rust); font-size: .68rem; font-weight: 850; letter-spacing: .16em; }
+h1 { max-width: 760px; margin: 0; font: 500 clamp(2.5rem, 7vw, 5.3rem)/.96 Georgia, serif; letter-spacing: -.045em; }
+.protocol-note { display: grid; gap: 8px; margin: 30px 0 50px; padding: 17px 20px; border-left: 4px solid var(--rust); color: #5e4a40; background: rgba(255,255,255,.45); line-height: 1.55; }
+section { overflow: hidden; border: 1px solid var(--line); border-radius: 24px; background: #fffdf8; box-shadow: 0 24px 70px rgba(25,39,34,.08); }
+.source-meta { display: flex; justify-content: space-between; align-items: end; gap: 24px; padding: 26px 30px; border-bottom: 1px solid var(--line); }
+.source-meta h2 { margin: 0; font: 500 clamp(1.3rem, 3vw, 2rem) Georgia, serif; }
+#source-locator { color: var(--muted); font: 700 .74rem ui-monospace, SFMono-Regular, Menlo, monospace; }
+.source-lines { margin: 0; padding: 22px 0; list-style-position: inside; counter-reset: source-line var(--start-line, 0); }
+.source-lines li { display: grid; grid-template-columns: 50px minmax(0,1fr); min-height: 31px; padding: 4px 28px 4px 0; color: #34413c; font: .84rem/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.source-lines li::before { counter-increment: source-line; content: counter(source-line); padding-right: 12px; color: #9ba29f; text-align: right; user-select: none; }
+.source-lines li:nth-child(even) { background: rgba(23,63,53,.025); }
+#source-status { margin: 0; padding: 0 30px 22px; color: var(--rust); }
+footer { margin-top: 24px; color: var(--muted); font-size: .72rem; line-height: 1.5; }
+@media (max-width: 560px) { .source-meta { align-items: start; flex-direction: column; } .source-lines li { grid-template-columns: 42px minmax(0,1fr); padding-right: 16px; font-size: .78rem; } }

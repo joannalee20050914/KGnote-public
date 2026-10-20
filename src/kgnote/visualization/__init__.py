@@ -13,6 +13,12 @@ from .application import (
     GraphViewApplicationResult,
     load_graph_view,
 )
+from .guided_map import (
+    GUIDED_MAP_PROJECTOR_VERSION,
+    GuidedMapProjectionProblem,
+    GuidedMapProjectionResult,
+    project_guided_map,
+)
 
 __all__ = [
     "GRAPH_PROJECTOR_VERSION",
@@ -26,4 +32,8 @@ __all__ = [
     "GraphViewApplicationProblem",
     "GraphViewApplicationResult",
     "load_graph_view",
+    "GUIDED_MAP_PROJECTOR_VERSION",
+    "GuidedMapProjectionProblem",
+    "GuidedMapProjectionResult",
+    "project_guided_map",
 ]

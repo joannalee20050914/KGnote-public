@@ -1,0 +1,79 @@
+{
+  "bundle": "KGnote requirements reconciliation candidate",
+  "created_on": "2026-09-20",
+  "source_attachment_included": false,
+  "product_repo_modified": false,
+  "product_scenarios_executed": false,
+  "files": [
+    {
+      "path": "ACCEPTANCE_SCENARIOS.md",
+      "bytes": 18393,
+      "sha256": "0e41b23c61cc676754cd5a0a13b56f26d8c87ae5c2eec2fce85591845d4eeab7"
+    },
+    {
+      "path": "AGENTS.requirements.md",
+      "bytes": 2426,
+      "sha256": "c9c610069a997047ccf510c11db45e14add5623989face9c564a753876200a4f"
+    },
+    {
+      "path": "CODEX_INTEGRATION_PROMPT.md",
+      "bytes": 4539,
+      "sha256": "2c766864c2cf10136b57d13003ab75b833ee8a8f3bdbdec3fa6395c8b576f05b"
+    },
+    {
+      "path": "DECISIONS_AND_CONFLICTS.md",
+      "bytes": 7881,
+      "sha256": "ba3b0f8aafbb9359764e635b46717d12cc89b77e6342d442a0f5aa6fc80ae943"
+    },
+    {
+      "path": "EXAMPLE_TASK_PACKET.md",
+      "bytes": 19935,
+      "sha256": "260625fd4163d32d41d4be62646d2444c98fa64d2d803eebc8d7aa40e08014db"
+    },
+    {
+      "path": "README.md",
+      "bytes": 6743,
+      "sha256": "33752523f2251819ca4a38226ed93e56e49267669db61ff829f0f34e778ca8fe"
+    },
+    {
+      "path": "REQUIREMENTS_TRACE.md",
+      "bytes": 56546,
+      "sha256": "7ba74dc38d48e0661cc88101e8973605c7bddb770aafbd9197f0f5782a6dd101"
+    },
+    {
+      "path": "SOURCE_INDEX.md",
+      "bytes": 60143,
+      "sha256": "06fa8c3587d7f9b2935b5197a4c7fa76d30b32bd8de9df347c38fdf294f24128"
+    },
+    {
+      "path": "TOOL_VALIDATION.txt",
+      "bytes": 2275,
+      "sha256": "5e592a87201ad122090645309a2a4ef9c3393940b89d02e238bc78d6001f1229"
+    },
+    {
+      "path": "requirements.json",
+      "bytes": 91173,
+      "sha256": "7f8751f9a92ab06c29769e1cb7de7c41cd6e210f5f56becdbbc9f4bf69864257"
+    },
+    {
+      "path": "requirements_guard.py",
+      "bytes": 18889,
+      "sha256": "449d78025fe5cfe9e9ee9291ea67322d554476038dd88eed8dd6e03cb64c7300"
+    },
+    {
+      "path": "scenarios.json",
+      "bytes": 22278,
+      "sha256": "bb56e44061ac8e18daa61b2fd28be2898715ef598e4eb26fc2591a48f28d5c02"
+    },
+    {
+      "path": "sources.json",
+      "bytes": 73857,
+      "sha256": "0cf99e52323ef676294f4b54aaebc9edc6f5db4810194b00afaa14f4b42e163c"
+    },
+    {
+      "path": "test_requirements_guard.py",
+      "bytes": 4295,
+      "sha256": "ca81a63edad57993947ba8acb129c1d26926ea3119762a3fce7653522f4b4bc4"
+    }
+  ]
+}

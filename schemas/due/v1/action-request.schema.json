@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/due/v1/action-request.schema.json",
+  "title": "Due action request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "action_id", "due_id", "action", "occurred_at", "snooze_until"],
+  "properties": {
+    "schema_version": {"const": "kgnote.due-action.v1"},
+    "action_id": {"type": "string", "pattern": "^action_[A-Za-z0-9_-]{1,180}$"},
+    "due_id": {"type": "string", "pattern": "^due_[a-f0-9]{32}$"},
+    "action": {"enum": ["snooze", "skip", "stop"]},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "snooze_until": {"type": ["string", "null"], "format": "date-time"}
+  }
+}

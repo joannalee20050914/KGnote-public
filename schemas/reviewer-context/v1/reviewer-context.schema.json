@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/reviewer-context/v1/reviewer-context.schema.json",
+  "title": "KGnote reviewer context v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "snapshot_sha256", "focus", "evidence", "sources", "neighborhood", "previous_confusion"],
+  "properties": {
+    "schema_version": {"const": "kgnote.reviewer-context.v1"},
+    "snapshot_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "focus": {"$ref": "https://kgnote.local/schemas/graph-read-model/v1/graph-read-model.schema.json#/$defs/conceptNode"},
+    "evidence": {"type": "array", "items": {"$ref": "https://kgnote.local/schemas/graph-read-model/v1/graph-read-model.schema.json#/$defs/evidence"}},
+    "sources": {"type": "array", "items": {"$ref": "https://kgnote.local/schemas/graph-read-model/v1/graph-read-model.schema.json#/$defs/source"}},
+    "neighborhood": {
+      "type": "object", "additionalProperties": false,
+      "required": ["nodes", "links"],
+      "properties": {
+        "nodes": {"type": "array", "items": {"oneOf": [
+          {"$ref": "https://kgnote.local/schemas/graph-read-model/v1/graph-read-model.schema.json#/$defs/conceptNode"},
+          {"$ref": "https://kgnote.local/schemas/graph-read-model/v1/graph-read-model.schema.json#/$defs/learningEventNode"}
+        ]}},
+        "links": {"type": "array", "items": {"$ref": "https://kgnote.local/schemas/graph-read-model/v1/graph-read-model.schema.json#/$defs/link"}}
+      }
+    },
+    "previous_confusion": {
+      "type": "object", "additionalProperties": false,
+      "required": ["events", "links", "evidence_ids"],
+      "properties": {
+        "events": {"type": "array", "items": {"$ref": "https://kgnote.local/schemas/graph-read-model/v1/graph-read-model.schema.json#/$defs/learningEventNode"}},
+        "links": {"type": "array", "items": {"$ref": "https://kgnote.local/schemas/graph-read-model/v1/graph-read-model.schema.json#/$defs/link"}},
+        "evidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^evidence_[A-Za-z0-9_-]+$"}}
+      }
+    }
+  }
+}

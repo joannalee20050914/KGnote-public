@@ -1,0 +1,19 @@
+{
+  "schema_version": "kgnote.claim-review-overlay.v1",
+  "learning_unit_id": "guided_map_os_safety_efficiency_review",
+  "graph_snapshot_sha256": "0f9d6d50f5c87e5b8eb16f5d187032d648a1eca652f6e78aaee96fd93f5d6f18",
+  "reviewed_at": "2026-09-20T00:00:00+08:00",
+  "reviewer": "manual.prototype-review.v1",
+  "reviews": [
+    {"claim_id":"edge_os_aging_starvation","claim_revision":1,"proposition_sha256":"8560452c131cc2f8b374fe0bb806666c7d1d6a8cd2b1d4cb25c8f19c8d685f2c","source_support":"supported","factual_status":"verified","teaching_answer_status":"ready","reason":"人工 fixture 已核對原文定位，可供 prototype 練習。"},
+    {"claim_id":"edge_os_application_system_call","claim_revision":1,"proposition_sha256":"be55a8a89aab839558d58f129393cbc54575b08a233546ddbd7f62b5a40e51ec","source_support":"supported","factual_status":"verified","teaching_answer_status":"ready","reason":"人工 fixture 已核對原文定位，可供 prototype 練習。"},
+    {"claim_id":"edge_os_context_pcb","claim_revision":1,"proposition_sha256":"75f279314d09383b1019986df95ae09b7dace84fabe93bd79fe6462e17dfdc1a","source_support":"supported","factual_status":"verified","teaching_answer_status":"ready","reason":"人工 fixture 已核對原文定位，可供 prototype 練習。"},
+    {"claim_id":"edge_os_dma_cpu","claim_revision":1,"proposition_sha256":"224ee891b8363a680b29dbc4835715137fdaeebaca51b018cfc88a5c3b5bb6b2","source_support":"supported","factual_status":"verified","teaching_answer_status":"ready","reason":"人工 fixture 已核對原文定位，可供 prototype 練習。"},
+    {"claim_id":"edge_os_interrupt_driver","claim_revision":1,"proposition_sha256":"cef56fce8c12194a7a119c8dd0d00431cfad80495efde26826e326903076ba61","source_support":"supported","factual_status":"needs_revision","teaching_answer_status":"blocked","reason":"原文把中斷處理流程壓縮成 CPU 直接呼叫驅動程式；角色與控制流程待修訂，不可作標準答案。"},
+    {"claim_id":"edge_os_lock_race","claim_revision":1,"proposition_sha256":"5b6a7a17225e58cfb07a72b8945a732c1c235cbcc61e2824c5e72e71d38a5356","source_support":"supported","factual_status":"verified","teaching_answer_status":"ready","reason":"人工 fixture 已核對原文定位，可供 prototype 練習。"},
+    {"claim_id":"edge_os_os_hardware","claim_revision":1,"proposition_sha256":"e10e647ada68c91c87057fc3e38bc293611b09d3be99f433a87914858f8c1e8d","source_support":"supported","factual_status":"verified","teaching_answer_status":"ready","reason":"人工 fixture 已核對原文定位，可供 prototype 練習。"},
+    {"claim_id":"edge_os_process_pcb","claim_revision":1,"proposition_sha256":"59659d1bd72b2748e1c7a099451156d4b484672c873bf3c85a1912e446e554c4","source_support":"supported","factual_status":"verified","teaching_answer_status":"ready","reason":"人工 fixture 已核對原文定位，可供 prototype 練習。"},
+    {"claim_id":"edge_os_quantum_context","claim_revision":1,"proposition_sha256":"6cbcb92ca9cd7c6f5ef021094e0f5dfd91e6af994a0108653c0df1b69cff0ea2","source_support":"supported","factual_status":"verified","teaching_answer_status":"ready","reason":"人工 fixture 已核對原文定位，可供 prototype 練習。"},
+    {"claim_id":"edge_os_system_call_kernel","claim_revision":1,"proposition_sha256":"74e8a863fdfe63f04323070cdc27f27234b09c269573a862e1ca24f1dcee5f86","source_support":"supported","factual_status":"verified","teaching_answer_status":"ready","reason":"人工 fixture 已核對原文定位，可供 prototype 練習。"}
+  ]
+}
