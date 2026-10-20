@@ -23,7 +23,7 @@ from github_product_review_consumer import (  # noqa: E402
 COMMIT = "c" * 40
 FINGERPRINT = "d" * 64
 GOAL_ID = "goal-isolated-exact-review-integration"
-ROUND = 15
+ROUND = 5
 
 
 class ExactReviewIntegrationTests(unittest.TestCase):

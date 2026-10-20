@@ -13,7 +13,7 @@
   "requirements_baseline_id":"kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git":{"branch":"codex/mainline-integration-20261020","head":"fdfb952d5ae80f0f9db51a11774230c3c3e5fe5e","base_commit":"827e4aa863fefea6f7d4a9e6120d5845bec3b9fd","checkpoint_commit":"fdfb952d5ae80f0f9db51a11774230c3c3e5fe5e"},
   "working_state":{"fingerprint_algorithm":"sha256-canonical-json-v3-branch-independent-review-bus-exclusions","fingerprint":"abca7547bf142c9e8572b64f92dc7f359dd13ba2be2114a67d0c05d960fec37d","starting_fingerprint":"abca7547bf142c9e8572b64f92dc7f359dd13ba2be2114a67d0c05d960fec37d","expected_dirty_policy":"Only the authorized clean mainline integration candidate, tests and evidence may change.","preserved_preexisting_dirty_paths":[],"unexpected_dirty_paths":[]},
-  "implementation_state":"VALIDATING",
+  "implementation_state":"IMPLEMENTING",
   "review":{"state":"IMPLEMENTING","current_review_id":null,"candidate_revision":null,"candidate_fingerprint":null,"unresolved_findings":[],"human_decision_blockers":[]},
   "verification":{"candidate_verified":false,"release_verified":false,"control_plane_ready":false,"last_candidate_evidence":null,"last_verified_fingerprint":null,"last_result":"Integration candidate assembled; deterministic verification pending."},
   "integration":{"source_prs":[1,22,26],"strategy":"single main-based integration PR","historical_active_snapshots_imported":false,"automatic_merge":false,"issue8_status":"integration_pending","issue9_status":"not_ready"},
@@ -26,4 +26,9 @@
 
 ## Human-readable handoff
 
-This is a new main-based integration candidate. PR #26 Round 5 is provenance only and cannot verify this HEAD.
+Goal `GOAL-KGNOTE-MAINLINE-INTEGRATION-20261020` remains active at milestone `MAINLINE-INTEGRATION-CANDIDATE`.
+Review state is `IMPLEMENTING`.
+There is no active submitted review request.
+Unresolved findings: none. Human decision blockers: none.
+Exact next action: Run deterministic verification, seal exact candidate, then use the remaining authorized Ubuntu Claude review round through the formal Runner.
+PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

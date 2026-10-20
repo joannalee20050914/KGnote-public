@@ -1,32 +1,23 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "orch-5d3a8c37bf4f",
-  "active_goal": "GOAL-ISSUE-24-REQUIRED-GAPS-20261019",
-  "work_package": "ISSUE24-M1-M3-M4-M5",
+  "run_id": "mainline-integration-20261020",
+  "active_goal": "GOAL-KGNOTE-MAINLINE-INTEGRATION-20261020",
+  "work_package": "MAINLINE-INTEGRATION-CANDIDATE",
   "state": "IMPLEMENTING",
   "current_agent": null,
-  "candidate_fingerprint": "cf0d459e6f1948500845c3d9a69490d11f7e25d93a8a90cc4bcdf696457ddd17",
+  "candidate_fingerprint": null,
   "review_id": null,
   "review_cycle": 0,
-  "max_review_cycles": 5,
+  "max_review_cycles": 1,
   "agent_failures": 0,
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Implement M3 first, then the shared M1/M4/M5 paths; run fake-only regression and full verifier before fixed-SHA deployment.",
+  "next_action": "Complete deterministic verification and seal the new main-based candidate before using the one remaining Ubuntu Claude review round.",
   "human_action_required": false,
-  "candidate_custody": {
-    "status": "NONE",
-    "owner": null,
-    "review_id": null,
-    "fingerprint": null
-  },
-  "next_human_checkpoint": {
-    "id": "D2-T14-FINAL-HUMAN-ACCEPTANCE",
-    "status": "not_eligible_incomplete_product_scope",
-    "description": "Issue #21 RC-01 through RC-34, all required features/dependencies/integration/delivery evidence and one exact complete candidate are not yet complete."
-  },
+  "candidate_custody": {"status":"NONE","owner":null,"review_id":null,"fingerprint":null},
+  "next_human_checkpoint": {"id":"GITHUB-REQUIRED-APPROVAL","status":"not_eligible_candidate_unreviewed","description":"Required GitHub approval applies only after exact-candidate verification and Ubuntu Claude review."},
   "last_agent_run": null,
-  "created_at": "2026-10-19T16:13:51+08:00",
-  "updated_at": "2026-10-19T16:13:51+08:00"
+  "created_at": "2026-10-20T11:10:00+08:00",
+  "updated_at": "2026-10-20T11:10:00+08:00"
 }

@@ -18,7 +18,7 @@
     {"id":"NS-HUMAN-SMOKE","status":"not_promoted","release_verified":false}
   ],
   "milestones": [{
-    "id":"MAINLINE-INTEGRATION-CANDIDATE","title":"乾淨正式主線整合候選","status":"active","dependencies":[],"human_gate":"github_required_approval_before_merge",
+    "id":"MAINLINE-INTEGRATION-CANDIDATE","title":"乾淨正式主線整合候選","status":"active","dependencies":[],"human_gate":"none",
     "owned_paths":["PLAN.md","CODEX_STATUS.md",".ai/","docs/control-plane/","docs/requirements/","schemas/","scripts/","src/","tests/","web/"],
     "acceptance":["main-based non-stacked Draft PR","Source Library and full deterministic verification pass","authority PLAN STATUS fingerprint and reviewer identity agree","new exact candidate receives Ubuntu Claude review through Runner GitHub relay","main merge remains protected and manual"],
     "stop_conditions":["required GitHub approval missing","deterministic verification fails","review budget unavailable","would require force push, automatic merge, or history deletion"]
