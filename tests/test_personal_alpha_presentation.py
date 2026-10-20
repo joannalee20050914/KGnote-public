@@ -287,7 +287,8 @@ class LearnerProjectionTests(unittest.TestCase):
             item["label"]: item["explanation"] for item in glossary["concepts"]
         }
         self.assertIn("is a three-note chord", glossary_explanations["Triad"])
-        self.assertIn("refers to notes heard", glossary_explanations["Chord"])
+        self.assertIn("the source writes **Chord**", glossary_explanations["Chord"])
+        self.assertIn("notes heard as one harmonic unit", glossary_explanations["Chord"])
         self.assertNotIn("causes", {item["relation"] for item in glossary["relationships"]})
         self.assertEqual(procedural["source_shape"], "procedural")
         self.assertIn("Fill a tray", procedural["learning_path"][0])
@@ -312,6 +313,30 @@ class LearnerProjectionTests(unittest.TestCase):
         ).as_dict()
         self.assertTrue(glossary["beginner_brief"].startswith("Start with the original material"))
         self.assertNotIn("external", " ".join(item["message"] for item in glossary["prerequisite_gaps"]).casefold())
+
+    def test_held_out_natural_prose_is_not_rewritten_or_fixture_scripted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "field-notes.md"
+            source.write_text(
+                "# Field notes\n\n"
+                "**Database**: stores durable records.\n\n"
+                "**Queue**: work waiting for a later handler.\n\n"
+                "**Cache** appears beside the database in this note.\n",
+                encoding="utf-8",
+            )
+            projection = project_learner_workspace(
+                build_learning_workspace_preview(source).payload
+            ).as_dict()
+        explanations = {item["label"]: item["explanation"] for item in projection["concepts"]}
+        self.assertIn("**Database** stores durable records.", explanations["Database"])
+        self.assertIn("the source writes **Queue**", explanations["Queue"])
+        self.assertNotIn("refers to work waiting", explanations["Queue"])
+        self.assertNotIn("Establish the network path", projection["learning_path"])
+        cache_gap = next(item for item in projection["prerequisite_gaps"] if item["label"] == "Cache")
+        self.assertEqual(cache_gap["kind"], "source_definition_gap")
+        self.assertTrue(cache_gap["source_locator"].startswith("L"))
+        self.assertIn("Recheck that passage", cache_gap["message"])
+        self.assertIn("Continue Here", cache_gap["message"])
 
     def test_definition_and_unreviewed_relation_do_not_leak_as_settled_truth(self):
         with tempfile.TemporaryDirectory() as directory:

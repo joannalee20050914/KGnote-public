@@ -15,6 +15,22 @@ _SPACE = re.compile(r"\s+")
 _ILLEGAL_FILENAME = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
 _RESERVED_FILENAME = re.compile(r"^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$", re.I)
 _MARKUP = re.compile(r"(?:\*\*|__)")
+_DEFINITION_VERBS = frozenset(
+    {
+        "are",
+        "contains",
+        "describes",
+        "identifies",
+        "is",
+        "keeps",
+        "maps",
+        "means",
+        "refers",
+        "requires",
+        "stores",
+        "uses",
+    }
+)
 
 
 @dataclass(frozen=True, repr=False)
@@ -162,20 +178,14 @@ def _concept_explanation(
         first_word = _plain(tail).split(" ", 1)[0].casefold()
         if first_word in {"a", "an", "the"}:
             connector = "is "
-        elif first_word in {
-            "identifies",
-            "means",
-            "refers",
-            "maps",
-            "requires",
-            "contrasts",
-            "keeps",
-            "is",
-            "are",
-        }:
+        elif first_word in _DEFINITION_VERBS:
             connector = ""
         else:
-            connector = "refers to "
+            explanation = (
+                f"In this material, the source writes **{name}**: “{_sentence(tail)}” "
+                "KGnote does not rewrite that clause."
+            )
+            return explanation, None, explanation
         explanation = f"In this material, **{name}** {connector}{_sentence(tail).lstrip()}"
         return explanation, None, explanation
 
@@ -223,8 +233,7 @@ def _concept_explanation(
         explanation = f"In this material, **{name}** appears in the selected source."
         role = explanation
     limitation = (
-        f"This source does not provide a broader standalone definition of "
-        f"{'ports' if name.casefold() == 'port' else name}, "
+        f"This source does not provide a broader standalone definition of {name}, "
         "so KGnote does not invent one here."
     )
     return explanation, limitation, role
@@ -291,32 +300,12 @@ def _related_concepts(
 
 
 def _learning_goal(title: str) -> str:
-    if title.casefold() == "how a browser reaches a local service":
-        return "How does a browser reach the intended local service and get a result back?"
     if title.endswith(("?", "？")):
         return title
     return f"What should you understand about {title}?"
 
 
 def _learning_path(payload: Mapping[str, Any]) -> list[str]:
-    labels = {str(item["canonical_name_candidate"]).casefold() for item in payload["concepts"]}
-    relation_types = {item["relation"] for item in payload["relations"]}
-    if {
-        "ip address",
-        "network connection",
-        "http request",
-        "port",
-        "service endpoint",
-        "http response",
-        "status code",
-    }.issubset(labels) and {"requires", "maps_to", None}.issubset(relation_types):
-        return [
-            "Establish the network path.",
-            "Identify the host.",
-            "Select the service.",
-            "Send the HTTP request.",
-            "Read the HTTP response and status code.",
-        ]
     numbered_steps: dict[int, str] = {}
     for evidence in payload["evidence"]:
         excerpt = str(evidence["excerpt"]).strip()
@@ -369,19 +358,31 @@ def _prerequisite_gaps(concepts: list[Mapping[str, Any]]) -> list[dict[str, str]
     Concept.  These rows deliberately point back to the already projected term.
     """
 
-    return [
-        {
-            "concept_id": str(item["id"]),
-            "label": str(item["label"]),
-            "path": str(item["path"]),
-            "message": (
-                f"This material uses **{item['label']}** but does not give a broader "
-                "standalone definition. Treat it as a gap to resolve before relying on it."
-            ),
-        }
-        for item in concepts
-        if item["limitation"] is not None
-    ]
+    gaps: list[dict[str, str]] = []
+    for item in concepts:
+        if item["limitation"] is None:
+            continue
+        evidence_groups = item["evidence_groups"]
+        locator = (
+            str(evidence_groups[0]["locator"]["value"])
+            if evidence_groups
+            else "the marked source passage"
+        )
+        gaps.append(
+            {
+                "concept_id": str(item["id"]),
+                "label": str(item["label"]),
+                "path": str(item["path"]),
+                "kind": "source_definition_gap",
+                "source_locator": locator,
+                "message": (
+                    f"This material uses **{item['label']}** at `{locator}` but does not give a "
+                    "broader standalone definition. Recheck that passage; if you need that depth, "
+                    "add a question in Continue Here or ask for a source-backed explanation before relying on it."
+                ),
+            }
+        )
+    return gaps
 
 
 def project_learner_workspace(payload: Mapping[str, Any]) -> LearnerProjection:
