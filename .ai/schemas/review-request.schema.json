@@ -33,6 +33,19 @@
         "properties": {"name": {"type": "string"}, "status": {"enum": ["PASS", "FAIL", "NOT_RUN"]}, "evidence": {"type": "string"}}
       }
     },
+    "completion_evidence": {
+      "type": ["object", "null"],
+      "properties": {
+        "schema_version": {"const": "kgnote.review-completion-summary.v1"},
+        "applicable": {"type": "boolean"},
+        "passed": {"const": true},
+        "evidence_path": {"type": ["string", "null"]},
+        "evidence_sha256": {"type": ["string", "null"]},
+        "claims": {"type": "array"}
+      },
+      "required": ["schema_version", "applicable", "passed", "evidence_path", "evidence_sha256", "claims"],
+      "additionalProperties": false
+    },
     "known_deviations": {"type": "array", "items": {"type": "string"}},
     "known_uncertainties": {"type": "array", "items": {"type": "string"}},
     "reviewer_focus": {"type": "array", "items": {"type": "string"}},

@@ -461,6 +461,11 @@ def validate_review_request(
     ):
         if not isinstance(request.get(name), list):
             errors.append(f"review_request: {name} must be an array")
+    completion = request.get("completion_evidence")
+    if completion is not None and (
+        not isinstance(completion, dict) or completion.get("passed") is not True
+    ):
+        errors.append("review_request: completion_evidence must be a passing summary when present")
     identities = request.get("authorized_human_decision_identities")
     if not isinstance(identities, list) or not identities or any(
         not isinstance(item, str) or not item.strip() for item in identities
@@ -498,6 +503,29 @@ def validate_review_request(
                 "stale_review: request fingerprint does not match current candidate; "
                 f"expected {candidate}, got {fingerprint.get('value')}"
             )
+        try:
+            plan, _ = load_plan_status(repo)
+        except (OSError, ValueError, json.JSONDecodeError):
+            plan = {}
+        milestone = active_milestone(plan)
+        gate = milestone.get("completion_gate") if isinstance(milestone, dict) else None
+        if gate is not None:
+            completion = request.get("completion_evidence")
+            if (
+                not isinstance(completion, dict)
+                or completion.get("applicable") is not True
+                or completion.get("passed") is not True
+                or completion.get("evidence_path") != gate.get("evidence_path")
+            ):
+                errors.append(
+                    "review_request: active milestone requires matching passing completion_evidence"
+                )
+            else:
+                path = repo / str(gate.get("evidence_path"))
+                if not path.is_file() or completion.get("evidence_sha256") != sha256_file(path):
+                    errors.append(
+                        "review_request: completion_evidence digest does not match current evidence"
+                    )
     return errors
 
 
@@ -1327,7 +1355,267 @@ def archive_review_artifact(
     return snapshot
 
 
-def load_verification_evidence(repo: Path, relative: str, fingerprint: dict[str, Any]) -> dict[str, Any]:
+def active_milestone(plan: dict[str, Any]) -> dict[str, Any] | None:
+    active_id = plan.get("active_milestone_id")
+    return next(
+        (
+            item
+            for item in plan.get("milestones", [])
+            if isinstance(item, dict) and item.get("id") == active_id
+        ),
+        None,
+    )
+
+
+def validate_review_completion_gate(
+    repo: Path, plan: dict[str, Any]
+) -> tuple[dict[str, Any], list[str]]:
+    """Validate an opt-in, milestone-local completion evidence record.
+
+    The record does not decide product semantics.  It makes the implementer's
+    completion claim auditable before a scarce reviewer round is dispatched:
+    exact product entrypoints, positive and negative selectors, and every
+    milestone-required evidence kind must be present and honestly PASS.
+    """
+    summary: dict[str, Any] = {
+        "schema_version": "kgnote.review-completion-summary.v1",
+        "applicable": False,
+        "passed": True,
+        "evidence_path": None,
+        "evidence_sha256": None,
+        "claims": [],
+    }
+    milestone = active_milestone(plan)
+    gate = milestone.get("completion_gate") if isinstance(milestone, dict) else None
+    if gate is None:
+        return summary, []
+    summary["applicable"] = True
+    errors: list[str] = []
+    if not isinstance(gate, dict):
+        return {**summary, "passed": False}, [
+            "review_completion_gate: active milestone completion_gate must be an object"
+        ]
+    relative = gate.get("evidence_path")
+    if not isinstance(relative, str) or not relative:
+        return {**summary, "passed": False}, [
+            "review_completion_gate: evidence_path is required"
+        ]
+    path = (repo / relative).resolve()
+    try:
+        path.relative_to(repo.resolve())
+    except ValueError:
+        return {**summary, "passed": False}, [
+            "review_completion_gate: evidence_path escapes repository"
+        ]
+    summary["evidence_path"] = relative
+    if not path.is_file():
+        return {**summary, "passed": False}, [
+            f"review_completion_gate: missing evidence file {relative}"
+        ]
+    try:
+        evidence = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {**summary, "passed": False}, [
+            f"review_completion_gate: invalid evidence file: {exc}"
+        ]
+    summary["evidence_sha256"] = sha256_file(path)
+    if not isinstance(evidence, dict):
+        return {**summary, "passed": False}, [
+            "review_completion_gate: evidence root must be an object"
+        ]
+    if evidence.get("schema_version") != "kgnote.review-completion-evidence.v1":
+        errors.append("review_completion_gate: unsupported evidence schema_version")
+    if evidence.get("goal_id") != plan.get("goal_id"):
+        errors.append("review_completion_gate: evidence goal_id does not match PLAN")
+    if evidence.get("milestone_id") != plan.get("active_milestone_id"):
+        errors.append("review_completion_gate: evidence milestone_id does not match active milestone")
+
+    try:
+        scenarios_value = json.loads(
+            (repo / "docs/requirements/scenarios.json").read_text(encoding="utf-8")
+        )
+        known_scenarios = {
+            item.get("id")
+            for item in scenarios_value.get("scenarios", [])
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+    except (OSError, json.JSONDecodeError, AttributeError) as exc:
+        known_scenarios = set()
+        errors.append(f"review_completion_gate: cannot read scenario catalog: {exc}")
+
+    raw_claims = evidence.get("claims")
+    if not isinstance(raw_claims, list):
+        raw_claims = []
+        errors.append("review_completion_gate: claims must be an array")
+    claims: dict[str, dict[str, Any]] = {}
+    for claim in raw_claims:
+        if not isinstance(claim, dict) or not isinstance(claim.get("claim_id"), str):
+            errors.append("review_completion_gate: each claim requires a string claim_id")
+            continue
+        claim_id = claim["claim_id"]
+        if claim_id in claims:
+            errors.append(f"review_completion_gate: duplicate claim {claim_id}")
+            continue
+        claims[claim_id] = claim
+
+    required_claims = gate.get("required_claims")
+    if not isinstance(required_claims, list):
+        required_claims = []
+        errors.append("review_completion_gate: required_claims must be an array")
+    for requirement in required_claims:
+        if not isinstance(requirement, dict) or not isinstance(requirement.get("claim_id"), str):
+            errors.append("review_completion_gate: required claim configuration is invalid")
+            continue
+        claim_id = requirement["claim_id"]
+        claim = claims.get(claim_id)
+        claim_summary: dict[str, Any] = {
+            "claim_id": claim_id,
+            "disposition": claim.get("disposition") if claim else None,
+            "evidence_status": {},
+        }
+        summary["claims"].append(claim_summary)
+        if claim is None:
+            errors.append(f"{claim_id}: required completion claim is missing")
+            continue
+
+        finding_ids = claim.get("finding_ids")
+        if not isinstance(finding_ids, list):
+            errors.append(f"{claim_id}: finding_ids must be an array")
+            finding_ids = []
+        disposition = claim.get("disposition")
+        if disposition == "VERIFIED":
+            errors.append(f"{claim_id}: Codex may not declare VERIFIED")
+        if finding_ids and disposition != "FIXED_PENDING_REVIEW":
+            errors.append(
+                f"{claim_id}: reviewer findings must remain FIXED_PENDING_REVIEW until reviewer verification"
+            )
+        for field in ("authority_refs", "forbidden_substitutes"):
+            values = claim.get(field)
+            if not isinstance(values, list) or not values or any(
+                not isinstance(item, str) or not item.strip() for item in values
+            ):
+                errors.append(f"{claim_id}: {field} must be a non-empty string array")
+        for field in ("observable_behavior", "resolution_basis"):
+            if not isinstance(claim.get(field), str) or not claim[field].strip():
+                errors.append(f"{claim_id}: {field} is required")
+
+        entrypoints = claim.get("product_entrypoints")
+        if not isinstance(entrypoints, list):
+            entrypoints = []
+            errors.append(f"{claim_id}: product_entrypoints must be an array")
+        required_entrypoints = requirement.get("required_product_entrypoints", [])
+        if not isinstance(required_entrypoints, list):
+            required_entrypoints = []
+            errors.append(f"{claim_id}: required_product_entrypoints must be an array")
+        for required in required_entrypoints:
+            if required not in entrypoints:
+                errors.append(f"{claim_id}: required product entrypoint {required} is missing")
+        for relative_entrypoint in entrypoints:
+            if not isinstance(relative_entrypoint, str) or not relative_entrypoint:
+                errors.append(f"{claim_id}: product entrypoints must be non-empty strings")
+                continue
+            entrypoint = (repo / relative_entrypoint).resolve()
+            try:
+                entrypoint.relative_to(repo.resolve())
+            except ValueError:
+                errors.append(f"{claim_id}: product entrypoint escapes repository: {relative_entrypoint}")
+                continue
+            if not entrypoint.is_file():
+                errors.append(f"{claim_id}: product entrypoint does not exist: {relative_entrypoint}")
+
+        acceptance = claim.get("acceptance_scenarios")
+        if not isinstance(acceptance, list):
+            acceptance = []
+            errors.append(f"{claim_id}: acceptance_scenarios must be an array")
+        polarities: set[str] = set()
+        observed_scenarios: set[str] = set()
+        for case in acceptance:
+            if not isinstance(case, dict):
+                errors.append(f"{claim_id}: acceptance scenario must be an object")
+                continue
+            polarity = case.get("polarity")
+            if polarity not in {"positive", "negative"}:
+                errors.append(f"{claim_id}: acceptance scenario polarity must be positive or negative")
+            else:
+                polarities.add(polarity)
+            scenario_id = case.get("scenario_id")
+            if scenario_id not in known_scenarios:
+                errors.append(f"{claim_id}: unknown scenario {scenario_id}")
+            elif isinstance(scenario_id, str):
+                observed_scenarios.add(scenario_id)
+            refs = case.get("test_refs")
+            if not isinstance(refs, list) or not refs:
+                errors.append(f"{claim_id}: {polarity} scenario requires test_refs")
+                continue
+            for ref in refs:
+                if not isinstance(ref, dict):
+                    errors.append(f"{claim_id}: test ref must be an object")
+                    continue
+                error = validate_test_ref(repo, ref)
+                if error:
+                    errors.append(f"{claim_id}: {error}")
+        for polarity in ("positive", "negative"):
+            if polarity not in polarities:
+                errors.append(f"{claim_id}: missing {polarity} acceptance scenario")
+        required_scenarios = requirement.get("required_scenarios", [])
+        if not isinstance(required_scenarios, list):
+            required_scenarios = []
+            errors.append(f"{claim_id}: required_scenarios must be an array")
+        for scenario_id in required_scenarios:
+            if scenario_id not in observed_scenarios:
+                errors.append(f"{claim_id}: required scenario {scenario_id} is missing")
+
+        raw_items = claim.get("evidence")
+        if not isinstance(raw_items, list):
+            raw_items = []
+            errors.append(f"{claim_id}: evidence must be an array")
+        statuses: dict[str, str] = {}
+        for item in raw_items:
+            if not isinstance(item, dict):
+                errors.append(f"{claim_id}: evidence item must be an object")
+                continue
+            kind, status, reference = item.get("kind"), item.get("status"), item.get("reference")
+            if not isinstance(kind, str) or not kind:
+                errors.append(f"{claim_id}: evidence kind is required")
+                continue
+            if kind in statuses:
+                errors.append(f"{claim_id}: duplicate evidence kind {kind}")
+            if status not in {"PASS", "NOT_VERIFIED", "NOT_APPLICABLE"}:
+                errors.append(f"{claim_id}: invalid evidence status for {kind}")
+            statuses[kind] = status
+            if not isinstance(reference, str) or not reference.strip():
+                errors.append(f"{claim_id}: evidence {kind} requires a readable reference")
+        claim_summary["evidence_status"] = dict(sorted(statuses.items()))
+        required_kinds = requirement.get("required_evidence_kinds", [])
+        if not isinstance(required_kinds, list):
+            required_kinds = []
+            errors.append(f"{claim_id}: required_evidence_kinds must be an array")
+        for kind in required_kinds:
+            status = statuses.get(kind)
+            if status is None:
+                errors.append(f"{claim_id}: required evidence {kind} is missing")
+            elif status != "PASS":
+                errors.append(f"{claim_id}: required evidence {kind} is {status}")
+
+    required_ids = {
+        item.get("claim_id")
+        for item in required_claims
+        if isinstance(item, dict) and isinstance(item.get("claim_id"), str)
+    }
+    unrequested = sorted(set(claims) - required_ids)
+    if unrequested:
+        errors.append(f"review_completion_gate: unrequested claims present {unrequested}")
+    summary["passed"] = not errors
+    return summary, errors
+
+
+def load_verification_evidence(
+    repo: Path,
+    relative: str,
+    fingerprint: dict[str, Any],
+    *,
+    plan: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     path = (repo / relative).resolve()
     try:
         path.relative_to(repo.resolve())
@@ -1336,13 +1624,46 @@ def load_verification_evidence(repo: Path, relative: str, fingerprint: dict[str,
     evidence = json.loads(path.read_text(encoding="utf-8"))
     if evidence.get("result") != "pass" or evidence.get("claims", {}).get("candidate_verified") is not True:
         raise ValueError("review_request: verification evidence is not a passing candidate verification")
+    if evidence.get("evidence_readback") is not True:
+        raise ValueError("review_request: verification evidence read-back did not pass")
     if evidence.get("claims", {}).get("release_verified") is not False:
         raise ValueError("review_request: local evidence improperly promotes release_verified")
     if evidence.get("fingerprint_stable") is not True:
         raise ValueError("review_request: verification evidence is not fingerprint-stable")
     for name in ("fingerprint_before", "fingerprint_after"):
-        if evidence.get(name, {}).get("value") != fingerprint.get("value"):
-            raise ValueError(f"review_request: {name} does not match current candidate")
+        recorded = evidence.get(name, {})
+        for field in ("value", "head", "algorithm"):
+            if recorded.get(field) != fingerprint.get(field):
+                raise ValueError(f"review_request: {name} {field} does not match current candidate")
+    if evidence.get("repository", {}).get("head") != fingerprint.get("head"):
+        raise ValueError("review_request: verification repository HEAD does not match current candidate")
+    if plan is not None:
+        milestone = active_milestone(plan)
+        completion_required = isinstance(milestone, dict) and "completion_gate" in milestone
+        if completion_required:
+            completion = next(
+                (
+                    gate
+                    for gate in evidence.get("gates", [])
+                    if isinstance(gate, dict) and gate.get("name") == "review_completion_gate"
+                ),
+                None,
+            )
+            if (
+                not isinstance(completion, dict)
+                or completion.get("passed") is not True
+                or not isinstance(completion.get("details"), dict)
+                or completion["details"].get("applicable") is not True
+                or completion["details"].get("passed") is not True
+            ):
+                raise ValueError(
+                    "review_request: required review_completion_gate evidence is missing or failed"
+                )
+            current_summary, completion_errors = validate_review_completion_gate(repo, plan)
+            if completion_errors or completion.get("details") != current_summary:
+                raise ValueError(
+                    "review_request: review_completion_gate evidence does not read back from the current candidate"
+                )
     return evidence
 
 
@@ -1434,7 +1755,7 @@ def prepare_review_request(
         raise ValueError("review_request: current result must be EMPTY before a new request")
     fingerprint = repository_fingerprint(repo)
     manifest = repository_manifest(repo)
-    evidence = load_verification_evidence(repo, evidence_path, fingerprint)
+    evidence = load_verification_evidence(repo, evidence_path, fingerprint, plan=plan)
     now = datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds")
     request["milestone_id"] = plan.get("active_milestone_id")
     request["status"] = "READY_FOR_REVIEW"
@@ -1468,6 +1789,15 @@ def prepare_review_request(
         }
         for gate in evidence.get("gates", [])
     ]
+    completion = next(
+        (
+            gate.get("details")
+            for gate in evidence.get("gates", [])
+            if isinstance(gate, dict) and gate.get("name") == "review_completion_gate"
+        ),
+        None,
+    )
+    request["completion_evidence"] = completion
     request["known_deviations"] = known_deviations
     request["known_uncertainties"] = known_uncertainties
     request["reviewer_focus"] = list(reviewer_focus)
@@ -2534,6 +2864,23 @@ def verify(repo: Path) -> tuple[dict[str, Any], int]:
             execute_gate("node_tests", ["npm", "test"], repo, base_env),
             execute_gate("strict_git_diff_check", ["git", "diff", "--check"], repo, base_env),
         ]
+        verification_plan, _ = load_plan_status(repo)
+        completion_summary, completion_errors = validate_review_completion_gate(
+            repo, verification_plan
+        )
+        completion_output = "\n".join(completion_errors)
+        gates.append(
+            {
+                "name": "review_completion_gate",
+                "command": ["internal", "validate_review_completion_gate"],
+                "exit_code": 0 if not completion_errors else 2,
+                "duration_seconds": 0.0,
+                "output_sha256": sha256_bytes(completion_output.encode()),
+                "output_tail": completion_output,
+                "passed": not completion_errors,
+                "details": completion_summary,
+            }
+        )
         safety, scanned_files = public_safety_errors(repo)
         gates.append(
             {

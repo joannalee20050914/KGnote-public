@@ -1,0 +1,156 @@
+{
+  "schema_version": "kgnote.review-completion-evidence.v1",
+  "goal_id": "GOAL-KGNOTE-CODEX-COMPLETION-GATE-20261022",
+  "milestone_id": "CONTROL-REVIEW-COMPLETION-GATE",
+  "review_case": {
+    "repository": "joannalee20050914/KGnote-public",
+    "pull_request": 29,
+    "candidate_commit": "be8fc7eeaac93d86b6921504ce11a1bac51a0dc0",
+    "comment_ids": [
+      6285208843,
+      6285487763,
+      6285693992
+    ],
+    "verdict": "CHANGES_REQUIRED"
+  },
+  "claims": [
+    {
+      "claim_id": "issue9-false-web-identity-proof",
+      "finding_ids": [
+        "finding-web-identity-readback-self-referential",
+        "finding-secondary-web-is-new-link-index",
+        "finding-web-identity-readback-missing"
+      ],
+      "disposition": "FIXED_PENDING_REVIEW",
+      "authority_refs": [
+        "FD-05",
+        "FD-06",
+        "FD-21",
+        "RC-15",
+        "RC-16",
+        "SC-35",
+        "PR #29 comments 6285208843, 6285487763 and 6285693992"
+      ],
+      "forbidden_substitutes": [
+        "A same-source JSON self-comparison is not cross-consumer identity evidence.",
+        "A newly generated static HTML page is not the existing Web learning surface."
+      ],
+      "product_entrypoints": [
+        "scripts/codex_control.py"
+      ],
+      "observable_behavior": "A milestone that names an existing product consumer cannot seal review evidence that names only a substitute surface.",
+      "resolution_basis": "The opt-in completion gate compares each claim's exact product_entrypoints with the milestone-required entrypoints and validates independent positive and negative selectors before review sealing.",
+      "acceptance_scenarios": [
+        {
+          "scenario_id": "SC-35",
+          "polarity": "positive",
+          "test_refs": [
+            {
+              "path": "tests/control_plane/test_review_completion_gate.py",
+              "selector": "ReviewCompletionGateTests.test_valid_issue9_case_with_positive_negative_and_readback_evidence_passes"
+            }
+          ]
+        },
+        {
+          "scenario_id": "SC-35",
+          "polarity": "negative",
+          "test_refs": [
+            {
+              "path": "tests/control_plane/test_review_completion_gate.py",
+              "selector": "ReviewCompletionGateTests.test_issue9_static_fake_web_surface_cannot_replace_required_entrypoints"
+            },
+            {
+              "path": "tests/control_plane/test_review_completion_gate.py",
+              "selector": "ReviewCompletionGateTests.test_required_render_click_not_verified_blocks_review_without_becoming_pass"
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "positive_test",
+          "status": "PASS",
+          "reference": "Focused unittest executes the valid Issue #9-shaped completion record."
+        },
+        {
+          "kind": "negative_test",
+          "status": "PASS",
+          "reference": "Focused unittests independently replace the true Web entrypoint with a static HTML surface and downgrade render/click to NOT_VERIFIED; both are rejected."
+        },
+        {
+          "kind": "read_back",
+          "status": "PASS",
+          "reference": "The gate returns a structured claim summary retaining each evidence status, including NOT_VERIFIED."
+        }
+      ]
+    },
+    {
+      "claim_id": "issue9-missing-exact-candidate-evidence",
+      "finding_ids": [
+        "finding-control-plane-stale-vs-candidate",
+        "finding-no-render-click-or-full-suite-evidence",
+        "finding-no-render-click-or-tracked-evidence"
+      ],
+      "disposition": "FIXED_PENDING_REVIEW",
+      "authority_refs": [
+        "AGENTS.md sections 0, 0.1 and 5",
+        ".ai/REVIEW_PROTOCOL.md candidate identity and fingerprint",
+        "SC-35",
+        "PR #29 comments 6285208843, 6285487763 and 6285693992"
+      ],
+      "forbidden_substitutes": [
+        "A targeted test process exiting zero is not full exact-candidate verification.",
+        "A committed checkpoint identity is not silently interchangeable with the post-commit sealed HEAD and fingerprint."
+      ],
+      "product_entrypoints": [
+        "scripts/codex_control.py"
+      ],
+      "observable_behavior": "Review request sealing accepts only read-back evidence whose repository HEAD, fingerprint algorithm/value, pre/post identity, and required completion gate all match the current candidate.",
+      "resolution_basis": "The existing verifier remains the single evidence producer; the review-request loader now rejects missing gate results, missing read-back, stale HEAD, fingerprint drift, and release promotion.",
+      "acceptance_scenarios": [
+        {
+          "scenario_id": "SC-35",
+          "polarity": "positive",
+          "test_refs": [
+            {
+              "path": "tests/control_plane/test_review_completion_gate.py",
+              "selector": "ReviewCompletionGateTests.test_exact_candidate_evidence_accepts_matching_gate_and_readback"
+            }
+          ]
+        },
+        {
+          "scenario_id": "SC-35",
+          "polarity": "negative",
+          "test_refs": [
+            {
+              "path": "tests/control_plane/test_review_completion_gate.py",
+              "selector": "ReviewCompletionGateTests.test_exact_candidate_evidence_rejects_missing_gate_readback_and_head"
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "positive_test",
+          "status": "PASS",
+          "reference": "A matching exact HEAD/fingerprint, PASS completion gate and evidence read-back are accepted."
+        },
+        {
+          "kind": "negative_test",
+          "status": "PASS",
+          "reference": "Missing completion gate, failed evidence read-back, and stale repository HEAD are independently rejected."
+        },
+        {
+          "kind": "read_back",
+          "status": "PASS",
+          "reference": "Review sealing loads the exact verifier artifact from a repository-relative path and rechecks candidate identity."
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "This evidence validates completion-claim admission, not the unresolved Issue #9 product behavior.",
+    "Teaching quality, natural prose, prerequisite semantics, and real learner usefulness remain independent Ubuntu Claude product-review judgments.",
+    "Physical Obsidian/device behavior, PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified remain unverified."
+  ]
+}

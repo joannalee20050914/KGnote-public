@@ -7,12 +7,12 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 {
   "schema_version": "kgnote.review-request.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "review_id": "review-mainline-integration-20261020-002",
-  "goal_id": "GOAL-KGNOTE-MAINLINE-INTEGRATION-20261020",
-  "milestone_id": "MAINLINE-INTEGRATION-CANDIDATE",
+  "review_id": "review-codex-completion-gate-20261022-001",
+  "goal_id": "GOAL-KGNOTE-CODEX-COMPLETION-GATE-20261022",
+  "milestone_id": "CONTROL-REVIEW-COMPLETION-GATE",
   "status": "IMPLEMENTING",
   "author_role": "CODEX_IMPLEMENTER",
-  "base_revision": "827e4aa863fefea6f7d4a9e6120d5845bec3b9fd",
+  "base_revision": "0b4adf8e3eebd48db3c240db63606a97ae0a7103",
   "candidate_revision": null,
   "candidate_fingerprint": null,
   "authoritative_specs": [
@@ -25,80 +25,30 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     "PLAN.md"
   ],
   "changed_areas": [
-    "Main-based integration of product baseline and Source Library",
-    "Current Ubuntu Claude Runner Publisher Consumer runtime without Work-per-round review"
+    "Codex candidate-complete and pre-review evidence gate",
+    "Issue #9 review findings used only as negative regression cases"
   ],
   "acceptance_criteria": [
-    "main-based non-stacked Draft PR",
-    "Source Library and full deterministic verification pass",
-    "authority PLAN STATUS fingerprint and reviewer identity agree",
-    "new exact candidate receives Ubuntu Claude review through Runner GitHub relay",
-    "main merge remains protected and manual"
+    "Issue #9 false Web identity evidence is rejected before review sealing",
+    "missing exact candidate verification evidence is rejected before review sealing",
+    "valid opt-in evidence passes and unrelated milestones are unaffected",
+    "NOT_VERIFIED evidence is preserved and cannot become PASS",
+    "no Claude review, deployment, budget change, Stop Marker change, or main merge"
   ],
   "negative_requirements": [
-    "Do not merge or force-push main",
-    "Do not reuse PR #26 Round 5 PASS for this candidate",
-    "Do not restore ChatGPT Work per-round review",
-    "Do not clear Stop Marker or increase model budgets"
+    "Do not modify PR #29 product code or historical findings",
+    "Do not reset Issue #9 Claude or Codex repair budgets",
+    "Do not dispatch Claude or ChatGPT Work",
+    "Do not clear Stop Marker, deploy Runner, or merge main"
   ],
-  "validation_performed": [
-    "./.venv/bin/python docs/requirements/requirements_guard.py check --repo .",
-    "./.venv/bin/python -m unittest discover -s docs/requirements -p test_requirements_guard.py -v",
-    "./.venv/bin/python -m unittest discover -s tests/control_plane -p test_*.py -v",
-    "./.venv/bin/python -m unittest discover -s tests -p test_*.py -v",
-    "npm test",
-    "git diff --check",
-    "internal public_safety_errors --scope fingerprint-manifest",
-    "internal untracked_whitespace_errors"
-  ],
-  "validation_results": [
-    {
-      "name": "requirements_guard",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261020T111556+0800.json#requirements_guard"
-    },
-    {
-      "name": "requirements_guard_tests",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261020T111556+0800.json#requirements_guard_tests"
-    },
-    {
-      "name": "control_plane_negative_tests",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261020T111556+0800.json#control_plane_negative_tests"
-    },
-    {
-      "name": "python_product_tests",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261020T111556+0800.json#python_product_tests"
-    },
-    {
-      "name": "node_tests",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261020T111556+0800.json#node_tests"
-    },
-    {
-      "name": "strict_git_diff_check",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261020T111556+0800.json#strict_git_diff_check"
-    },
-    {
-      "name": "public_safety_scan",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261020T111556+0800.json#public_safety_scan"
-    },
-    {
-      "name": "untracked_whitespace",
-      "status": "PASS",
-      "evidence": "output/control-plane/verification-20261020T111556+0800.json#untracked_whitespace"
-    }
-  ],
+  "validation_performed": [],
+  "validation_results": [],
   "known_deviations": [],
   "known_uncertainties": [],
   "reviewer_focus": [
-    "Confirm product completeness and direct main ancestry",
-    "Confirm obsolete PR 22 Work-per-round behavior is not active",
-    "Confirm exact PR 28 HEAD fingerprint and protected merge gates remain fail-closed"
+    "Confirm the completion gate rejects substitute product entrypoints and NOT_VERIFIED evidence",
+    "Confirm exact-candidate verification evidence is required and read back",
+    "Confirm the gate is opt-in and does not claim semantic product quality"
   ],
   "preserved_human_gates": [
     "PA-HUMAN-1",
@@ -2820,6 +2770,6 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 
 ## Human-readable status
 
-Review `review-mainline-integration-20261020-002` is `IMPLEMENTING`.
+Review `review-codex-completion-gate-20261022-001` is `IMPLEMENTING`.
 It has no active candidate binding and cannot be interpreted as a review request or PASS.
 Codex must complete deterministic verification before issuing this request.
