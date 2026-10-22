@@ -113,7 +113,8 @@ class PublicationTransitionTests(unittest.TestCase):
     def test_publish_executes_push_readback_and_durable_recording(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
-            (repo / ".ai").mkdir(); (repo / ".git").mkdir()
+            (repo / ".ai").mkdir()
+            (repo / ".git").write_text("gitdir: /tmp/example-common-dir\n")
             (repo / ".ai/github-product-reviewer.json").write_text(json.dumps(self.config))
             state = {**self.state, "publication": {"status": "PENDING"}}
             (repo / ".ai/external-review-state.json").write_text(json.dumps(state))

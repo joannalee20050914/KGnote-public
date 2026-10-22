@@ -8,6 +8,7 @@ import json
 import os
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any, Callable
 
@@ -159,8 +160,15 @@ def publish(
     body = json.loads(pr_json).get("body", "")
     marker = request_marker(config, state)
     if marker not in body:
-        body_file = repo / ".git" / "kgnote-review-request-body.md"
-        body_file.write_text(without_request_markers(config, body) + "\n\n" + marker + "\n", encoding="utf-8")
+        descriptor, body_name = tempfile.mkstemp(
+            prefix="kgnote-review-request-", suffix=".md"
+        )
+        os.close(descriptor)
+        body_file = Path(body_name)
+        body_file.write_text(
+            without_request_markers(config, body) + "\n\n" + marker + "\n",
+            encoding="utf-8",
+        )
         try:
             runner(["gh", "pr", "edit", str(config["review_pr_number"]), "--repo", config["canonical_repository"], "--body-file", str(body_file)], cwd=repo)
         finally:
