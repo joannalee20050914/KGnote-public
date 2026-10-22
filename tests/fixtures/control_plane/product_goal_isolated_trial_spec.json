@@ -1,0 +1,50 @@
+{
+  "schema_version": "kgnote.product-goal-spec.v1",
+  "identity_kind": "KGNOTE_PRODUCT_GOAL",
+  "authority_kind": "GITHUB_OWNER_APPROVAL",
+  "lifecycle_owner": "MAC_RUNNER",
+  "goal_id": "GOAL-KGNOTE-ISOLATED-B-SCHEME-TRIAL",
+  "active_goal": "GOAL-KGNOTE-ISOLATED-B-SCHEME-TRIAL",
+  "goal_version": "isolated-2026-10-22.1",
+  "title": "B-scheme isolated no-model trial",
+  "outcome": "Exercise authority, recovery, convergence and handoff without product or external mutation.",
+  "repository": "example.invalid/kgnote-isolated-trial",
+  "github_issue": 1,
+  "owner_logins": ["isolated-owner-fixture"],
+  "requirements": ["KG-GOV-04", "KG-GOV-05", "KG-GOV-07", "KG-PLAT-05", "KG-PLAT-07"],
+  "rcs": ["RC-27", "RC-28", "RC-29", "RC-32", "RC-33", "RC-34"],
+  "fds": ["FD-12", "FD-14", "FD-17", "FD-18", "FD-19", "FD-23"],
+  "dependencies": [],
+  "allowed_operations": ["activate_runner", "commit", "push", "draft_pr", "review"],
+  "forbidden_operations": ["merge", "paid_api", "delete_evidence", "modify_branch_protection"],
+  "work_window": {"timezone": "Asia/Taipei", "weekdays": [0, 1, 2, 3, 4], "start": "09:00", "end": "18:00"},
+  "resource_policy": {
+    "max_model_concurrency": 1,
+    "providers": {
+      "codex": {
+        "subscription_only": true,
+        "paid_api_fallback": false,
+        "reserve_percent": 10,
+        "capacity_observation": {"status": "PERCENTAGE_UNOBSERVABLE", "remaining_percent": null, "source_kind": null, "observed_at": null, "max_age_seconds": 300},
+        "fallback": {"min_launch_interval_seconds": 300, "max_launches_per_window": 3, "quota_backoff_seconds": 3600}
+      },
+      "claude": {
+        "subscription_only": true,
+        "paid_api_fallback": false,
+        "reserve_percent": 10,
+        "capacity_observation": {"status": "PERCENTAGE_UNOBSERVABLE", "remaining_percent": null, "source_kind": null, "observed_at": null, "max_age_seconds": 300},
+        "fallback": {"min_launch_interval_seconds": 300, "max_launches_per_window": 3, "quota_backoff_seconds": 3600}
+      }
+    }
+  },
+  "recovery_policy": {"max_same_failure_attempts": 3, "no_progress_before_strategy_adjustment": 2, "max_strategy_adjustments": 3},
+  "review_policy": {"reviewer": "UBUNTU_CLAUDE", "independent": true, "completion_gate_required": true, "round_has_hidden_fixed_limit": false},
+  "completion_conditions": ["all obligations VERIFIED_RESOLVED", "human acceptance remains explicit"],
+  "human_acceptance_required": true,
+  "obligations": [
+    {"obligation_id": "OBL-TRIAL-CONTINUITY", "semantic_key": "7a98f5ed96c9b24e026ba7b5f22674d5df914602583cbaf50a060f3fe73bde87", "authority_refs": ["KG-GOV-04", "RC-32", "FD-18"], "description": "Recover without duplicate model or side effect."}
+  ],
+  "work_items": [
+    {"work_item_id": "WI-TRIAL-IMPLEMENT", "milestone_id": "TRIAL-M1", "kind": "IMPLEMENT", "dependencies": [], "obligation_ids": ["OBL-TRIAL-CONTINUITY"], "allowed_operations": ["commit", "push", "draft_pr"], "provider": "codex"}
+  ]
+}

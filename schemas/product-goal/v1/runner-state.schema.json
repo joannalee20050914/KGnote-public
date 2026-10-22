@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/product-goal/v1/runner-state.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "identity_kind", "authority_kind", "lifecycle_owner", "goal_id", "active_goal", "goal_version", "goal_spec_sha256", "milestone_id", "lifecycle", "authority_lease", "authority_record", "work_items", "obligations", "event_cursor", "go_live_authorized"],
+  "properties": {
+    "schema_version": {"const": "kgnote.product-goal-runner-state.v1"},
+    "identity_kind": {"const": "KGNOTE_PRODUCT_GOAL"},
+    "authority_kind": {"const": "GITHUB_OWNER_APPROVAL"},
+    "lifecycle_owner": {"const": "MAC_RUNNER"},
+    "goal_id": {"type": "string"},
+    "active_goal": {"type": "string"},
+    "goal_version": {"type": "string"},
+    "goal_spec_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "milestone_id": {"type": ["string", "null"]},
+    "lifecycle": {
+      "type": "object", "additionalProperties": false,
+      "required": ["state", "revision", "changed_at", "reason"],
+      "properties": {
+        "state": {"enum": ["PLANNED", "APPROVAL_REQUIRED", "APPROVED", "ACTIVE", "BLOCKED", "ACCEPTANCE_REQUIRED", "CLOSED"]},
+        "revision": {"type": "integer", "minimum": 0},
+        "changed_at": {"type": "string", "format": "date-time"},
+        "reason": {"type": "string"}
+      }
+    },
+    "authority_lease": {"enum": ["ACTIVE", "PAUSED", "REVOKED"]},
+    "authority_record": {
+      "oneOf": [
+        {"$ref": "github-authority-record.schema.json"},
+        {"type": "null"}
+      ]
+    },
+    "work_items": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["work_item_id", "milestone_id", "status", "dependencies", "obligation_ids", "attempts", "strategy_adjustments"],
+        "properties": {
+          "work_item_id": {"type": "string", "pattern": "^WI-[A-Z0-9-]+$"},
+          "milestone_id": {"type": "string", "minLength": 1},
+          "status": {"enum": ["PLANNED", "READY", "DISPATCHING", "DISPATCHED", "REPAIR_REQUIRED", "VERIFY_REQUIRED", "PUBLISH_REQUIRED", "VERIFIED", "CLOSED", "SUPERSEDED", "BLOCKED"]},
+          "dependencies": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+          "obligation_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+          "attempts": {"type": "integer", "minimum": 0},
+          "strategy_adjustments": {"type": "integer", "minimum": 0},
+          "active_attempt_id": {"type": ["string", "null"]},
+          "dispatch_binding": {
+            "type": "object", "additionalProperties": false,
+            "required": ["order_path", "order_sha256", "order_event_id"],
+            "properties": {
+              "order_path": {"type": "string", "minLength": 1},
+              "order_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "order_event_id": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    },
+    "obligations": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["obligation_id", "semantic_key", "status", "last_progress_class", "consecutive_no_progress"],
+        "properties": {
+          "obligation_id": {"type": "string", "pattern": "^OBL-[A-Z0-9-]+$"},
+          "semantic_key": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "status": {"enum": ["OPEN", "VERIFIED_RESOLVED"]},
+          "last_progress_class": {"type": ["string", "null"]},
+          "consecutive_no_progress": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "event_cursor": {"type": "object", "required": ["sequence", "event_sha256"], "properties": {"sequence": {"type": "integer", "minimum": 0}, "event_sha256": {"type": ["string", "null"]}}, "additionalProperties": false},
+    "go_live_authorized": {"type": "boolean"},
+    "codex_app_goal_provenance": {"type": ["object", "null"]},
+    "resource_accounting": {"type": "object"},
+    "runtime_block": {"type": "object"}
+  }
+}

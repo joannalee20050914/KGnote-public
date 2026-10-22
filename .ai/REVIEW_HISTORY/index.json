@@ -1,8 +1,8 @@
 {
   "schema_version": "kgnote.review-history-index.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "event_count": 2,
-  "last_event_id": "evt-0002",
+  "event_count": 3,
+  "last_event_id": "evt-0003",
   "reviews": {
     "review-mainline-integration-20261020-001": {
       "snapshots": [
@@ -14,6 +14,17 @@
       ],
       "last_event_type": "INVALIDATED",
       "candidate_fingerprint": "f768959692c8d3444364665b49add54e51a605b1b340f4911fded9d5d84ffcee"
+    },
+    "review-mainline-integration-20261020-002": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-mainline-integration-20261020-002/request-126c51cd818a66c762c04013e0036ec27ad2115901806647866f7314e4dca571.md",
+          "sha256": "126c51cd818a66c762c04013e0036ec27ad2115901806647866f7314e4dca571",
+          "event_id": "evt-0003"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": null
     }
   },
   "findings": {}

@@ -1,0 +1,192 @@
+{
+  "schema_version": "kgnote.product-goal-backlog.v1",
+  "identity_kind": "KGNOTE_PRODUCT_GOAL_BACKLOG",
+  "authority_kind": "PLANNING_ONLY_NO_EXECUTION_AUTHORITY",
+  "lifecycle_owner": "MAC_RUNNER",
+  "backlog_id": "kgnote-obsidian-first-product-goals-2026-10-22",
+  "source_baseline": {
+    "repository_head": "f81ccdde369c7ab9468ed07ca1fdab6d8f0b60e0",
+    "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r7",
+    "source_sha256": {
+      "DEVELOPMENT_PLAIN.md": "b37392c8ea2544cd5e16248c413b72240b84f3e96295f8ceeb7c6580164ce758",
+      "docs/requirements/requirements.json": "7839bf327748a8d5d35ede5786540deb56f10e632a34a1b52808029718f47d3a",
+      "docs/requirements/scenarios.json": "47d9e2e85b921c777c0e31abd046fad4dd577e2addbbe42d2972f7e546be642e",
+      "docs/requirements/FEATURE_DISPOSITION_LEDGER.md": "21d31b596af8d689c9b30e5f3c33ea1c394dcdf6952b52e563b4889558ef1905"
+    }
+  },
+  "selection_policy": {
+    "ordered": true,
+    "previous_must_be_closed": true,
+    "approval_grants_authority": false,
+    "rescan_policy": "CHECK_NEXT_DEPENDENCIES_AND_RELEVANT_VERSION_DRIFT_ONLY"
+  },
+  "items": [
+    {
+      "sequence": 1,
+      "goal_id": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
+      "active_goal": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
+      "milestone_id": "O2",
+      "identity_kind": "KGNOTE_PRODUCT_GOAL",
+      "authority_kind": "GITHUB_OWNER_APPROVAL_REQUIRED",
+      "lifecycle_owner": "MAC_RUNNER",
+      "goal_version": "planned-2026-10-22.1",
+      "roadmap_stage": "O2",
+      "title": "最小 Obsidian-first 閱讀、教材投影與原句便利貼",
+      "status": "PLANNED",
+      "dependencies": ["LEGACY-ISSUE-9-DISPOSITION"],
+      "requirements": ["KG-PLAT-08", "KG-ALPHA-02", "KG-CTX-10", "KG-KNOW-09"],
+      "scenarios": ["SC-38", "SC-40", "SC-44", "SC-45", "SC-48"],
+      "rcs": ["RC-05", "RC-07", "RC-08", "RC-12", "RC-14", "RC-15", "RC-16", "RC-31", "RC-32"],
+      "fds": ["FD-04", "FD-05", "FD-06", "FD-21"],
+      "outcome": "使用者從普通 Obsidian Markdown 開始閱讀，沿教材結構回到同一來源身分，並能建立可展開、可收合、可重開讀回且不覆寫原文的 context-local 便利貼。",
+      "completion_conditions": [
+        "普通文章入口、教材投影、Canvas/Web reference 共用可 read-back 的 Concept/Relation/Evidence identity",
+        "原句便利貼保存 anchor、source revision、provenance，取消不留垃圾且不自動升格 Concept",
+        "來源 snapshot 不變；regeneration 不覆寫 user-owned note；render/click 與重開 read-back 通過",
+        "同一候選 deterministic verification、Completion Gate、Trusted Publisher 與獨立產品審查通過",
+        "必要 Mac 人工試用完成；iPad/iPhone 未實測部分保持外部 gate，不用 viewport 冒充"
+      ],
+      "forbidden_substitutes": [
+        "Web-first 或第二個通用 Markdown editor",
+        "以 PR #29 已有 Commit、舊測試或舊 active 宣告冒充完成",
+        "以 AI 補寫 unsupported clause 或靜默改原文"
+      ],
+      "approval_eligibility": {
+        "status": "BLOCKED_LEGACY_DISPOSITION",
+        "reason": "Issue #9 / PR #29 remains a legacy bounded work item with Round 4 CHANGES_REQUIRED; it is evidence and possible contribution, not B-scheme Goal authority.",
+        "release_condition": "PR #29 findings and legacy authority/budget disposition are durably resolved, then this planned Goal is version-drift checked and explicitly approved by Owner."
+      },
+      "existing_evidence_disposition": {
+        "issue": 9,
+        "pull_request": 29,
+        "candidate_head": "4c11eb425f98030d6181abb74e67b0e7594d87bc",
+        "status": "LEGACY_CHANGES_REQUIRED_NOT_MIGRATED",
+        "reuse_rule": "Preserve reviews, commits, budgets and checkpoints; evaluate only as prior evidence after exact read-back."
+      }
+    },
+    {
+      "sequence": 2,
+      "goal_id": "GOAL-KGNOTE-O3-EXACT-CONTINUATION",
+      "active_goal": "GOAL-KGNOTE-O3-EXACT-CONTINUATION",
+      "milestone_id": "O3",
+      "identity_kind": "KGNOTE_PRODUCT_GOAL",
+      "authority_kind": "GITHUB_OWNER_APPROVAL_REQUIRED",
+      "lifecycle_owner": "MAC_RUNNER",
+      "goal_version": "planned-2026-10-22.1",
+      "roadmap_stage": "O3",
+      "title": "Obsidian-first 精確續學與可攜局部 context",
+      "status": "PLANNED",
+      "dependencies": ["GOAL-KGNOTE-O2-READING-EXPERIENCE"],
+      "requirements": ["KG-MEM-01", "KG-MEM-02", "KG-MEM-06", "KG-MEM-08"],
+      "scenarios": ["SC-03", "SC-14", "SC-37", "SC-48"],
+      "rcs": ["RC-03", "RC-19", "RC-23", "RC-25", "RC-26", "RC-31", "RC-32"],
+      "fds": ["FD-09", "FD-10", "FD-16"],
+      "outcome": "從文章、結構入口或命令回到同一 source version、anchor、問題、實際回答、提示、解說與未釐清處，且能輸出 provider-neutral 局部續學包。",
+      "completion_conditions": [
+        "兩個 item 切換、關閉重開、source revision 與 stale/tampered anchor 正反向驗證通過",
+        "confusion 與暫緩支線保留為 append-only evidence，不以最近開過清單替代",
+        "Obsidian UI 人工 smoke 與同候選獨立審查完成"
+      ],
+      "forbidden_substitutes": ["只回最近 unit", "猜測 stale anchor", "把 AI 提及當使用者理解"],
+      "approval_eligibility": {"status": "WAIT_PREVIOUS_CLOSED", "release_condition": "O2 Product Goal is CLOSED and O3 relevant source versions have no unresolved drift."},
+      "existing_evidence_disposition": {"status": "REUSE_WITH_DELTA", "reuse_rule": "Reuse public resume/continuity domains and SC-03 evidence; Obsidian projection and human smoke remain new evidence."
+      }
+    },
+    {
+      "sequence": 3,
+      "goal_id": "GOAL-KGNOTE-O4-SOAK",
+      "active_goal": "GOAL-KGNOTE-O4-SOAK",
+      "milestone_id": "O4",
+      "identity_kind": "KGNOTE_PRODUCT_GOAL",
+      "authority_kind": "GITHUB_OWNER_APPROVAL_REQUIRED",
+      "lifecycle_owner": "MAC_RUNNER",
+      "goal_version": "planned-2026-10-22.1",
+      "roadmap_stage": "O4",
+      "title": "獨立 Soak／浸泡閉環",
+      "status": "PLANNED",
+      "dependencies": ["GOAL-KGNOTE-O3-EXACT-CONTINUATION"],
+      "requirements": ["KG-SOAK-01", "KG-SOAK-02", "KG-SOAK-03", "KG-SOAK-04", "KG-SOAK-05", "KG-SOAK-06", "KG-SOAK-07"],
+      "scenarios": ["SC-02", "SC-17", "SC-18", "SC-24"],
+      "rcs": ["RC-22", "RC-23", "RC-24", "RC-31", "RC-32"],
+      "fds": ["FD-08", "FD-09"],
+      "outcome": "使用者可從 reviewed Evidence 看完整答案與舊例子、滑走或暫停，不需輸入且只形成 Exposure；可主動轉 Practice。",
+      "completion_conditions": ["Soak/Practice answer isolation、offline/reload、overdue、暫停與無 debt 負例通過", "Concept/Edge/neighborhood 保留來源與 scope", "產品入口 render/click 與獨立審查通過"],
+      "forbidden_substitutes": ["把 Practice 或 Due 清單改名 Soak", "滑走寫成 incorrect Attempt", "用 exposure 宣稱理解"],
+      "approval_eligibility": {"status": "WAIT_PREVIOUS_CLOSED", "release_condition": "O3 Product Goal is CLOSED."},
+      "existing_evidence_disposition": {"status": "REUSE_WITH_DELTA", "reuse_rule": "Reuse Exposure/review/scheduling stores and existing tests; integrate only against the closed O2/O3 identity path."
+      }
+    },
+    {
+      "sequence": 4,
+      "goal_id": "GOAL-KGNOTE-O5-STAGED-PRACTICE",
+      "active_goal": "GOAL-KGNOTE-O5-STAGED-PRACTICE",
+      "milestone_id": "O5",
+      "identity_kind": "KGNOTE_PRODUCT_GOAL",
+      "authority_kind": "GITHUB_OWNER_APPROVAL_REQUIRED",
+      "lifecycle_owner": "MAC_RUNNER",
+      "goal_version": "planned-2026-10-22.1",
+      "roadmap_stage": "O5",
+      "title": "來源支持的分階段單題 Practice",
+      "status": "PLANNED",
+      "dependencies": ["GOAL-KGNOTE-O4-SOAK"],
+      "requirements": ["KG-PRAC-01", "KG-PRAC-02", "KG-PRAC-03", "KG-PRAC-04", "KG-PRAC-05", "KG-PRAC-06", "KG-PRAC-07", "KG-PRAC-08", "KG-PRAC-09", "KG-SRS-01", "KG-SRS-03"],
+      "scenarios": ["SC-19", "SC-20", "SC-21", "SC-22", "SC-23", "SC-24"],
+      "rcs": ["RC-22", "RC-23", "RC-24", "RC-31", "RC-32"],
+      "fds": ["FD-08", "FD-09"],
+      "outcome": "由 reviewed Source span 建立原文 cloze/選項，再依明確選擇或 evidence 進到提示/無提示回想；Attempt、feedback、confusion、retry 均可追溯並返回原 anchor。",
+      "completion_conditions": ["答案隔離、immutable Attempt、idempotent retry/feedback、skip/snooze 正反例通過", "題目距離原文與 transfer 目的可辨", "產品 UI 與同候選獨立審查通過"],
+      "forbidden_substitutes": ["顯示答案後仍稱無輔助回想", "正確一次強制升級", "用 mastery 百分比作 gate"],
+      "approval_eligibility": {"status": "WAIT_PREVIOUS_CLOSED", "release_condition": "O4 Product Goal is CLOSED."},
+      "existing_evidence_disposition": {"status": "REUSE_WITH_DELTA", "reuse_rule": "Reuse public Attempt/Exposure/feedback/scheduling and practice surfaces; old component tests are not integrated product acceptance."
+      }
+    },
+    {
+      "sequence": 5,
+      "goal_id": "GOAL-KGNOTE-O6-CONTEXT-ROUTING",
+      "active_goal": "GOAL-KGNOTE-O6-CONTEXT-ROUTING",
+      "milestone_id": "O6",
+      "identity_kind": "KGNOTE_PRODUCT_GOAL",
+      "authority_kind": "GITHUB_OWNER_APPROVAL_REQUIRED",
+      "lifecycle_owner": "MAC_RUNNER",
+      "goal_version": "planned-2026-10-22.1",
+      "roadmap_stage": "O6",
+      "title": "問題路由、可審文章擴充與選定事件回流",
+      "status": "PLANNED",
+      "dependencies": ["GOAL-KGNOTE-O5-STAGED-PRACTICE"],
+      "requirements": ["KG-CTX-01", "KG-CTX-05", "KG-AI-01", "KG-KNOW-03", "KG-KNOW-04"],
+      "scenarios": ["SC-11", "SC-15", "SC-37", "SC-42"],
+      "rcs": ["RC-13", "RC-14", "RC-17", "RC-18", "RC-19", "RC-20", "RC-21", "RC-27", "RC-28", "RC-29", "RC-31", "RC-32"],
+      "fds": ["FD-10", "FD-11", "FD-12", "FD-13", "FD-14"],
+      "outcome": "問題先以 literal/heading/linked-note 回到來源；不足才進經授權 AI adapter，所有文章擴充與選定事件回流有 preview、attribution、delta 與 revision。",
+      "completion_conditions": ["imprecise retrieval、not-found、parent/child question、revision reopen 通過", "live provider 前 egress/cost/retention/付款拒絕與人工授權成立", "AI-only 候選不生成理解或未審可考內容", "同候選獨立審查通過"],
+      "forbidden_substitutes": ["先上 embedding 取代 literal retrieval", "自動外送敏感來源", "未 preview 覆寫文章", "訂閱外付費 fallback"],
+      "approval_eligibility": {"status": "WAIT_PREVIOUS_CLOSED_AND_RESOURCE_DECISION", "release_condition": "O5 is CLOSED and any live-provider egress/cost boundary receives separate exact Owner authority."},
+      "existing_evidence_disposition": {"status": "MIXED_REUSE_AND_NEW_BUILD", "reuse_rule": "Reuse context/evidence and adapter boundaries only; FD-10/12/14 gaps remain explicit."
+      }
+    },
+    {
+      "sequence": 6,
+      "goal_id": "GOAL-KGNOTE-O7-REVIEW-ROAMING-SPACES",
+      "active_goal": "GOAL-KGNOTE-O7-REVIEW-ROAMING-SPACES",
+      "milestone_id": "O7",
+      "identity_kind": "KGNOTE_PRODUCT_GOAL",
+      "authority_kind": "GITHUB_OWNER_APPROVAL_REQUIRED",
+      "lifecycle_owner": "MAC_RUNNER",
+      "goal_version": "planned-2026-10-22.1",
+      "roadmap_stage": "O7",
+      "title": "複習地圖、Knowledge Roaming 與多 Space",
+      "status": "PLANNED",
+      "dependencies": ["GOAL-KGNOTE-O6-CONTEXT-ROUTING"],
+      "requirements": ["KG-PLAT-01", "KG-STR-08", "KG-GRAPH-05", "KG-KNOW-01", "KG-KNOW-09", "KG-MEM-06"],
+      "scenarios": ["SC-09", "SC-14", "SC-39", "SC-43"],
+      "rcs": ["RC-10", "RC-16", "RC-24", "RC-30", "RC-31", "RC-32"],
+      "fds": ["FD-03", "FD-07", "FD-08"],
+      "outcome": "Due Queue 與教材結構圖共用 schedule projection；roaming 只顯示有行為 evidence 或 override 的 Concept，未知邊界可提問；至少兩個不同領域 Space 共用 engine 且同名異義不強併。",
+      "completion_conditions": ["教材 structure 與 roaming Concept graph 不混淆", "Exposure/skip/overdue/zero-activity 不產生 mastery 或 debt", "兩領域與非 CS fixture 的 identity、pause isolation、unresolved edge 通過", "人類可操作 UI 與同候選獨立審查通過"],
+      "forbidden_substitutes": ["全域 mastery 百分比", "展開整片陌生圖", "view grouping 升格 canonical Edge", "同名跨 Space 強併"],
+      "approval_eligibility": {"status": "WAIT_PREVIOUS_CLOSED", "release_condition": "O6 Product Goal is CLOSED."},
+      "existing_evidence_disposition": {"status": "PARTIAL_REUSE", "reuse_rule": "Reuse graph read model, planner, local neighborhood, scheduling and Canvas adapters; roaming eligibility and multi-Space evidence remain incomplete."
+      }
+    }
+  ]
+}

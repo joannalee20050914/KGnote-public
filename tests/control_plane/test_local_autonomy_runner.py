@@ -1,5 +1,6 @@
 from __future__ import annotations
 import importlib.util, json, subprocess, sys, tempfile, unittest
+import hashlib
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -11,6 +12,101 @@ SPEC = importlib.util.spec_from_file_location("runner", ROOT / "scripts/local_au
 RUNNER = importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(RUNNER)
 
 class RunnerTests(unittest.TestCase):
+    def test_product_goal_mode_never_bypasses_existing_stop_marker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            (repo / ".ai").mkdir()
+            (repo / ".ai" / "ORCHESTRATOR_STOP").write_text("stop\n")
+            result = RUNNER.run_product_goal_mode(
+                repo,
+                spec_path=repo / "missing-spec.json",
+                state_path=repo / "missing-state.json",
+                ledger_path=repo / "missing-ledger.jsonl",
+                comments_path=None,
+                trial=False,
+                router=repo / "missing-router.py",
+                epoch_record=repo / "missing-epoch.json",
+                admission=repo / "missing-admission.py",
+                runner_identity={"sha256": "test"},
+            )
+            self.assertEqual("STOPPED", result["status"])
+
+    def test_product_goal_live_path_reserves_routes_and_never_blind_redispatches(self):
+        from tests.control_plane.test_goal_continuity import product_goal_spec
+        from tests.control_plane.test_github_product_goal_control import comment
+        import goal_continuity as goal
+        import github_product_goal_control as control
+
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            (repo / ".ai").mkdir()
+            spec = product_goal_spec()
+            authority = control.resolve_authority([comment(spec)], spec)
+            state = goal.initial_runner_state(spec, now="2026-10-22T10:00:00+08:00")
+            record = authority["record"]
+            state.update({
+                "authority_record": record,
+                "authority_lease": "ACTIVE",
+                "go_live_authorized": True,
+                "lifecycle": {
+                    "state": "ACTIVE", "revision": 1,
+                    "changed_at": "2026-10-22T10:00:00+08:00",
+                    "reason": "test exact authority",
+                },
+            })
+            order_path = repo / "output" / "sealed.json"
+            order_path.parent.mkdir(parents=True)
+            order = {
+                "schema_version": "kgnote.linux-worker-order.v1",
+                "event_id": "product-goal-order-1",
+                "checkpoint_path": str(repo / "checkpoint.json"),
+            }
+            order_path.write_text(json.dumps(order))
+            state["work_items"][0]["dispatch_binding"] = {
+                "order_path": "output/sealed.json",
+                "order_sha256": hashlib.sha256(order_path.read_bytes()).hexdigest(),
+                "order_event_id": order["event_id"],
+            }
+            spec_path, state_path = repo / "spec.json", repo / "state.json"
+            ledger_path, comments_path = repo / "ledger.jsonl", repo / "comments.json"
+            spec_path.write_text(json.dumps(spec)); goal.atomic_write_json(state_path, state)
+            comments_path.write_text(json.dumps([comment(spec)]))
+            goal.append_ledger_event(
+                ledger_path, event_id="go-live", event_type="GOAL_AUTHORITY_VERIFIED",
+                occurred_at="2026-10-22T10:00:00+08:00", goal_id=spec["goal_id"],
+                goal_version=spec["goal_version"], logical_work_id=None, attempt_id=None,
+                payload={
+                    "go_live_authorized": True,
+                    "authority_comment_id": record["comment_id"],
+                    "authority_body_sha256": record["body_sha256"],
+                    "goal_spec_sha256": goal.goal_spec_sha256(spec),
+                },
+            )
+            router, epoch, admission = repo / "router.py", repo / "epoch.json", repo / "admission.py"
+            for path in (router, epoch, admission): path.write_text("{}")
+            calls = []
+            def fake(command, **kwargs):
+                calls.append(command)
+                return subprocess.CompletedProcess(command, 0, "{}\n", "")
+            now = datetime(2026, 10, 22, 10, tzinfo=ZoneInfo("Asia/Taipei"))
+            first = RUNNER.run_product_goal_mode(
+                repo, spec_path=spec_path, state_path=state_path, ledger_path=ledger_path,
+                comments_path=comments_path, trial=False, router=router,
+                epoch_record=epoch, admission=admission, runner_identity={"sha256": "test"},
+                current=now, command_runner=fake,
+            )
+            self.assertEqual("DISPATCHED", first["status"])
+            self.assertEqual(3, len(calls))
+            before = len(calls)
+            second = RUNNER.run_product_goal_mode(
+                repo, spec_path=spec_path, state_path=state_path, ledger_path=ledger_path,
+                comments_path=comments_path, trial=False, router=router,
+                epoch_record=epoch, admission=admission, runner_identity={"sha256": "test"},
+                current=now, command_runner=fake,
+            )
+            self.assertEqual("RECOVERY_READY", second["status"])
+            self.assertEqual(before, len(calls))
+
     def test_admission_pending_item_is_prepared_then_dispatched_once(self):
         tmp=tempfile.TemporaryDirectory(); repo=Path(tmp.name)
         try:

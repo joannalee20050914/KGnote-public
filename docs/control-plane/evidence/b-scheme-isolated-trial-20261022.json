@@ -1,0 +1,53 @@
+{
+  "schema_version": "kgnote.b-scheme-isolated-trial-evidence.v1",
+  "executed_on": "2026-10-22",
+  "command": ".venv/bin/python scripts/run_product_goal_isolated_trial.py --spec tests/fixtures/control_plane/product_goal_isolated_trial_spec.json --backlog docs/control-plane/PRODUCT_GOAL_BACKLOG.json --issue9-fixture tests/fixtures/control_plane/issue9_pr29_goal_history.json",
+  "result": "PASS",
+  "fixture_repository": "example.invalid/kgnote-isolated-trial",
+  "production_activation": false,
+  "model_invocations": 0,
+  "external_writes": 0,
+  "historical_replay": {
+    "fixture_id": "issue9-pr29-through-round4-20261022",
+    "event_count": 25,
+    "valid_review_verdicts": 4,
+    "model_attempts": 5,
+    "quota_attempt_is_review": false,
+    "quota_attempt_input_tokens": 0,
+    "quota_attempt_output_tokens": 0,
+    "latest_identity_obligation": "NO_OBLIGATION_PROGRESS",
+    "writeback_failure_recovery": "RETRY_PUBLICATION_WITHOUT_MODEL",
+    "completion_gate_consumes_verdict": false,
+    "commit_without_verified_obligation_is_complete": false,
+    "legacy_budgets_unchanged": true,
+    "ledger_head_sha256": "7fd67ef3c1f48e371cc1da4ba8757c6fab11ee162161dc167a5253b8a63ed668"
+  },
+  "path_a": {
+    "initial": "TRIAL_ACTION_READY",
+    "quota": "WAIT_QUOTA_BACKOFF_NO_MODEL",
+    "unknown_result": "RECONCILE_CHECKPOINT_NO_MODEL",
+    "changes_required": "TRIAL_DISPATCH_REPAIR",
+    "outside_window": "WAIT_WORK_WINDOW"
+  },
+  "path_b": {
+    "closed_goal": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
+    "next_goal": "GOAL-KGNOTE-O3-EXACT-CONTINUATION",
+    "next_state": "APPROVAL_REQUIRED",
+    "authority_granted": false,
+    "notification_id": "notice-1fa96bad838faeaffde535f1",
+    "chatgpt_work_status": "UNVERIFIED",
+    "fallback": "GITHUB_NATIVE"
+  },
+  "safety_readback": {
+    "codex_app_goal_authority_effect": "NONE",
+    "main_merged": false,
+    "launch_agent_changed": false,
+    "legacy_issue9_state_changed": false,
+    "paid_api_used": false,
+    "ten_percent_claimed_accurate": false,
+    "live_dispatch_bridge_tested_offline": true,
+    "dispatch_reservation_precedes_router": true,
+    "restart_requires_checkpoint_reconciliation": true,
+    "writer_lock_stop_marker_epoch_scope_admission_preserved": true
+  }
+}

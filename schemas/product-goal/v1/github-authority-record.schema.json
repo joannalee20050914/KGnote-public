@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/product-goal/v1/github-authority-record.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "identity_kind", "authority_kind", "repository", "issue", "comment_id", "comment_url", "author_login", "author_association", "created_at", "action", "goal_id", "goal_version", "goal_spec_sha256", "permissions", "body_sha256"],
+  "properties": {
+    "schema_version": {"const": "kgnote.product-goal-authority.v1"},
+    "identity_kind": {"const": "KGNOTE_PRODUCT_GOAL"},
+    "authority_kind": {"const": "GITHUB_OWNER_APPROVAL"},
+    "repository": {"type": "string"},
+    "issue": {"type": "integer", "minimum": 1},
+    "comment_id": {"type": "integer", "minimum": 1},
+    "comment_url": {"type": "string", "format": "uri"},
+    "author_login": {"type": "string", "minLength": 1},
+    "author_association": {"const": "OWNER"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "action": {"enum": ["APPROVE", "PAUSE", "RESUME", "REVOKE", "ACCEPT", "CLOSE"]},
+    "goal_id": {"type": "string"},
+    "goal_version": {"type": "string"},
+    "goal_spec_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "permissions": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "expires_at": {"type": ["string", "null"], "format": "date-time"},
+    "body_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

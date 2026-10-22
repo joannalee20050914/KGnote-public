@@ -1982,6 +1982,103 @@ def next_review_id(review_id: str) -> str:
     return f"{match.group(1)}{int(match.group(2)) + 1:03d}"
 
 
+def rebind_implementing_review_to_active_goal(repo: Path, reason: str) -> dict[str, Any]:
+    """Start a fresh review identity when PLAN begins a different execution Goal.
+
+    Only an unsealed IMPLEMENTING request with an EMPTY result is eligible. The
+    previous request is archived as invalidated provenance; no candidate PASS,
+    Product Goal authority, or human gate can be inherited.
+    """
+    if not reason.strip():
+        raise ValueError("review_goal_rebind: a concrete reason is required")
+    plan, status = load_plan_status(repo)
+    request, result, _ = load_review_artifacts(repo)
+    if request.get("status") != "IMPLEMENTING":
+        raise ValueError("review_goal_rebind: request must be IMPLEMENTING")
+    if result.get("artifact_state") != "EMPTY":
+        raise ValueError("review_goal_rebind: result must be EMPTY")
+    if request.get("candidate_revision") is not None or request.get("candidate_fingerprint") is not None:
+        raise ValueError("review_goal_rebind: an unsealed request cannot retain candidate identity")
+    if request.get("goal_id") == plan.get("goal_id"):
+        return {"status": "unchanged", "review_id": request["review_id"]}
+    old_review_id = request["review_id"]
+    old_goal_id = request.get("goal_id")
+    archive_review_artifact(
+        repo, ".ai/REVIEW_REQUEST.md", old_review_id, "request", "INVALIDATED", None
+    )
+    goal_slug = re.sub(r"[^a-z0-9]+", "-", str(plan["goal_id"]).lower()).strip("-")
+    goal_slug = re.sub(r"^codex-app-goal-", "", goal_slug)
+    review_id = f"review-{goal_slug}-001"
+    history_index = json.loads(
+        (review_history_directory(repo) / "index.json").read_text(encoding="utf-8")
+    )
+    used = set(history_index.get("reviews", {}))
+    while review_id in used:
+        review_id = next_review_id(review_id)
+    active = active_milestone(plan) or {}
+    changed_areas = [
+        str(path) for path in active.get("owned_paths", [])
+        if isinstance(path, str) and path.strip()
+    ]
+    if not changed_areas:
+        raise ValueError(
+            "review_goal_rebind: active milestone must declare at least one owned path"
+        )
+    request.update({
+        "review_id": review_id,
+        "goal_id": plan["goal_id"],
+        "milestone_id": plan["active_milestone_id"],
+        "base_revision": status["git"]["base_commit"],
+        "candidate_revision": None,
+        "candidate_fingerprint": None,
+        "authoritative_specs": list(plan.get("authoritative_specs", [])),
+        "changed_areas": changed_areas,
+        "acceptance_criteria": list(active.get("acceptance", [])),
+        "negative_requirements": list(
+            plan.get("requirement_context", {}).get("forbidden_substitutes", [])
+        ),
+        "validation_performed": [],
+        "validation_results": [],
+        "known_deviations": [],
+        "known_uncertainties": [],
+        "reviewer_focus": [],
+        "preserved_human_gates": [
+            str(item.get("id"))
+            for item in plan.get("preserved_human_gates", [])
+            if isinstance(item, dict) and item.get("id")
+        ],
+        "requested_at": None,
+        "candidate_manifest": None,
+    })
+    write_review_request(repo, request)
+    status["review"] = {
+        "state": "IMPLEMENTING",
+        "current_review_id": None,
+        "candidate_revision": None,
+        "candidate_fingerprint": None,
+        "unresolved_findings": [],
+        "human_decision_blockers": [],
+    }
+    status["verification"]["candidate_verified"] = False
+    status["verification"]["control_plane_ready"] = False
+    status["verification"]["release_verified"] = False
+    status["verification"]["last_result"] = (
+        f"Review identity changed from {old_goal_id} to {plan['goal_id']}: {reason.strip()}"
+    )
+    status["next_action"] = (
+        "Complete deterministic verification for the new execution Goal and issue its first exact review request."
+    )
+    status["updated_at"] = datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds")
+    write_status(repo, status)
+    return {
+        "status": "rebound",
+        "old_goal_id": old_goal_id,
+        "old_review_id": old_review_id,
+        "goal_id": plan["goal_id"],
+        "review_id": review_id,
+    }
+
+
 def prepare_review_request(
     repo: Path,
     evidence_path: str,
@@ -3257,6 +3354,8 @@ def main() -> int:
     custody_parser.add_argument("--reviewer-identity", required=True)
     invalidate_parser = sub.add_parser("review-invalidate")
     invalidate_parser.add_argument("--reason", required=True)
+    rebind_parser = sub.add_parser("review-rebind-goal")
+    rebind_parser.add_argument("--reason", required=True)
     sub.add_parser("review-submit")
     sub.add_parser("review-resume")
     fixed_parser = sub.add_parser("review-finding-fixed")
@@ -3363,6 +3462,14 @@ def main() -> int:
             print(json.dumps({"status": "fail", "errors": [str(exc)]}, indent=2, ensure_ascii=False))
             return 2
         print(json.dumps({"status": "implementing", **result}, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == "review-rebind-goal":
+        try:
+            result = rebind_implementing_review_to_active_goal(repo, args.reason)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print(json.dumps({"status": "fail", "errors": [str(exc)]}, indent=2, ensure_ascii=False))
+            return 2
+        print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0
     if args.command == "review-submit":
         try:

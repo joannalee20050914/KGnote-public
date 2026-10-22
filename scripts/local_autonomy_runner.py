@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 
 import external_review_control
 import cross_issue_admission
+import goal_runner_adapter
 
 REPO = Path(__file__).resolve().parents[1]
 OUT = REPO / "output/control-plane/production-runner"
@@ -2316,6 +2317,112 @@ def hold_writer_lock(repo: Path, command: list[str], identity: dict[str, object]
         return completed.returncode
 
 
+def run_product_goal_mode(
+    repo: Path,
+    *,
+    spec_path: Path,
+    state_path: Path,
+    ledger_path: Path,
+    comments_path: Path | None,
+    trial: bool,
+    router: Path,
+    epoch_record: Path,
+    admission: Path,
+    runner_identity: dict[str, object],
+    current: datetime | None = None,
+    command_runner=subprocess.run,
+) -> dict[str, object]:
+    """Plan or route one Product Goal action through the existing trust chain."""
+    global OUT, LOCK, LOG, RUNNER_EVENT_IDENTITY
+    OUT = repo / "output/control-plane/production-runner"
+    LOCK, LOG = OUT / "writer.lock", OUT / "runner.jsonl"
+    RUNNER_EVENT_IDENTITY = runner_identity
+    OUT.mkdir(parents=True, exist_ok=True)
+    with LOCK.open("a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        if (repo / STOP_MARKER).exists():
+            append("product_goal_dispatch_stopped", reason="orchestrator_stop_marker_present")
+            return {
+                "status": "STOPPED",
+                "requires_model": False,
+                "reason": "the existing Stop Marker blocks Product Goal dispatch",
+            }
+        decision = goal_runner_adapter.run_once(
+            spec_path, state_path, ledger_path,
+            comments_path=comments_path, trial=trial, now=current,
+        )
+        if decision.get("status") != "ACTION_READY":
+            append("product_goal_scheduler_decision", decision=decision)
+            return decision
+        spec = goal_runner_adapter.goal_continuity.load_json(spec_path)
+        state = goal_runner_adapter.goal_continuity.load_json(state_path)
+        try:
+            order_path, _, _ = goal_runner_adapter.validated_bound_order(
+                spec, state, decision, repo=repo
+            )
+        except goal_runner_adapter.GoalRunnerError as exc:
+            append("product_goal_dispatch_binding_rejected", reason=str(exc))
+            return {
+                **decision,
+                "status": "DISPATCH_BINDING_REQUIRED",
+                "requires_model": False,
+                "reason": str(exc),
+            }
+        if not router.is_file() or not epoch_record.is_file() or not admission.is_file():
+            append("product_goal_admission_unavailable", order=str(order_path))
+            return {
+                **decision,
+                "status": "ADMISSION_UNAVAILABLE",
+                "requires_model": False,
+                "reason": "router, epoch record, or scope admission helper is unavailable",
+            }
+        gate = command_runner(
+            [sys.executable, str(admission), "--epoch", str(epoch_record), "--order", str(order_path)],
+            cwd=repo, capture_output=True, text=True,
+        )
+        if gate.returncode:
+            append(
+                "product_goal_admission_rejected", order=str(order_path),
+                error_tail=(gate.stderr or gate.stdout or "")[-1000:],
+            )
+            return {
+                **decision,
+                "status": "ADMISSION_REJECTED",
+                "requires_model": False,
+                "reason": "the existing epoch/scope admission gate rejected the sealed order",
+            }
+        observed_at = (current or datetime.now(ZONE)).isoformat(timespec="seconds")
+        reserved, order_path, attempt_id = goal_runner_adapter.reserve_dispatch(
+            spec, state, decision, state_path=state_path, ledger_path=ledger_path,
+            repo=repo, occurred_at=observed_at,
+        )
+        append(
+            "product_goal_dispatch_reserved", work_item_id=decision["work_item_id"],
+            attempt_id=attempt_id, order=str(order_path),
+        )
+        exit_code = route_order(repo, router, order_path, command_runner)
+        updated = goal_runner_adapter.record_route_outcome(
+            spec, reserved, state_path=state_path,
+            work_item_id=str(decision["work_item_id"]), attempt_id=attempt_id,
+            route_exit_code=exit_code, occurred_at=observed_at,
+        )
+        status = "DISPATCHED" if exit_code == 0 else "ROUTE_FAILED_RECONCILIATION_REQUIRED"
+        append(
+            "product_goal_route_completed", work_item_id=decision["work_item_id"],
+            attempt_id=attempt_id, exit_code=exit_code, status=status,
+        )
+        return {
+            **decision,
+            "status": status,
+            "attempt_id": attempt_id,
+            "route_exit_code": exit_code,
+            "persisted_work_status": next(
+                row["status"] for row in updated["work_items"]
+                if row["work_item_id"] == decision["work_item_id"]
+            ),
+        }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, default=REPO)
@@ -2324,11 +2431,39 @@ def main() -> int:
     parser.add_argument("--epoch-record", type=Path, default=DEFAULT_EPOCH)
     parser.add_argument("--scope-admission", type=Path, default=DEFAULT_ADMISSION)
     parser.add_argument("--pending-goal", type=Path, default=DEFAULT_PENDING)
+    parser.add_argument("--product-goal-spec", type=Path)
+    parser.add_argument("--product-goal-state", type=Path)
+    parser.add_argument("--product-goal-ledger", type=Path)
+    parser.add_argument("--product-goal-comments", type=Path)
+    parser.add_argument("--product-goal-trial", action="store_true")
     parser.add_argument("--hold-lock", action="store_true")
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     identity = runner_code_identity(Path(__file__).resolve().parents[1])
     try:
+        product_paths = [args.product_goal_spec, args.product_goal_state, args.product_goal_ledger]
+        if any(product_paths):
+            if not all(product_paths):
+                parser.error("Product Goal adapter requires spec, state, and ledger together")
+            result = run_product_goal_mode(
+                args.repo.resolve(),
+                spec_path=args.product_goal_spec.resolve(),
+                state_path=args.product_goal_state.resolve(),
+                ledger_path=args.product_goal_ledger.resolve(),
+                comments_path=(
+                    args.product_goal_comments.resolve() if args.product_goal_comments else None
+                ),
+                trial=args.product_goal_trial,
+                router=args.router.resolve(), epoch_record=args.epoch_record.resolve(),
+                admission=args.scope_admission.resolve(), runner_identity=identity,
+            )
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            failures = {
+                "GO_LIVE_NOT_AUTHORIZED", "STOPPED", "DISPATCH_BINDING_REQUIRED",
+                "ADMISSION_UNAVAILABLE", "ADMISSION_REJECTED",
+                "ROUTE_FAILED_RECONCILIATION_REQUIRED",
+            }
+            return 0 if result["status"] not in failures else 2
         if args.hold_lock:
             command = args.command[1:] if args.command[:1] == ["--"] else args.command
             return hold_writer_lock(args.repo.resolve(), command, identity)

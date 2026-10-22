@@ -1,0 +1,100 @@
+{
+  "schema_version": "kgnote.b-scheme-baseline-audit.v1",
+  "observed_at": "2026-10-22T15:20:00+08:00",
+  "repository": {
+    "canonical": "joannalee20050914/KGnote-public",
+    "main_head": "f81ccdde369c7ab9468ed07ca1fdab6d8f0b60e0",
+    "implementation_branch": "codex/goal-continuous-delegation-20261022",
+    "implementation_base": "f81ccdde369c7ab9468ed07ca1fdab6d8f0b60e0",
+    "legacy_issue8_worktree_modified": false,
+    "main_modified_or_merged": false
+  },
+  "mac_runner": {
+    "launch_agent": "${HOME}/Library/LaunchAgents/com.kgnote.local-autonomy-runner.plist",
+    "state_at_readback": "not running between scheduled ticks",
+    "start_interval_seconds": 30,
+    "completed_runs": 106,
+    "last_exit_code": 0,
+    "runner_checkout": "${HOME}/KGnote-runner-deploy-pr29-r4-recovery",
+    "runner_head": "951e4c312d00bea81dd9252033be8857a2a17d15",
+    "runner_clean": true,
+    "router_checkout": "${HOME}/KGnote-integration-deploy-7dbaeb6",
+    "router_head": "7dbaeb6872cea07f5f8eb6ebdff8b29359cd2d66",
+    "router_clean": true,
+    "epoch_admission_checkout": "${HOME}/KGnote-integration-deploy-b329390",
+    "epoch_admission_head": "b3293908847ac8296c37402ab1a3876e50b2b38a",
+    "epoch_admission_clean": true,
+    "pending_state_source": "${HOME}/KGnote-claude-reviewer-integration/.ai/PENDING_SUCCESSOR_GOAL.json",
+    "pending_state_is_mutable_legacy_evidence": true
+  },
+  "ubuntu_runtime": {
+    "host_alias": "kgnote-ubuntu",
+    "connectivity": "PASS",
+    "issue9_worktree_head": "4c11eb425f98030d6181abb74e67b0e7594d87bc",
+    "codex_cli": "codex-cli 0.146.0",
+    "claude_code": "2.1.302 (Claude Code)",
+    "codex_node_path_required": "${UBUNTU_HOME}/.local/lib/node-v24.12.0/bin"
+  },
+  "issue9_pr29": {
+    "issue": 9,
+    "pull_request": 29,
+    "pull_request_state": "OPEN_DRAFT",
+    "head": "4c11eb425f98030d6181abb74e67b0e7594d87bc",
+    "review_round": 4,
+    "verdict": "CHANGES_REQUIRED",
+    "canonical_record_id": 6334516526,
+    "canonical_record_url": "https://github.com/joannalee20050914/KGnote-public/pull/29#issuecomment-6334516526",
+    "blocking_findings": [
+      "finding-render-click-evidence-stale-and-untracked",
+      "finding-control-plane-state-stale-vs-candidate"
+    ],
+    "nonblocking_findings": [
+      "finding-unsupported-clause-not-gap-and-leaks-into-brief"
+    ],
+    "prior_quota_attempt": {
+      "status": "QUOTA_BLOCKED",
+      "api_error": "usage_limit_reached",
+      "http_status": 429,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "verdict": null,
+      "valid_product_review": false
+    },
+    "round4_canonical_verdict_is_separate_from_quota_attempt": true,
+    "new_authority_granted_by_this_audit": false
+  },
+  "legacy_accounting": {
+    "successor_claude_reviews": {"authorized": 8, "used": 8},
+    "successor_codex_cycles": {"authorized": 12, "used": 8},
+    "issue9_claude_reviews": {"authorized": 3, "used": 3},
+    "issue9_supplemental_codex_repairs": {"authorized": 2, "used": 2},
+    "completion_gate_trial_claude": {"authorized": 1, "used": 1},
+    "round4_quota_recovery_claude": {"authorized": 1, "used": 1},
+    "migration_rule": "Preserve every raw event and used count. No legacy authority is converted to continuous or unlimited delegation."
+  },
+  "resource_observability": {
+    "codex_subscription_authentication": "ChatGPT OAuth configured",
+    "claude_subscription_authentication": "Claude Pro OAuth verifiable through auth status",
+    "trusted_remaining_percentage_available": false,
+    "ten_percent_reserve_status": "PERCENTAGE_UNOBSERVABLE",
+    "forbidden_proxies": ["token usage", "context remaining", "cost estimate", "session reset text", "absence of quota error"],
+    "required_fallback": ["authorized work window", "single model-bearing work item", "minimum launch interval", "provider-specific quota backoff", "bounded recovery", "durable checkpoint reconciliation", "no paid API fallback"]
+  },
+  "notification_readback": {
+    "official_documentation": "https://learn.chatgpt.com/docs/automations",
+    "official_capability": "Eligible ChatGPT web/mobile plans can trigger scheduled tasks from supported GitHub pull-request activity; event-triggered tasks are not available in the desktop app, Codex CLI, or IDE extension.",
+    "local_codex_automation_found": false,
+    "repository_event_trigger_operated": false,
+    "connection_permission_readback": false,
+    "delivery_reliability_readback": false,
+    "chatgpt_work_status": "UNVERIFIED_NOTIFICATION_OPTION",
+    "reliable_fallback": "GITHUB_NATIVE_ISSUE_OR_PR_NOTIFICATION"
+  },
+  "identity_boundary": {
+    "codex_app_goal": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
+    "codex_app_goal_authorizes_product_goal": false,
+    "product_goal_identity_kind": "KGNOTE_PRODUCT_GOAL",
+    "product_goal_authority_kind": "GITHUB_OWNER_APPROVAL",
+    "product_goal_lifecycle_owner": "MAC_RUNNER"
+  }
+}
