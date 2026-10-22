@@ -18,6 +18,7 @@ from .preview import PersonalAlphaPreview
 PERSONAL_ALPHA_WORKSPACE_VERSION = "kgnote.personal-alpha-workspace.v1"
 _MANIFEST_PATH = PurePosixPath(".kgnote/manifest.json")
 _PACKAGE_ENTRY_PATH = PurePosixPath(".kgnote/package-entry.json")
+_SECONDARY_WEB_PATH = PurePosixPath(".kgnote/web-learning.json")
 _USER_NOTES_PATH = PurePosixPath("My Notes.md")
 _CONTINUE_PATH = PurePosixPath("Continue Here.md")
 _WIKILINK = re.compile(
@@ -459,10 +460,17 @@ def _render_learner_entry(
     if not projection["concepts"]:
         lines.append("- The source does not mark a reusable concept explicitly.")
     if projection["prerequisite_gaps"]:
-        lines.extend(["", "## Check the source wording", ""])
+        lines.extend(["", "## Before you rely on this", ""])
         for gap in projection["prerequisite_gaps"]:
             target = _relative_link("Start Here.md", str(gap["path"]))
-            lines.append(f"- [[{target}|{gap['label']}]] — {gap['message']}")
+            if gap["kind"] == "source_supported_prerequisite":
+                prerequisite = _relative_link("Start Here.md", str(gap["prerequisite_path"]))
+                lines.append(
+                    f"- [[{target}|{gap['label']}]] — open "
+                    f"[[{prerequisite}|{gap['prerequisite_label']}]] first. {gap['message']}"
+                )
+            else:
+                lines.append(f"- [[{target}|{gap['label']}]] — {gap['message']}")
     lines.extend(["", "## Key relationships", ""])
     for relation in projection["relationships"]:
         subject = _relative_link("Start Here.md", str(relation["subject_path"]))
@@ -501,7 +509,7 @@ def _render_learner_entry(
 
 
 def _package_entry_bytes(projection: Mapping[str, Any]) -> bytes:
-    """Bind the package entry to the ordinary Obsidian learning note only."""
+    """Bind the primary note and the existing secondary Web learner."""
 
     entry = projection["entry"]
     package_entry = {
@@ -509,6 +517,13 @@ def _package_entry_bytes(projection: Mapping[str, Any]) -> bytes:
         "primary": {
             "surface": entry["primary_surface"],
             "path": entry["primary_path"],
+        },
+        "secondary": {
+            "surface": "web_learning",
+            "role": "secondary_learning_interaction",
+            "generic_editor": False,
+            "path": str(_SECONDARY_WEB_PATH),
+            "entry_path": "/learn.html?personal_alpha=1",
         },
         "identity": {
             "source_id": projection["source"]["id"],
@@ -521,6 +536,59 @@ def _package_entry_bytes(projection: Mapping[str, Any]) -> bytes:
     return (json.dumps(package_entry, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
         "utf-8"
     )
+
+
+def _web_learning_bundle_bytes(
+    payload: Mapping[str, Any], projection: Mapping[str, Any], source_text: str
+) -> bytes:
+    """Adapt canonical Personal Alpha records for the real learn-app consumer.
+
+    This is data for ``web/learn-app.js``/``buildLearnWorkspace``; it is not an
+    HTML page or another editor.  IDs are copied from canonical records so the
+    Web consumer can be compared independently with the Obsidian workspace.
+    """
+    source = projection["source"]
+    unit_id = f"personal_alpha_{source['id']}"
+    concepts = [
+        {
+            "id": item["id"], "label": item["label"], "summary": item["explanation"],
+            "evidence_ids": [evidence_id for group in item["evidence_groups"] for evidence_id in group["evidence_ids"]],
+        }
+        for item in projection["concepts"]
+    ]
+    evidence = list(payload["evidence"])
+    propositions = [
+        {
+            "edge_id": item["id"], "subject_concept_id": item["subject_id"],
+            "subject_label": item["subject_label"], "linking_phrase": item["phrase"],
+            "object_concept_id": item["object_id"], "object_label": item["object_label"],
+            "evidence_ids": [evidence_id for group in item["evidence_groups"] for evidence_id in group["evidence_ids"]],
+        }
+        for item in projection["relationships"]
+    ]
+    root_id = f"personal_alpha_root_{source['id']}"
+    nodes = [{
+        "id": root_id, "title": source["title"], "parent_id": None, "order": 0,
+        "kind": "source", "organizing_relation": "source_scope",
+        "source_anchors": [{"source_id": source["id"], "locator": {"kind": "line_range", "value": "L1-L1"}}],
+        "concept_refs": [item["id"] for item in concepts], "claim_refs": [item["edge_id"] for item in propositions],
+    }]
+    model = {
+        "schema_version": "kgnote.guided-map-read-model.v1", "graph_snapshot_sha256": source["content_sha256"],
+        "source": {**source, "label": source["title"]}, "learning_unit": {"id": unit_id, "focus_question": projection["learning_goal"], "source_locator": {"kind": "line_range", "value": "L1-L1"}},
+        "concepts": concepts, "evidence": evidence, "propositions": propositions, "groups": [],
+    }
+    bundle = {
+        "schema_version": "kgnote.personal-alpha-web-learning.v1", "status": "ready",
+        "primary": {"surface": "obsidian_note", "path": "Start Here.md"},
+        "secondary": {"surface": "web_learning", "role": "secondary_learning_interaction", "generic_editor": False},
+        "identity": {"source_id": source["id"], "source_sha256": source["content_sha256"], "concept_ids": projection["canonical_ids"]["concepts"], "relation_ids": projection["canonical_ids"]["relations"], "evidence_ids": projection["canonical_ids"]["evidence"]},
+        "model": model, "source_text": source_text,
+        "claim_reviews": {"schema_version": "kgnote.claim-review-overlay.v1", "learning_unit_id": unit_id, "graph_snapshot_sha256": source["content_sha256"], "reviews": [{"claim_id": item["edge_id"], "teaching_answer_status": "ready" if relation["resolved"] else "blocked"} for item, relation in zip(propositions, projection["relationships"], strict=True)]},
+        "structure": {"schema_version": "kgnote.learning-structure.v1", "learning_unit_id": unit_id, "nodes": nodes},
+        "reading_assist": {"schema_version": "kgnote.reading-assist.v1", "learning_unit_id": unit_id, "glosses": [], "prior_knowledge": []},
+    }
+    return (json.dumps(bundle, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
 def _render_learner_concept_index(
@@ -767,6 +835,9 @@ def _artifact_bytes(
         ),
         "Evidence.md": _render_learner_evidence(projection, source_relative),
         str(_PACKAGE_ENTRY_PATH): _package_entry_bytes(projection),
+        str(_SECONDARY_WEB_PATH): _web_learning_bundle_bytes(
+            payload, projection, source_bytes.decode("utf-8")
+        ),
         source_relative: source_bytes,
     }
     for concept in projection["concepts"]:
@@ -1144,6 +1215,7 @@ def read_back_learning_workspace(workspace: str | Path) -> dict[str, Any]:
         ) from error
     identity = package_entry.get("identity") if isinstance(package_entry, Mapping) else None
     primary = package_entry.get("primary") if isinstance(package_entry, Mapping) else None
+    secondary = package_entry.get("secondary") if isinstance(package_entry, Mapping) else None
     expected_identity = {
         "source_id": source.get("id"),
         "source_sha256": source.get("content_sha256"),
@@ -1155,10 +1227,44 @@ def read_back_learning_workspace(workspace: str | Path) -> dict[str, Any]:
         package_entry.get("schema_version") != "kgnote.personal-alpha-packaged-entry.v1"
         or identity != expected_identity
         or primary != {"surface": "obsidian_note", "path": str(manifest.get("entry_note"))}
+        or secondary != {
+            "surface": "web_learning", "role": "secondary_learning_interaction",
+            "generic_editor": False, "path": str(_SECONDARY_WEB_PATH),
+            "entry_path": "/learn.html?personal_alpha=1",
+        }
     ):
         raise PersonalAlphaMaterializationError(
             "package_entry_identity_drift",
-            "The ordinary Obsidian entry identity contract disagrees with the workspace.",
+            "The primary Obsidian entry identity contract disagrees with the workspace.",
+            "Preserve the workspace and regenerate; do not hand-edit generated package files.",
+        )
+    web_path = root / Path(*_safe_relative(str(secondary["path"])).parts)
+    try:
+        web_bundle = json.loads(web_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise PersonalAlphaMaterializationError(
+            "web_learning_bundle_invalid",
+            "The secondary Web-learning bundle cannot be reopened.",
+            "Preserve the workspace and regenerate; do not hand-edit generated package files.",
+        ) from error
+    web_model = web_bundle.get("model") if isinstance(web_bundle, Mapping) else None
+    web_identity = web_bundle.get("identity") if isinstance(web_bundle, Mapping) else None
+    web_concepts = [item.get("id") for item in web_model.get("concepts", [])] if isinstance(web_model, Mapping) else []
+    web_relations = [item.get("edge_id") for item in web_model.get("propositions", [])] if isinstance(web_model, Mapping) else []
+    web_evidence = [item.get("id") for item in web_model.get("evidence", [])] if isinstance(web_model, Mapping) else []
+    if (
+        web_bundle.get("schema_version") != "kgnote.personal-alpha-web-learning.v1"
+        or web_bundle.get("primary") != primary
+        or web_bundle.get("secondary", {}).get("role") != "secondary_learning_interaction"
+        or web_bundle.get("secondary", {}).get("generic_editor") is not False
+        or web_identity != expected_identity
+        or web_concepts != record_ids["concepts"]
+        or web_relations != record_ids["relations"]
+        or web_evidence != record_ids["evidence"]
+    ):
+        raise PersonalAlphaMaterializationError(
+            "web_identity_readback_failed",
+            "The real secondary Web-learning bundle does not contain the same canonical IDs.",
             "Preserve the workspace and regenerate; do not hand-edit generated package files.",
         )
     return {
@@ -1170,6 +1276,7 @@ def read_back_learning_workspace(workspace: str | Path) -> dict[str, Any]:
         "checked_links": checked_links,
         "record_counts": {key: len(value) for key, value in record_ids.items()},
         "package_entry": str(package_entry_path.resolve()),
+        "web_learning": str(web_path.resolve()),
     }
 
 

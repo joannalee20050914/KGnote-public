@@ -55,6 +55,45 @@
       "status": "active",
       "dependencies": [],
       "human_gate": "none",
+      "completion_gate": {
+        "name": "review_completion_gate",
+        "mode": "opt_in",
+        "evidence_path": "docs/requirements/evidence/d2-t02-teaching-projection-20261022.json",
+        "required_claims": [
+          {
+            "claim_id": "finding-web-identity-readback-missing",
+            "required_product_entrypoints": [
+              "scripts/serve_graph_view.py",
+              "src/kgnote/personal_alpha/workspace.py",
+              "web/learn-app.js",
+              "web/learn-workspace.js"
+            ],
+            "required_evidence_kinds": [
+              "positive_test",
+              "negative_test",
+              "http",
+              "render_click",
+              "read_back"
+            ],
+            "required_scenarios": ["SC-35", "SC-38"]
+          },
+          {
+            "claim_id": "finding-no-render-click-or-tracked-evidence",
+            "required_product_entrypoints": [
+              "scripts/serve_graph_view.py",
+              "web/learn-app.js",
+              "web/learn-workspace.js"
+            ],
+            "required_evidence_kinds": [
+              "positive_test",
+              "negative_test",
+              "candidate_identity",
+              "read_back"
+            ],
+            "required_scenarios": ["SC-35"]
+          }
+        ]
+      },
       "owned_paths": [
         "PLAN.md",
         "CODEX_STATUS.md",
@@ -64,6 +103,8 @@
         "src/kgnote/personal_alpha/",
         "tests/",
         "docs/requirements/",
+        "scripts/serve_graph_view.py",
+        "web/",
         "DEVELOPMENT_PLAIN.md"
       ],
       "acceptance": [

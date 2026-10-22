@@ -314,6 +314,40 @@ class LearnerProjectionTests(unittest.TestCase):
         self.assertTrue(glossary["beginner_brief"].startswith("Begin with the original material"))
         self.assertNotIn("external", " ".join(item["message"] for item in glossary["prerequisite_gaps"]).casefold())
 
+    def test_reviewed_requires_orders_only_the_source_supported_prerequisite(self):
+        payload = self.preview.as_dict()
+        relation = payload["relations"][0]
+        relation["relation"] = "requires"
+        relation["review_status"] = "verified"
+        projection = project_learner_workspace(payload).as_dict()
+        dependent = relation["subject_concept_id"]
+        prerequisite = relation["object_concept_id"]
+        gap = next(item for item in projection["prerequisite_gaps"] if item["kind"] == "source_supported_prerequisite")
+        self.assertEqual(gap["concept_id"], dependent)
+        self.assertEqual(gap["prerequisite_id"], prerequisite)
+        self.assertIn("open **network connection** first", gap["message"])
+        self.assertNotIn("source-backed explanation", gap["message"])
+        self.assertEqual(
+            projection["learning_path"][0],
+            "Read network connection before HTTP request; the source explicitly marks that requirement.",
+        )
+
+    def test_colon_definition_uses_the_colon_after_the_matched_term(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "colon.md"
+            source.write_text("# Notes\n\nExample (HTTP): **Port**: a number for a service.\n", encoding="utf-8")
+            projection = project_learner_workspace(build_learning_workspace_preview(source).payload).as_dict()
+        port = next(item for item in projection["concepts"] if item["label"] == "Port")
+        self.assertEqual(port["explanation"], "In this material, **Port** is a number for a service.")
+        self.assertNotIn("HTTP): **Port**", port["explanation"])
+
+    def test_beginner_brief_is_plain_natural_prose(self):
+        projection = project_learner_workspace(self.preview.payload).as_dict()
+        brief = projection["beginner_brief"]
+        self.assertNotIn("source explicitly says: the source states", brief.casefold())
+        self.assertNotIn("**", brief)
+        self.assertNotRegex(brief, r"\.\s*;")
+
     def test_held_out_natural_prose_is_not_rewritten_or_fixture_scripted(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "field-notes.md"

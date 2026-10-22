@@ -179,7 +179,10 @@ def _concept_explanation(
         )
         if match and _plain(match.group(1)).strip().casefold() == name.strip().casefold():
             definition = candidate
-            definition_tail = re.split(r"[:：]", excerpt, maxsplit=1)[1].strip()
+            # The marked term may occur after another colon (for example,
+            # "Note: **Cache**: fast store").  Only the colon that matched
+            # this exact term can introduce its definition.
+            definition_tail = excerpt[match.end() :].strip()
             break
         # A source often defines a term in an ordinary sentence rather than a
         # glossary row.  Recognise only a sentence that begins with this exact
@@ -369,13 +372,13 @@ def _beginner_brief(
 
     defined = [item for item in concepts if item["limitation"] is None]
     if defined:
-        examples = "; ".join(
-            str(item["explanation"]).replace("In this material, ", "", 1)
+        examples = " ".join(
+            _plain(str(item["explanation"])).replace("In this material, ", "", 1).rstrip(".") + "."
             for item in defined[:2]
         )
         return (
-            f"Begin with the original material, then use the concept notes when a term blocks "
-            f"the next sentence. This source explicitly says: {examples}"
+            f"Begin with the original material. When a term blocks the next sentence, open its "
+            f"concept note. In this source: {examples}"
         )
     named = [str(item["label"]) for item in concepts[:2]]
     terms = ", ".join(named) if named else "the marked terms"
@@ -385,8 +388,10 @@ def _beginner_brief(
     )
 
 
-def _prerequisite_gaps(concepts: list[Mapping[str, Any]]) -> list[dict[str, str]]:
-    """Expose source-context notes without inferring a prerequisite relation."""
+def _prerequisite_gaps(
+    concepts: list[Mapping[str, Any]], relations: list[Mapping[str, Any]]
+) -> list[dict[str, str]]:
+    """Expose only source-bounded missing context and reviewed prerequisites."""
 
     gaps: list[dict[str, str]] = []
     for item in concepts:
@@ -408,9 +413,34 @@ def _prerequisite_gaps(concepts: list[Mapping[str, Any]]) -> list[dict[str, str]
                 "message": (
                     f"This material names **{item['label']}** in source line {locator[1:] if locator.startswith('L') else locator}. "
                     "KGnote did not recognise that passage as a definition, so it does not rewrite it. "
-                    "Recheck the original wording; if you need more context, add a question in Continue Here "
-                    "or ask for a source-backed explanation."
+                    "Recheck the original wording in the linked source passage, then record a question in "
+                    "Continue Here if that passage is still not enough."
                 ),
+            }
+        )
+    by_id = {str(item["id"]): item for item in concepts}
+    for relation in relations:
+        if relation.get("relation") != "requires" or relation.get("review_status") not in {"verified", "accepted", "corrected"}:
+            continue
+        prerequisite = by_id.get(str(relation["object_id"]))
+        dependent = by_id.get(str(relation["subject_id"]))
+        if prerequisite is None or dependent is None:
+            continue
+        locator = str(relation["evidence_groups"][0]["locator"]["value"])
+        gaps.append(
+            {
+                "concept_id": str(dependent["id"]),
+                "label": str(dependent["label"]),
+                "path": str(dependent["path"]),
+                "kind": "source_supported_prerequisite",
+                "source_locator": locator,
+                "message": (
+                    f"Before relying on **{dependent['label']}**, open **{prerequisite['label']}** first. "
+                    f"This source explicitly says {dependent['label']} requires {prerequisite['label']} ({locator})."
+                ),
+                "prerequisite_id": str(prerequisite["id"]),
+                "prerequisite_label": str(prerequisite["label"]),
+                "prerequisite_path": str(prerequisite["path"]),
             }
         )
     return gaps
@@ -499,7 +529,15 @@ def project_learner_workspace(payload: Mapping[str, Any]) -> LearnerProjection:
     if not structure and "-" in source_title:
         source_title = source_title.replace("-", " ").strip()
         source_title = source_title[:1].upper() + source_title[1:]
-    prerequisite_gaps = _prerequisite_gaps(projected_concepts)
+    prerequisite_gaps = _prerequisite_gaps(projected_concepts, projected_relations)
+    learning_path = _learning_path(payload)
+    reviewed_requires = [item for item in prerequisite_gaps if item["kind"] == "source_supported_prerequisite"]
+    if reviewed_requires:
+        first = reviewed_requires[0]
+        learning_path.insert(
+            0,
+            f"Read {first['prerequisite_label']} before {first['label']}; the source explicitly marks that requirement.",
+        )
     model = {
         "schema_version": LEARNER_PROJECTION_VERSION,
         "source": {
@@ -511,7 +549,7 @@ def project_learner_workspace(payload: Mapping[str, Any]) -> LearnerProjection:
         "summary_locator": payload["topic_summary"]["source_locator"],
         "beginner_brief": _beginner_brief(source_title, projected_concepts),
         "learning_goal": _learning_goal(source_title),
-        "learning_path": _learning_path(payload),
+        "learning_path": learning_path,
         "structure": structure,
         "structure_inline": short_structure,
         "source_shape": source_shape,

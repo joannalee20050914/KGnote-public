@@ -54,6 +54,7 @@ from kgnote.learning import (  # noqa: E402
 )
 from kgnote.notes import read_note, save_note, search_notes  # noqa: E402
 from kgnote.reader import load_reader  # noqa: E402
+from kgnote.personal_alpha import read_back_learning_workspace  # noqa: E402
 
 MAX_QUERY_BYTES = 32_768
 MAX_NOTE_BYTES = 300_000
@@ -436,6 +437,7 @@ def handler_for(
     attempts_root: Path | None = None,
     learning_units: dict[str, Any] | None = None,
     source_library_root: Path | None = None,
+    personal_alpha_workspace: Path | None = None,
 ) -> type[BaseHTTPRequestHandler]:
     allowed_static_root = static_root or ROOT / "web"
 
@@ -465,6 +467,18 @@ def handler_for(
 
         def do_GET(self) -> None:  # noqa: N802
             parsed = urlsplit(self.path)
+            if personal_alpha_workspace is not None and parsed.path == "/api/personal-alpha-learning":
+                if parsed.query:
+                    self._reject(HTTPStatus.BAD_REQUEST, "invalid_personal_alpha_query")
+                    return
+                try:
+                    audit = read_back_learning_workspace(personal_alpha_workspace)
+                    bundle = json.loads(Path(audit["web_learning"]).read_text(encoding="utf-8"))
+                except Exception:
+                    self._reject(HTTPStatus.CONFLICT, "personal_alpha_identity_drift")
+                    return
+                self._send_json(HTTPStatus.OK, bundle)
+                return
             if source_library_root is not None and parsed.path == "/api/library/sources":
                 if parsed.query:
                     self._reject(HTTPStatus.BAD_REQUEST, "invalid_source_query")
@@ -800,6 +814,7 @@ def main() -> None:
     parser.add_argument("--learning-unit-catalog", help="Bounded catalog for the multi-unit Learn and Practice surfaces.")
     parser.add_argument("--attempts-root", help="Local root for machine-managed Attempt v1 records.")
     parser.add_argument("--source-library-root", help="Explicit local root for immutable imported source revisions.")
+    parser.add_argument("--personal-alpha-workspace", help="Generated Personal Alpha workspace for the secondary Learn interaction.")
     parser.add_argument(
         "--host", choices=("127.0.0.1", "0.0.0.0"), default="127.0.0.1",
         help="Use 0.0.0.0 only for trusted local-network access.",
@@ -860,6 +875,13 @@ def main() -> None:
             list_sources(source_library_root)
         except SourceLibraryError as error:
             parser.error(f"source library configuration unavailable: {error.code}")
+    personal_alpha_workspace = None
+    if args.personal_alpha_workspace:
+        personal_alpha_workspace = Path(args.personal_alpha_workspace)
+        try:
+            read_back_learning_workspace(personal_alpha_workspace)
+        except Exception as error:
+            parser.error(f"personal alpha workspace unavailable: {type(error).__name__}")
     server = ThreadingHTTPServer(
         (args.host, args.port),
         handler_for(
@@ -867,6 +889,7 @@ def main() -> None:
             notes_root=notes_root, note_writes_enabled=args.enable_note_writes,
             claim_review_overlay=claim_review_overlay, attempts_root=attempts_root,
             learning_units=learning_units, source_library_root=source_library_root,
+            personal_alpha_workspace=personal_alpha_workspace,
         ),
     )
     location = "this Mac's local-network IP" if args.host == "0.0.0.0" else "127.0.0.1"

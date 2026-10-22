@@ -1,12 +1,19 @@
 function rejected(code) { return {status: "rejected", problem: {code}}; }
 
-export function buildLearnWorkspace(mapModel, overlay, sourceText, structure = null, readingAssist = null) {
+export function buildLearnWorkspace(mapModel, overlay, sourceText, structure = null, readingAssist = null, identity = null) {
   if (mapModel?.schema_version !== "kgnote.guided-map-read-model.v1") return rejected("invalid_map");
   if (overlay?.schema_version !== "kgnote.claim-review-overlay.v1") return rejected("invalid_overlay");
   if (overlay.learning_unit_id !== mapModel.learning_unit.id || overlay.graph_snapshot_sha256 !== mapModel.graph_snapshot_sha256) return rejected("stale_overlay");
   if (typeof sourceText !== "string" || !sourceText) return rejected("invalid_source");
   const concepts = new Map(mapModel.concepts.map(item => [item.id, structuredClone(item)]));
   const evidence = new Map(mapModel.evidence.map(item => [item.id, structuredClone(item)]));
+  if (identity !== null && (
+    identity.source_id !== mapModel.source.id ||
+    identity.source_sha256 !== mapModel.source.content_sha256 ||
+    JSON.stringify(identity.concept_ids) !== JSON.stringify(mapModel.concepts.map(item => item.id)) ||
+    JSON.stringify(identity.relation_ids) !== JSON.stringify(mapModel.propositions.map(item => item.edge_id)) ||
+    JSON.stringify(identity.evidence_ids) !== JSON.stringify(mapModel.evidence.map(item => item.id))
+  )) return rejected("canonical_identity_drift");
   const reviews = new Map(overlay.reviews.map(item => [item.claim_id, structuredClone(item)]));
   if (reviews.size !== overlay.reviews.length) return rejected("duplicate_claim_review");
   const propositions = mapModel.propositions.map(item => ({

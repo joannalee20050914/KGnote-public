@@ -1,0 +1,155 @@
+{
+  "schema_version": "kgnote.review-completion-evidence.v1",
+  "goal_id": "GOAL-KGNOTE-D2-T02-TEACHING-PROJECTION",
+  "milestone_id": "D2-T02-TEACHING-PROJECTION",
+  "review_case": {
+    "repository": "joannalee20050914/KGnote-public",
+    "pull_request": 29,
+    "candidate_parent": "be8fc7eeaac93d86b6921504ce11a1bac51a0dc0",
+    "authority_comment_id": 6332185006,
+    "role": "PRODUCT_REPAIR",
+    "product_findings_status": "UNRESOLVED_CHANGES_REQUIRED"
+  },
+  "claims": [
+    {
+      "claim_id": "finding-web-identity-readback-missing",
+      "finding_ids": ["finding-web-identity-readback-missing"],
+      "finding_relationship": "REPAIR_ATTEMPT",
+      "disposition": "FIXED_PENDING_REVIEW",
+      "authority_refs": ["FD-05", "FD-06", "FD-21", "RC-15", "RC-16", "SC-35", "SC-38"],
+      "forbidden_substitutes": [
+        "A same-source JSON self-comparison is not cross-consumer identity evidence.",
+        "A generated static HTML page is not the existing Web Learn consumer.",
+        "The Web surface remains secondary and is not another editor."
+      ],
+      "product_entrypoints": [
+        "scripts/serve_graph_view.py",
+        "src/kgnote/personal_alpha/workspace.py",
+        "web/learn-app.js",
+        "web/learn-workspace.js"
+      ],
+      "observable_behavior": "The existing Learn page fetches the read-back-verified Personal Alpha bundle, renders the same Concept, Relation and Evidence identities as the Obsidian workspace, rejects identity drift, and keeps Start Here.md as the primary entry.",
+      "resolution_basis": "The HTTP adapter calls read_back_learning_workspace before serving; the existing learn-app and buildLearnWorkspace consumer receive the bundle identity and reject changed, missing or substituted IDs.",
+      "acceptance_scenarios": [
+        {
+          "scenario_id": "SC-38",
+          "polarity": "positive",
+          "test_refs": [
+            {
+              "path": "tests/test_learning_http.py",
+              "selector": "LearningHttpTests.test_personal_alpha_web_api_serves_only_a_read_back_verified_bundle"
+            },
+            {
+              "path": "tests/test_personal_alpha_workspace.py",
+              "selector": "PersonalAlphaWorkspaceTests.test_packaged_entry_keeps_the_ordinary_obsidian_note_as_the_only_entry"
+            }
+          ]
+        },
+        {
+          "scenario_id": "SC-35",
+          "polarity": "negative",
+          "test_refs": [
+            {
+              "path": "tests/test_personal_alpha_workspace.py",
+              "selector": "PersonalAlphaWorkspaceTests.test_read_back_rejects_changed_missing_or_substituted_web_ids"
+            },
+            {
+              "path": "web/tests/learn-workspace.test.js",
+              "selector": "Personal Alpha uses the real Learn consumer and rejects changed, missing, or substituted Web IDs"
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "positive_test",
+          "status": "RECEIPT_REQUIRED",
+          "reference": "codex_control.verify must execute the exact HTTP and Obsidian primary-entry selectors."
+        },
+        {
+          "kind": "negative_test",
+          "status": "RECEIPT_REQUIRED",
+          "reference": "codex_control.verify must execute the exact Python and Node identity-drift selectors."
+        },
+        {
+          "kind": "http",
+          "status": "PASS",
+          "reference": "tests/test_learning_http.py::LearningHttpTests.test_personal_alpha_web_api_serves_only_a_read_back_verified_bundle"
+        },
+        {
+          "kind": "render_click",
+          "status": "PASS",
+          "reference": "output/control-plane/issue9-render-click-recovery-20261022.json"
+        },
+        {
+          "kind": "read_back",
+          "status": "PASS",
+          "reference": "The server refuses the bundle when read_back_learning_workspace detects manifest or canonical identity drift."
+        }
+      ]
+    },
+    {
+      "claim_id": "finding-no-render-click-or-tracked-evidence",
+      "finding_ids": ["finding-no-render-click-or-tracked-evidence"],
+      "finding_relationship": "REPAIR_ATTEMPT",
+      "disposition": "FIXED_PENDING_REVIEW",
+      "authority_refs": ["AGENTS.md sections 0 and 5", "SC-35", "Issue #9 comment 6332185006"],
+      "forbidden_substitutes": [
+        "A targeted test exit alone is not full exact-candidate verification.",
+        "A static HTML or source inspection is not render/click evidence.",
+        "A stale HEAD or fingerprint cannot be reused."
+      ],
+      "product_entrypoints": ["scripts/serve_graph_view.py", "web/learn-app.js", "web/learn-workspace.js"],
+      "observable_behavior": "The formal verifier executes selector-bound receipts, checks real render/click evidence, and binds the final result to a stable HEAD and fingerprint before publication.",
+      "resolution_basis": "The evidence record uses the deployed review-completion schema; final candidate identity, full suites and read-back remain verifier- and Runner-owned.",
+      "acceptance_scenarios": [
+        {
+          "scenario_id": "SC-35",
+          "polarity": "positive",
+          "test_refs": [
+            {
+              "path": "tests/test_learning_http.py",
+              "selector": "LearningHttpTests.test_personal_alpha_web_api_serves_only_a_read_back_verified_bundle"
+            }
+          ]
+        },
+        {
+          "scenario_id": "SC-35",
+          "polarity": "negative",
+          "test_refs": [
+            {
+              "path": "web/tests/learn-workspace.test.js",
+              "selector": "Personal Alpha uses the real Learn consumer and rejects changed, missing, or substituted Web IDs"
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "positive_test",
+          "status": "RECEIPT_REQUIRED",
+          "reference": "The deterministic verifier must produce a passing selector-bound HTTP receipt."
+        },
+        {
+          "kind": "negative_test",
+          "status": "RECEIPT_REQUIRED",
+          "reference": "The deterministic verifier must produce a passing selector-bound drift-rejection receipt."
+        },
+        {
+          "kind": "candidate_identity",
+          "status": "PASS",
+          "reference": "The final codex_control.verify receipt supplies HEAD, fingerprint_before, fingerprint_after and fingerprint_stable read-back."
+        },
+        {
+          "kind": "read_back",
+          "status": "PASS",
+          "reference": "The Runner accepts publication only from the exact passing verifier evidence and GitHub HEAD read-back."
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "All five historical canonical findings remain CHANGES_REQUIRED until the independent reviewer verifies the new candidate.",
+    "This record does not claim PA-HUMAN-1, NS-HUMAN-SMOKE, release_verified, physical-device, live-provider, or merge approval."
+  ]
+}

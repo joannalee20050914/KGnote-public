@@ -77,9 +77,35 @@ class PersonalAlphaWorkspaceTests(unittest.TestCase):
             workspace = Path(materialize_learning_workspace(preview, vault).workspace_path)
             package = json.loads((workspace / ".kgnote" / "package-entry.json").read_text())
             self.assertEqual(package["primary"], {"surface": "obsidian_note", "path": "Start Here.md"})
-            self.assertNotIn("secondary", package)
-            self.assertFalse((workspace / ".kgnote" / "web-learning.html").exists())
-            self.assertNotIn("web_learning", read_back_learning_workspace(workspace))
+            self.assertEqual(package["secondary"]["role"], "secondary_learning_interaction")
+            self.assertFalse(package["secondary"]["generic_editor"])
+            self.assertEqual(package["secondary"]["entry_path"], "/learn.html?personal_alpha=1")
+            audit = read_back_learning_workspace(workspace)
+            self.assertTrue(audit["web_learning"].endswith(".kgnote/web-learning.json"))
+
+    def test_read_back_rejects_changed_missing_or_substituted_web_ids(self):
+        for mutation in ("changed", "removed", "substituted"):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                source = self.make_source(root)
+                vault = root / "vault"
+                vault.mkdir()
+                workspace = Path(materialize_learning_workspace(build_learning_workspace_preview(source), vault).workspace_path)
+                package = json.loads((workspace / ".kgnote" / "package-entry.json").read_text())
+                web_path = workspace / package["secondary"]["path"]
+                web = json.loads(web_path.read_text())
+                if mutation == "removed":
+                    web["model"]["concepts"].pop(0)
+                else:
+                    web["model"]["concepts"][0]["id"] = mutation
+                content = (json.dumps(web, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode()
+                web_path.write_bytes(content)
+                manifest = self.manifest(workspace)
+                next(item for item in manifest["managed_files"] if item["path"] == package["secondary"]["path"])["sha256"] = hashlib.sha256(content).hexdigest()
+                (workspace / ".kgnote" / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+                with self.assertRaises(PersonalAlphaMaterializationError) as caught:
+                    read_back_learning_workspace(workspace)
+                self.assertEqual(caught.exception.code, "web_identity_readback_failed")
 
     def test_read_back_rejects_missing_packaged_entry_before_claiming_identity(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -137,7 +163,7 @@ class PersonalAlphaWorkspaceTests(unittest.TestCase):
                 package_entry["primary"],
                 {"surface": "obsidian_note", "path": "Start Here.md"},
             )
-            self.assertNotIn("secondary", package_entry)
+            self.assertEqual(package_entry["secondary"]["role"], "secondary_learning_interaction")
             self.assertEqual(
                 package_entry["identity"]["concept_ids"],
                 self.manifest(workspace)["record_ids"]["concepts"],
