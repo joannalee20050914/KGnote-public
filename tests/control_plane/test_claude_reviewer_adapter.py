@@ -176,6 +176,41 @@ class ClaudeReviewerAdapterTest(unittest.TestCase):
         self.assertEqual("MODEL_MISMATCH",result["execution_evidence"]["effective_status"])
         self.assertFalse(result["product_review_accepted"])
 
+    def test_structured_429_preserves_usage_but_never_creates_a_verdict(self):
+        order = self.order(review_only_live=True, safety_baseline_verified=True)
+        envelope = {
+            "api_error_status": 429,
+            "api_error": "usage_limit_reached",
+            "is_error": True,
+            "usage": {"input_tokens": 4, "output_tokens": 12},
+            "modelUsage": {
+                "claude-sonnet-5-5": {
+                    "canonicalModel": "claude-sonnet-5-5", "provider": "firstParty"
+                }
+            },
+        }
+        def runner(command, **kwargs):
+            if command[0] == "git":
+                return subprocess.CompletedProcess(
+                    command, 0, ADAPTER.PINNED_AGENT_LOOP_COMMIT + "\n", ""
+                )
+            if command[-1] == "--version":
+                return subprocess.CompletedProcess(command, 0, "2.1.302 (Claude Code)\n", "")
+            return subprocess.CompletedProcess(command, 1, json.dumps(envelope), "")
+        result = ADAPTER.execute(
+            order, runner,
+            auth_checker=lambda _path: {
+                "auth_method": "claude.ai", "api_provider": "firstParty",
+                "subscription_type": "pro",
+            },
+        )
+        self.assertEqual("FAILED_CLOSED", result["status"])
+        self.assertEqual("quota_exhausted", result["reason"])
+        self.assertEqual(12, result["execution_evidence"]["token_usage"]["output_tokens"])
+        self.assertEqual("EFFECTIVE_CONFIRMED", result["execution_evidence"]["effective_status"])
+        self.assertNotIn("review_result", result)
+        self.assertFalse(result["product_review_accepted"])
+
 
 if __name__ == "__main__":
     unittest.main()

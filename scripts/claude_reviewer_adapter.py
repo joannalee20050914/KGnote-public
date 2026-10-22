@@ -343,6 +343,7 @@ def execute(
         "review_round":review_round, "started_at":started, "product_review_accepted":False,
         "execution_evidence": configured_evidence,
     })
+    envelope: dict[str, Any] | None = None
     try:
         result = (
             _run_process_group(command, order.timeout_seconds)
@@ -353,9 +354,24 @@ def execute(
         exit_code: int | None = result.returncode
         output = (result.stdout + result.stderr).encode("utf-8", errors="replace")
         lowered = output.lower()
+        try:
+            parsed_stdout = json.loads(result.stdout)
+            if isinstance(parsed_stdout, dict):
+                envelope = parsed_stdout
+        except json.JSONDecodeError:
+            envelope = None
         if result.returncode == 0:
             reason = None
-        elif b"quota" in lowered or b"rate limit" in lowered:
+        elif (
+            (isinstance(envelope, dict) and (
+                envelope.get("api_error_status") == 429
+                or envelope.get("api_error") == "usage_limit_reached"
+            ))
+            or b"quota" in lowered
+            or b"rate limit" in lowered
+            or b"usage_limit_reached" in lowered
+            or b"session limit" in lowered
+        ):
             reason = "quota_exhausted"
         elif b"401" in lowered or b"oauth" in lowered:
             reason = "provider_authentication_failure"
@@ -387,11 +403,15 @@ def execute(
         "finished_at": datetime.now(ZoneInfo("Asia/Taipei")).isoformat(),
         "product_review_accepted": False,
         "note": "Exit 0 is transport success only; KGnote Product Contract consumption is a separate exact-candidate gate.",
-        "execution_evidence": configured_evidence,
+        "execution_evidence": (
+            model_execution_evidence(order, cli_version=version, auth=auth, envelope=envelope)
+            if envelope is not None else configured_evidence
+        ),
     }
     if order.review_only_live and status == "COMPLETED":
         try:
-            envelope = json.loads(result.stdout)
+            if envelope is None:
+                envelope = json.loads(result.stdout)
             structured = envelope.get("structured_output")
             if not isinstance(structured, dict):
                 raise ValueError("structured_output missing")
