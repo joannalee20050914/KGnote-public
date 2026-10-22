@@ -288,11 +288,39 @@ def reconcile_owner_authority(
 def in_work_window(spec: dict[str, Any], now: datetime) -> bool:
     local = now.astimezone(ZONE)
     window = spec["work_window"]
-    if local.weekday() not in window["weekdays"]:
-        return False
     current = local.strftime("%H:%M")
     start, end = window["start"], window["end"]
-    return start <= current < end if start <= end else current >= start or current < end
+    if start <= end:
+        window_weekday = local.weekday()
+        inside = start <= current < end
+    else:
+        # The after-midnight segment belongs to the local date on which the
+        # authorized window began.
+        window_weekday = (
+            local - timedelta(days=1)
+        ).weekday() if current < end else local.weekday()
+        inside = current >= start or current < end
+    return inside and window_weekday in window["weekdays"]
+
+
+def resource_window_id(spec: dict[str, Any], now: datetime) -> str:
+    """Return the stable local work-window identity containing ``now``."""
+    local = now.astimezone(ZONE)
+    window = spec["work_window"]
+    current = local.strftime("%H:%M")
+    start_date = local.date()
+    if window["start"] > window["end"] and current < window["end"]:
+        start_date -= timedelta(days=1)
+    return f"{start_date.isoformat()}@{window['start']}-{window['end']}"
+
+
+def _provider_attempts(
+    projection: dict[str, Any], provider: str
+) -> list[dict[str, Any]]:
+    return [
+        row for row in projection.get("model_attempts", {}).values()
+        if row.get("provider") == provider and row.get("started") is True
+    ]
 
 
 def classify_recovery(failure: dict[str, Any]) -> dict[str, Any]:
@@ -413,7 +441,14 @@ def next_action(
         if recovery["action"] == "WAIT_QUOTA_BACKOFF" and isinstance(retry_value, str):
             retry_at = datetime.fromisoformat(retry_value)
             if now >= retry_at:
-                recovery = {"action": "RESUME_AFTER_QUOTA", "requires_model": False}
+                return {
+                    "status": "RECOVERY_READY",
+                    "action": "RESUME_AFTER_QUOTA",
+                    "requires_model": False,
+                    "work_item_id": runtime_block.get("work_item_id"),
+                    "attempt_id": runtime_block.get("attempt_id"),
+                    "retry_at": retry_value,
+                }
         if recovery["action"] == "WAIT_HUMAN_DECISION":
             return {"status": "HUMAN_DECISION_REQUIRED", **recovery}
         if recovery["action"] in NO_MODEL_ACTIONS:
@@ -447,20 +482,40 @@ def next_action(
         provider = plan.get("provider", work_spec["provider"])
         if provider == "NONE":
             raise GoalRunnerError("model action cannot use provider NONE")
-        launches = int(state.get("resource_accounting", {}).get(provider, {}).get("launches_in_window", 0))
-        last_value = state.get("resource_accounting", {}).get(provider, {}).get("last_launch_at")
-        last_launch = datetime.fromisoformat(last_value) if isinstance(last_value, str) else None
+        current_window = resource_window_id(spec, now)
+        attempts = _provider_attempts(projection, provider)
+        try:
+            started_at = [
+                datetime.fromisoformat(str(row["started_at"])) for row in attempts
+            ]
+        except (KeyError, ValueError) as exc:
+            raise GoalRunnerError(
+                "model attempt history lacks a valid timezone-bound start"
+            ) from exc
+        if any(value.tzinfo is None for value in started_at):
+            raise GoalRunnerError(
+                "model attempt history lacks a valid timezone-bound start"
+            )
+        launches = sum(
+            resource_window_id(spec, value) == current_window
+            for value in started_at
+        )
+        last_launch = max(started_at, default=None)
         retry_value = state.get("resource_accounting", {}).get(provider, {}).get("quota_retry_at")
         quota_retry = datetime.fromisoformat(retry_value) if isinstance(retry_value, str) else None
         capacity = goal_continuity.capacity_decision(
             spec["resource_policy"]["providers"][provider], now=now,
             last_launch_at=last_launch, launches_in_window=launches,
+            total_launches=len(attempts),
             quota_retry_at=quota_retry,
         )
         if capacity["status"] != "DISPATCH":
             return {"status": capacity["status"], "provider": provider, **capacity}
         plan["provider"] = provider
         plan["capacity_basis"] = capacity["basis"]
+        plan["resource_window_id"] = current_window
+        plan["launches_in_window_before"] = launches
+        plan["total_launches_before"] = len(attempts)
     return {
         "status": "TRIAL_ACTION_READY" if trial else "ACTION_READY",
         "goal_id": spec["goal_id"],
@@ -468,6 +523,91 @@ def next_action(
         "work_item_id": selected["work_item_id"],
         "milestone_id": selected["milestone_id"],
         **plan,
+    }
+
+
+def resume_after_quota_backoff(
+    spec: dict[str, Any], state: dict[str, Any],
+    *, state_path: Path, ledger_path: Path, now: datetime,
+) -> dict[str, Any]:
+    """Durably clear one elapsed provider backoff without launching a model."""
+    if now.tzinfo is None:
+        raise GoalRunnerError("quota resume time must be timezone-aware")
+    if not state_path.is_file():
+        raise GoalRunnerError("durable Runner state is unavailable")
+    durable_state = goal_continuity.load_json(state_path)
+    goal_continuity.validate_runner_state(durable_state, spec)
+    if goal_continuity.canonical_json_bytes(durable_state) != (
+        goal_continuity.canonical_json_bytes(state)
+    ):
+        raise GoalRunnerError("in-memory Runner state is stale relative to durable state")
+    ledger = goal_continuity.read_ledger(ledger_path)
+    state = synchronize_state_from_ledger(
+        spec, durable_state, ledger, state_path=state_path
+    )
+    runtime_block = state.get("runtime_block")
+    if not isinstance(runtime_block, dict):
+        return {"status": "QUOTA_BACKOFF_ALREADY_RESUMED", "requires_model": False}
+    failure_class = str(runtime_block.get("failure_class") or "")
+    if failure_class not in {"QUOTA_EXHAUSTED", "RATE_LIMITED", "USAGE_LIMIT_REACHED"}:
+        raise GoalRunnerError("runtime block is not a provider quota backoff")
+    retry_value = runtime_block.get("retry_at")
+    if not isinstance(retry_value, str):
+        raise GoalRunnerError("quota backoff lacks a durable retry time")
+    try:
+        retry_at = datetime.fromisoformat(retry_value)
+    except ValueError as exc:
+        raise GoalRunnerError("quota backoff retry time is invalid") from exc
+    if retry_at.tzinfo is None:
+        raise GoalRunnerError("quota backoff retry time must be timezone-aware")
+    if now < retry_at:
+        raise GoalRunnerError("quota backoff has not elapsed")
+    work_item_id = runtime_block.get("work_item_id")
+    attempt_id = runtime_block.get("attempt_id")
+    if not isinstance(work_item_id, str) or not isinstance(attempt_id, str):
+        raise GoalRunnerError("quota backoff lacks exact Work Item/attempt identity")
+    work_spec = next(
+        (row for row in spec["work_items"] if row["work_item_id"] == work_item_id),
+        None,
+    )
+    if work_spec is None or work_spec["provider"] not in {"codex", "claude"}:
+        raise GoalRunnerError("quota backoff Work Item has no model provider")
+
+    updated = deepcopy(state)
+    updated.pop("runtime_block", None)
+    accounting = updated.get("resource_accounting", {}).get(work_spec["provider"])
+    if isinstance(accounting, dict):
+        accounting.pop("quota_retry_at", None)
+    event, appended = goal_continuity.append_ledger_event(
+        ledger_path,
+        event_id=f"{attempt_id}-quota-backoff-resumed",
+        event_type="WORK_STATE_TRANSITION",
+        occurred_at=now.isoformat(),
+        goal_id=spec["goal_id"],
+        goal_version=spec["goal_version"],
+        logical_work_id=work_item_id,
+        attempt_id=attempt_id,
+        payload={
+            "operation": "QUOTA_BACKOFF_RESUMED",
+            "failure_class": failure_class,
+            "retry_at": retry_value,
+            "provider": work_spec["provider"],
+            "state_patch": _state_patch(updated),
+        },
+    )
+    if not appended:
+        raise GoalRunnerError("quota resume event already exists; reconcile state first")
+    updated["event_cursor"] = {
+        "sequence": event["sequence"], "event_sha256": event["event_sha256"]
+    }
+    goal_continuity.validate_runner_state(updated, spec)
+    goal_continuity.atomic_write_json(state_path, updated)
+    return {
+        "status": "QUOTA_BACKOFF_RESUMED",
+        "requires_model": False,
+        "work_item_id": work_item_id,
+        "attempt_id": attempt_id,
+        "provider": work_spec["provider"],
     }
 
 
@@ -526,6 +666,15 @@ def validated_bound_order(
         raise GoalRunnerError(
             f"{action['action']} requires the {expected_stage} worker profile"
         )
+    if expected_stage in {"codex", "claude"} and (
+        action.get("requires_model") is not True
+        or action.get("provider") != expected_stage
+    ):
+        raise GoalRunnerError(
+            f"{action['action']} requires model accounting for provider {expected_stage}"
+        )
+    if expected_stage == "publisher" and action.get("requires_model") is not False:
+        raise GoalRunnerError(f"{action['action']} is a deterministic publisher action")
     if order.get("event_id") != binding["order_event_id"]:
         raise GoalRunnerError("sealed order event identity differs from the Runner state binding")
     attempt_number = int(work.get("attempts", 0)) + 1
@@ -538,8 +687,153 @@ def reserve_dispatch(
     *, state_path: Path, ledger_path: Path, repo: Path, occurred_at: str,
 ) -> tuple[dict[str, Any], Path, str]:
     """Persist an exact-once reservation before an external worker can start."""
+    try:
+        occurred = datetime.fromisoformat(occurred_at)
+    except ValueError as exc:
+        raise GoalRunnerError("dispatch reservation time is invalid") from exc
+    if occurred.tzinfo is None:
+        raise GoalRunnerError("dispatch reservation time must be timezone-aware")
+
+    # Planning is read-only and can become stale while admission checks run.
+    # Rebuild from the durable ledger and recheck every launch boundary at the
+    # final reservation point, before an external worker can start.
+    if not state_path.is_file():
+        raise GoalRunnerError("durable Runner state is unavailable")
+    durable_state = goal_continuity.load_json(state_path)
+    goal_continuity.validate_runner_state(durable_state, spec)
+    if goal_continuity.canonical_json_bytes(durable_state) != (
+        goal_continuity.canonical_json_bytes(state)
+    ):
+        raise GoalRunnerError("in-memory Runner state is stale relative to durable state")
+    ledger = goal_continuity.read_ledger(ledger_path)
+    state = synchronize_state_from_ledger(
+        spec, durable_state, ledger, state_path=state_path
+    )
+    projection = goal_continuity.reduce_ledger(ledger)
+    if _unreconciled_dispatch(projection) is not None:
+        raise GoalRunnerError(
+            "an existing dispatch reservation must be reconciled before another dispatch"
+        )
+    if (
+        state["lifecycle"]["state"] != "ACTIVE"
+        or state["authority_lease"] != "ACTIVE"
+        or state["go_live_authorized"] is not True
+        or not isinstance(state.get("authority_record"), dict)
+    ):
+        raise GoalRunnerError("dispatch requires an active exact Product Goal authority")
+    if not in_work_window(spec, occurred):
+        raise GoalRunnerError("dispatch reservation is outside the authorized work window")
+    if isinstance(state.get("runtime_block"), dict):
+        raise GoalRunnerError(
+            "dispatch is blocked by a durable runtime recovery condition"
+        )
+
+    by_id = {row["work_item_id"]: row for row in state["work_items"]}
+    work = by_id.get(action.get("work_item_id"))
+    if (
+        work is None
+        or work["status"] not in RUNNABLE_WORK
+        or not _dependency_ready(work, by_id)
+        or work.get("active_attempt_id") is not None
+    ):
+        raise GoalRunnerError("planned action is no longer an eligible Work Item")
+    if any(
+        row["work_item_id"] != work["work_item_id"]
+        and row["status"] in {"DISPATCHING", "DISPATCHED"}
+        for row in state["work_items"]
+    ):
+        raise GoalRunnerError("single-model concurrency is already occupied")
+    work_spec = next(
+        row for row in spec["work_items"]
+        if row["work_item_id"] == work["work_item_id"]
+    )
+    live_plan = _work_action(work, work_spec)
+    live_provider = live_plan.get("provider", work_spec["provider"])
+    if (
+        action.get("action") != live_plan["action"]
+        or action.get("requires_model") is not live_plan["requires_model"]
+        or (
+            live_plan["requires_model"]
+            and action.get("provider") != live_provider
+        )
+    ):
+        raise GoalRunnerError("planned action no longer matches the immutable Work Item")
+
+    if live_plan["requires_model"]:
+        attempts = _provider_attempts(projection, live_provider)
+        try:
+            started_at = [
+                datetime.fromisoformat(str(row["started_at"])) for row in attempts
+            ]
+        except (KeyError, ValueError) as exc:
+            raise GoalRunnerError(
+                "model attempt history lacks a valid timezone-bound start"
+            ) from exc
+        if any(value.tzinfo is None for value in started_at):
+            raise GoalRunnerError(
+                "model attempt history lacks a valid timezone-bound start"
+            )
+        current_window = resource_window_id(spec, occurred)
+        launches = sum(
+            resource_window_id(spec, value) == current_window
+            for value in started_at
+        )
+        retry_value = state.get("resource_accounting", {}).get(
+            live_provider, {}
+        ).get("quota_retry_at")
+        quota_retry = (
+            datetime.fromisoformat(retry_value)
+            if isinstance(retry_value, str) else None
+        )
+        capacity = goal_continuity.capacity_decision(
+            spec["resource_policy"]["providers"][live_provider],
+            now=occurred,
+            last_launch_at=max(started_at, default=None),
+            launches_in_window=launches,
+            total_launches=len(attempts),
+            quota_retry_at=quota_retry,
+        )
+        if capacity["status"] != "DISPATCH":
+            raise GoalRunnerError(
+                f"dispatch no longer satisfies resource policy: {capacity['status']}"
+            )
+        if (
+            action.get("resource_window_id") != current_window
+            or action.get("launches_in_window_before") != launches
+            or action.get("total_launches_before") != len(attempts)
+            or action.get("capacity_basis") != capacity["basis"]
+        ):
+            raise GoalRunnerError(
+                "planned resource evidence is stale; recompute the next action"
+            )
+
     order_path, order, attempt_id = validated_bound_order(spec, state, action, repo=repo)
     event_type = "MODEL_ATTEMPT_STARTED" if action.get("requires_model") else "WORK_STATE_TRANSITION"
+    updated = deepcopy(state)
+    work = next(
+        row for row in updated["work_items"]
+        if row["work_item_id"] == action["work_item_id"]
+    )
+    prior_work_status = work["status"]
+    work["status"] = "DISPATCHING"
+    work["active_attempt_id"] = attempt_id
+    work["attempts"] = int(work.get("attempts", 0)) + 1
+    if action.get("requires_model"):
+        provider = action["provider"]
+        accounting = updated.setdefault("resource_accounting", {}).setdefault(provider, {})
+        projection = goal_continuity.reduce_ledger(goal_continuity.read_ledger(ledger_path))
+        attempts = _provider_attempts(projection, provider)
+        current_window = resource_window_id(spec, occurred)
+        accounting["window_id"] = current_window
+        accounting["launches_in_window"] = 1 + sum(
+            resource_window_id(
+                spec, datetime.fromisoformat(str(row["started_at"]))
+            ) == current_window
+            for row in attempts
+        )
+        accounting["total_launches"] = len(attempts) + 1
+        accounting["last_launch_at"] = occurred_at
+    state_patch = _state_patch(updated)
     event, appended = goal_continuity.append_ledger_event(
         ledger_path,
         event_id=f"{attempt_id}-reserved",
@@ -553,29 +847,14 @@ def reserve_dispatch(
             "operation": "DISPATCH_RESERVED",
             "action": action["action"],
             "provider": action.get("provider"),
-            "prior_work_status": next(
-                row["status"] for row in state["work_items"]
-                if row["work_item_id"] == action["work_item_id"]
-            ),
+            "prior_work_status": prior_work_status,
             "order_event_id": order["event_id"],
             "order_sha256": hashlib.sha256(order_path.read_bytes()).hexdigest(),
+            "state_patch": state_patch,
         },
     )
     if not appended:
         raise GoalRunnerError("dispatch was already reserved; reconcile it instead of redispatching")
-    updated = deepcopy(state)
-    work = next(
-        row for row in updated["work_items"]
-        if row["work_item_id"] == action["work_item_id"]
-    )
-    work["status"] = "DISPATCHING"
-    work["active_attempt_id"] = attempt_id
-    work["attempts"] = int(work.get("attempts", 0)) + 1
-    if action.get("requires_model"):
-        provider = action["provider"]
-        accounting = updated.setdefault("resource_accounting", {}).setdefault(provider, {})
-        accounting["launches_in_window"] = int(accounting.get("launches_in_window", 0)) + 1
-        accounting["last_launch_at"] = occurred_at
     updated["event_cursor"] = {
         "sequence": event["sequence"], "event_sha256": event["event_sha256"]
     }
@@ -823,6 +1102,8 @@ def reconcile_dispatch_checkpoint(
     action = {
         "status": "ACTION_READY", "action": reservation["action"],
         "work_item_id": work_item_id,
+        "requires_model": reservation.get("event_type") == "MODEL_ATTEMPT_STARTED",
+        "provider": reservation.get("provider"),
     }
     order_path, order, _ = validated_bound_order(spec, state, action, repo=repo)
     checkpoint_path = Path(str(order["checkpoint_path"]))

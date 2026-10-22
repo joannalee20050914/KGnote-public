@@ -78,15 +78,17 @@ Independent review orders must bind the exact `program_id`, Product Goal identit
 
 Codex ChatGPT OAuth and Claude Pro OAuth are independent subscription resources. No metered API fallback is permitted.
 
-The desired 10% reserve is enforceable only from a trusted account-level remaining-percentage observation with source and observation time. Token counts, context capacity, cost estimates, session reset text, or absence of a 429 are not subscription percentage.
+The desired 10% reserve is enforceable only from a trusted account-level remaining-percentage observation with source and observation time. Token counts, context capacity, cost estimates, session reset text, or absence of a 429 are not subscription percentage. Independently of percentage observability, the Owner-approved per-window and Goal-version total launch ceilings are hard upper bounds; a high trusted percentage cannot enlarge them.
 
-When the percentage is unavailable, Runner records `PERCENTAGE_UNOBSERVABLE` and uses the verifiable fallback envelope: approved Asia/Taipei work window, one active model Work Item, minimum launch interval, provider-specific quota backoff, bounded retry/strategy counts, existing total ceilings, and checkpoint-first recovery. It must not claim that the 10% reserve has been implemented accurately.
+When the percentage is unavailable, Runner records `PERCENTAGE_UNOBSERVABLE` and uses the verifiable fallback envelope: approved Asia/Taipei work window, one active model Work Item, minimum launch interval, provider-specific quota backoff, an explicit per-window launch ceiling, an explicit Goal-version total launch ceiling, bounded strategy counts, and checkpoint-first recovery. Window and total counts are reconstructed from the append-only ledger; a date, Session or mutable state edit may open a new window allowance but cannot reset the Goal total. Planning is read-only: immediately before the durable dispatch reservation, Runner reads back the current state and ledger and rechecks authority, work eligibility, runtime blocks, work window, provider, interval, both launch ceilings and the plan's resource evidence. It must not claim that the 10% reserve has been implemented accurately.
+
+Goal admission rejects cyclic Work Item dependencies, a model-bearing Work Item assigned to the wrong provider, a Work Item lacking the permission required for its action, or an obligation with no independent Claude REVIEW lane. Runner state must retain the exact milestone, dependencies and obligation bindings from the immutable Goal spec.
 
 ## 6. Recovery and progress
 
 Runner distinguishes at least:
 
-- provider quota: wait until the recorded retry condition, then re-admit under the unchanged Goal;
+- provider quota: wait until the recorded retry condition, append a no-model ledger transition that clears the exact backoff, then re-plan and re-admit under the unchanged Goal;
 - closed work window: checkpoint and continue in the next window;
 - model started/result unknown: reconcile, never blind-redispatch;
 - GitHub/Publisher transient failure: read back possible side effects and reuse completed Worker output;

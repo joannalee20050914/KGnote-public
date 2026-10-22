@@ -16,7 +16,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-b-continuous-delegation-20261022-007.",
+  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-b-continuous-delegation-20261022-008.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -31,5 +31,5 @@
   },
   "last_agent_run": null,
   "created_at": "2026-10-22T15:10:00+08:00",
-  "updated_at": "2026-10-22T16:58:30+08:00"
+  "updated_at": "2026-10-22T17:11:42+08:00"
 }

@@ -130,13 +130,66 @@ def validate_goal_spec(spec: dict[str, Any]) -> None:
         extra = set(work["allowed_operations"]) - set(spec["allowed_operations"])
         if extra:
             raise GoalContractError(f"{work_id}: operations exceed Goal authority: {sorted(extra)}")
+    work_by_id = {row["work_item_id"]: row for row in spec["work_items"]}
+    expected_providers = {
+        "IMPLEMENT": "codex",
+        "REPAIR": "codex",
+        "REVIEW": "claude",
+        "VERIFY": "NONE",
+        "PUBLISH": "NONE",
+        "ACCEPTANCE_PREP": "NONE",
+    }
+    required_permissions = {
+        "IMPLEMENT": {"commit"},
+        "REPAIR": {"commit"},
+        "REVIEW": {"review"},
+    }
     for work in spec["work_items"]:
         unknown = set(work["dependencies"]) - work_ids
         if unknown:
             raise GoalContractError(
                 f"{work['work_item_id']}: unknown work dependencies {sorted(unknown)}"
             )
+        expected_provider = expected_providers[work["kind"]]
+        if work["provider"] != expected_provider:
+            raise GoalContractError(
+                f"{work['work_item_id']}: {work['kind']} requires provider {expected_provider}"
+            )
+        missing_permissions = required_permissions.get(work["kind"], set()) - set(
+            work["allowed_operations"]
+        )
+        if missing_permissions:
+            raise GoalContractError(
+                f"{work['work_item_id']}: {work['kind']} lacks required permissions "
+                f"{sorted(missing_permissions)}"
+            )
+        if work["kind"] == "PUBLISH" and not {
+            "push", "draft_pr"
+        }.intersection(work["allowed_operations"]):
+            raise GoalContractError(
+                f"{work['work_item_id']}: PUBLISH requires push or draft_pr permission"
+            )
+
+    # A dependency cycle is an invalid Goal, not an idle runtime condition.
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def visit(work_id: str) -> None:
+        if work_id in visiting:
+            raise GoalContractError(f"work item dependency cycle includes {work_id}")
+        if work_id in visited:
+            return
+        visiting.add(work_id)
+        for dependency in work_by_id[work_id]["dependencies"]:
+            visit(dependency)
+        visiting.remove(work_id)
+        visited.add(work_id)
+
+    for work_id in work_by_id:
+        visit(work_id)
+
     repairs = [row for row in spec["work_items"] if row["kind"] == "REPAIR"]
+    reviews = [row for row in spec["work_items"] if row["kind"] == "REVIEW"]
     for work in spec["work_items"]:
         if work["kind"] == "REVIEW" and not any(
             set(work["obligation_ids"]).intersection(row["obligation_ids"])
@@ -145,6 +198,15 @@ def validate_goal_spec(spec: dict[str, Any]) -> None:
             raise GoalContractError(
                 f"{work['work_item_id']}: REVIEW requires a pre-authorized REPAIR lane"
             )
+    reviewed_obligations = {
+        obligation_id for work in reviews for obligation_id in work["obligation_ids"]
+    }
+    missing_review = known - reviewed_obligations
+    if missing_review:
+        raise GoalContractError(
+            "every product obligation requires an independent REVIEW lane; missing "
+            f"{sorted(missing_review)}"
+        )
     for name, policy in spec["resource_policy"]["providers"].items():
         observation = policy["capacity_observation"]
         trusted = observation["status"] == "TRUSTED"
@@ -431,7 +493,12 @@ def reduce_ledger(events: Iterable[dict[str, Any]]) -> dict[str, Any]:
             )
         if kind == "MODEL_ATTEMPT_STARTED" and attempt_id:
             result["model_attempts"].setdefault(attempt_id, {}).update(
-                {"started": True, "logical_work_id": event["logical_work_id"]}
+                {
+                    "started": True,
+                    "logical_work_id": event["logical_work_id"],
+                    "started_at": event["occurred_at"],
+                    **deepcopy(payload),
+                }
             )
         elif kind == "MODEL_ATTEMPT_FINISHED" and attempt_id:
             result["model_attempts"].setdefault(attempt_id, {}).update(
@@ -475,11 +542,30 @@ def capacity_decision(
     now: datetime,
     last_launch_at: datetime | None,
     launches_in_window: int,
+    total_launches: int = 0,
     quota_retry_at: datetime | None = None,
 ) -> dict[str, Any]:
     """Use trusted account percentage when available; otherwise a bounded fallback."""
     if quota_retry_at is not None and now < quota_retry_at:
         return {"status": "WAIT_QUOTA_BACKOFF", "resume_at": quota_retry_at.isoformat()}
+    fallback = provider_policy["fallback"]
+    if total_launches >= fallback["max_total_launches"]:
+        return {
+            "status": "WAIT_GOAL_RESOURCE_LIMIT",
+            "total_launches": total_launches,
+            "max_total_launches": fallback["max_total_launches"],
+        }
+    if launches_in_window >= fallback["max_launches_per_window"]:
+        return {"status": "WAIT_WINDOW_BUDGET"}
+    if last_launch_at is not None:
+        elapsed = (now - last_launch_at).total_seconds()
+        if elapsed < 0:
+            raise GoalContractError("last launch timestamp is in the future")
+        if elapsed < fallback["min_launch_interval_seconds"]:
+            return {
+                "status": "WAIT_LAUNCH_INTERVAL",
+                "resume_in_seconds": fallback["min_launch_interval_seconds"] - int(elapsed),
+            }
     observation = provider_policy["capacity_observation"]
     if observation["status"] == "TRUSTED":
         remaining = observation["remaining_percent"]
@@ -495,16 +581,6 @@ def capacity_decision(
             if remaining <= provider_policy["reserve_percent"]:
                 return {"status": "WAIT_RESERVE", "remaining_percent": remaining}
             return {"status": "DISPATCH", "basis": "TRUSTED_PERCENTAGE"}
-    fallback = provider_policy["fallback"]
-    if launches_in_window >= fallback["max_launches_per_window"]:
-        return {"status": "WAIT_WINDOW_BUDGET"}
-    if last_launch_at is not None:
-        elapsed = (now - last_launch_at).total_seconds()
-        if elapsed < fallback["min_launch_interval_seconds"]:
-            return {
-                "status": "WAIT_LAUNCH_INTERVAL",
-                "resume_in_seconds": fallback["min_launch_interval_seconds"] - int(elapsed),
-            }
     return {"status": "DISPATCH", "basis": "PERCENTAGE_UNOBSERVABLE_FALLBACK"}
 
 
@@ -544,6 +620,14 @@ def validate_runner_state(state: dict[str, Any], spec: dict[str, Any]) -> None:
     state_work = {row.get("work_item_id") for row in state["work_items"]}
     if state_work != spec_work:
         raise GoalContractError("runner state work item set differs from Goal spec")
+    state_work_by_id = {row["work_item_id"]: row for row in state["work_items"]}
+    for work_id, expected in {row["work_item_id"]: row for row in spec["work_items"]}.items():
+        actual = state_work_by_id[work_id]
+        for field in ("milestone_id", "dependencies", "obligation_ids"):
+            if actual.get(field) != expected[field]:
+                raise GoalContractError(
+                    f"runner state {work_id} {field} differs from the immutable Goal spec"
+                )
     spec_obligations = {
         (row["obligation_id"], row["semantic_key"]) for row in spec["obligations"]
     }

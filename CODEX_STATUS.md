@@ -6,7 +6,7 @@ This factual handoff describes the Codex App implementation Goal. It is not a KG
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-22T16:45:18+08:00",
+  "updated_at": "2026-10-22T17:29:18+08:00",
   "goal_id": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
   "active_goal": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -21,13 +21,13 @@ This factual handoff describes the Codex App implementation Goal. It is not a KG
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/goal-continuous-delegation-20261022",
-    "head": "593b680186a3561a444dc88f1f06f60e5740a182",
+    "head": "998fc928356e62816907041d0f2f2f5a538e65c1",
     "base_commit": "f81ccdde369c7ab9468ed07ca1fdab6d8f0b60e0",
-    "checkpoint_commit": "593b680186a3561a444dc88f1f06f60e5740a182"
+    "checkpoint_commit": "998fc928356e62816907041d0f2f2f5a538e65c1"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "53cae0bd073281df8ca6ba03d435274d7d7a148e4fcb2ec4fdb01706cf26832c",
+    "fingerprint": "383fbeefd8799a219abb60865ff8a1c95ace67e6d0d5976c4fc77e73fdac92d0",
     "starting_fingerprint": "7621a96a29db9c1e8af64471fef694238210b5c7585bc8f5dcd16231816723c4",
     "expected_dirty_policy": "Only B-scheme execution contracts, schemas, Runner integration, bounded tests/evidence, PLAN/STATUS and review/publication receipts may change. Product files, PR #29, main, legacy Ledgers and deployed Runner remain untouched.",
     "preserved_preexisting_dirty_paths": [],
@@ -55,11 +55,11 @@ This factual handoff describes the Codex App implementation Goal. It is not a KG
     "candidate_verified": false,
     "release_verified": false,
     "control_plane_ready": false,
-    "last_candidate_evidence": "output/control-plane/verification-20261022T163921+0800.json",
-    "last_verified_fingerprint": "53cae0bd073281df8ca6ba03d435274d7d7a148e4fcb2ec4fdb01706cf26832c",
-    "last_result": "Review review-b-continuous-delegation-20261022-006 was invalidated before reviewer custody: Completion audit found that exact GitHub Owner authority was parsed but not durably applied to Runner state/ledger, and Product Goal dispatch checkpoints had no reconciliation path; the isolated trial therefore depended on manual state injection and did not prove the required autonomous lifecycle."
+    "last_candidate_evidence": "output/control-plane/verification-20261022T170503+0800.json",
+    "last_verified_fingerprint": "1c5ed4b713912debcf9f6ddb07ba3b0124ae1b6fdfdfd53f996723f9f485cc23",
+    "last_result": "Review 008 candidate repairs now include durable quota-backoff clearance before replanning, exact reservation-time read-back of state/ledger and resource bounds, crash replay, admission guards, and the updated zero-model isolated evidence. Full control-plane verification is green."
   },
-  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-b-continuous-delegation-20261022-007.",
+  "next_action": "Run final preflight, inspect the exact staged path/blob set, commit and push the replacement candidate, then run post-commit deterministic verification and seal Review 008.",
   "external_or_human_gates": [
     {
       "id": "B-SCHEME-GO-LIVE",
@@ -95,5 +95,5 @@ Goal `CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022` remains active at milesto
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-b-continuous-delegation-20261022-007.
+Exact next action: Run final preflight, inspect the exact staged path/blob set, commit and push the replacement candidate, then run post-commit deterministic verification and seal Review 008.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

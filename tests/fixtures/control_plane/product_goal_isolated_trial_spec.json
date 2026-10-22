@@ -26,14 +26,14 @@
         "paid_api_fallback": false,
         "reserve_percent": 10,
         "capacity_observation": {"status": "PERCENTAGE_UNOBSERVABLE", "remaining_percent": null, "source_kind": null, "observed_at": null, "max_age_seconds": 300},
-        "fallback": {"min_launch_interval_seconds": 300, "max_launches_per_window": 3, "quota_backoff_seconds": 3600}
+        "fallback": {"min_launch_interval_seconds": 300, "max_launches_per_window": 3, "max_total_launches": 12, "quota_backoff_seconds": 3600}
       },
       "claude": {
         "subscription_only": true,
         "paid_api_fallback": false,
         "reserve_percent": 10,
         "capacity_observation": {"status": "PERCENTAGE_UNOBSERVABLE", "remaining_percent": null, "source_kind": null, "observed_at": null, "max_age_seconds": 300},
-        "fallback": {"min_launch_interval_seconds": 300, "max_launches_per_window": 3, "quota_backoff_seconds": 3600}
+        "fallback": {"min_launch_interval_seconds": 300, "max_launches_per_window": 3, "max_total_launches": 12, "quota_backoff_seconds": 3600}
       }
     }
   },

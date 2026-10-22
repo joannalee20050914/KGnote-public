@@ -64,7 +64,7 @@ All items are required before adding Product Goal arguments to the LaunchAgent:
 9. Every Claude review order and GitHub Consumer state bind the same Goal, PR, commit, fingerprint, program, round and review scope; no legacy hard-coded finding remains in a new Goal order.
 10. The maintained backlog path is configured if automatic Goal-to-Goal handoff is desired; the successor spec contains the prior closure receipts and remains unapproved until a new exact Owner command is read back.
 
-Resource capacity remains `PERCENTAGE_UNOBSERVABLE` until a trusted provider account-level percentage source is operated. Until then, the fallback is the authorized Asia/Taipei work window, concurrency one, minimum launch interval, per-window launches, provider quota backoff, checkpoint-first reconciliation and no paid API.
+Resource capacity remains `PERCENTAGE_UNOBSERVABLE` until a trusted provider account-level percentage source is operated. The authorized Asia/Taipei work window, concurrency one, minimum launch interval, Owner-approved per-window launch ceiling, separate Owner-approved Goal-version total launch ceiling, provider quota backoff, checkpoint-first reconciliation and no paid API remain hard bounds whether or not a trusted percentage is available. Both launch counts are reconstructed from append-only attempt events; a high trusted percentage cannot enlarge them, and opening a later work window does not erase the total ceiling. An elapsed quota backoff is cleared by its own no-model ledger transition before replanning. A planned action is not authority: final reservation reads back durable state and ledger and rejects stale resource evidence, an intervening runtime block, or a changed Work Item.
 
 ## Rollback
 

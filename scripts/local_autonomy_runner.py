@@ -2392,6 +2392,31 @@ def run_product_goal_mode(
         if (
             not trial
             and decision.get("status") == "RECOVERY_READY"
+            and decision.get("action") == "RESUME_AFTER_QUOTA"
+        ):
+            observed_now = current or datetime.now(ZONE)
+            try:
+                resumed = goal_runner_adapter.resume_after_quota_backoff(
+                    spec, state, state_path=state_path, ledger_path=ledger_path,
+                    now=observed_now,
+                )
+            except goal_runner_adapter.GoalRunnerError as exc:
+                resumed = {
+                    "status": "QUOTA_BACKOFF_RESUME_REJECTED",
+                    "requires_model": False,
+                    "reason": str(exc),
+                }
+                append("product_goal_quota_resume", decision=resumed)
+                return resumed
+            append("product_goal_quota_resume", decision=resumed)
+            state = goal_runner_adapter.goal_continuity.load_json(state_path)
+            ledger = goal_runner_adapter.goal_continuity.read_ledger(ledger_path)
+            decision = goal_runner_adapter.next_action(
+                spec, state, ledger, authority, now=observed_now, trial=False,
+            )
+        if (
+            not trial
+            and decision.get("status") == "RECOVERY_READY"
             and decision.get("action") == "RECONCILE_CHECKPOINT"
         ):
             try:

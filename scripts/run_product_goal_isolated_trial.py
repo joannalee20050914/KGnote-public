@@ -127,6 +127,20 @@ def _dispatch_and_reconcile(
         spec, state, goal_continuity.read_ledger(ledger_path), authority,
         now=now, trial=False,
     )
+    quota_resume = None
+    if (
+        action.get("status") == "RECOVERY_READY"
+        and action.get("action") == "RESUME_AFTER_QUOTA"
+    ):
+        quota_resume = goal_runner_adapter.resume_after_quota_backoff(
+            spec, state, state_path=state_path, ledger_path=ledger_path, now=now,
+        )
+        state = goal_continuity.load_json(state_path)
+        action = goal_runner_adapter.next_action(
+            spec, state, goal_continuity.read_ledger(ledger_path), authority,
+            now=now, trial=False,
+        )
+        action = {**action, "pre_dispatch_recovery": quota_resume}
     reserved, _, attempt_id = goal_runner_adapter.reserve_dispatch(
         spec, state, action, state_path=state_path, ledger_path=ledger_path,
         repo=root, occurred_at=now.isoformat(),
@@ -257,6 +271,15 @@ def run_trial(spec: dict, backlog: dict, issue9_fixture: dict) -> dict:
         "path_a_initial_review_dispatched": path_a["initial"]["action"] == "DISPATCH_REVIEW",
         "path_a_quota_is_reconciled_attempt": path_a["quota"]["outcome"] == "USAGE_LIMIT_REACHED",
         "path_a_quota_waits_without_model": path_a["quota_wait"]["status"] == "WAIT_QUOTA_BACKOFF" and not path_a["quota_wait"]["requires_model"],
+        "path_a_quota_resume_is_durable_no_model": (
+            path_a["changes_required"]["action"].get("pre_dispatch_recovery", {}).get("status")
+            == "QUOTA_BACKOFF_RESUMED"
+            and not path_a["changes_required"]["action"]["pre_dispatch_recovery"]["requires_model"]
+            and sum(
+                row["payload"].get("operation") == "QUOTA_BACKOFF_RESUMED"
+                for row in events
+            ) == 1
+        ),
         "path_a_cross_window_waits": path_a["next_window"]["status"] == "WAIT_WORK_WINDOW",
         "path_a_changes_required_routes_repair": path_a["repair"]["action"]["action"] == "DISPATCH_REPAIR",
         "path_a_review_pass_reaches_acceptance": path_a["review_pass"]["result"]["lifecycle"] == "ACCEPTANCE_REQUIRED",

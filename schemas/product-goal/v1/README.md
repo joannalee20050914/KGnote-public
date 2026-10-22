@@ -5,8 +5,9 @@ create Product Goal authority. Authority exists only after the Mac Runner reads
 back an exact Owner-authored GitHub Issue transition for the goal/version/spec
 digest tuple.
 
-- `goal-spec.schema.json`: immutable scope, permissions, dependencies,
-  resources, completion rules, obligations and planned Work Items.
+- `goal-spec.schema.json`: immutable scope, permissions, acyclic dependencies,
+  provider-specific per-window and Goal-total resources, completion rules,
+  independently reviewable obligations and planned Work Items.
 - `github-authority-record.schema.json`: one exact GitHub Owner lifecycle
   transition (`APPROVE`, `PAUSE`, `RESUME`, `REVOKE`, `ACCEPT`, or `CLOSE`).
 - `runner-state.schema.json`: Mac Runner lifecycle projection. Compatibility

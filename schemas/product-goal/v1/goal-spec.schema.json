@@ -129,10 +129,11 @@
         },
         "fallback": {
           "type": "object", "additionalProperties": false,
-          "required": ["min_launch_interval_seconds", "max_launches_per_window", "quota_backoff_seconds"],
+          "required": ["min_launch_interval_seconds", "max_launches_per_window", "max_total_launches", "quota_backoff_seconds"],
           "properties": {
             "min_launch_interval_seconds": {"type": "integer", "minimum": 30},
             "max_launches_per_window": {"type": "integer", "minimum": 1},
+            "max_total_launches": {"type": "integer", "minimum": 1},
             "quota_backoff_seconds": {"type": "integer", "minimum": 60}
           }
         }

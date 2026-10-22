@@ -60,6 +60,7 @@ def product_goal_spec() -> dict:
                     "fallback": {
                         "min_launch_interval_seconds": 300,
                         "max_launches_per_window": 3,
+                        "max_total_launches": 12,
                         "quota_backoff_seconds": 3600,
                     },
                 }
@@ -83,15 +84,35 @@ def product_goal_spec() -> dict:
             "authority_refs": ["KG-GOV-04", "RC-27", "FD-12"],
             "description": "Complete the stable O2 obligation.",
         }],
-        "work_items": [{
-            "work_item_id": "WI-O2-IMPLEMENT",
-            "milestone_id": "O2-M1",
-            "kind": "IMPLEMENT",
-            "dependencies": [],
-            "obligation_ids": ["OBL-O2-CORE"],
-            "allowed_operations": ["commit", "push", "draft_pr"],
-            "provider": "codex",
-        }],
+        "work_items": [
+            {
+                "work_item_id": "WI-O2-IMPLEMENT",
+                "milestone_id": "O2-M1",
+                "kind": "IMPLEMENT",
+                "dependencies": [],
+                "obligation_ids": ["OBL-O2-CORE"],
+                "allowed_operations": ["commit", "push", "draft_pr"],
+                "provider": "codex",
+            },
+            {
+                "work_item_id": "WI-O2-REVIEW",
+                "milestone_id": "O2-M1",
+                "kind": "REVIEW",
+                "dependencies": ["WI-O2-IMPLEMENT"],
+                "obligation_ids": ["OBL-O2-CORE"],
+                "allowed_operations": ["review"],
+                "provider": "claude",
+            },
+            {
+                "work_item_id": "WI-O2-REPAIR",
+                "milestone_id": "O2-M1",
+                "kind": "REPAIR",
+                "dependencies": ["WI-O2-REVIEW"],
+                "obligation_ids": ["OBL-O2-CORE"],
+                "allowed_operations": ["commit", "push"],
+                "provider": "codex",
+            },
+        ],
     }
 
 
@@ -234,6 +255,12 @@ class GoalContinuityTests(unittest.TestCase):
             policy, now=now, last_launch_at=None, launches_in_window=0,
         )
         self.assertEqual("WAIT_RESERVE", decision["status"])
+        policy["capacity_observation"]["remaining_percent"] = 90
+        total = GOAL.capacity_decision(
+            policy, now=now, last_launch_at=None, launches_in_window=0,
+            total_launches=policy["fallback"]["max_total_launches"],
+        )
+        self.assertEqual("WAIT_GOAL_RESOURCE_LIMIT", total["status"])
         policy["capacity_observation"]["observed_at"] = (
             now + timedelta(seconds=1)
         ).isoformat()
@@ -249,6 +276,50 @@ class GoalContinuityTests(unittest.TestCase):
         )
         self.assertFalse(first["strategy_adjustment_required"])
         self.assertTrue(second["strategy_adjustment_required"])
+
+    def test_goal_spec_rejects_cycles_wrong_provider_and_missing_authority(self):
+        cases = []
+        cycle = deepcopy(self.spec)
+        cycle["work_items"][0]["dependencies"] = ["WI-O2-REVIEW"]
+        cases.append((cycle, "dependency cycle"))
+        wrong_provider = deepcopy(self.spec)
+        wrong_provider["work_items"][1]["provider"] = "codex"
+        cases.append((wrong_provider, "REVIEW requires provider claude"))
+        missing_permission = deepcopy(self.spec)
+        missing_permission["work_items"][1]["allowed_operations"] = ["commit"]
+        cases.append((missing_permission, "lacks required permissions"))
+        for value, message in cases:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(GOAL.GoalContractError, message):
+                    GOAL.validate_goal_spec(value)
+
+    def test_every_obligation_requires_review_and_runner_graph_is_immutable(self):
+        missing_review = deepcopy(self.spec)
+        missing_review["work_items"] = [missing_review["work_items"][0]]
+        with self.assertRaisesRegex(GOAL.GoalContractError, "independent REVIEW lane"):
+            GOAL.validate_goal_spec(missing_review)
+
+        state = GOAL.initial_runner_state(
+            self.spec, now="2026-10-22T10:00:00+08:00"
+        )
+        state["work_items"][1]["dependencies"] = []
+        with self.assertRaisesRegex(GOAL.GoalContractError, "immutable Goal spec"):
+            GOAL.validate_runner_state(state, self.spec)
+
+    def test_total_launch_limit_is_distinct_from_per_window_limit(self):
+        policy = self.spec["resource_policy"]["providers"]["claude"]
+        now = datetime(2026, 10, 22, 10, tzinfo=timezone.utc)
+        window = GOAL.capacity_decision(
+            policy, now=now, last_launch_at=None,
+            launches_in_window=policy["fallback"]["max_launches_per_window"],
+            total_launches=3,
+        )
+        self.assertEqual("WAIT_WINDOW_BUDGET", window["status"])
+        total = GOAL.capacity_decision(
+            policy, now=now, last_launch_at=None, launches_in_window=0,
+            total_launches=policy["fallback"]["max_total_launches"],
+        )
+        self.assertEqual("WAIT_GOAL_RESOURCE_LIMIT", total["status"])
 
 
 if __name__ == "__main__":

@@ -78,7 +78,7 @@
     "trusted_remaining_percentage_available": false,
     "ten_percent_reserve_status": "PERCENTAGE_UNOBSERVABLE",
     "forbidden_proxies": ["token usage", "context remaining", "cost estimate", "session reset text", "absence of quota error"],
-    "required_fallback": ["authorized work window", "single model-bearing work item", "minimum launch interval", "provider-specific quota backoff", "bounded recovery", "durable checkpoint reconciliation", "no paid API fallback"]
+    "required_fallback": ["authorized work window", "single model-bearing work item", "minimum launch interval", "provider-specific quota backoff", "per-window launch ceiling", "Goal-version total launch ceiling", "bounded recovery", "durable checkpoint reconciliation", "no paid API fallback"]
   },
   "notification_readback": {
     "official_documentation": "https://learn.chatgpt.com/docs/automations",

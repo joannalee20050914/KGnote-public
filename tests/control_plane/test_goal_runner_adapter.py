@@ -9,6 +9,7 @@ import unittest
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -252,6 +253,30 @@ class GoalRunnerAdapterTests(unittest.TestCase):
         self.assertEqual("DISPATCH_REPAIR", result["action"])
         self.assertEqual("PERCENTAGE_UNOBSERVABLE_FALLBACK", result["capacity_basis"])
 
+    def test_overnight_window_uses_the_weekday_on_which_the_window_started(self):
+        spec = deepcopy(self.spec)
+        spec["work_window"] = {
+            "timezone": "Asia/Taipei", "weekdays": [0],
+            "start": "22:00", "end": "02:00",
+        }
+        monday_late = datetime(2026, 10, 26, 23, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+        tuesday_early = datetime(2026, 10, 27, 1, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+        monday_early = datetime(2026, 10, 26, 1, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+        tuesday_end = datetime(2026, 10, 27, 2, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+
+        self.assertTrue(ADAPTER.in_work_window(spec, monday_late))
+        self.assertTrue(ADAPTER.in_work_window(spec, tuesday_early))
+        self.assertFalse(ADAPTER.in_work_window(spec, monday_early))
+        self.assertFalse(ADAPTER.in_work_window(spec, tuesday_end))
+        self.assertEqual(
+            "2026-10-26@22:00-02:00",
+            ADAPTER.resource_window_id(spec, monday_late),
+        )
+        self.assertEqual(
+            ADAPTER.resource_window_id(spec, monday_late),
+            ADAPTER.resource_window_id(spec, tuesday_early),
+        )
+
     def test_path_b_valid_verdict_publication_and_completion_recovery_do_not_launch_model(self):
         ledger = self.activate()
         self.append(ledger, "review-pass", "REVIEW_VERDICT_ACCEPTED", {
@@ -283,14 +308,32 @@ class GoalRunnerAdapterTests(unittest.TestCase):
             "obligation_id": "OBL-O2-INDEPENDENT", "semantic_key": "b" * 64,
             "authority_refs": ["KG-GOV-04"], "description": "Independent evidence.",
         })
-        self.spec["work_items"].append(second_spec)
+        self.spec["work_items"].extend([
+            second_spec,
+            {
+                "work_item_id": "WI-O2-INDEPENDENT-REVIEW", "milestone_id": "O2-M2",
+                "kind": "REVIEW", "dependencies": ["WI-O2-INDEPENDENT"],
+                "obligation_ids": ["OBL-O2-INDEPENDENT"],
+                "allowed_operations": ["review"], "provider": "claude",
+            },
+            {
+                "work_item_id": "WI-O2-INDEPENDENT-REPAIR", "milestone_id": "O2-M2",
+                "kind": "REPAIR", "dependencies": ["WI-O2-INDEPENDENT-REVIEW"],
+                "obligation_ids": ["OBL-O2-INDEPENDENT"],
+                "allowed_operations": ["commit"], "provider": "codex",
+            },
+        ])
         self.state = GOAL.initial_runner_state(self.spec, now=NOW.isoformat())
         self.authority = CONTROL.resolve_authority(
             [comment(self.spec, action="APPROVE")], self.spec
         )
         ledger = self.activate()
         self.state["work_items"][0]["status"] = "BLOCKED"
-        self.state["work_items"][1]["status"] = "VERIFY_REQUIRED"
+        independent = next(
+            row for row in self.state["work_items"]
+            if row["work_item_id"] == "WI-O2-INDEPENDENT"
+        )
+        independent["status"] = "VERIFY_REQUIRED"
         result = ADAPTER.next_action(
             self.spec, self.state, ledger, self.authority, now=NOW, trial=False,
         )
@@ -359,9 +402,142 @@ class GoalRunnerAdapterTests(unittest.TestCase):
             self.assertEqual("RECONCILE_CHECKPOINT", restarted["action"])
             self.assertEqual(attempt_id, restarted["attempt_id"])
 
+    def test_dispatch_reservation_recovers_after_ledger_fsync_before_state_write(self):
+        ledger = self.activate()
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            self.write_order(repo, self.state, event_id="crash-window", stage="codex")
+            state_path, ledger_path = self.write_state_and_ledger(
+                repo, self.state, ledger
+            )
+            state = ADAPTER.synchronize_state_from_ledger(
+                self.spec, self.state, ledger, state_path=state_path,
+            )
+            action = ADAPTER.next_action(
+                self.spec, state, ledger, self.authority,
+                now=NOW, trial=False,
+            )
+            wrong_provider = {**action, "provider": "claude"}
+            with self.assertRaisesRegex(ADAPTER.GoalRunnerError, "provider codex"):
+                ADAPTER.validated_bound_order(
+                    self.spec, state, wrong_provider, repo=repo
+                )
+
+            with patch.object(
+                ADAPTER.goal_continuity, "atomic_write_json",
+                side_effect=OSError("injected state replacement crash"),
+            ):
+                with self.assertRaisesRegex(OSError, "injected"):
+                    ADAPTER.reserve_dispatch(
+                        self.spec, state, action,
+                        state_path=state_path, ledger_path=ledger_path, repo=repo,
+                        occurred_at=NOW.isoformat(),
+                    )
+
+            rows = GOAL.read_ledger(ledger_path)
+            reservation = rows[-1]
+            self.assertEqual("DISPATCH_RESERVED", reservation["payload"]["operation"])
+            recovered = ADAPTER.synchronize_state_from_ledger(
+                self.spec, state, rows, state_path=None,
+            )
+            work = recovered["work_items"][0]
+            self.assertEqual("DISPATCHING", work["status"])
+            self.assertEqual(reservation["attempt_id"], work["active_attempt_id"])
+            self.assertEqual(1, work["attempts"])
+            self.assertEqual(1, recovered["resource_accounting"]["codex"]["total_launches"])
+            restart = ADAPTER.next_action(
+                self.spec, recovered, rows, self.authority,
+                now=NOW, trial=False,
+            )
+            self.assertEqual("RECOVERY_READY", restart["status"])
+            self.assertEqual("RECONCILE_CHECKPOINT", restart["action"])
+
+    def test_reservation_rechecks_window_and_goal_total_after_planning(self):
+        ledger = self.activate()
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            self.write_order(repo, self.state, event_id="stale-plan", stage="codex")
+            state_path, ledger_path = self.write_state_and_ledger(
+                repo, self.state, ledger
+            )
+            action = ADAPTER.next_action(
+                self.spec, self.state, ledger, self.authority,
+                now=NOW, trial=False,
+            )
+            outside = datetime(
+                2026, 10, 22, 23, 0, tzinfo=ZoneInfo("Asia/Taipei")
+            )
+            with self.assertRaisesRegex(
+                ADAPTER.GoalRunnerError, "outside the authorized work window"
+            ):
+                ADAPTER.reserve_dispatch(
+                    self.spec, self.state, action,
+                    state_path=state_path, ledger_path=ledger_path, repo=repo,
+                    occurred_at=outside.isoformat(),
+                )
+
+            for index in range(12):
+                GOAL.append_ledger_event(
+                    ledger_path,
+                    event_id=f"codex-prior-{index}",
+                    event_type="MODEL_ATTEMPT_STARTED",
+                    occurred_at=(NOW - ADAPTER.timedelta(days=1)).isoformat(),
+                    goal_id=self.spec["goal_id"],
+                    goal_version=self.spec["goal_version"],
+                    logical_work_id="WI-O2-IMPLEMENT",
+                    attempt_id=f"codex-prior-{index}",
+                    payload={"provider": "codex"},
+                )
+            current_state = GOAL.load_json(state_path)
+            with self.assertRaisesRegex(
+                ADAPTER.GoalRunnerError, "WAIT_GOAL_RESOURCE_LIMIT"
+            ):
+                ADAPTER.reserve_dispatch(
+                    self.spec, current_state, action,
+                    state_path=state_path, ledger_path=ledger_path, repo=repo,
+                    occurred_at=NOW.isoformat(),
+                )
+
+    def test_reservation_rejects_stale_state_and_runtime_recovery_bypass(self):
+        ledger = self.activate()
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            self.write_order(repo, self.state, event_id="runtime-block", stage="codex")
+            state_path, ledger_path = self.write_state_and_ledger(
+                repo, self.state, ledger
+            )
+            action = ADAPTER.next_action(
+                self.spec, self.state, ledger, self.authority,
+                now=NOW, trial=False,
+            )
+            blocked = deepcopy(self.state)
+            blocked["runtime_block"] = {
+                "failure_class": "USAGE_LIMIT_REACHED",
+                "retry_at": (NOW + ADAPTER.timedelta(hours=1)).isoformat(),
+            }
+            GOAL.atomic_write_json(state_path, blocked)
+            with self.assertRaisesRegex(
+                ADAPTER.GoalRunnerError, "in-memory Runner state is stale"
+            ):
+                ADAPTER.reserve_dispatch(
+                    self.spec, self.state, action,
+                    state_path=state_path, ledger_path=ledger_path, repo=repo,
+                    occurred_at=NOW.isoformat(),
+                )
+            with self.assertRaisesRegex(
+                ADAPTER.GoalRunnerError, "durable runtime recovery condition"
+            ):
+                ADAPTER.reserve_dispatch(
+                    self.spec, blocked, action,
+                    state_path=state_path, ledger_path=ledger_path, repo=repo,
+                    occurred_at=NOW.isoformat(),
+                )
+
     def test_checkpoint_result_separates_usage_verdict_obligation_and_acceptance(self):
+        self.spec["work_items"] = [self.spec["work_items"][0]]
         self.spec["work_items"][0]["kind"] = "REVIEW"
         self.spec["work_items"][0]["provider"] = "claude"
+        self.spec["work_items"][0]["allowed_operations"] = ["review"]
         self.spec["work_items"].append({
             "work_item_id": "WI-O2-REPAIR", "milestone_id": "O2-M1",
             "kind": "REPAIR", "dependencies": ["WI-O2-IMPLEMENT"],
@@ -482,12 +658,65 @@ class GoalRunnerAdapterTests(unittest.TestCase):
                 self.spec, saved, GOAL.read_ledger(ledger_path), self.authority,
                 now=NOW + ADAPTER.timedelta(seconds=3601), trial=False,
             )
-            self.assertEqual("ACTION_READY", resumed["status"])
+            self.assertEqual("RECOVERY_READY", resumed["status"])
+            self.assertEqual("RESUME_AFTER_QUOTA", resumed["action"])
+            durable_resume = ADAPTER.resume_after_quota_backoff(
+                self.spec, saved, state_path=state_path, ledger_path=ledger_path,
+                now=NOW + ADAPTER.timedelta(seconds=3601),
+            )
+            self.assertEqual("QUOTA_BACKOFF_RESUMED", durable_resume["status"])
+            after_resume = GOAL.load_json(state_path)
+            self.assertNotIn("runtime_block", after_resume)
+            self.assertNotIn(
+                "quota_retry_at",
+                after_resume["resource_accounting"]["codex"],
+            )
+            ready = ADAPTER.next_action(
+                self.spec, after_resume, GOAL.read_ledger(ledger_path), self.authority,
+                now=NOW + ADAPTER.timedelta(seconds=3601), trial=False,
+            )
+            self.assertEqual("ACTION_READY", ready["status"])
             projection = GOAL.reduce_ledger(GOAL.read_ledger(ledger_path))
             self.assertEqual([], projection["review_verdicts"])
             self.assertTrue(projection["model_attempts"][attempt_id]["finished"])
             self.assertEqual("OBSERVED", projection["usage"][attempt_id]["status"])
             self.assertEqual(0, projection["usage"][attempt_id]["input_tokens"])
+
+    def test_window_budget_resets_but_goal_total_is_ledger_bound(self):
+        ledger = self.activate()
+        for index in range(3):
+            self.append(
+                ledger, f"claude-day-one-{index}", "MODEL_ATTEMPT_STARTED",
+                {"provider": "claude"}, f"claude-day-one-{index}",
+            )
+        # Select the review lane directly so this test exercises Claude's
+        # independent provider budget rather than the preceding implementation.
+        self.state["work_items"][0]["status"] = "VERIFIED"
+        self.state["work_items"][1]["status"] = "READY"
+        next_window = ADAPTER.next_action(
+            self.spec, self.state, ledger, self.authority,
+            now=NOW + ADAPTER.timedelta(days=1), trial=False,
+        )
+        self.assertEqual("ACTION_READY", next_window["status"])
+        self.assertEqual(0, next_window["launches_in_window_before"])
+        self.assertEqual(3, next_window["total_launches_before"])
+
+        for index in range(3, 12):
+            self.append(
+                ledger, f"claude-total-{index}", "MODEL_ATTEMPT_STARTED",
+                {"provider": "claude"}, f"claude-total-{index}",
+            )
+        # Editing the mutable convenience counters cannot reset the immutable
+        # Goal-version ceiling reconstructed from the ledger.
+        self.state["resource_accounting"] = {
+            "claude": {"launches_in_window": 0, "total_launches": 0}
+        }
+        exhausted = ADAPTER.next_action(
+            self.spec, self.state, ledger, self.authority,
+            now=NOW + ADAPTER.timedelta(days=4), trial=False,
+        )
+        self.assertEqual("WAIT_GOAL_RESOURCE_LIMIT", exhausted["status"])
+        self.assertEqual(12, exhausted["total_launches"])
 
 
 if __name__ == "__main__":
