@@ -26,6 +26,13 @@ ZONE = ZoneInfo("Asia/Taipei")
 TERMINAL_WORK = {"VERIFIED", "CLOSED", "SUPERSEDED"}
 RUNNABLE_WORK = {"PLANNED", "READY", "REPAIR_REQUIRED", "VERIFY_REQUIRED", "PUBLISH_REQUIRED"}
 NO_MODEL_ACTIONS = {"RECONCILE_CHECKPOINT", "RETRY_PUBLICATION", "RETRY_COMPLETION_GATE"}
+RECOVERABLE_RUNTIME_ACTIONS = {
+    "DISPATCH_REPAIR",
+    "RETRY_COMPLETION_GATE",
+    "RETRY_FAILED_WORK",
+    "RETRY_PUBLICATION",
+    "RESUME_AFTER_WORK_WINDOW",
+}
 
 
 class GoalRunnerError(goal_continuity.GoalContractError):
@@ -328,7 +335,9 @@ def classify_recovery(failure: dict[str, Any]) -> dict[str, Any]:
     failure_class = str(failure.get("failure_class") or "UNKNOWN_OUTCOME")
     if failure_class in {"QUOTA_EXHAUSTED", "RATE_LIMITED", "USAGE_LIMIT_REACHED"}:
         return {"action": "WAIT_QUOTA_BACKOFF", "requires_model": False}
-    if failure_class in {"WORK_WINDOW_CLOSED", "CAPACITY_RESERVE"}:
+    if failure_class == "WORK_WINDOW_CLOSED":
+        return {"action": "WAIT_WORK_WINDOW", "requires_model": False}
+    if failure_class == "CAPACITY_RESERVE":
         return {"action": "WAIT_CAPACITY", "requires_model": False}
     if failure_class in {"UNKNOWN_OUTCOME", "CHECKPOINT_MISSING", "TRANSPORT_INTERRUPTED"}:
         return {"action": "RECONCILE_CHECKPOINT", "requires_model": False}
@@ -338,6 +347,8 @@ def classify_recovery(failure: dict[str, Any]) -> dict[str, Any]:
         return {"action": "RETRY_COMPLETION_GATE", "requires_model": False}
     if failure_class == "CHANGES_REQUIRED":
         return {"action": "DISPATCH_REPAIR", "requires_model": True}
+    if failure_class in {"DETERMINISTIC_WORKER_FAILURE", "EVIDENCE_INSUFFICIENT"}:
+        return {"action": "RETRY_FAILED_WORK", "requires_model": False}
     if failure_class in {"PRODUCT_DECISION_REQUIRED", "NEW_PERMISSION_REQUIRED", "NEW_EXPENSE"}:
         return {"action": "WAIT_HUMAN_DECISION", "requires_model": False}
     return {"action": "ADJUST_STRATEGY", "requires_model": False}
@@ -408,6 +419,20 @@ def next_action(
     goal_continuity.validate_runner_state(state, spec)
     ledger = goal_continuity.validate_ledger_binding(ledger, state, spec)
     projection = goal_continuity.reduce_ledger(ledger)
+    # Reconciliation is evidence preservation, not a new launch.  It must
+    # remain available after an Owner pause/revocation or go-live withdrawal,
+    # otherwise a completed worker result could be stranded forever.
+    pending_dispatch = _unreconciled_dispatch(projection)
+    if pending_dispatch is not None:
+        attempt_id, reservation = pending_dispatch
+        return {
+            "status": "RECOVERY_READY",
+            "action": "RECONCILE_CHECKPOINT",
+            "requires_model": False,
+            "attempt_id": attempt_id,
+            "work_item_id": reservation.get("logical_work_id"),
+            "reason": "a durable dispatch reservation exists without a reconciled checkpoint",
+        }
     if authority["authority_lease"] != "ACTIVE":
         return {
             "status": "WAIT_AUTHORITY", "authority_status": authority["status"],
@@ -421,22 +446,12 @@ def next_action(
             "status": "TRIAL_ONLY" if trial else "GO_LIVE_NOT_AUTHORIZED",
             "reason": "state flag and exact ledger-bound Owner go-live receipt are both required",
         }
-    pending_dispatch = _unreconciled_dispatch(projection)
-    if pending_dispatch is not None:
-        attempt_id, reservation = pending_dispatch
-        return {
-            "status": "RECOVERY_READY",
-            "action": "RECONCILE_CHECKPOINT",
-            "requires_model": False,
-            "attempt_id": attempt_id,
-            "work_item_id": reservation.get("logical_work_id"),
-            "reason": "a durable dispatch reservation exists without a reconciled checkpoint",
-        }
     if not in_work_window(spec, now):
         return {"status": "WAIT_WORK_WINDOW", "requires_model": False}
     runtime_block = state.get("runtime_block")
     if isinstance(runtime_block, dict):
         recovery = classify_recovery(runtime_block)
+        failure_class = str(runtime_block.get("failure_class") or "UNKNOWN_OUTCOME")
         retry_value = runtime_block.get("retry_at")
         if recovery["action"] == "WAIT_QUOTA_BACKOFF" and isinstance(retry_value, str):
             retry_at = datetime.fromisoformat(retry_value)
@@ -451,8 +466,24 @@ def next_action(
                 }
         if recovery["action"] == "WAIT_HUMAN_DECISION":
             return {"status": "HUMAN_DECISION_REQUIRED", **recovery}
+        if failure_class == "WORK_WINDOW_CLOSED":
+            return {
+                "status": "RECOVERY_READY",
+                "action": "RESUME_AFTER_WORK_WINDOW",
+                "requires_model": False,
+                "work_item_id": runtime_block.get("work_item_id"),
+                "attempt_id": runtime_block.get("attempt_id"),
+            }
         if recovery["action"] in NO_MODEL_ACTIONS:
             return {"status": "RECOVERY_READY", **recovery}
+        if recovery["action"] in {"DISPATCH_REPAIR", "RETRY_FAILED_WORK"}:
+            return {
+                "status": "RECOVERY_READY",
+                "action": recovery["action"],
+                "requires_model": False,
+                "work_item_id": runtime_block.get("work_item_id"),
+                "attempt_id": runtime_block.get("attempt_id"),
+            }
         if recovery["action"].startswith("WAIT_"):
             return {"status": recovery["action"], **recovery}
     by_id = {row["work_item_id"]: row for row in state["work_items"]}
@@ -470,6 +501,22 @@ def next_action(
                     "requires_model": False,
                 }
         blocked = [row["work_item_id"] for row in state["work_items"] if row["status"] == "BLOCKED"]
+        human_blocks = [
+            {
+                "work_item_id": row["work_item_id"],
+                **deepcopy(row["block"]),
+            }
+            for row in state["work_items"]
+            if row["status"] == "BLOCKED"
+            and isinstance(row.get("block"), dict)
+        ]
+        if human_blocks:
+            return {
+                "status": "HUMAN_DECISION_REQUIRED",
+                "requires_model": False,
+                "affected_work": human_blocks,
+                "reason": "only blocked dependency subgraphs need Owner action",
+            }
         return {
             "status": "NO_ELIGIBLE_READY_WORK",
             "blocked_work_items": blocked,
@@ -566,6 +613,15 @@ def resume_after_quota_backoff(
     attempt_id = runtime_block.get("attempt_id")
     if not isinstance(work_item_id, str) or not isinstance(attempt_id, str):
         raise GoalRunnerError("quota backoff lacks exact Work Item/attempt identity")
+    reservation = goal_continuity.reduce_ledger(
+        goal_continuity.read_ledger(ledger_path)
+    )["dispatch_reservations"].get(attempt_id)
+    if (
+        not isinstance(reservation, dict)
+        or reservation.get("reconciled") is not True
+        or reservation.get("logical_work_id") != work_item_id
+    ):
+        raise GoalRunnerError("quota backoff is not bound to a reconciled dispatch")
     work_spec = next(
         (row for row in spec["work_items"] if row["work_item_id"] == work_item_id),
         None,
@@ -608,6 +664,119 @@ def resume_after_quota_backoff(
         "work_item_id": work_item_id,
         "attempt_id": attempt_id,
         "provider": work_spec["provider"],
+    }
+
+
+def resume_recoverable_runtime_block(
+    spec: dict[str, Any], state: dict[str, Any],
+    *, state_path: Path, ledger_path: Path, now: datetime,
+) -> dict[str, Any]:
+    """Durably release one bounded non-quota recovery block before replanning.
+
+    The transition itself never launches a model or repeats an external side
+    effect.  It only clears the exact reconciled block so the normal immutable
+    Work Item and sealed-order admission path can choose the next attempt.
+    """
+    if now.tzinfo is None:
+        raise GoalRunnerError("runtime recovery time must be timezone-aware")
+    if not state_path.is_file():
+        raise GoalRunnerError("durable Runner state is unavailable")
+    durable_state = goal_continuity.load_json(state_path)
+    goal_continuity.validate_runner_state(durable_state, spec)
+    if goal_continuity.canonical_json_bytes(durable_state) != (
+        goal_continuity.canonical_json_bytes(state)
+    ):
+        raise GoalRunnerError("in-memory Runner state is stale relative to durable state")
+    state = synchronize_state_from_ledger(
+        spec, durable_state, goal_continuity.read_ledger(ledger_path),
+        state_path=state_path,
+    )
+    runtime_block = state.get("runtime_block")
+    if not isinstance(runtime_block, dict):
+        return {"status": "RUNTIME_BLOCK_ALREADY_RELEASED", "requires_model": False}
+    failure_class = str(runtime_block.get("failure_class") or "UNKNOWN_OUTCOME")
+    if failure_class in {"QUOTA_EXHAUSTED", "RATE_LIMITED", "USAGE_LIMIT_REACHED"}:
+        raise GoalRunnerError("provider quota requires the quota-backoff resume transition")
+    if failure_class == "WORK_WINDOW_CLOSED":
+        if not in_work_window(spec, now):
+            raise GoalRunnerError("the next authorized work window has not opened")
+        recovery_action = "RESUME_AFTER_WORK_WINDOW"
+    else:
+        recovery_action = classify_recovery(runtime_block)["action"]
+        if recovery_action not in RECOVERABLE_RUNTIME_ACTIONS:
+            raise GoalRunnerError(
+                f"runtime block {failure_class} is not autonomously releasable"
+            )
+    work_item_id = runtime_block.get("work_item_id")
+    attempt_id = runtime_block.get("attempt_id")
+    if not isinstance(work_item_id, str) or not isinstance(attempt_id, str):
+        raise GoalRunnerError("runtime block lacks exact Work Item/attempt identity")
+    reservation = goal_continuity.reduce_ledger(
+        goal_continuity.read_ledger(ledger_path)
+    )["dispatch_reservations"].get(attempt_id)
+    if (
+        not isinstance(reservation, dict)
+        or reservation.get("reconciled") is not True
+        or reservation.get("logical_work_id") != work_item_id
+    ):
+        raise GoalRunnerError("runtime block is not bound to a reconciled dispatch")
+    work = next(
+        (row for row in state["work_items"] if row["work_item_id"] == work_item_id),
+        None,
+    )
+    if work is None:
+        raise GoalRunnerError("runtime block references an unknown Work Item")
+
+    updated = deepcopy(state)
+    updated.pop("runtime_block", None)
+    exhausted = work["status"] == "BLOCKED"
+    operation = (
+        "BOUNDED_RECOVERY_EXHAUSTED_RELEASED"
+        if exhausted else "RECOVERABLE_RUNTIME_BLOCK_RELEASED"
+    )
+    event, appended = goal_continuity.append_ledger_event(
+        ledger_path,
+        event_id=f"{attempt_id}-{failure_class.lower()}-released",
+        event_type="WORK_STATE_TRANSITION",
+        occurred_at=now.isoformat(),
+        goal_id=spec["goal_id"],
+        goal_version=spec["goal_version"],
+        logical_work_id=work_item_id,
+        attempt_id=attempt_id,
+        payload={
+            "operation": operation,
+            "failure_class": failure_class,
+            "recovery_action": recovery_action,
+            "bounded_recovery_exhausted": exhausted,
+            "state_patch": _state_patch(updated),
+        },
+    )
+    if not appended:
+        recovered = synchronize_state_from_ledger(
+            spec, state, goal_continuity.read_ledger(ledger_path),
+            state_path=state_path,
+        )
+        if isinstance(recovered.get("runtime_block"), dict):
+            raise GoalRunnerError("runtime recovery event already exists but the block remains")
+        return {
+            "status": "RUNTIME_BLOCK_ALREADY_RELEASED",
+            "requires_model": False,
+            "work_item_id": work_item_id,
+            "attempt_id": attempt_id,
+        }
+    updated["event_cursor"] = {
+        "sequence": event["sequence"], "event_sha256": event["event_sha256"]
+    }
+    goal_continuity.validate_runner_state(updated, spec)
+    goal_continuity.atomic_write_json(state_path, updated)
+    return {
+        "status": operation,
+        "requires_model": False,
+        "work_item_id": work_item_id,
+        "attempt_id": attempt_id,
+        "failure_class": failure_class,
+        "recovery_action": recovery_action,
+        "bounded_recovery_exhausted": exhausted,
     }
 
 
@@ -896,9 +1065,12 @@ def _checkpoint_failure_class(
         value = evidence["failure_class"].upper()
         if value in {
             "QUOTA_EXHAUSTED", "RATE_LIMITED", "USAGE_LIMIT_REACHED",
-            "WORK_WINDOW_CLOSED", "UNKNOWN_OUTCOME", "TRANSPORT_INTERRUPTED",
+            "WORK_WINDOW_CLOSED", "UNKNOWN_OUTCOME", "CHECKPOINT_MISSING",
+            "TRANSPORT_INTERRUPTED",
             "PUBLICATION_FAILED", "GITHUB_WRITEBACK_FAILED",
-            "COMPLETION_GATE_FAILED", "PRODUCT_DECISION_REQUIRED",
+            "COMPLETION_GATE_FAILED", "COMPLETION_RECEIPT_MISSING",
+            "DETERMINISTIC_WORKER_FAILURE", "EVIDENCE_INSUFFICIENT",
+            "PRODUCT_DECISION_REQUIRED", "NEW_PERMISSION_REQUIRED", "NEW_EXPENSE",
         }:
             return value
     reason = str(checkpoint.get("reason") or "").lower()
@@ -1067,13 +1239,63 @@ def _apply_worker_result(
                     candidate["status"] = "SUPERSEDED"
     else:
         work["status"] = "BLOCKED"
-        updated["runtime_block"] = {
+        updated.pop("runtime_block", None)
+        work["block"] = {
             "failure_class": "PRODUCT_DECISION_REQUIRED",
-            "work_item_id": work_item_id,
             "reason": "worker reported a product decision outside the approved contract",
+            "release_condition": "an exact Owner-authorized Goal version resolves the product WHAT",
         }
     work["active_attempt_id"] = None
     return updated
+
+
+def queue_human_decision_notifications(
+    spec: dict[str, Any], state: dict[str, Any],
+    *, ledger_path: Path, occurred_at: str,
+) -> list[dict[str, Any]]:
+    """Queue only durable Product Owner decisions for blocked subgraphs."""
+    notices: list[dict[str, Any]] = []
+    for work in state["work_items"]:
+        block = work.get("block")
+        if work["status"] != "BLOCKED" or not isinstance(block, dict):
+            continue
+        failure_class = block["failure_class"]
+        if failure_class == "STRATEGY_EXHAUSTED":
+            event_kind = "STRATEGY_EXHAUSTED_NEEDS_PRODUCT_OR_RESOURCE_CHANGE"
+            decision_requested = (
+                "調整產品成果或總資源界線，或保留此 dependency subgraph 為 blocked。"
+            )
+        elif failure_class == "PRODUCT_DECISION_REQUIRED":
+            event_kind = "PRODUCT_WHAT_CONFLICT"
+            decision_requested = "以新的 exact Goal 版本裁決產品 WHAT；本通知不授權變更。"
+        elif failure_class in {"NEW_PERMISSION_REQUIRED", "NEW_EXPENSE"}:
+            event_kind = "NEW_EXPENSE_PERMISSION_OR_IRREVERSIBLE_RISK"
+            decision_requested = (
+                "明確核准或拒絕新增費用、權限或不可逆風險；未核准前保持 blocked。"
+            )
+        else:
+            continue
+        decision_key = goal_continuity.sha256_value({
+            "goal_spec_sha256": goal_continuity.goal_spec_sha256(spec),
+            "work_item_id": work["work_item_id"],
+            "failure_class": failure_class,
+            "release_condition": block["release_condition"],
+        })
+        notice = goal_notifications.build_notification(
+            goal_id=spec["goal_id"], goal_version=spec["goal_version"],
+            event_kind=event_kind, decision_key=decision_key,
+            summary=(
+                f"Work Item {work['work_item_id']} 已停止：{block['reason']}；"
+                "不相依且仍在授權內的工作可繼續。"
+            ),
+            decision_requested=decision_requested,
+            github_issue=spec["github_issue"],
+        )
+        goal_notifications.queue_decision_notification(
+            ledger_path, notice, occurred_at=occurred_at
+        )
+        notices.append(notice)
+    return notices
 
 
 def reconcile_dispatch_checkpoint(
@@ -1130,6 +1352,42 @@ def reconcile_dispatch_checkpoint(
             "status": "CHECKPOINT_RUNNING", "requires_model": False,
             "attempt_id": attempt_id, "work_item_id": work_item_id,
         }
+
+    if checkpoint.get("status") not in {"COMPLETED", "ALREADY_COMPLETED"}:
+        unresolved_class = _checkpoint_failure_class(checkpoint, repo=repo)
+        if unresolved_class in {
+            "UNKNOWN_OUTCOME", "TRANSPORT_INTERRUPTED", "CHECKPOINT_MISSING",
+        }:
+            checkpoint_sha256 = hashlib.sha256(checkpoint_path.read_bytes()).hexdigest()
+            goal_continuity.append_ledger_event(
+                ledger_path,
+                event_id=f"{attempt_id}-checkpoint-unresolved-{checkpoint_sha256[:16]}",
+                event_type="CHECKPOINT_RECONCILED",
+                occurred_at=reservation["reserved_at"],
+                goal_id=spec["goal_id"],
+                goal_version=spec["goal_version"],
+                logical_work_id=work_item_id,
+                attempt_id=attempt_id,
+                payload={
+                    "operation": "CHECKPOINT_UNRESOLVED_PROBE",
+                    "failure_class": unresolved_class,
+                    "checkpoint_status": checkpoint.get("status"),
+                    "checkpoint_sha256": checkpoint_sha256,
+                    "redispatch_allowed": False,
+                },
+            )
+            state = synchronize_state_from_ledger(
+                spec, state, goal_continuity.read_ledger(ledger_path),
+                state_path=state_path,
+            )
+            return {
+                "status": "CHECKPOINT_UNRESOLVED",
+                "requires_model": False,
+                "attempt_id": attempt_id,
+                "work_item_id": work_item_id,
+                "failure_class": unresolved_class,
+                "redispatch_allowed": False,
+            }
 
     is_success = checkpoint.get("status") in {"COMPLETED", "ALREADY_COMPLETED"}
     result = None
@@ -1209,7 +1467,12 @@ def reconcile_dispatch_checkpoint(
             runtime_block["retry_at"] = retry_at.isoformat()
             accounting = updated.setdefault("resource_accounting", {}).setdefault(provider, {})
             accounting["quota_retry_at"] = retry_at.isoformat()
-        elif failure_class in {"DETERMINISTIC_WORKER_FAILURE", "EVIDENCE_INSUFFICIENT"}:
+            updated["runtime_block"] = runtime_block
+        elif failure_class in {
+            "COMPLETION_GATE_FAILED", "COMPLETION_RECEIPT_MISSING",
+            "DETERMINISTIC_WORKER_FAILURE", "EVIDENCE_INSUFFICIENT",
+            "GITHUB_WRITEBACK_FAILED", "PUBLICATION_FAILED",
+        }:
             counts = updated_work.setdefault("failure_counts", {})
             counts[failure_class] = int(counts.get(failure_class, 0)) + 1
             if result_error:
@@ -1217,13 +1480,22 @@ def reconcile_dispatch_checkpoint(
                 cursor[reservation["action"]] = int(cursor.get(reservation["action"], 0)) + 1
             if counts[failure_class] >= spec["recovery_policy"]["max_same_failure_attempts"]:
                 updated_work["status"] = "BLOCKED"
-        elif failure_class == "PRODUCT_DECISION_REQUIRED":
+            updated["runtime_block"] = runtime_block
+        elif failure_class in {
+            "PRODUCT_DECISION_REQUIRED", "NEW_PERMISSION_REQUIRED", "NEW_EXPENSE",
+        }:
             updated_work["status"] = "BLOCKED"
-            updated = _lifecycle_patch(
-                updated, lifecycle="BLOCKED", changed_at=occurred_at,
-                reason="worker outcome requires an Owner product decision",
-            )
-        updated["runtime_block"] = runtime_block
+            updated.pop("runtime_block", None)
+            updated_work["block"] = {
+                "failure_class": failure_class,
+                "reason": str(runtime_block.get("reason") or failure_class),
+                "release_condition": (
+                    "an exact Owner-authorized Goal version resolves the product, "
+                    "permission, expense, or irreversible-risk decision"
+                ),
+            }
+        else:
+            updated["runtime_block"] = runtime_block
         outcome = failure_class
 
     reconciliation_payload = {
@@ -1235,6 +1507,12 @@ def reconcile_dispatch_checkpoint(
         ledger_path, spec, reservation, attempt_id=attempt_id,
         suffix="checkpoint-reconciled", event_type="CHECKPOINT_RECONCILED",
         payload=reconciliation_payload,
+    )
+    state = synchronize_state_from_ledger(
+        spec, state, goal_continuity.read_ledger(ledger_path), state_path=state_path
+    )
+    queue_human_decision_notifications(
+        spec, state, ledger_path=ledger_path, occurred_at=occurred_at
     )
     state = synchronize_state_from_ledger(
         spec, state, goal_continuity.read_ledger(ledger_path), state_path=state_path
@@ -1345,11 +1623,16 @@ def apply_obligation_progress(
         # reset, every later no-progress event would count as another change
         # even though the new strategy had not received two observations.
         obligation["consecutive_no_progress"] = 0
-        work["status"] = (
-            "BLOCKED"
-            if work["strategy_adjustments"] >= spec["recovery_policy"]["max_strategy_adjustments"]
-            else "REPAIR_REQUIRED"
-        )
+        if work["strategy_adjustments"] >= spec["recovery_policy"]["max_strategy_adjustments"]:
+            work["status"] = "BLOCKED"
+            work["block"] = {
+                "failure_class": "STRATEGY_EXHAUSTED",
+                "reason": "bounded in-scope strategy adjustments did not resolve the stable obligation",
+                "release_condition": "Owner changes the product outcome or total resource envelope",
+            }
+        else:
+            work["status"] = "REPAIR_REQUIRED"
+            work.pop("block", None)
     return updated
 
 

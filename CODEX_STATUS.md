@@ -6,7 +6,7 @@ This factual handoff describes the Codex App implementation Goal. It is not a KG
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-22T17:29:18+08:00",
+  "updated_at": "2026-10-22T17:59:54+08:00",
   "goal_id": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
   "active_goal": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -21,13 +21,13 @@ This factual handoff describes the Codex App implementation Goal. It is not a KG
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/goal-continuous-delegation-20261022",
-    "head": "998fc928356e62816907041d0f2f2f5a538e65c1",
+    "head": "ca0c9fb7b3891c8251f4918f9d7c06cbe8ea5e1f",
     "base_commit": "f81ccdde369c7ab9468ed07ca1fdab6d8f0b60e0",
-    "checkpoint_commit": "998fc928356e62816907041d0f2f2f5a538e65c1"
+    "checkpoint_commit": "ca0c9fb7b3891c8251f4918f9d7c06cbe8ea5e1f"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "383fbeefd8799a219abb60865ff8a1c95ace67e6d0d5976c4fc77e73fdac92d0",
+    "fingerprint": "db5b7bab2a77d779f6d021b1eaf1d550d03362b4be7a2794e51d9c39e0d73f1c",
     "starting_fingerprint": "7621a96a29db9c1e8af64471fef694238210b5c7585bc8f5dcd16231816723c4",
     "expected_dirty_policy": "Only B-scheme execution contracts, schemas, Runner integration, bounded tests/evidence, PLAN/STATUS and review/publication receipts may change. Product files, PR #29, main, legacy Ledgers and deployed Runner remain untouched.",
     "preserved_preexisting_dirty_paths": [],
@@ -55,11 +55,11 @@ This factual handoff describes the Codex App implementation Goal. It is not a KG
     "candidate_verified": false,
     "release_verified": false,
     "control_plane_ready": false,
-    "last_candidate_evidence": "output/control-plane/verification-20261022T170503+0800.json",
-    "last_verified_fingerprint": "1c5ed4b713912debcf9f6ddb07ba3b0124ae1b6fdfdfd53f996723f9f485cc23",
-    "last_result": "Review 008 candidate repairs now include durable quota-backoff clearance before replanning, exact reservation-time read-back of state/ledger and resource bounds, crash replay, admission guards, and the updated zero-model isolated evidence. Full control-plane verification is green."
+    "last_candidate_evidence": "output/control-plane/verification-20261022T173007+0800.json",
+    "last_verified_fingerprint": "2ab47d49bb252e35c6cb99afe2e6aa39e79703e9f55e1875983435a88487f8e4",
+    "last_result": "Review 008 completion-audit repairs, updated authority lock, and Draft PR #31 handoff changed authorized B-scheme candidate bytes."
   },
-  "next_action": "Run final preflight, inspect the exact staged path/blob set, commit and push the replacement candidate, then run post-commit deterministic verification and seal Review 008.",
+  "next_action": "Commit and push the repaired candidate, rerun deterministic verification at the exact HEAD, then create Review 009.",
   "external_or_human_gates": [
     {
       "id": "B-SCHEME-GO-LIVE",
@@ -95,5 +95,5 @@ Goal `CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022` remains active at milesto
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Run final preflight, inspect the exact staged path/blob set, commit and push the replacement candidate, then run post-commit deterministic verification and seal Review 008.
+Exact next action: Commit and push the repaired candidate, rerun deterministic verification at the exact HEAD, then create Review 009.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

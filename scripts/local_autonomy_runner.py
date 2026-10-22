@@ -2370,6 +2370,32 @@ def run_product_goal_mode(
                 }
                 append("product_goal_scheduler_decision", decision=decision)
                 return decision
+            observed_now = current or datetime.now(ZONE)
+            notification_delivery = goal_runner_adapter.goal_notifications.deliver_queued_github_notifications(
+                ledger_path,
+                repository=spec["repository"],
+                max_attempts=spec["recovery_policy"]["max_same_failure_attempts"],
+                now=observed_now,
+                command_runner=command_runner,
+            )
+            notification_acks = goal_runner_adapter.goal_notifications.reconcile_owner_acknowledgements(
+                ledger_path,
+                comments,
+                repository=spec["repository"],
+                owner_logins=spec["owner_logins"],
+                observed_at=observed_now.isoformat(timespec="seconds"),
+            )
+            if notification_delivery or any(notification_acks.values()):
+                append(
+                    "product_goal_notification_reconciliation",
+                    delivery=notification_delivery,
+                    acknowledgements=notification_acks,
+                )
+            state = goal_runner_adapter.synchronize_state_from_ledger(
+                spec, state,
+                goal_runner_adapter.goal_continuity.read_ledger(ledger_path),
+                state_path=state_path,
+            )
             if state["lifecycle"]["state"] == "CLOSED" and backlog_path is not None:
                 handoff = goal_runner_adapter.prepare_next_goal_handoff(
                     goal_runner_adapter.goal_continuity.load_json(backlog_path), state,
@@ -2409,6 +2435,32 @@ def run_product_goal_mode(
                 append("product_goal_quota_resume", decision=resumed)
                 return resumed
             append("product_goal_quota_resume", decision=resumed)
+            state = goal_runner_adapter.goal_continuity.load_json(state_path)
+            ledger = goal_runner_adapter.goal_continuity.read_ledger(ledger_path)
+            decision = goal_runner_adapter.next_action(
+                spec, state, ledger, authority, now=observed_now, trial=False,
+            )
+        if (
+            not trial
+            and decision.get("status") == "RECOVERY_READY"
+            and decision.get("action")
+            in goal_runner_adapter.RECOVERABLE_RUNTIME_ACTIONS
+        ):
+            observed_now = current or datetime.now(ZONE)
+            try:
+                resumed = goal_runner_adapter.resume_recoverable_runtime_block(
+                    spec, state, state_path=state_path, ledger_path=ledger_path,
+                    now=observed_now,
+                )
+            except goal_runner_adapter.GoalRunnerError as exc:
+                resumed = {
+                    "status": "RUNTIME_BLOCK_RELEASE_REJECTED",
+                    "requires_model": False,
+                    "reason": str(exc),
+                }
+                append("product_goal_runtime_recovery", decision=resumed)
+                return resumed
+            append("product_goal_runtime_recovery", decision=resumed)
             state = goal_runner_adapter.goal_continuity.load_json(state_path)
             ledger = goal_runner_adapter.goal_continuity.read_ledger(ledger_path)
             decision = goal_runner_adapter.next_action(

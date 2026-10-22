@@ -1,6 +1,6 @@
 {
   "schema_version": "kgnote.authority-lock.v1",
-  "generated_at": "2026-10-05",
+  "generated_at": "2026-10-22",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "conflict_policy": "fail_closed_authority_drift",
   "product_authority": [
@@ -97,7 +97,7 @@
         "path": "docs/control-plane/GOAL_SCOPED_CONTINUOUS_DELEGATION_20261022.md",
         "role": "goal_scoped_continuous_delegation_policy",
         "validation": "sha256",
-        "sha256": "d15d147b22142c8614b1103d5f6b53b65ab69db5acb64ea49c10528c5acd9eda",
+        "sha256": "0e49c6256742c17c04043820f5ef4f0a06e3560b1da2a89905399c91eb13abe5",
         "required_marker": "kgnote-goal-scoped-continuous-delegation-2026-10-22"
       },
       {

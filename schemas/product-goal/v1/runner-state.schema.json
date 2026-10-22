@@ -45,6 +45,15 @@
           "attempts": {"type": "integer", "minimum": 0},
           "strategy_adjustments": {"type": "integer", "minimum": 0},
           "failure_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+          "block": {
+            "type": "object", "additionalProperties": false,
+            "required": ["failure_class", "reason", "release_condition"],
+            "properties": {
+              "failure_class": {"enum": ["PRODUCT_DECISION_REQUIRED", "NEW_PERMISSION_REQUIRED", "NEW_EXPENSE", "STRATEGY_EXHAUSTED"]},
+              "reason": {"type": "string", "minLength": 1},
+              "release_condition": {"type": "string", "minLength": 1}
+            }
+          },
           "active_attempt_id": {"type": ["string", "null"]},
           "dispatch_binding": {
             "type": "object", "additionalProperties": false,

@@ -249,9 +249,9 @@ class GoalRunnerAdapterTests(unittest.TestCase):
         result = ADAPTER.next_action(
             self.spec, self.state, ledger, self.authority, now=NOW, trial=False,
         )
-        self.assertEqual("ACTION_READY", result["status"])
+        self.assertEqual("RECOVERY_READY", result["status"])
         self.assertEqual("DISPATCH_REPAIR", result["action"])
-        self.assertEqual("PERCENTAGE_UNOBSERVABLE_FALLBACK", result["capacity_basis"])
+        self.assertFalse(result["requires_model"])
 
     def test_overnight_window_uses_the_weekday_on_which_the_window_started(self):
         spec = deepcopy(self.spec)
@@ -329,6 +329,11 @@ class GoalRunnerAdapterTests(unittest.TestCase):
         )
         ledger = self.activate()
         self.state["work_items"][0]["status"] = "BLOCKED"
+        self.state["work_items"][0]["block"] = {
+            "failure_class": "PRODUCT_DECISION_REQUIRED",
+            "reason": "product WHAT conflict",
+            "release_condition": "Owner approves a revised exact Goal",
+        }
         independent = next(
             row for row in self.state["work_items"]
             if row["work_item_id"] == "WI-O2-INDEPENDENT"
@@ -341,6 +346,107 @@ class GoalRunnerAdapterTests(unittest.TestCase):
         self.assertEqual("RUN_DETERMINISTIC_VERIFICATION", result["action"])
         self.assertFalse(result["requires_model"])
 
+    def test_product_decision_checkpoint_blocks_only_affected_subgraph(self):
+        self.spec["obligations"].append({
+            "obligation_id": "OBL-O2-INDEPENDENT", "semantic_key": "b" * 64,
+            "authority_refs": ["KG-GOV-04"], "description": "Independent evidence.",
+        })
+        self.spec["work_items"].extend([
+            {
+                "work_item_id": "WI-O2-INDEPENDENT", "milestone_id": "O2-M2",
+                "kind": "VERIFY", "dependencies": [],
+                "obligation_ids": ["OBL-O2-INDEPENDENT"],
+                "allowed_operations": ["review"], "provider": "NONE",
+            },
+            {
+                "work_item_id": "WI-O2-INDEPENDENT-REVIEW", "milestone_id": "O2-M2",
+                "kind": "REVIEW", "dependencies": ["WI-O2-INDEPENDENT"],
+                "obligation_ids": ["OBL-O2-INDEPENDENT"],
+                "allowed_operations": ["review"], "provider": "claude",
+            },
+            {
+                "work_item_id": "WI-O2-INDEPENDENT-REPAIR", "milestone_id": "O2-M2",
+                "kind": "REPAIR", "dependencies": ["WI-O2-INDEPENDENT-REVIEW"],
+                "obligation_ids": ["OBL-O2-INDEPENDENT"],
+                "allowed_operations": ["commit"], "provider": "codex",
+            },
+        ])
+        self.state = GOAL.initial_runner_state(self.spec, now=NOW.isoformat())
+        self.authority = CONTROL.resolve_authority(
+            [comment(self.spec, action="APPROVE")], self.spec
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            self.write_order(repo, self.state, event_id="product-decision", stage="codex")
+            state_path, ledger_path = self.write_state_and_ledger(repo, self.state)
+            active = ADAPTER.reconcile_owner_authority(
+                self.spec, self.state, self.authority,
+                state_path=state_path, ledger_path=ledger_path,
+            )["state"]
+            action = ADAPTER.next_action(
+                self.spec, active, GOAL.read_ledger(ledger_path), self.authority,
+                now=NOW, trial=False,
+            )
+            reserved, _, attempt_id = ADAPTER.reserve_dispatch(
+                self.spec, active, action, state_path=state_path,
+                ledger_path=ledger_path, repo=repo, occurred_at=NOW.isoformat(),
+            )
+            order = json.loads((repo / "output" / "product-decision.json").read_text())
+            result = {
+                "schema_version": "kgnote.product-goal-worker-result.v1",
+                "goal_id": self.spec["goal_id"],
+                "goal_version": self.spec["goal_version"],
+                "goal_spec_sha256": GOAL.goal_spec_sha256(self.spec),
+                "work_item_id": "WI-O2-IMPLEMENT",
+                "order_event_id": order["event_id"],
+                "outcome": "PRODUCT_DECISION_REQUIRED",
+                "obligation_evaluations": [{
+                    "obligation_id": "OBL-O2-CORE",
+                    "progress_class": "EVIDENCE_INSUFFICIENT",
+                    "evidence_sha256": "c" * 64,
+                }],
+                "usage": {
+                    "status": "OBSERVED", "input_tokens": 10,
+                    "output_tokens": 5, "source": "worker_checkpoint",
+                },
+                "review_verdict": None,
+                "publication": None,
+            }
+            checkpoint = {
+                "schema_version": "kgnote.linux-worker-route.v1",
+                "status": "COMPLETED", "event_id": order["event_id"],
+                "command_digest": ROUTER.command_digest(
+                    ROUTER.WorkerOrder.from_dict(order)
+                ),
+                "execution_evidence": {"product_goal_result": result},
+            }
+            Path(order["checkpoint_path"]).write_text(json.dumps(checkpoint))
+            reconciled = ADAPTER.reconcile_dispatch_checkpoint(
+                self.spec, reserved, state_path=state_path, ledger_path=ledger_path,
+                repo=repo, attempt_id=attempt_id, occurred_at=NOW.isoformat(),
+            )
+            self.assertEqual("PRODUCT_DECISION_REQUIRED", reconciled["outcome"])
+            saved = GOAL.load_json(state_path)
+            affected = next(
+                row for row in saved["work_items"]
+                if row["work_item_id"] == "WI-O2-IMPLEMENT"
+            )
+            self.assertEqual("BLOCKED", affected["status"])
+            self.assertEqual(
+                "PRODUCT_DECISION_REQUIRED", affected["block"]["failure_class"]
+            )
+            self.assertNotIn("runtime_block", saved)
+            projected = GOAL.reduce_ledger(GOAL.read_ledger(ledger_path))
+            self.assertEqual(1, len(projected["notifications"]))
+            notice = next(iter(projected["notifications"].values()))
+            self.assertEqual("PRODUCT_WHAT_CONFLICT", notice["event_kind"])
+            next_work = ADAPTER.next_action(
+                self.spec, saved, GOAL.read_ledger(ledger_path), self.authority,
+                now=NOW, trial=False,
+            )
+            self.assertEqual("WI-O2-INDEPENDENT", next_work["work_item_id"])
+            self.assertEqual("RUN_DETERMINISTIC_VERIFICATION", next_work["action"])
+
     def test_two_no_progress_cycles_adjust_then_block_affected_work(self):
         for _ in range(6):
             self.state = ADAPTER.apply_obligation_progress(
@@ -349,6 +455,35 @@ class GoalRunnerAdapterTests(unittest.TestCase):
             )
         self.assertEqual(3, self.state["work_items"][0]["strategy_adjustments"])
         self.assertEqual("BLOCKED", self.state["work_items"][0]["status"])
+        self.assertEqual(
+            "STRATEGY_EXHAUSTED", self.state["work_items"][0]["block"]["failure_class"]
+        )
+        ledger = self.activate()
+        decision = ADAPTER.next_action(
+            self.spec, self.state, ledger, self.authority, now=NOW, trial=False,
+        )
+        self.assertEqual("HUMAN_DECISION_REQUIRED", decision["status"])
+        with tempfile.TemporaryDirectory() as directory:
+            ledger_path = Path(directory) / "ledger.jsonl"
+            for event in ledger:
+                GOAL.append_ledger_event(
+                    ledger_path,
+                    **{key: event[key] for key in (
+                        "event_id", "event_type", "occurred_at", "goal_id",
+                        "goal_version", "logical_work_id", "attempt_id", "payload",
+                    )},
+                )
+            first = ADAPTER.queue_human_decision_notifications(
+                self.spec, self.state, ledger_path=ledger_path,
+                occurred_at=NOW.isoformat(),
+            )
+            second = ADAPTER.queue_human_decision_notifications(
+                self.spec, self.state, ledger_path=ledger_path,
+                occurred_at=NOW.isoformat(),
+            )
+            self.assertEqual(first[0]["notification_id"], second[0]["notification_id"])
+            projection = GOAL.reduce_ledger(GOAL.read_ledger(ledger_path))
+            self.assertEqual(1, len(projection["notifications"]))
 
     def test_durable_reservation_forces_reconciliation_before_redispatch(self):
         ledger = self.activate()
@@ -401,6 +536,23 @@ class GoalRunnerAdapterTests(unittest.TestCase):
             self.assertEqual("RECOVERY_READY", restarted["status"])
             self.assertEqual("RECONCILE_CHECKPOINT", restarted["action"])
             self.assertEqual(attempt_id, restarted["attempt_id"])
+            for lease in ("PAUSED", "REVOKED"):
+                stopped = deepcopy(reserved)
+                stopped["authority_lease"] = lease
+                stopped["go_live_authorized"] = False
+                stopped["lifecycle"] = {
+                    "state": "BLOCKED", "revision": 2,
+                    "changed_at": NOW.isoformat(), "reason": f"Owner {lease.lower()}",
+                }
+                stopped_authority = {
+                    **self.authority, "authority_lease": lease, "status": "BLOCKED",
+                }
+                recovery = ADAPTER.next_action(
+                    self.spec, stopped, GOAL.read_ledger(ledger_path), stopped_authority,
+                    now=NOW, trial=False,
+                )
+                self.assertEqual("RECONCILE_CHECKPOINT", recovery["action"])
+                self.assertFalse(recovery["requires_model"])
 
     def test_dispatch_reservation_recovers_after_ledger_fsync_before_state_write(self):
         ledger = self.activate()
@@ -681,6 +833,177 @@ class GoalRunnerAdapterTests(unittest.TestCase):
             self.assertTrue(projection["model_attempts"][attempt_id]["finished"])
             self.assertEqual("OBSERVED", projection["usage"][attempt_id]["status"])
             self.assertEqual(0, projection["usage"][attempt_id]["input_tokens"])
+
+    def test_reconciled_operational_failures_release_durably_before_replan(self):
+        expected_actions = {
+            "DETERMINISTIC_WORKER_FAILURE": "RETRY_FAILED_WORK",
+            "GITHUB_WRITEBACK_FAILED": "RETRY_PUBLICATION",
+            "COMPLETION_GATE_FAILED": "RETRY_COMPLETION_GATE",
+        }
+        for failure_class, recovery_action in expected_actions.items():
+            with self.subTest(failure_class=failure_class), tempfile.TemporaryDirectory() as directory:
+                repo = Path(directory)
+                self.state = GOAL.initial_runner_state(self.spec, now=NOW.isoformat())
+                event_id = f"recover-{failure_class.lower().replace('_', '-')}"
+                self.write_order(repo, self.state, event_id=event_id, stage="codex")
+                state_path, ledger_path = self.write_state_and_ledger(repo, self.state)
+                active = ADAPTER.reconcile_owner_authority(
+                    self.spec, self.state, self.authority,
+                    state_path=state_path, ledger_path=ledger_path,
+                )["state"]
+                action = ADAPTER.next_action(
+                    self.spec, active, GOAL.read_ledger(ledger_path), self.authority,
+                    now=NOW, trial=False,
+                )
+                reserved, _, attempt_id = ADAPTER.reserve_dispatch(
+                    self.spec, active, action, state_path=state_path,
+                    ledger_path=ledger_path, repo=repo, occurred_at=NOW.isoformat(),
+                )
+                order = json.loads((repo / "output" / f"{event_id}.json").read_text())
+                checkpoint = {
+                    "schema_version": "kgnote.linux-worker-route.v1",
+                    "status": "FAILED_CLOSED", "reason": "guest_worker_failed",
+                    "event_id": order["event_id"],
+                    "command_digest": ROUTER.command_digest(ROUTER.WorkerOrder.from_dict(order)),
+                    "execution_evidence": {"failure_class": failure_class},
+                }
+                Path(order["checkpoint_path"]).write_text(json.dumps(checkpoint), encoding="utf-8")
+                routed = ADAPTER.record_route_outcome(
+                    self.spec, reserved, state_path=state_path,
+                    work_item_id=action["work_item_id"], attempt_id=attempt_id,
+                    route_exit_code=2, occurred_at=NOW.isoformat(),
+                )
+                ADAPTER.reconcile_dispatch_checkpoint(
+                    self.spec, routed, state_path=state_path, ledger_path=ledger_path,
+                    repo=repo, attempt_id=attempt_id, occurred_at=NOW.isoformat(),
+                )
+                blocked = GOAL.load_json(state_path)
+                recovery = ADAPTER.next_action(
+                    self.spec, blocked, GOAL.read_ledger(ledger_path), self.authority,
+                    now=NOW, trial=False,
+                )
+                self.assertEqual("RECOVERY_READY", recovery["status"])
+                self.assertEqual(recovery_action, recovery["action"])
+                released = ADAPTER.resume_recoverable_runtime_block(
+                    self.spec, blocked, state_path=state_path, ledger_path=ledger_path,
+                    now=NOW,
+                )
+                self.assertEqual("RECOVERABLE_RUNTIME_BLOCK_RELEASED", released["status"])
+                recovered = GOAL.load_json(state_path)
+                self.assertNotIn("runtime_block", recovered)
+                replanned = ADAPTER.next_action(
+                    self.spec, recovered, GOAL.read_ledger(ledger_path), self.authority,
+                    now=NOW + ADAPTER.timedelta(seconds=301), trial=False,
+                )
+                self.assertEqual("ACTION_READY", replanned["status"])
+                operations = [
+                    row["payload"].get("operation")
+                    for row in GOAL.read_ledger(ledger_path)
+                ]
+                self.assertEqual(1, operations.count("RECOVERABLE_RUNTIME_BLOCK_RELEASED"))
+
+    def test_work_window_failure_releases_only_in_a_later_authorized_window(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            self.write_order(repo, self.state, event_id="window-deadline", stage="codex")
+            state_path, ledger_path = self.write_state_and_ledger(repo, self.state)
+            active = ADAPTER.reconcile_owner_authority(
+                self.spec, self.state, self.authority,
+                state_path=state_path, ledger_path=ledger_path,
+            )["state"]
+            action = ADAPTER.next_action(
+                self.spec, active, GOAL.read_ledger(ledger_path), self.authority,
+                now=NOW, trial=False,
+            )
+            reserved, _, attempt_id = ADAPTER.reserve_dispatch(
+                self.spec, active, action, state_path=state_path, ledger_path=ledger_path,
+                repo=repo, occurred_at=NOW.isoformat(),
+            )
+            order = json.loads((repo / "output" / "window-deadline.json").read_text())
+            checkpoint = {
+                "schema_version": "kgnote.linux-worker-route.v1",
+                "status": "DEADLINE_STOPPED", "reason": "work_window_deadline",
+                "event_id": order["event_id"],
+                "command_digest": ROUTER.command_digest(ROUTER.WorkerOrder.from_dict(order)),
+            }
+            Path(order["checkpoint_path"]).write_text(json.dumps(checkpoint), encoding="utf-8")
+            routed = ADAPTER.record_route_outcome(
+                self.spec, reserved, state_path=state_path,
+                work_item_id=action["work_item_id"], attempt_id=attempt_id,
+                route_exit_code=2, occurred_at=NOW.isoformat(),
+            )
+            ADAPTER.reconcile_dispatch_checkpoint(
+                self.spec, routed, state_path=state_path, ledger_path=ledger_path,
+                repo=repo, attempt_id=attempt_id, occurred_at=NOW.isoformat(),
+            )
+            blocked = GOAL.load_json(state_path)
+            next_morning = datetime(2026, 10, 23, 8, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+            self.assertEqual(
+                "WAIT_WORK_WINDOW",
+                ADAPTER.next_action(
+                    self.spec, blocked, GOAL.read_ledger(ledger_path), self.authority,
+                    now=next_morning, trial=False,
+                )["status"],
+            )
+            reopened = datetime(2026, 10, 23, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+            ready = ADAPTER.next_action(
+                self.spec, blocked, GOAL.read_ledger(ledger_path), self.authority,
+                now=reopened, trial=False,
+            )
+            self.assertEqual("RESUME_AFTER_WORK_WINDOW", ready["action"])
+            resumed = ADAPTER.resume_recoverable_runtime_block(
+                self.spec, blocked, state_path=state_path, ledger_path=ledger_path,
+                now=reopened,
+            )
+            self.assertEqual("RECOVERABLE_RUNTIME_BLOCK_RELEASED", resumed["status"])
+            self.assertEqual("RESUME_AFTER_WORK_WINDOW", resumed["recovery_action"])
+
+    def test_unknown_checkpoint_remains_unreconciled_and_probe_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            self.write_order(repo, self.state, event_id="unknown-outcome", stage="codex")
+            state_path, ledger_path = self.write_state_and_ledger(repo, self.state)
+            active = ADAPTER.reconcile_owner_authority(
+                self.spec, self.state, self.authority,
+                state_path=state_path, ledger_path=ledger_path,
+            )["state"]
+            action = ADAPTER.next_action(
+                self.spec, active, GOAL.read_ledger(ledger_path), self.authority,
+                now=NOW, trial=False,
+            )
+            reserved, _, attempt_id = ADAPTER.reserve_dispatch(
+                self.spec, active, action, state_path=state_path, ledger_path=ledger_path,
+                repo=repo, occurred_at=NOW.isoformat(),
+            )
+            order = json.loads((repo / "output" / "unknown-outcome.json").read_text())
+            checkpoint = {
+                "schema_version": "kgnote.linux-worker-route.v1",
+                "status": "FAILED_CLOSED", "reason": "controller_interrupted",
+                "event_id": order["event_id"],
+                "command_digest": ROUTER.command_digest(ROUTER.WorkerOrder.from_dict(order)),
+            }
+            Path(order["checkpoint_path"]).write_text(json.dumps(checkpoint), encoding="utf-8")
+            routed = ADAPTER.record_route_outcome(
+                self.spec, reserved, state_path=state_path,
+                work_item_id=action["work_item_id"], attempt_id=attempt_id,
+                route_exit_code=2, occurred_at=NOW.isoformat(),
+            )
+            first = ADAPTER.reconcile_dispatch_checkpoint(
+                self.spec, routed, state_path=state_path, ledger_path=ledger_path,
+                repo=repo, attempt_id=attempt_id, occurred_at=NOW.isoformat(),
+            )
+            self.assertEqual("CHECKPOINT_UNRESOLVED", first["status"])
+            before = ledger_path.read_bytes()
+            current = GOAL.load_json(state_path)
+            second = ADAPTER.reconcile_dispatch_checkpoint(
+                self.spec, current, state_path=state_path, ledger_path=ledger_path,
+                repo=repo, attempt_id=attempt_id, occurred_at=(NOW + ADAPTER.timedelta(minutes=1)).isoformat(),
+            )
+            self.assertEqual("CHECKPOINT_UNRESOLVED", second["status"])
+            self.assertEqual(before, ledger_path.read_bytes())
+            projection = GOAL.reduce_ledger(GOAL.read_ledger(ledger_path))
+            self.assertFalse(projection["dispatch_reservations"][attempt_id].get("reconciled", False))
+            self.assertFalse(projection["model_attempts"][attempt_id].get("finished", False))
 
     def test_window_budget_resets_but_goal_total_is_ledger_bound(self):
         ledger = self.activate()

@@ -56,7 +56,7 @@ This file contains one Codex App execution Goal. It implements the B-scheme cont
     "canonical_repository": "joannalee20050914/KGnote-public",
     "base_revision": "f81ccdde369c7ab9468ed07ca1fdab6d8f0b60e0",
     "branch": "codex/goal-continuous-delegation-20261022",
-    "draft_pull_request": null,
+    "draft_pull_request": 31,
     "automatic_merge": false
   },
   "auto_advance": {
@@ -146,4 +146,4 @@ This file contains one Codex App execution Goal. It implements the B-scheme cont
 
 ## Current recovery note
 
-Milestones B1–B4 are complete. Product Goal identity/authority schemas, append-only separated accounting, dormant Runner recovery adapter, O2–O7 backlog, decision-only notification layer and rollback runbook are implemented. The 25-event Issue #9 replay and isolated paths A/B pass with zero model calls and zero external writes. B5 is active for final verification, independent review, Draft PR publication and exact read-back; `B-SCHEME-GO-LIVE` remains a separate preserved Owner gate and is not part of this implementation milestone.
+Milestones B1–B4 are complete. Product Goal identity/authority schemas, append-only separated accounting, dormant Runner recovery adapter, O2–O7 backlog, decision-only notification layer and rollback runbook are implemented. The 25-event Issue #9 replay and 53-event isolated paths A/B pass with zero model calls and zero external writes. Draft PR #31 is open. Review 008 was invalidated before reviewer custody after a completion audit found recovery deadlocks; the repaired candidate now has durable no-model recovery releases, unknown-checkpoint idempotence, affected-subgraph blocking and GitHub notification delivery/read-back evidence. B5 remains active for exact-candidate Review 009 and final publication read-back; `B-SCHEME-GO-LIVE` remains a separate preserved Owner gate and is not part of this implementation milestone.

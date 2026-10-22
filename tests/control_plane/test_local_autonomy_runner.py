@@ -32,6 +32,77 @@ class RunnerTests(unittest.TestCase):
             )
             self.assertEqual("STOPPED", result["status"])
 
+    def test_product_goal_tick_delivers_queued_github_notice_with_readback(self):
+        from tests.control_plane.test_goal_continuity import product_goal_spec
+        from tests.control_plane.test_github_product_goal_control import comment
+        import goal_continuity as goal
+
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            (repo / ".ai").mkdir()
+            spec = product_goal_spec()
+            state = goal.initial_runner_state(
+                spec, now="2026-10-22T10:00:00+08:00"
+            )
+            spec_path, state_path = repo / "spec.json", repo / "state.json"
+            ledger_path, comments_path = repo / "ledger.jsonl", repo / "comments.json"
+            spec_path.write_text(json.dumps(spec))
+            goal.atomic_write_json(state_path, state)
+            comments_path.write_text(json.dumps([comment(spec)]))
+            notice = RUNNER.goal_runner_adapter.goal_notifications.build_notification(
+                goal_id=spec["goal_id"], goal_version=spec["goal_version"],
+                event_kind="PRODUCT_WHAT_CONFLICT", decision_key="exact-conflict",
+                summary="受影響的 Work Item 已停止，獨立工作仍可繼續。",
+                decision_requested="以新的 exact Goal 版本裁決產品 WHAT。",
+                github_issue=spec["github_issue"],
+            )
+            RUNNER.goal_runner_adapter.goal_notifications.queue_decision_notification(
+                ledger_path, notice, occurred_at="2026-10-22T10:00:00+08:00"
+            )
+            body = RUNNER.goal_runner_adapter.goal_notifications.github_notification_body(
+                notice
+            )
+            github_rows = []
+            calls = []
+
+            def fake(command, **kwargs):
+                calls.append(command)
+                if command[:2] == ["gh", "api"]:
+                    if "-f" in command:
+                        github_rows.append({
+                            "id": 901,
+                            "html_url": "https://github.com/owner/repo/issues/42#issuecomment-901",
+                            "body": body,
+                        })
+                    return subprocess.CompletedProcess(
+                        command, 0, json.dumps(github_rows), ""
+                    )
+                return subprocess.CompletedProcess(command, 0, "{}\n", "")
+
+            result = RUNNER.run_product_goal_mode(
+                repo, spec_path=spec_path, state_path=state_path,
+                ledger_path=ledger_path, comments_path=comments_path,
+                backlog_path=None, trial=False, router=repo / "router.py",
+                epoch_record=repo / "epoch.json", admission=repo / "admission.py",
+                runner_identity={"sha256": "test"},
+                current=datetime(2026, 10, 22, 10, 1, tzinfo=ZoneInfo("Asia/Taipei")),
+                command_runner=fake,
+            )
+            self.assertEqual("DISPATCH_BINDING_REQUIRED", result["status"])
+            self.assertEqual(3, len([row for row in calls if row[:2] == ["gh", "api"]]))
+            self.assertEqual(
+                "SENT",
+                RUNNER.goal_runner_adapter.goal_notifications.notification_state(
+                    goal.read_ledger(ledger_path), notice["notification_id"]
+                ),
+            )
+            sent = [
+                row for row in goal.read_ledger(ledger_path)
+                if row["event_type"] == "NOTIFICATION_SENT"
+            ]
+            self.assertEqual(901, sent[0]["payload"]["comment_id"])
+            self.assertEqual("NONE", sent[0]["payload"]["authority_effect"])
+
     def test_product_goal_live_path_reserves_routes_and_never_blind_redispatches(self):
         from tests.control_plane.test_goal_continuity import product_goal_spec
         from tests.control_plane.test_github_product_goal_control import comment
@@ -88,6 +159,84 @@ class RunnerTests(unittest.TestCase):
             )
             self.assertEqual("CHECKPOINT_PENDING", second["status"])
             self.assertEqual(before, len(calls))
+
+    def test_product_goal_runner_releases_reconciled_failure_then_retries_through_admission(self):
+        from tests.control_plane.test_goal_continuity import product_goal_spec
+        from tests.control_plane.test_github_product_goal_control import comment
+        import goal_continuity as goal
+        import linux_worker_router as router_control
+
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            (repo / ".ai").mkdir()
+            spec = product_goal_spec()
+            state = goal.initial_runner_state(spec, now="2026-10-22T10:00:00+08:00")
+            order_path = repo / "output" / "recoverable.json"
+            order_path.parent.mkdir(parents=True)
+            checkpoint_path = repo / "checkpoint.json"
+            order = {
+                "schema_version": "kgnote.linux-worker-order.v1",
+                "event_id": "product-goal-recoverable-1",
+                "stage": "codex",
+                "working_directory": "/home/kgnote/.local/share/kgnote/work-items/product-goal-recovery",
+                "command": ["/usr/bin/true"],
+                "checkpoint_path": str(checkpoint_path),
+            }
+            order_path.write_text(json.dumps(order))
+            state["work_items"][0]["dispatch_binding"] = {
+                "order_path": "output/recoverable.json",
+                "order_sha256": hashlib.sha256(order_path.read_bytes()).hexdigest(),
+                "order_event_id": order["event_id"],
+            }
+            spec_path, state_path = repo / "spec.json", repo / "state.json"
+            ledger_path, comments_path = repo / "ledger.jsonl", repo / "comments.json"
+            spec_path.write_text(json.dumps(spec)); goal.atomic_write_json(state_path, state)
+            comments_path.write_text(json.dumps([comment(spec)]))
+            router, epoch, admission = repo / "router.py", repo / "epoch.json", repo / "admission.py"
+            for path in (router, epoch, admission): path.write_text("{}")
+            calls = []
+            def fake(command, **kwargs):
+                calls.append(command)
+                return subprocess.CompletedProcess(command, 0, "{}\n", "")
+            now = datetime(2026, 10, 22, 10, tzinfo=ZoneInfo("Asia/Taipei"))
+            first = RUNNER.run_product_goal_mode(
+                repo, spec_path=spec_path, state_path=state_path, ledger_path=ledger_path,
+                comments_path=comments_path, trial=False, router=router,
+                backlog_path=None, epoch_record=epoch, admission=admission,
+                runner_identity={"sha256": "test"}, current=now, command_runner=fake,
+            )
+            self.assertEqual("DISPATCHED", first["status"])
+            checkpoint_path.write_text(json.dumps({
+                "schema_version": "kgnote.linux-worker-route.v1",
+                "status": "FAILED_CLOSED", "reason": "guest_worker_failed",
+                "event_id": order["event_id"],
+                "command_digest": router_control.command_digest(
+                    router_control.WorkerOrder.from_dict(order)
+                ),
+                "execution_evidence": {"failure_class": "DETERMINISTIC_WORKER_FAILURE"},
+            }))
+            reconciled = RUNNER.run_product_goal_mode(
+                repo, spec_path=spec_path, state_path=state_path, ledger_path=ledger_path,
+                comments_path=comments_path, trial=False, router=router,
+                backlog_path=None, epoch_record=epoch, admission=admission,
+                runner_identity={"sha256": "test"}, current=now, command_runner=fake,
+            )
+            self.assertEqual("CHECKPOINT_RECONCILED", reconciled["status"])
+            before_retry = len(calls)
+            retried = RUNNER.run_product_goal_mode(
+                repo, spec_path=spec_path, state_path=state_path, ledger_path=ledger_path,
+                comments_path=comments_path, trial=False, router=router,
+                backlog_path=None, epoch_record=epoch, admission=admission,
+                runner_identity={"sha256": "test"},
+                current=datetime(2026, 10, 22, 10, 6, tzinfo=ZoneInfo("Asia/Taipei")),
+                command_runner=fake,
+            )
+            self.assertEqual("DISPATCHED", retried["status"])
+            self.assertGreater(len(calls), before_retry)
+            operations = [
+                row["payload"].get("operation") for row in goal.read_ledger(ledger_path)
+            ]
+            self.assertEqual(1, operations.count("RECOVERABLE_RUNTIME_BLOCK_RELEASED"))
 
     def test_admission_pending_item_is_prepared_then_dispatched_once(self):
         tmp=tempfile.TemporaryDirectory(); repo=Path(tmp.name)

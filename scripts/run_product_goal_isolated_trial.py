@@ -69,6 +69,7 @@ def _binding(root: Path, order_path: Path, order: dict) -> dict:
 def _worker_result(
     spec: dict, order: dict, *, work_item_id: str, outcome: str,
     progress_class: str, verdict: str | None,
+    publication: dict | None = None,
 ) -> dict:
     return {
         "schema_version": "kgnote.product-goal-worker-result.v1",
@@ -89,7 +90,7 @@ def _worker_result(
              "candidate_identity_sha256": "f" * 64}
             if verdict else None
         ),
-        "publication": None,
+        "publication": publication,
     }
 
 
@@ -127,20 +128,23 @@ def _dispatch_and_reconcile(
         spec, state, goal_continuity.read_ledger(ledger_path), authority,
         now=now, trial=False,
     )
-    quota_resume = None
-    if (
-        action.get("status") == "RECOVERY_READY"
-        and action.get("action") == "RESUME_AFTER_QUOTA"
-    ):
-        quota_resume = goal_runner_adapter.resume_after_quota_backoff(
-            spec, state, state_path=state_path, ledger_path=ledger_path, now=now,
-        )
+    pre_dispatch_recovery = None
+    if action.get("status") == "RECOVERY_READY":
+        if action.get("action") == "RESUME_AFTER_QUOTA":
+            pre_dispatch_recovery = goal_runner_adapter.resume_after_quota_backoff(
+                spec, state, state_path=state_path, ledger_path=ledger_path, now=now,
+            )
+        elif action.get("action") in goal_runner_adapter.RECOVERABLE_RUNTIME_ACTIONS:
+            pre_dispatch_recovery = goal_runner_adapter.resume_recoverable_runtime_block(
+                spec, state, state_path=state_path, ledger_path=ledger_path, now=now,
+            )
+    if pre_dispatch_recovery is not None:
         state = goal_continuity.load_json(state_path)
         action = goal_runner_adapter.next_action(
             spec, state, goal_continuity.read_ledger(ledger_path), authority,
             now=now, trial=False,
         )
-        action = {**action, "pre_dispatch_recovery": quota_resume}
+        action = {**action, "pre_dispatch_recovery": pre_dispatch_recovery}
     reserved, _, attempt_id = goal_runner_adapter.reserve_dispatch(
         spec, state, action, state_path=state_path, ledger_path=ledger_path,
         repo=root, occurred_at=now.isoformat(),
@@ -165,9 +169,14 @@ def run_trial(spec: dict, backlog: dict, issue9_fixture: dict) -> dict:
     authority = github_control.resolve_authority([approval], spec)
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
+        publish_one_path, publish_one = _order(root, "isolated-publish-one", "publisher")
+        publish_two_path, publish_two = _order(root, "isolated-publish-two", "publisher")
         review_one_path, review_one = _order(root, "isolated-review-one", "claude")
         review_two_path, review_two = _order(root, "isolated-review-two", "claude")
         repair_path, repair_order = _order(root, "isolated-repair-one", "codex")
+        acceptance_path, acceptance_order = _order(
+            root, "isolated-acceptance-one", "publisher"
+        )
         state = goal_continuity.initial_runner_state(
             spec, now=FIXED_NOW.isoformat(),
             codex_app_goal_provenance={
@@ -176,13 +185,24 @@ def run_trial(spec: dict, backlog: dict, issue9_fixture: dict) -> dict:
             },
         )
         state["work_items"][0]["dispatch_bindings"] = {
+            "RETRY_PUBLICATION": [
+                _binding(root, publish_one_path, publish_one),
+                _binding(root, publish_two_path, publish_two),
+            ]
+        }
+        state["work_items"][1]["dispatch_bindings"] = {
             "DISPATCH_REVIEW": [
                 _binding(root, review_one_path, review_one),
                 _binding(root, review_two_path, review_two),
             ]
         }
-        state["work_items"][1]["dispatch_bindings"] = {
+        state["work_items"][2]["dispatch_bindings"] = {
             "DISPATCH_REPAIR": [_binding(root, repair_path, repair_order)]
+        }
+        state["work_items"][3]["dispatch_bindings"] = {
+            "RETRY_COMPLETION_GATE": [
+                _binding(root, acceptance_path, acceptance_order)
+            ]
         }
         state_path, ledger_path = root / "state.json", root / "ledger.jsonl"
         goal_continuity.atomic_write_json(state_path, state)
@@ -193,22 +213,53 @@ def run_trial(spec: dict, backlog: dict, issue9_fixture: dict) -> dict:
         path_a: dict[str, dict] = {
             "authority": {"lifecycle": active["lifecycle"]["state"], "lease": active["authority_lease"]}
         }
-        first_action, quota = _dispatch_and_reconcile(
+        publication_failure_action, publication_failure = _dispatch_and_reconcile(
             spec, authority, root, state_path, ledger_path, now=FIXED_NOW,
-            order=review_one, failure_class="USAGE_LIMIT_REACHED",
+            order=publish_one, failure_class="GITHUB_WRITEBACK_FAILED",
+        )
+        path_a["publication_failure"] = {
+            "action": publication_failure_action, "result": publication_failure,
+        }
+        publication_result = _worker_result(
+            spec, publish_one, work_item_id="WI-TRIAL-PUBLISH",
+            outcome="WORK_COMPLETED", progress_class="FUNCTIONAL_PROGRESS_UNVERIFIED",
+            verdict=None,
+            publication={"status": "READ_BACK_VERIFIED", "receipt_sha256": "d" * 64},
+        )
+        publication_recovery_action, publication_recovery = _dispatch_and_reconcile(
+            spec, authority, root, state_path, ledger_path,
+            now=datetime(2026, 10, 22, 10, 5, tzinfo=ZONE),
+            order=publish_one, result=publication_result,
+        )
+        path_a["publication_recovery"] = {
+            "action": publication_recovery_action, "result": publication_recovery,
+        }
+
+        first_action, window_deadline = _dispatch_and_reconcile(
+            spec, authority, root, state_path, ledger_path,
+            now=datetime(2026, 10, 22, 17, 55, tzinfo=ZONE),
+            order=review_one, failure_class="WORK_WINDOW_CLOSED",
         )
         path_a["initial"] = first_action
-        path_a["quota"] = quota
-        quota_wait = goal_runner_adapter.next_action(
-            spec, goal_continuity.load_json(state_path), goal_continuity.read_ledger(ledger_path),
-            authority, now=FIXED_NOW, trial=False,
-        )
-        path_a["quota_wait"] = quota_wait
+        path_a["window_deadline"] = window_deadline
         next_window = goal_runner_adapter.next_action(
             spec, goal_continuity.load_json(state_path), goal_continuity.read_ledger(ledger_path),
             authority, now=datetime(2026, 10, 23, 8, 0, tzinfo=ZONE), trial=False,
         )
         path_a["next_window"] = next_window
+
+        quota_action, quota = _dispatch_and_reconcile(
+            spec, authority, root, state_path, ledger_path,
+            now=datetime(2026, 10, 23, 10, 0, tzinfo=ZONE),
+            order=review_one, failure_class="USAGE_LIMIT_REACHED",
+        )
+        path_a["quota_action"] = quota_action
+        path_a["quota"] = quota
+        quota_wait = goal_runner_adapter.next_action(
+            spec, goal_continuity.load_json(state_path), goal_continuity.read_ledger(ledger_path),
+            authority, now=datetime(2026, 10, 23, 10, 1, tzinfo=ZONE), trial=False,
+        )
+        path_a["quota_wait"] = quota_wait
 
         changes_result = _worker_result(
             spec, review_one, work_item_id="WI-TRIAL-REVIEW",
@@ -217,7 +268,7 @@ def run_trial(spec: dict, backlog: dict, issue9_fixture: dict) -> dict:
         )
         changes_action, changes = _dispatch_and_reconcile(
             spec, authority, root, state_path, ledger_path,
-            now=datetime(2026, 10, 23, 10, 5, tzinfo=ZONE),
+            now=datetime(2026, 10, 23, 11, 5, tzinfo=ZONE),
             order=review_one, result=changes_result,
         )
         path_a["changes_required"] = {"action": changes_action, "result": changes}
@@ -228,20 +279,53 @@ def run_trial(spec: dict, backlog: dict, issue9_fixture: dict) -> dict:
         )
         repair_action, repair = _dispatch_and_reconcile(
             spec, authority, root, state_path, ledger_path,
-            now=datetime(2026, 10, 23, 10, 15, tzinfo=ZONE),
+            now=datetime(2026, 10, 23, 11, 15, tzinfo=ZONE),
             order=repair_order, result=repair_result,
         )
         path_a["repair"] = {"action": repair_action, "result": repair}
+        republish_result = _worker_result(
+            spec, publish_two, work_item_id="WI-TRIAL-PUBLISH",
+            outcome="WORK_COMPLETED", progress_class="FUNCTIONAL_PROGRESS_UNVERIFIED",
+            verdict=None,
+            publication={"status": "READ_BACK_VERIFIED", "receipt_sha256": "c" * 64},
+        )
+        republish_action, republished = _dispatch_and_reconcile(
+            spec, authority, root, state_path, ledger_path,
+            now=datetime(2026, 10, 23, 11, 20, tzinfo=ZONE),
+            order=publish_two, result=republish_result,
+        )
+        path_a["republish"] = {"action": republish_action, "result": republished}
         pass_result = _worker_result(
             spec, review_two, work_item_id="WI-TRIAL-REVIEW",
             outcome="REVIEW_PASS", progress_class="VERIFIED_RESOLVED", verdict="PASS",
         )
         pass_action, passed = _dispatch_and_reconcile(
             spec, authority, root, state_path, ledger_path,
-            now=datetime(2026, 10, 23, 10, 25, tzinfo=ZONE),
+            now=datetime(2026, 10, 23, 11, 25, tzinfo=ZONE),
             order=review_two, result=pass_result,
         )
         path_a["review_pass"] = {"action": pass_action, "result": passed}
+        gate_failure_action, gate_failure = _dispatch_and_reconcile(
+            spec, authority, root, state_path, ledger_path,
+            now=datetime(2026, 10, 23, 11, 30, tzinfo=ZONE),
+            order=acceptance_order, failure_class="COMPLETION_GATE_FAILED",
+        )
+        path_a["completion_gate_failure"] = {
+            "action": gate_failure_action, "result": gate_failure,
+        }
+        gate_result = _worker_result(
+            spec, acceptance_order, work_item_id="WI-TRIAL-ACCEPTANCE",
+            outcome="WORK_COMPLETED", progress_class="FUNCTIONAL_PROGRESS_UNVERIFIED",
+            verdict=None,
+        )
+        gate_recovery_action, gate_recovery = _dispatch_and_reconcile(
+            spec, authority, root, state_path, ledger_path,
+            now=datetime(2026, 10, 23, 11, 35, tzinfo=ZONE),
+            order=acceptance_order, result=gate_result,
+        )
+        path_a["completion_gate_recovery"] = {
+            "action": gate_recovery_action, "result": gate_recovery,
+        }
         accepted_authority = github_control.resolve_authority(
             [approval, owner_comment(spec, action="ACCEPT", comment_id=2)], spec
         )
@@ -252,7 +336,7 @@ def run_trial(spec: dict, backlog: dict, issue9_fixture: dict) -> dict:
         path_a["closed"] = {"lifecycle": closed["lifecycle"]["state"]}
         path_b = goal_runner_adapter.prepare_next_goal_handoff(
             backlog, closed, ledger_path=ledger_path,
-            occurred_at=datetime(2026, 10, 23, 10, 30, tzinfo=ZONE).isoformat(),
+            occurred_at=datetime(2026, 10, 23, 11, 40, tzinfo=ZONE).isoformat(),
             github_issue=spec["github_issue"],
         )
         events = goal_continuity.read_ledger(ledger_path)
@@ -268,7 +352,24 @@ def run_trial(spec: dict, backlog: dict, issue9_fixture: dict) -> dict:
     replay = replay_issue9_goal_history.replay(issue9_fixture)
     checks = {
         "path_a_owner_approval_activates_runner": path_a["authority"] == {"lifecycle": "ACTIVE", "lease": "ACTIVE"},
+        "path_a_writeback_failure_retries_without_model": (
+            path_a["publication_failure"]["result"]["outcome"] == "GITHUB_WRITEBACK_FAILED"
+            and path_a["publication_recovery"]["action"].get(
+                "pre_dispatch_recovery", {}
+            ).get("recovery_action") == "RETRY_PUBLICATION"
+            and not path_a["publication_recovery"]["action"][
+                "pre_dispatch_recovery"
+            ]["requires_model"]
+        ),
         "path_a_initial_review_dispatched": path_a["initial"]["action"] == "DISPATCH_REVIEW",
+        "path_a_window_deadline_is_reconciled_attempt": path_a["window_deadline"]["outcome"] == "WORK_WINDOW_CLOSED",
+        "path_a_cross_window_waits": path_a["next_window"]["status"] == "WAIT_WORK_WINDOW",
+        "path_a_next_window_resume_is_durable_no_model": (
+            path_a["quota_action"].get("pre_dispatch_recovery", {}).get(
+                "recovery_action"
+            ) == "RESUME_AFTER_WORK_WINDOW"
+            and not path_a["quota_action"]["pre_dispatch_recovery"]["requires_model"]
+        ),
         "path_a_quota_is_reconciled_attempt": path_a["quota"]["outcome"] == "USAGE_LIMIT_REACHED",
         "path_a_quota_waits_without_model": path_a["quota_wait"]["status"] == "WAIT_QUOTA_BACKOFF" and not path_a["quota_wait"]["requires_model"],
         "path_a_quota_resume_is_durable_no_model": (
@@ -280,11 +381,26 @@ def run_trial(spec: dict, backlog: dict, issue9_fixture: dict) -> dict:
                 for row in events
             ) == 1
         ),
-        "path_a_cross_window_waits": path_a["next_window"]["status"] == "WAIT_WORK_WINDOW",
         "path_a_changes_required_routes_repair": path_a["repair"]["action"]["action"] == "DISPATCH_REPAIR",
-        "path_a_review_pass_reaches_acceptance": path_a["review_pass"]["result"]["lifecycle"] == "ACCEPTANCE_REQUIRED",
+        "path_a_repair_reopens_publication_before_review": path_a["republish"]["action"]["action"] == "RETRY_PUBLICATION",
+        "path_a_review_pass_waits_for_completion_gate": path_a["review_pass"]["result"]["lifecycle"] == "ACTIVE",
+        "path_a_completion_gate_failure_retries_without_model": (
+            path_a["completion_gate_failure"]["result"]["outcome"]
+            == "COMPLETION_GATE_FAILED"
+            and path_a["completion_gate_recovery"]["action"].get(
+                "pre_dispatch_recovery", {}
+            ).get("recovery_action") == "RETRY_COMPLETION_GATE"
+            and path_a["completion_gate_recovery"]["result"]["lifecycle"]
+            == "ACCEPTANCE_REQUIRED"
+        ),
         "path_a_exact_owner_accept_closes": path_a["closed"]["lifecycle"] == "CLOSED",
-        "path_a_accounting_separate": len(projection["model_attempts"]) == 4 and len(projection["review_verdicts"]) == 2,
+        "path_a_accounting_separate": len(projection["model_attempts"]) == 5 and len(projection["review_verdicts"]) == 2,
+        "path_a_recovery_transitions_are_ledger_bound": (
+            sum(
+                row["payload"].get("operation") == "RECOVERABLE_RUNTIME_BLOCK_RELEASED"
+                for row in events
+            ) == 3
+        ),
         "path_b_next_goal_waits_owner": path_b["status"] == "APPROVAL_REQUIRED" and not path_b["authority_granted"],
         "notification_dedup_identity_stable": notice_a["notification_id"] == notice_b["notification_id"],
         "chatgpt_work_unverified_github_fallback": notice_a["chatgpt_work_status"] == "UNVERIFIED" and notice_a["transport"] == "GITHUB_NATIVE",

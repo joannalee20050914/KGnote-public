@@ -12,6 +12,7 @@ import json
 import re
 import subprocess
 from copy import deepcopy
+from datetime import datetime, timedelta
 from typing import Any, Callable
 
 import goal_continuity
@@ -29,6 +30,11 @@ IGNORED_OPERATIONAL_KINDS = {
     "TEST_FAILURE", "PUBLISHER_RETRY", "WORK_WINDOW_CLOSED",
 }
 ACK_MARKER = "<!-- kgnote-product-goal-notification-ack:v1 -->"
+NOTIFICATION_FIELDS = {
+    "notification_id", "goal_id", "goal_version", "event_kind",
+    "decision_key", "summary", "decision_requested", "github_issue",
+    "transport", "chatgpt_work_status", "authority_effect",
+}
 
 
 class NotificationError(goal_continuity.GoalContractError):
@@ -79,6 +85,7 @@ def notification_state(
         return None
     return {
         "NOTIFICATION_QUEUED": "QUEUED",
+        "NOTIFICATION_DELIVERY_FAILED": "QUEUED",
         "NOTIFICATION_SENT": "SENT",
         "NOTIFICATION_ACKNOWLEDGED": "ACKNOWLEDGED",
     }.get(notice["last_event"])
@@ -244,6 +251,10 @@ def publish_github_notification(
     exact = [row for row in matches if row.get("body") == body]
     if len(exact) != 1 or len(matches) != 1:
         raise NotificationError("GitHub notification did not read back exactly once")
+    if not isinstance(exact[0].get("id"), int) or not isinstance(
+        exact[0].get("html_url"), str
+    ):
+        raise NotificationError("GitHub notification read-back identity is incomplete")
     return {
         "notification_id": notification["notification_id"],
         "transport": "GITHUB_NATIVE",
@@ -252,3 +263,159 @@ def publish_github_notification(
         "body_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
         "authority_effect": "NONE",
     }
+
+
+def _notification_from_projection(projected: dict[str, Any]) -> dict[str, Any]:
+    if not NOTIFICATION_FIELDS.issubset(projected):
+        raise NotificationError("projected notification is missing its queued identity")
+    return {key: deepcopy(projected[key]) for key in NOTIFICATION_FIELDS}
+
+
+def deliver_queued_github_notifications(
+    path,
+    *,
+    repository: str,
+    max_attempts: int,
+    now: datetime,
+    command_runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> list[dict[str, Any]]:
+    """Deliver queued fallback notifications with durable bounded retries."""
+    if now.tzinfo is None:
+        raise NotificationError("notification delivery time must be timezone-aware")
+    if max_attempts < 1:
+        raise NotificationError("notification delivery max_attempts must be positive")
+    outcomes: list[dict[str, Any]] = []
+    events = goal_continuity.read_ledger(path)
+    projection = goal_continuity.reduce_ledger(events)
+    for notice_id, projected in sorted(projection["notifications"].items()):
+        if notification_state(events, notice_id) != "QUEUED":
+            continue
+        notification = _notification_from_projection(projected)
+        if notification["transport"] != "GITHUB_NATIVE":
+            outcomes.append({
+                "notification_id": notice_id,
+                "status": "WAIT_VERIFIED_CHATGPT_WORK_DELIVERY_ADAPTER",
+            })
+            continue
+        failures = [
+            row for row in events
+            if row["event_type"] == "NOTIFICATION_DELIVERY_FAILED"
+            and row["payload"].get("notification_id") == notice_id
+        ]
+        if len(failures) >= max_attempts:
+            outcomes.append({
+                "notification_id": notice_id,
+                "status": "DELIVERY_RETRY_EXHAUSTED",
+                "attempts": len(failures),
+            })
+            continue
+        if failures:
+            retry_value = failures[-1]["payload"].get("retry_at")
+            if isinstance(retry_value, str) and now < datetime.fromisoformat(retry_value):
+                outcomes.append({
+                    "notification_id": notice_id,
+                    "status": "WAIT_DELIVERY_BACKOFF",
+                    "retry_at": retry_value,
+                })
+                continue
+        try:
+            receipt = publish_github_notification(
+                repository, notification, command_runner=command_runner
+            )
+        except (NotificationError, json.JSONDecodeError) as exc:
+            failure_number = len(failures) + 1
+            retry_at = now + timedelta(minutes=5)
+            goal_continuity.append_ledger_event(
+                path,
+                event_id=f"{notice_id}-delivery-failed-{failure_number}",
+                event_type="NOTIFICATION_DELIVERY_FAILED",
+                occurred_at=now.isoformat(),
+                goal_id=notification["goal_id"],
+                goal_version=notification["goal_version"],
+                logical_work_id=None,
+                attempt_id=None,
+                payload={
+                    "notification_id": notice_id,
+                    "transport": "GITHUB_NATIVE",
+                    "failure_number": failure_number,
+                    "error_sha256": hashlib.sha256(str(exc).encode("utf-8")).hexdigest(),
+                    "retry_at": retry_at.isoformat(),
+                    "authority_effect": "NONE",
+                },
+            )
+            outcomes.append({
+                "notification_id": notice_id,
+                "status": "DELIVERY_FAILED_RETRY_SCHEDULED",
+                "attempts": failure_number,
+                "retry_at": retry_at.isoformat(),
+            })
+        else:
+            goal_continuity.append_ledger_event(
+                path,
+                event_id=f"{notice_id}-sent",
+                event_type="NOTIFICATION_SENT",
+                occurred_at=now.isoformat(),
+                goal_id=notification["goal_id"],
+                goal_version=notification["goal_version"],
+                logical_work_id=None,
+                attempt_id=None,
+                payload=receipt,
+            )
+            outcomes.append({
+                "notification_id": notice_id,
+                "status": "SENT_READ_BACK_VERIFIED",
+                "comment_id": receipt["comment_id"],
+                "comment_url": receipt["comment_url"],
+            })
+        events = goal_continuity.read_ledger(path)
+    return outcomes
+
+
+def reconcile_owner_acknowledgements(
+    path,
+    comments: list[dict[str, Any]],
+    *,
+    repository: str,
+    owner_logins: list[str],
+    observed_at: str,
+) -> dict[str, list[dict[str, Any]]]:
+    """Consume matching Owner ACKs without granting Product Goal authority."""
+    events = goal_continuity.read_ledger(path)
+    projection = goal_continuity.reduce_ledger(events)
+    acknowledged: list[dict[str, Any]] = []
+    rejected: list[dict[str, Any]] = []
+    for notice_id, projected in sorted(projection["notifications"].items()):
+        if notification_state(events, notice_id) != "SENT":
+            continue
+        notification = _notification_from_projection(projected)
+        candidates = [
+            row for row in comments
+            if ACK_MARKER in str(row.get("body") or "")
+            and notice_id in str(row.get("body") or "")
+        ]
+        for comment in candidates:
+            try:
+                event, appended = acknowledge_notification(
+                    path, notification, comment,
+                    repository=repository, owner_logins=owner_logins,
+                    occurred_at=(
+                        comment.get("created_at")
+                        if isinstance(comment.get("created_at"), str)
+                        else observed_at
+                    ),
+                )
+            except (NotificationError, json.JSONDecodeError) as exc:
+                rejected.append({
+                    "notification_id": notice_id,
+                    "comment_id": comment.get("id"),
+                    "reason": str(exc),
+                })
+                continue
+            acknowledged.append({
+                "notification_id": notice_id,
+                "comment_id": event["payload"]["owner_comment_id"],
+                "appended": appended,
+            })
+            events = goal_continuity.read_ledger(path)
+            break
+    return {"acknowledged": acknowledged, "rejected": rejected}

@@ -15,7 +15,7 @@
   "rcs": ["RC-27", "RC-28", "RC-29", "RC-32", "RC-33", "RC-34"],
   "fds": ["FD-12", "FD-14", "FD-17", "FD-18", "FD-19", "FD-23"],
   "dependencies": [],
-  "allowed_operations": ["activate_runner", "commit", "push", "draft_pr", "review"],
+  "allowed_operations": ["activate_runner", "commit", "push", "draft_pr", "review", "verify"],
   "forbidden_operations": ["merge", "paid_api", "delete_evidence", "modify_branch_protection"],
   "work_window": {"timezone": "Asia/Taipei", "weekdays": [0, 1, 2, 3, 4], "start": "09:00", "end": "18:00"},
   "resource_policy": {
@@ -45,7 +45,9 @@
     {"obligation_id": "OBL-TRIAL-CONTINUITY", "semantic_key": "7a98f5ed96c9b24e026ba7b5f22674d5df914602583cbaf50a060f3fe73bde87", "authority_refs": ["KG-GOV-04", "RC-32", "FD-18"], "description": "Recover without duplicate model or side effect."}
   ],
   "work_items": [
-    {"work_item_id": "WI-TRIAL-REVIEW", "milestone_id": "TRIAL-M1", "kind": "REVIEW", "dependencies": [], "obligation_ids": ["OBL-TRIAL-CONTINUITY"], "allowed_operations": ["review"], "provider": "claude"},
-    {"work_item_id": "WI-TRIAL-REPAIR", "milestone_id": "TRIAL-M1", "kind": "REPAIR", "dependencies": ["WI-TRIAL-REVIEW"], "obligation_ids": ["OBL-TRIAL-CONTINUITY"], "allowed_operations": ["commit", "push", "draft_pr"], "provider": "codex"}
+    {"work_item_id": "WI-TRIAL-PUBLISH", "milestone_id": "TRIAL-M1", "kind": "PUBLISH", "dependencies": [], "obligation_ids": ["OBL-TRIAL-CONTINUITY"], "allowed_operations": ["push", "draft_pr"], "provider": "NONE"},
+    {"work_item_id": "WI-TRIAL-REVIEW", "milestone_id": "TRIAL-M1", "kind": "REVIEW", "dependencies": ["WI-TRIAL-PUBLISH"], "obligation_ids": ["OBL-TRIAL-CONTINUITY"], "allowed_operations": ["review"], "provider": "claude"},
+    {"work_item_id": "WI-TRIAL-REPAIR", "milestone_id": "TRIAL-M1", "kind": "REPAIR", "dependencies": ["WI-TRIAL-REVIEW"], "obligation_ids": ["OBL-TRIAL-CONTINUITY"], "allowed_operations": ["commit", "push", "draft_pr"], "provider": "codex"},
+    {"work_item_id": "WI-TRIAL-ACCEPTANCE", "milestone_id": "TRIAL-M1", "kind": "ACCEPTANCE_PREP", "dependencies": ["WI-TRIAL-REVIEW"], "obligation_ids": ["OBL-TRIAL-CONTINUITY"], "allowed_operations": ["verify"], "provider": "NONE"}
   ]
 }
