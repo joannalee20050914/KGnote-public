@@ -1018,7 +1018,8 @@ class OrchestratorDurabilityTests(unittest.TestCase):
             self.assertEqual(ORCH.control.preflight(root)["status"], "pass")
 
     def test_product_decision_resume_validates_authority_and_seals_new_review(self):
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(ORCH, "within_authorized_work_hours", return_value=True):
             root = Path(tmp)
             fixture = CONTROL_TESTS.ReviewHelperIntegrationTests()
             fixture.setUp()
@@ -1027,7 +1028,8 @@ class OrchestratorDurabilityTests(unittest.TestCase):
             )
 
     def test_product_decision_flow_is_isolated_from_completed_root_lifecycle(self):
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(ORCH, "within_authorized_work_hours", return_value=True):
             base = Path(tmp)
             source_root = base / "completed-source"
             root = base / "fixture"
