@@ -560,6 +560,9 @@ class OrchestratorDurabilityTests(unittest.TestCase):
             )
         )
         target_milestone_id = target_milestone["id"]
+        # Product-decision lifecycle tests exercise the generic protocol, not
+        # the repository's current opt-in completion evidence contract.
+        target_milestone.pop("completion_gate", None)
         test_implementation_path = "docs/control-plane/test-decision-implementation.txt"
         if test_implementation_path not in target_milestone["owned_paths"]:
             target_milestone["owned_paths"].append(test_implementation_path)

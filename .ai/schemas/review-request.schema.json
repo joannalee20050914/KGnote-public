@@ -33,6 +33,41 @@
         "properties": {"name": {"type": "string"}, "status": {"enum": ["PASS", "FAIL", "NOT_RUN"]}, "evidence": {"type": "string"}}
       }
     },
+    "completion_evidence": {
+      "type": ["object", "null"],
+      "properties": {
+        "schema_version": {"const": "kgnote.review-completion-summary.v1"},
+        "applicable": {"type": "boolean"},
+        "passed": {"const": true},
+        "evidence_path": {"type": ["string", "null"]},
+        "evidence_sha256": {"type": ["string", "null"]},
+        "claims": {"type": "array"},
+        "test_receipts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "schema_version": {"const": "kgnote.test-execution-receipt.v1"},
+              "producer": {"const": "codex_control.verify"},
+              "path": {"type": "string"},
+              "selector": {"type": "string"},
+              "target": {"type": "string"},
+              "test_file_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+              "command": {"type": "array", "items": {"type": "string"}},
+              "exit_code": {"const": 0},
+              "duration_seconds": {"type": "number", "minimum": 0},
+              "output_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+              "output_tail": {"type": "string", "minLength": 1},
+              "passed": {"const": true}
+            },
+            "required": ["schema_version", "producer", "path", "selector", "target", "test_file_sha256", "command", "exit_code", "duration_seconds", "output_sha256", "output_tail", "passed"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["schema_version", "applicable", "passed", "evidence_path", "evidence_sha256", "claims", "test_receipts"],
+      "additionalProperties": false
+    },
     "known_deviations": {"type": "array", "items": {"type": "string"}},
     "known_uncertainties": {"type": "array", "items": {"type": "string"}},
     "reviewer_focus": {"type": "array", "items": {"type": "string"}},

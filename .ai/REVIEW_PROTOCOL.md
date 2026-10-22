@@ -122,4 +122,28 @@ The external authority file must be a new dedicated artifact at the exact path `
 
 Treating a missing or malformed result as PASS is forbidden. A stale result, Codex-authored reviewer fields, unresolved blocker, missing history snapshot, unowned dirty path, missing validation evidence, or relevant human checkpoint also fails closed. `READY_FOR_AI_REVIEW`, ordinary `CHANGES_REQUIRED`, test/build failure, fingerprint change during authorized implementation, context rollover, and agent completion are routing events handled automatically; they are not reasons to ask the human to continue.
 
+When the active PLAN milestone declares `completion_gate`, the existing verifier and
+`review-request` helper also require its repository-tracked evidence record. Each
+required claim names the original authority and forbidden substitute, the real product
+entrypoints, observable behavior, one positive and one negative acceptance selector,
+and the required evidence kinds. Selector names alone are insufficient: the
+deterministic verifier executes each exact selector and records a receipt containing
+the selector identity, test-file digest, command target, exit status, and output digest.
+Tracked evidence must declare automated checks as `RECEIPT_REQUIRED`; it may not
+self-assert `PASS`. Missing, stale, failed, or empty-test receipts block sealing. A
+required `NOT_VERIFIED` or `NOT_APPLICABLE` item likewise blocks sealing and is never
+converted to PASS. The sealed request records the evidence path, digest, and verified
+receipts, while the verifier artifact remains the exact post-commit HEAD/fingerprint
+binding and read-back authority. Milestones without this opt-in field retain the
+existing workflow.
+
+This gate proves that declared checks exist, actually ran, were included in the full
+deterministic suite, and bind to the exact candidate. It does not decide teaching
+quality, semantic fitness, native-device behavior, learner acceptance, or release
+readiness. When prior findings are used only as historical regression cases, they must
+remain `UNRESOLVED_CHANGES_REQUIRED` with disposition `NOT_A_PRODUCT_FIX`; process-test
+success cannot claim that the product finding was repaired. For a current authorized
+repair, Codex may record reviewer findings only as `FIXED_PENDING_REVIEW`; only the
+independent reviewer may change them to `VERIFIED`.
+
 Protocol validation proves structural consistency and exact identity only. It does not prove semantic correctness, human acceptance, privacy consent, device behavior, or release readiness.

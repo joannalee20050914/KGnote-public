@@ -359,16 +359,24 @@ class ControlPlaneNegativeTests(unittest.TestCase):
     def test_mismatched_candidate_verification_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            current = {
+                "value": "b" * 64,
+                "head": "c" * 40,
+                "algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
+            }
+            recorded = {**current, "value": "a" * 64}
             evidence = {
                 "result": "pass",
                 "claims": {"candidate_verified": True, "release_verified": False},
                 "fingerprint_stable": True,
-                "fingerprint_before": {"value": "a" * 64},
-                "fingerprint_after": {"value": "a" * 64},
+                "fingerprint_before": recorded,
+                "fingerprint_after": recorded,
+                "repository": {"head": current["head"]},
+                "evidence_readback": True,
             }
             (root / "evidence.json").write_text(json.dumps(evidence))
             with self.assertRaisesRegex(ValueError, "does not match current candidate"):
-                CONTROL.load_verification_evidence(root, "evidence.json", {"value": "b" * 64})
+                CONTROL.load_verification_evidence(root, "evidence.json", current)
 
     def test_only_exact_review_bus_paths_are_fingerprint_excluded(self):
         self.assertTrue(CONTROL.fingerprint_excluded(".ai/REVIEW_REQUEST.md"))
@@ -1119,6 +1127,8 @@ class ReviewHelperIntegrationTests(unittest.TestCase):
         evidence = {
             "result": "pass", "claims": {"candidate_verified": True, "release_verified": False},
             "fingerprint_stable": True, "fingerprint_before": fingerprint, "fingerprint_after": fingerprint,
+            "repository": {"head": fingerprint["head"]},
+            "evidence_readback": True,
             "gates": [],
         }
         path = root / "output/evidence.json"
