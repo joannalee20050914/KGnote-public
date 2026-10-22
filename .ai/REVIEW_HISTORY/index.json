@@ -1,8 +1,8 @@
 {
   "schema_version": "kgnote.review-history-index.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "event_count": 9,
-  "last_event_id": "evt-0009",
+  "event_count": 15,
+  "last_event_id": "evt-0015",
   "reviews": {
     "review-mainline-integration-20261020-001": {
       "snapshots": [
@@ -58,6 +58,39 @@
       ],
       "last_event_type": "INVALIDATED",
       "candidate_fingerprint": "f7c5527927665fd95dcf91fdee2229e9df3a011fadce9e0cee4ccf40fb3ae617"
+    },
+    "review-b-continuous-delegation-20261022-004": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-b-continuous-delegation-20261022-004/request-147f2a5d92ec0babd33dbcc8689f82b5657c28cf0ca07c7d1376f78e4e83d269.md",
+          "sha256": "147f2a5d92ec0babd33dbcc8689f82b5657c28cf0ca07c7d1376f78e4e83d269",
+          "event_id": "evt-0010"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "8cacadeb43d0456dc0559c2db90de56634d3245c1a153a586cb0f0a058aa5d66"
+    },
+    "review-b-continuous-delegation-20261022-005": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-b-continuous-delegation-20261022-005/request-6707efd4ce2ede185cbd534cde47c91648fcb2b09602bf627d12c9ff00dcd578.md",
+          "sha256": "6707efd4ce2ede185cbd534cde47c91648fcb2b09602bf627d12c9ff00dcd578",
+          "event_id": "evt-0012"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "af274a9d14be6a64dbdc9430ed5cbea498d46615de9e7edf276226eae6813824"
+    },
+    "review-b-continuous-delegation-20261022-006": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-b-continuous-delegation-20261022-006/request-55f07df59c9510b8158abf5c2366b6efba82b7ae5957ae17a1cfd75f4679e614.md",
+          "sha256": "55f07df59c9510b8158abf5c2366b6efba82b7ae5957ae17a1cfd75f4679e614",
+          "event_id": "evt-0014"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "53cae0bd073281df8ca6ba03d435274d7d7a148e4fcb2ec4fdb01706cf26832c"
     }
   },
   "findings": {}

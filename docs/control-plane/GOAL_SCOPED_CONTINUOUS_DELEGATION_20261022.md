@@ -36,9 +36,11 @@ Execution authority exists only when Runner verifies all of the following from G
 4. the approval grants only enumerated permissions and has not expired, paused, or been revoked;
 5. the local Goal state and every Work Item remain within that exact envelope.
 
+Runner, not the GitHub parser, applies a valid command. It appends the exact comment identity and body digest before atomically advancing local state; if the process stops between ledger fsync and state replacement, the next tick replays the Runner-owned `state_patch`. Invalid lifecycle requests such as an early `ACCEPT` or a `CLOSE` that would bypass required product acceptance are durably rejected and never become authority merely because the comment syntax was valid.
+
 The lifecycle is `PLANNED -> APPROVAL_REQUIRED -> APPROVED -> ACTIVE -> ACCEPTANCE_REQUIRED -> CLOSED`. `BLOCKED` is entered only with a durable stop reason and release condition. `PAUSED` and `REVOKED` are authority-lease conditions, not substitutes for lifecycle closure. Only the Owner's exact GitHub transition may approve, accept, pause, resume, revoke, or close a Product Goal.
 
-Only after the prior Product Goal is `CLOSED` may Runner select the next dependency-satisfied backlog entry and request approval. Selection never grants execution authority.
+Only after the prior Product Goal is `CLOSED` may Runner select the next dependency-satisfied backlog entry and request approval. A closure adds a digest-bound dependency receipt to Runner state; a later Goal cannot enter `APPROVED` or `ACTIVE` unless every dependency named in its immutable spec has a receipt. Runner carries the prior closure receipts forward, selects the next backlog entry, and queues one deduplicated approval notification. Selection and notification never grant execution authority.
 
 ## 3. Continuous delegation inside one approved Goal
 
@@ -67,6 +69,8 @@ One counter may never stand for all of these. A 429 with zero tokens and no verd
 Logical work identity and attempt identity are separate. An unknown execution state must be reconciled against its checkpoint/process/result before any redispatch.
 
 Every external dispatch uses a Runner-owned sealed order binding (repository path, content digest, and order event ID). Runner first passes the existing Writer Lock, Stop Marker, epoch/scope admission and authority gates, then durably reserves the attempt in the Goal ledger before invoking the existing Linux router. A reserved attempt without a reconciled checkpoint blocks redispatch after restart. Routing success is not model completion, review validity, publication, or obligation resolution.
+
+A terminal routing checkpoint changes Product Goal state only when its command digest and event ID match the sealed order. A successful checkpoint must also carry a schema-validated `kgnote.product-goal-worker-result.v1` envelope bound to the exact Goal spec, Work Item and order. Usage, independent review verdict, publication receipt and obligation evaluation are then appended as separate events. Only an independent `REVIEW_PASS` may set `VERIFIED_RESOLVED`; Codex, a commit, or a successful process exit cannot do so. `CHANGES_REQUIRED` activates a pre-authorized repair lane, whose completion reopens the verification/publication/review evidence path for the same stable obligations.
 
 Independent review orders must bind the exact `program_id`, Product Goal identity, PR, commit, fingerprint, round, review scope and repository-relative authority paths. The Ubuntu Claude adapter may retain compatibility defaults for already-issued legacy orders, but every new Product Goal order supplies those fields explicitly; it may not inherit a legacy finding or product scope from a singleton prompt. Publication and Consumer read-back accept Goal-specific config/state paths so parallel or later Goals do not rewrite an older PR's review identity. The native Ubuntu Runner trigger is a non-Work marker; ChatGPT Work remains notification-only.
 

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/product-goal/v1/worker-result.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "goal_id", "goal_version", "goal_spec_sha256",
+    "work_item_id", "order_event_id", "outcome", "obligation_evaluations",
+    "usage", "review_verdict", "publication"
+  ],
+  "properties": {
+    "schema_version": {"const": "kgnote.product-goal-worker-result.v1"},
+    "goal_id": {"type": "string", "minLength": 1},
+    "goal_version": {"type": "string", "minLength": 1},
+    "goal_spec_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "work_item_id": {"type": "string", "pattern": "^WI-[A-Z0-9-]+$"},
+    "order_event_id": {"type": "string", "minLength": 1},
+    "outcome": {
+      "enum": ["WORK_COMPLETED", "REVIEW_PASS", "REVIEW_CHANGES_REQUIRED", "PRODUCT_DECISION_REQUIRED"]
+    },
+    "obligation_evaluations": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["obligation_id", "progress_class", "evidence_sha256"],
+        "properties": {
+          "obligation_id": {"type": "string", "pattern": "^OBL-[A-Z0-9-]+$"},
+          "progress_class": {
+            "enum": ["VERIFIED_RESOLVED", "FUNCTIONAL_PROGRESS_UNVERIFIED", "NO_OBLIGATION_PROGRESS", "EVIDENCE_INSUFFICIENT", "REGRESSION", "AUTHORITY_CHANGED"]
+          },
+          "evidence_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        }
+      }
+    },
+    "usage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "input_tokens", "output_tokens", "source"],
+      "properties": {
+        "status": {"enum": ["OBSERVED", "UNKNOWN"]},
+        "input_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "output_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "source": {"type": "string", "minLength": 1}
+      }
+    },
+    "review_verdict": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["review_id", "verdict", "candidate_identity_sha256"],
+          "properties": {
+            "review_id": {"type": "string", "minLength": 1},
+            "verdict": {"enum": ["PASS", "CHANGES_REQUIRED", "PRODUCT_DECISION_REQUIRED"]},
+            "candidate_identity_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          }
+        }
+      ]
+    },
+    "publication": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "receipt_sha256"],
+          "properties": {
+            "status": {"enum": ["PUBLISHED", "READ_BACK_VERIFIED"]},
+            "receipt_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          }
+        }
+      ]
+    }
+  }
+}

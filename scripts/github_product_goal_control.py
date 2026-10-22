@@ -145,10 +145,13 @@ def resolve_authority(
             lease, status, current = "ACTIVE", "ACTIVE", record
         elif action == "REVOKE":
             lease, status, current = "REVOKED", "BLOCKED", record
-        elif action == "ACCEPT" and current is not None and lease == "ACTIVE":
-            status, current = "ACCEPTANCE_REQUIRED", record
-        elif action == "CLOSE" and current is not None and lease == "ACTIVE":
-            status, current = "CLOSED", record
+        elif action in {"ACCEPT", "CLOSE"} and current is not None:
+            # These are requests, not self-proving lifecycle facts.  The Mac
+            # Runner must first establish completion/acceptance prerequisites
+            # from its state and append-only ledger before either can close a
+            # Goal.  Keeping the lease unchanged also prevents a bare CLOSE
+            # comment from bypassing that reconciliation.
+            current = record
     return {
         "status": status,
         "authority_lease": lease,

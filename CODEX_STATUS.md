@@ -6,7 +6,7 @@ This factual handoff describes the Codex App implementation Goal. It is not a KG
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-22T16:27:20+08:00",
+  "updated_at": "2026-10-22T16:45:18+08:00",
   "goal_id": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
   "active_goal": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -21,13 +21,13 @@ This factual handoff describes the Codex App implementation Goal. It is not a KG
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/goal-continuous-delegation-20261022",
-    "head": "cfa7ad5e095e9920c94cd37b9e2a8242bb84eb80",
+    "head": "593b680186a3561a444dc88f1f06f60e5740a182",
     "base_commit": "f81ccdde369c7ab9468ed07ca1fdab6d8f0b60e0",
-    "checkpoint_commit": "cfa7ad5e095e9920c94cd37b9e2a8242bb84eb80"
+    "checkpoint_commit": "593b680186a3561a444dc88f1f06f60e5740a182"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "efc01854476dae6dedb713077ac0f244e0e08a63a4f86b421c5ef533b967bf08",
+    "fingerprint": "53cae0bd073281df8ca6ba03d435274d7d7a148e4fcb2ec4fdb01706cf26832c",
     "starting_fingerprint": "7621a96a29db9c1e8af64471fef694238210b5c7585bc8f5dcd16231816723c4",
     "expected_dirty_policy": "Only B-scheme execution contracts, schemas, Runner integration, bounded tests/evidence, PLAN/STATUS and review/publication receipts may change. Product files, PR #29, main, legacy Ledgers and deployed Runner remain untouched.",
     "preserved_preexisting_dirty_paths": [],
@@ -55,11 +55,11 @@ This factual handoff describes the Codex App implementation Goal. It is not a KG
     "candidate_verified": false,
     "release_verified": false,
     "control_plane_ready": false,
-    "last_candidate_evidence": "output/control-plane/verification-20261022T162332+0800.json",
-    "last_verified_fingerprint": "f7c5527927665fd95dcf91fdee2229e9df3a011fadce9e0cee4ccf40fb3ae617",
-    "last_result": "Invalidated review 003 and repaired structured first-party 429 classification with usage/model evidence preservation."
+    "last_candidate_evidence": "output/control-plane/verification-20261022T163921+0800.json",
+    "last_verified_fingerprint": "53cae0bd073281df8ca6ba03d435274d7d7a148e4fcb2ec4fdb01706cf26832c",
+    "last_result": "Review review-b-continuous-delegation-20261022-006 was invalidated before reviewer custody: Completion audit found that exact GitHub Owner authority was parsed but not durably applied to Runner state/ledger, and Product Goal dispatch checkpoints had no reconciliation path; the isolated trial therefore depended on manual state injection and did not prove the required autonomous lifecycle."
   },
-  "next_action": "Commit the quota-accounting repair, reverify, republish PR #31, and issue review 004.",
+  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-b-continuous-delegation-20261022-007.",
   "external_or_human_gates": [
     {
       "id": "B-SCHEME-GO-LIVE",
@@ -95,5 +95,5 @@ Goal `CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022` remains active at milesto
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Commit the quota-accounting repair, reverify, republish PR #31, and issue review 004.
+Exact next action: Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-b-continuous-delegation-20261022-007.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

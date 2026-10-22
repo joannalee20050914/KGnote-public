@@ -23,6 +23,7 @@ class RunnerTests(unittest.TestCase):
                 state_path=repo / "missing-state.json",
                 ledger_path=repo / "missing-ledger.jsonl",
                 comments_path=None,
+                backlog_path=None,
                 trial=False,
                 router=repo / "missing-router.py",
                 epoch_record=repo / "missing-epoch.json",
@@ -35,30 +36,20 @@ class RunnerTests(unittest.TestCase):
         from tests.control_plane.test_goal_continuity import product_goal_spec
         from tests.control_plane.test_github_product_goal_control import comment
         import goal_continuity as goal
-        import github_product_goal_control as control
 
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
             (repo / ".ai").mkdir()
             spec = product_goal_spec()
-            authority = control.resolve_authority([comment(spec)], spec)
             state = goal.initial_runner_state(spec, now="2026-10-22T10:00:00+08:00")
-            record = authority["record"]
-            state.update({
-                "authority_record": record,
-                "authority_lease": "ACTIVE",
-                "go_live_authorized": True,
-                "lifecycle": {
-                    "state": "ACTIVE", "revision": 1,
-                    "changed_at": "2026-10-22T10:00:00+08:00",
-                    "reason": "test exact authority",
-                },
-            })
             order_path = repo / "output" / "sealed.json"
             order_path.parent.mkdir(parents=True)
             order = {
                 "schema_version": "kgnote.linux-worker-order.v1",
                 "event_id": "product-goal-order-1",
+                "stage": "codex",
+                "working_directory": "/home/kgnote/.local/share/kgnote/work-items/product-goal-test",
+                "command": ["/usr/bin/true"],
                 "checkpoint_path": str(repo / "checkpoint.json"),
             }
             order_path.write_text(json.dumps(order))
@@ -71,17 +62,6 @@ class RunnerTests(unittest.TestCase):
             ledger_path, comments_path = repo / "ledger.jsonl", repo / "comments.json"
             spec_path.write_text(json.dumps(spec)); goal.atomic_write_json(state_path, state)
             comments_path.write_text(json.dumps([comment(spec)]))
-            goal.append_ledger_event(
-                ledger_path, event_id="go-live", event_type="GOAL_AUTHORITY_VERIFIED",
-                occurred_at="2026-10-22T10:00:00+08:00", goal_id=spec["goal_id"],
-                goal_version=spec["goal_version"], logical_work_id=None, attempt_id=None,
-                payload={
-                    "go_live_authorized": True,
-                    "authority_comment_id": record["comment_id"],
-                    "authority_body_sha256": record["body_sha256"],
-                    "goal_spec_sha256": goal.goal_spec_sha256(spec),
-                },
-            )
             router, epoch, admission = repo / "router.py", repo / "epoch.json", repo / "admission.py"
             for path in (router, epoch, admission): path.write_text("{}")
             calls = []
@@ -92,6 +72,7 @@ class RunnerTests(unittest.TestCase):
             first = RUNNER.run_product_goal_mode(
                 repo, spec_path=spec_path, state_path=state_path, ledger_path=ledger_path,
                 comments_path=comments_path, trial=False, router=router,
+                backlog_path=None,
                 epoch_record=epoch, admission=admission, runner_identity={"sha256": "test"},
                 current=now, command_runner=fake,
             )
@@ -101,10 +82,11 @@ class RunnerTests(unittest.TestCase):
             second = RUNNER.run_product_goal_mode(
                 repo, spec_path=spec_path, state_path=state_path, ledger_path=ledger_path,
                 comments_path=comments_path, trial=False, router=router,
+                backlog_path=None,
                 epoch_record=epoch, admission=admission, runner_identity={"sha256": "test"},
                 current=now, command_runner=fake,
             )
-            self.assertEqual("RECOVERY_READY", second["status"])
+            self.assertEqual("CHECKPOINT_PENDING", second["status"])
             self.assertEqual(before, len(calls))
 
     def test_admission_pending_item_is_prepared_then_dispatched_once(self):

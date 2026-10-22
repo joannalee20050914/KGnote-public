@@ -3,8 +3,8 @@
   "identity_kind": "KGNOTE_PRODUCT_GOAL",
   "authority_kind": "GITHUB_OWNER_APPROVAL",
   "lifecycle_owner": "MAC_RUNNER",
-  "goal_id": "GOAL-KGNOTE-ISOLATED-B-SCHEME-TRIAL",
-  "active_goal": "GOAL-KGNOTE-ISOLATED-B-SCHEME-TRIAL",
+  "goal_id": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
+  "active_goal": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
   "goal_version": "isolated-2026-10-22.1",
   "title": "B-scheme isolated no-model trial",
   "outcome": "Exercise authority, recovery, convergence and handoff without product or external mutation.",
@@ -45,6 +45,7 @@
     {"obligation_id": "OBL-TRIAL-CONTINUITY", "semantic_key": "7a98f5ed96c9b24e026ba7b5f22674d5df914602583cbaf50a060f3fe73bde87", "authority_refs": ["KG-GOV-04", "RC-32", "FD-18"], "description": "Recover without duplicate model or side effect."}
   ],
   "work_items": [
-    {"work_item_id": "WI-TRIAL-IMPLEMENT", "milestone_id": "TRIAL-M1", "kind": "IMPLEMENT", "dependencies": [], "obligation_ids": ["OBL-TRIAL-CONTINUITY"], "allowed_operations": ["commit", "push", "draft_pr"], "provider": "codex"}
+    {"work_item_id": "WI-TRIAL-REVIEW", "milestone_id": "TRIAL-M1", "kind": "REVIEW", "dependencies": [], "obligation_ids": ["OBL-TRIAL-CONTINUITY"], "allowed_operations": ["review"], "provider": "claude"},
+    {"work_item_id": "WI-TRIAL-REPAIR", "milestone_id": "TRIAL-M1", "kind": "REPAIR", "dependencies": ["WI-TRIAL-REVIEW"], "obligation_ids": ["OBL-TRIAL-CONTINUITY"], "allowed_operations": ["commit", "push", "draft_pr"], "provider": "codex"}
   ]
 }

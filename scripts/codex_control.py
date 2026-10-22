@@ -2379,6 +2379,21 @@ def invalidate_ready_request(repo: Path, reason: str) -> dict[str, Any]:
         raise ValueError("; ".join(errors))
     old_review_id = request["review_id"]
     old_fingerprint = request.get("candidate_fingerprint")
+    orchestrator_path = repo / ".ai/ORCHESTRATOR_STATE.json"
+    orchestrator: dict[str, Any] | None = None
+    if orchestrator_path.is_file():
+        orchestrator = json.loads(orchestrator_path.read_text(encoding="utf-8"))
+        custody = orchestrator.get("candidate_custody")
+        bound_review_ids = {
+            value for value in (
+                orchestrator.get("review_id"),
+                custody.get("review_id") if isinstance(custody, dict) else None,
+            ) if value is not None
+        }
+        if bound_review_ids and bound_review_ids != {old_review_id}:
+            raise ValueError(
+                "review_invalidate: orchestrator custody differs from the request being invalidated"
+            )
     request["review_id"] = next_review_id(old_review_id)
     request["status"] = "IMPLEMENTING"
     request["candidate_revision"] = None
@@ -2414,6 +2429,38 @@ def invalidate_ready_request(repo: Path, reason: str) -> dict[str, Any]:
         f"and issue {request['review_id']}."
     )
     write_status(repo, status)
+    if orchestrator is not None:
+        orchestrator.update({
+            "state": "IMPLEMENTING", "current_agent": None,
+            "candidate_fingerprint": None, "review_id": None,
+            "blockers": [], "next_action": status["next_action"],
+            "human_action_required": False,
+            "candidate_custody": {
+                "status": "NONE", "owner": None, "review_id": None, "fingerprint": None,
+            },
+            "updated_at": now,
+        })
+        # A runtime binding is exact-candidate evidence.  It cannot survive
+        # invalidation and silently bind the replacement review cycle.
+        orchestrator.pop("external_review_binding", None)
+        temporary = orchestrator_path.with_suffix(".json.tmp")
+        temporary.write_text(
+            json.dumps(orchestrator, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        os.replace(temporary, orchestrator_path)
+        orchestration_history = repo / ".ai/ORCHESTRATION_HISTORY/events.jsonl"
+        orchestration_history.parent.mkdir(parents=True, exist_ok=True)
+        with orchestration_history.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps({
+                "event_type": "SEALED_CANDIDATE_INVALIDATED",
+                "run_id": orchestrator.get("run_id"),
+                "goal_id": orchestrator.get("active_goal"),
+                "work_package": orchestrator.get("work_package"),
+                "state": "IMPLEMENTING", "review_id": old_review_id,
+                "candidate_fingerprint": old_fingerprint,
+                "reason": reason.strip(), "created_at": now,
+            }, separators=(",", ":"), ensure_ascii=False) + "\n")
     append_history_event(
         repo,
         {

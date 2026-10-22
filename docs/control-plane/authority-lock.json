@@ -97,7 +97,7 @@
         "path": "docs/control-plane/GOAL_SCOPED_CONTINUOUS_DELEGATION_20261022.md",
         "role": "goal_scoped_continuous_delegation_policy",
         "validation": "sha256",
-        "sha256": "91079b0bd28abc3b46f7fc82fafa462480321f4da4e22c8b072fa67c505b590f",
+        "sha256": "727a480915800a2fe4c0d166b57fa080a03aa46ed7b71fc195926ac77b80e4ea",
         "required_marker": "kgnote-goal-scoped-continuous-delegation-2026-10-22"
       },
       {

@@ -136,6 +136,15 @@ def validate_goal_spec(spec: dict[str, Any]) -> None:
             raise GoalContractError(
                 f"{work['work_item_id']}: unknown work dependencies {sorted(unknown)}"
             )
+    repairs = [row for row in spec["work_items"] if row["kind"] == "REPAIR"]
+    for work in spec["work_items"]:
+        if work["kind"] == "REVIEW" and not any(
+            set(work["obligation_ids"]).intersection(row["obligation_ids"])
+            for row in repairs
+        ):
+            raise GoalContractError(
+                f"{work['work_item_id']}: REVIEW requires a pre-authorized REPAIR lane"
+            )
     for name, policy in spec["resource_policy"]["providers"].items():
         observation = policy["capacity_observation"]
         trusted = observation["status"] == "TRUSTED"
@@ -217,6 +226,7 @@ def initial_runner_state(
     *,
     now: str,
     codex_app_goal_provenance: dict[str, Any] | None = None,
+    dependency_receipts: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Create an unapproved state. App provenance never supplies authority."""
     validate_goal_spec(spec)
@@ -243,11 +253,15 @@ def initial_runner_state(
             {
                 "work_item_id": row["work_item_id"],
                 "milestone_id": row["milestone_id"],
-                "status": "PLANNED",
+                # A repair lane is dormant until an independent review or a
+                # deterministic gate activates it.  This prevents a static
+                # Goal DAG from running repair work after a clean PASS.
+                "status": "BLOCKED" if row["kind"] == "REPAIR" else "PLANNED",
                 "dependencies": deepcopy(row["dependencies"]),
                 "obligation_ids": deepcopy(row["obligation_ids"]),
                 "attempts": 0,
                 "strategy_adjustments": 0,
+                "failure_counts": {},
             }
             for row in spec["work_items"]
         ],
@@ -263,6 +277,7 @@ def initial_runner_state(
         ],
         "event_cursor": {"sequence": 0, "event_sha256": None},
         "go_live_authorized": False,
+        "dependency_receipts": deepcopy(dependency_receipts or []),
         "codex_app_goal_provenance": deepcopy(codex_app_goal_provenance),
     }
 
@@ -399,6 +414,7 @@ def reduce_ledger(events: Iterable[dict[str, Any]]) -> dict[str, Any]:
         "notifications": {},
         "lifecycle": None,
         "authority": None,
+        "authority_history": [],
     }
     for event in rows:
         kind, payload = event["event_type"], event["payload"]
@@ -443,7 +459,9 @@ def reduce_ledger(events: Iterable[dict[str, Any]]) -> dict[str, Any]:
                 raise GoalContractError(f"unknown lifecycle state: {payload.get('state')}")
             result["lifecycle"] = deepcopy(payload)
         elif kind == "GOAL_AUTHORITY_VERIFIED":
-            result["authority"] = deepcopy(payload)
+            result["authority_history"].append(deepcopy(payload))
+            if payload.get("accepted") is not False:
+                result["authority"] = deepcopy(payload)
     result["event_cursor"] = {
         "sequence": len(rows),
         "event_sha256": rows[-1]["event_sha256"] if rows else None,
@@ -512,6 +530,16 @@ def validate_runner_state(state: dict[str, Any], spec: dict[str, Any]) -> None:
         raise GoalContractError("runner state has unknown lifecycle")
     if state["authority_lease"] not in AUTHORITY_LEASES:
         raise GoalContractError("runner state has unknown authority lease")
+    receipts = state.get("dependency_receipts", [])
+    dependency_ids = [row.get("dependency_id") for row in receipts]
+    if len(dependency_ids) != len(set(dependency_ids)):
+        raise GoalContractError("runner state repeats a dependency closure receipt")
+    if state["lifecycle"]["state"] in {"APPROVED", "ACTIVE", "ACCEPTANCE_REQUIRED", "CLOSED"}:
+        missing = set(spec["dependencies"]) - set(dependency_ids)
+        if missing:
+            raise GoalContractError(
+                f"active runner state lacks dependency closure receipts: {sorted(missing)}"
+            )
     spec_work = {row["work_item_id"] for row in spec["work_items"]}
     state_work = {row.get("work_item_id") for row in state["work_items"]}
     if state_work != spec_work:

@@ -12,9 +12,15 @@ The Product Goal adapter is dormant. The deployed LaunchAgent and its arguments 
 --product-goal-ledger
 ```
 
-Supplying only some paths fails closed. Supplying all paths still does not grant authority: the adapter reads the exact GitHub Issue comments, verifies repository Owner identity, Goal version, canonical spec digest and exact permissions, then requires the local state authority record and a matching append-only `GOAL_AUTHORITY_VERIFIED` go-live receipt. `go_live_authorized=false`, a missing receipt, a paused/revoked lease, or a stale command prevents live action.
+`--product-goal-backlog` is additionally required for automatic post-closure selection and notification. It is planning input only; omitting it leaves a closed Goal safely closed and does not authorize a successor.
 
-After those gates pass, a live Work Item still requires a Runner-owned `dispatch_binding` that fixes a repository-contained Linux worker order to its path, SHA-256 and event ID. The existing Writer Lock, Stop Marker, epoch/scope admission and Linux router remain on the dispatch path. Runner appends and fsyncs an exact dispatch reservation before calling the router; a restart that sees a reservation without a reconciled checkpoint returns `RECONCILE_CHECKPOINT` and cannot blindly dispatch it again. A successful router return records only `DISPATCHED`; it does not invent a completed model result, valid review or resolved product obligation.
+Supplying only some paths fails closed. Supplying all paths still does not grant authority: the adapter reads the exact GitHub Issue comments, verifies repository Owner identity, Goal version, canonical spec digest and exact permissions, then the Mac Runner durably reconciles each new command into the append-only ledger and local state. `APPROVE` records the required `APPROVED -> ACTIVE` transitions; `PAUSE`, `RESUME`, `REVOKE` and final `ACCEPT` are checked against current lifecycle prerequisites. A validly formatted early acceptance or close request is recorded as rejected, not treated as authority. `go_live_authorized=false`, a missing exact approval receipt, a paused/revoked lease, or a stale command prevents live action.
+
+After those gates pass, a live Work Item still requires a Runner-owned `dispatch_binding`, or an action-keyed bounded `dispatch_bindings` queue, that fixes each repository-contained Linux worker order to its path, SHA-256 and event ID. The existing Writer Lock, Stop Marker, epoch/scope admission and Linux router remain on the dispatch path. Runner appends and fsyncs an exact dispatch reservation before calling the router; a restart that sees a reservation without a reconciled checkpoint consumes that checkpoint before any redispatch. Missing/running checkpoints remain pending, identity/digest mismatches fail closed, and terminal failures become bounded recovery facts.
+
+A successful router return records only `DISPATCHED`. Product state changes only after the checkpoint contains an exact `kgnote.product-goal-worker-result.v1` envelope. Runner then records attempt completion, observed-or-unknown usage, review verdict, publication and obligation evaluation independently. A valid `CHANGES_REQUIRED` activates the already-authorized repair lane; repair completion reopens the evidence pipeline without requiring another Owner approval. Once every Work Item is terminal and every stable obligation was independently verified, Runner enters `ACCEPTANCE_REQUIRED`, queues one deduplicated notification, and still waits for an exact Owner `ACCEPT` before `CLOSED`.
+
+Closure creates a digest-bound dependency receipt in the same Runner state/ledger. With the optional maintained backlog path, the next tick selects only the next dependency-satisfied Goal and queues a deduplicated GitHub-native approval request on the closing Issue. The successor remains `APPROVAL_REQUIRED`; its own exact spec refuses `APPROVE` unless all named dependency receipts are present.
 
 Each new independent-review order also carries an explicit `program_id`, `review_scope`, and repository-relative `review_authority_paths`. Goal-specific external-review config/state paths are supported by the Publisher and Consumer handoff; do not edit the singleton configuration of an older PR to impersonate a new Goal. The Ubuntu Runner request marker does not invoke ChatGPT Work.
 
@@ -41,7 +47,7 @@ Run from a clean implementation checkout:
   --issue9-fixture tests/fixtures/control_plane/issue9_pr29_goal_history.json
 ```
 
-The fixture repository is deliberately `example.invalid`; PASS means only that paths A/B and the migration reducer behaved as specified. It is not a real Product Goal trial or product acceptance.
+The fixture repository is deliberately `example.invalid`. The trial now uses file-backed state, the append-only ledger, exact Owner command reconciliation, durable dispatch reservations, real checkpoint consumption, quota backoff, cross-window waiting, `CHANGES_REQUIRED -> repair -> re-review`, acceptance notification, exact Owner close and backlog handoff. It launches no model and performs no external write. PASS is not a real Product Goal trial or product acceptance.
 
 ## One-time go-live checklist
 
@@ -56,6 +62,7 @@ All items are required before adding Product Goal arguments to the LaunchAgent:
 7. The operator explicitly updates the trusted deployment and LaunchAgent. A code merge or Codex App Goal completion is insufficient.
 8. Every initially eligible Work Item has a read-back-valid sealed order binding, and a restart test proves its reservation reconciles instead of redispatching.
 9. Every Claude review order and GitHub Consumer state bind the same Goal, PR, commit, fingerprint, program, round and review scope; no legacy hard-coded finding remains in a new Goal order.
+10. The maintained backlog path is configured if automatic Goal-to-Goal handoff is desired; the successor spec contains the prior closure receipts and remains unapproved until a new exact Owner command is read back.
 
 Resource capacity remains `PERCENTAGE_UNOBSERVABLE` until a trusted provider account-level percentage source is operated. Until then, the fallback is the authorized Asia/Taipei work window, concurrency one, minimum launch interval, per-window launches, provider quota backoff, checkpoint-first reconciliation and no paid API.
 

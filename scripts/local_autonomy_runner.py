@@ -2324,6 +2324,7 @@ def run_product_goal_mode(
     state_path: Path,
     ledger_path: Path,
     comments_path: Path | None,
+    backlog_path: Path | None,
     trial: bool,
     router: Path,
     epoch_record: Path,
@@ -2347,15 +2348,69 @@ def run_product_goal_mode(
                 "requires_model": False,
                 "reason": "the existing Stop Marker blocks Product Goal dispatch",
             }
-        decision = goal_runner_adapter.run_once(
-            spec_path, state_path, ledger_path,
-            comments_path=comments_path, trial=trial, now=current,
+        spec = goal_runner_adapter.goal_continuity.load_json(spec_path)
+        state = goal_runner_adapter.goal_continuity.load_json(state_path)
+        comments = (
+            json.loads(comments_path.read_text(encoding="utf-8"))
+            if comments_path else goal_runner_adapter.github_control.fetch_issue_comments(spec)
         )
+        if not isinstance(comments, list):
+            raise goal_runner_adapter.GoalRunnerError("comments input must be a JSON list")
+        authority = goal_runner_adapter.github_control.resolve_authority(comments, spec)
+        if not trial:
+            reconciled = goal_runner_adapter.reconcile_owner_authority(
+                spec, state, authority, state_path=state_path, ledger_path=ledger_path,
+            )
+            state = reconciled["state"]
+            if reconciled["rejected_transitions"]:
+                decision = {
+                    "status": "AUTHORITY_COMMAND_REJECTED", "requires_model": False,
+                    "rejected_transitions": reconciled["rejected_transitions"],
+                    "reason": "an exact Owner command failed its lifecycle prerequisites",
+                }
+                append("product_goal_scheduler_decision", decision=decision)
+                return decision
+            if state["lifecycle"]["state"] == "CLOSED" and backlog_path is not None:
+                handoff = goal_runner_adapter.prepare_next_goal_handoff(
+                    goal_runner_adapter.goal_continuity.load_json(backlog_path), state,
+                    ledger_path=ledger_path,
+                    occurred_at=(current or datetime.now(ZONE)).isoformat(timespec="seconds"),
+                    github_issue=spec["github_issue"],
+                )
+                state = goal_runner_adapter.synchronize_state_from_ledger(
+                    spec, state,
+                    goal_runner_adapter.goal_continuity.read_ledger(ledger_path),
+                    state_path=state_path,
+                )
+                append("product_goal_backlog_handoff", decision=handoff)
+                return handoff
+        ledger = goal_runner_adapter.goal_continuity.read_ledger(ledger_path)
+        decision = goal_runner_adapter.next_action(
+            spec, state, ledger, authority,
+            now=current or datetime.now(ZONE), trial=trial,
+        )
+        if (
+            not trial
+            and decision.get("status") == "RECOVERY_READY"
+            and decision.get("action") == "RECONCILE_CHECKPOINT"
+        ):
+            try:
+                result = goal_runner_adapter.reconcile_dispatch_checkpoint(
+                    spec, state, state_path=state_path, ledger_path=ledger_path,
+                    repo=repo, attempt_id=str(decision["attempt_id"]),
+                    occurred_at=(current or datetime.now(ZONE)).isoformat(timespec="seconds"),
+                )
+            except goal_runner_adapter.GoalRunnerError as exc:
+                result = {
+                    "status": "CHECKPOINT_RECONCILIATION_REJECTED",
+                    "requires_model": False, "reason": str(exc),
+                    "attempt_id": decision.get("attempt_id"),
+                }
+            append("product_goal_checkpoint_reconciliation", decision=result)
+            return result
         if decision.get("status") != "ACTION_READY":
             append("product_goal_scheduler_decision", decision=decision)
             return decision
-        spec = goal_runner_adapter.goal_continuity.load_json(spec_path)
-        state = goal_runner_adapter.goal_continuity.load_json(state_path)
         try:
             order_path, _, _ = goal_runner_adapter.validated_bound_order(
                 spec, state, decision, repo=repo
@@ -2435,6 +2490,7 @@ def main() -> int:
     parser.add_argument("--product-goal-state", type=Path)
     parser.add_argument("--product-goal-ledger", type=Path)
     parser.add_argument("--product-goal-comments", type=Path)
+    parser.add_argument("--product-goal-backlog", type=Path)
     parser.add_argument("--product-goal-trial", action="store_true")
     parser.add_argument("--hold-lock", action="store_true")
     parser.add_argument("command", nargs=argparse.REMAINDER)
@@ -2453,6 +2509,9 @@ def main() -> int:
                 comments_path=(
                     args.product_goal_comments.resolve() if args.product_goal_comments else None
                 ),
+                backlog_path=(
+                    args.product_goal_backlog.resolve() if args.product_goal_backlog else None
+                ),
                 trial=args.product_goal_trial,
                 router=args.router.resolve(), epoch_record=args.epoch_record.resolve(),
                 admission=args.scope_admission.resolve(), runner_identity=identity,
@@ -2462,6 +2521,7 @@ def main() -> int:
                 "GO_LIVE_NOT_AUTHORIZED", "STOPPED", "DISPATCH_BINDING_REQUIRED",
                 "ADMISSION_UNAVAILABLE", "ADMISSION_REJECTED",
                 "ROUTE_FAILED_RECONCILIATION_REQUIRED",
+                "AUTHORITY_COMMAND_REJECTED", "CHECKPOINT_RECONCILIATION_REJECTED",
             }
             return 0 if result["status"] not in failures else 2
         if args.hold_lock:

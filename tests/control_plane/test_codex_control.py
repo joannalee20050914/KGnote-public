@@ -603,7 +603,23 @@ class ControlPlaneNegativeTests(unittest.TestCase):
              mock.patch.object(CONTROL, "history_unresolved_finding_ids", return_value=[]), \
              mock.patch.object(CONTROL, "write_status", side_effect=lambda _repo, value: captured_status.update(value)), \
              mock.patch.object(CONTROL, "append_history_event", side_effect=lambda _repo, value: captured_events.append(value)):
-            output = CONTROL.invalidate_ready_request(Path(tmp), "completion audit found a gap")
+            root = Path(tmp)
+            (root / ".ai").mkdir()
+            (root / ".ai/ORCHESTRATOR_STATE.json").write_text(json.dumps({
+                "schema_version": "kgnote.orchestrator-state.v1",
+                "run_id": "run-1", "active_goal": "goal", "work_package": "M1",
+                "state": "AWAITING_EXTERNAL_PRODUCT_REVIEW", "current_agent": None,
+                "candidate_fingerprint": request["candidate_fingerprint"],
+                "review_id": request["review_id"], "blockers": [],
+                "candidate_custody": {
+                    "status": "SEALED", "owner": "PRODUCTION_RUNNER",
+                    "review_id": request["review_id"],
+                    "fingerprint": request["candidate_fingerprint"],
+                },
+                "external_review_binding": {"state_path": "old-review.json"},
+            }), encoding="utf-8")
+            output = CONTROL.invalidate_ready_request(root, "completion audit found a gap")
+            orchestrator = json.loads((root / ".ai/ORCHESTRATOR_STATE.json").read_text())
         self.assertEqual(output["invalidated_review_id"], "review-example-001")
         self.assertEqual(output["next_review_id"], "review-example-002")
         self.assertEqual(request["status"], "IMPLEMENTING")
@@ -611,6 +627,9 @@ class ControlPlaneNegativeTests(unittest.TestCase):
         self.assertEqual(captured_status["review"]["state"], "IMPLEMENTING")
         self.assertEqual(captured_events[0]["event_type"], "INVALIDATED")
         self.assertIn("completion audit", captured_events[0]["reason"])
+        self.assertEqual("IMPLEMENTING", orchestrator["state"])
+        self.assertEqual("NONE", orchestrator["candidate_custody"]["status"])
+        self.assertNotIn("external_review_binding", orchestrator)
 
 
 class RepositoryIntegrityTests(unittest.TestCase):
