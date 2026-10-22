@@ -10,6 +10,7 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 from kgnote.learning import load_learning_unit_catalog
+from kgnote.personal_alpha import build_learning_workspace_preview, materialize_learning_workspace
 from scripts.serve_graph_view import handler_for
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -76,6 +77,30 @@ class LearningHttpTests(unittest.TestCase):
         self.assertEqual(self.post("/api/resume-contexts",stale)[0],409)
         reordered=copy.deepcopy(request);reordered["event_id"]="resume_cccccccccccccccccccccccccccccccc";reordered["structural_breadcrumb"].reverse()
         self.assertEqual(self.post("/api/resume-contexts",reordered)[0],409)
+
+    def test_personal_alpha_web_api_serves_only_a_read_back_verified_bundle(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = ROOT / "tests/fixtures/personal-alpha/hierarchical/network-path.md"
+            workspace = Path(materialize_learning_workspace(build_learning_workspace_preview(source), root).workspace_path)
+            server = ThreadingHTTPServer(
+                ("127.0.0.1", 0),
+                handler_for(ROOT / "web", personal_alpha_workspace=workspace),
+            )
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                connection = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=3)
+                connection.request("GET", "/api/personal-alpha-learning")
+                response = connection.getresponse()
+                bundle = json.loads(response.read())
+                connection.close()
+            finally:
+                server.shutdown(); server.server_close(); thread.join(timeout=2)
+            self.assertEqual(response.status, 200)
+            self.assertEqual(bundle["primary"], {"surface": "obsidian_note", "path": "Start Here.md"})
+            self.assertEqual(bundle["secondary"]["role"], "secondary_learning_interaction")
+            self.assertEqual(bundle["identity"]["concept_ids"], [item["id"] for item in bundle["model"]["concepts"]])
 
 
 if __name__ == "__main__":

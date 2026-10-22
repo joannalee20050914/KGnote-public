@@ -15,6 +15,23 @@ _SPACE = re.compile(r"\s+")
 _ILLEGAL_FILENAME = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
 _RESERVED_FILENAME = re.compile(r"^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$", re.I)
 _MARKUP = re.compile(r"(?:\*\*|__)")
+_WIKILINK_UNSAFE = re.compile(r"[\[\]#^]")
+_DEFINITION_VERBS = frozenset(
+    {
+        "are",
+        "contains",
+        "describes",
+        "identifies",
+        "is",
+        "keeps",
+        "maps",
+        "means",
+        "refers",
+        "requires",
+        "stores",
+        "uses",
+    }
+)
 
 
 @dataclass(frozen=True, repr=False)
@@ -47,6 +64,11 @@ def _sentence(value: str) -> str:
 def _safe_label_filename(label: str) -> str:
     value = unicodedata.normalize("NFC", label)
     value = _ILLEGAL_FILENAME.sub("-", value)
+    # These characters are legal on some filesystems, but change the meaning of
+    # an Obsidian wikilink (heading, block, or link syntax).  The label and its
+    # canonical identity are kept elsewhere; the projected filename is only a
+    # safe navigation target.
+    value = _WIKILINK_UNSAFE.sub("-", value)
     value = _SPACE.sub(" ", value).strip(" .")
     if value in {"", ".", ".."}:
         value = "Concept"
@@ -147,35 +169,55 @@ def _concept_explanation(
 ) -> tuple[str, str | None, str]:
     name = str(concept["canonical_name_candidate"])
     definition = None
+    definition_tail = None
     for evidence_id in concept["evidence_ids"]:
         candidate = evidence_by_id[str(evidence_id)]
+        excerpt = str(candidate["excerpt"])
         match = re.search(
             r"(?:\*\*|__)([^\n]+?)(?:\*\*|__)\s*[:：]",
-            str(candidate["excerpt"]),
+            excerpt,
         )
         if match and _plain(match.group(1)).strip().casefold() == name.strip().casefold():
             definition = candidate
+            # The marked term may occur after another colon (for example,
+            # "Note: **Cache**: fast store").  Only the colon that matched
+            # this exact term can introduce its definition.
+            definition_tail = excerpt[match.end() :].strip()
+            break
+        # A source often defines a term in an ordinary sentence rather than a
+        # glossary row.  Recognise only a sentence that begins with this exact
+        # marked term and a conservative defining verb; do not turn co-mentions
+        # (for example, "Cache and Database are components") into definitions.
+        natural = re.match(
+            r"^\s*(?:\*\*|__)([^\n]+?)(?:\*\*|__)\s+"
+            r"((?:is|are|means|refers to|describes|identifies)\b.+)",
+            excerpt,
+            re.IGNORECASE,
+        )
+        if natural and _plain(natural.group(1)).strip().casefold() == name.strip().casefold():
+            definition = candidate
+            definition_tail = natural.group(2).strip()
             break
     if definition:
         excerpt = str(definition["excerpt"]).strip()
-        tail = re.split(r"[:：]", excerpt, maxsplit=1)[1].strip()
+        assert definition_tail is not None
+        tail = definition_tail
+        if not re.search(r"[:：]", excerpt):
+            explanation = (
+                f"In this material, the source states: “{_sentence(excerpt)}”"
+            )
+            return explanation, None, explanation
         first_word = _plain(tail).split(" ", 1)[0].casefold()
         if first_word in {"a", "an", "the"}:
             connector = "is "
-        elif first_word in {
-            "identifies",
-            "means",
-            "refers",
-            "maps",
-            "requires",
-            "contrasts",
-            "keeps",
-            "is",
-            "are",
-        }:
+        elif first_word in _DEFINITION_VERBS:
             connector = ""
         else:
-            connector = "refers to "
+            explanation = (
+                f"In this material, the source writes **{name}**: “{_sentence(tail)}” "
+                "KGnote does not rewrite that clause."
+            )
+            return explanation, None, explanation
         explanation = f"In this material, **{name}** {connector}{_sentence(tail).lstrip()}"
         return explanation, None, explanation
 
@@ -223,9 +265,8 @@ def _concept_explanation(
         explanation = f"In this material, **{name}** appears in the selected source."
         role = explanation
     limitation = (
-        f"This source does not provide a broader standalone definition of "
-        f"{'ports' if name.casefold() == 'port' else name}, "
-        "so KGnote does not invent one here."
+        f"This material names {name}, but KGnote did not recognise a source definition it can quote "
+        "without rewriting the passage."
     )
     return explanation, limitation, role
 
@@ -291,32 +332,12 @@ def _related_concepts(
 
 
 def _learning_goal(title: str) -> str:
-    if title.casefold() == "how a browser reaches a local service":
-        return "How does a browser reach the intended local service and get a result back?"
     if title.endswith(("?", "？")):
         return title
     return f"What should you understand about {title}?"
 
 
 def _learning_path(payload: Mapping[str, Any]) -> list[str]:
-    labels = {str(item["canonical_name_candidate"]).casefold() for item in payload["concepts"]}
-    relation_types = {item["relation"] for item in payload["relations"]}
-    if {
-        "ip address",
-        "network connection",
-        "http request",
-        "port",
-        "service endpoint",
-        "http response",
-        "status code",
-    }.issubset(labels) and {"requires", "maps_to", None}.issubset(relation_types):
-        return [
-            "Establish the network path.",
-            "Identify the host.",
-            "Select the service.",
-            "Send the HTTP request.",
-            "Read the HTTP response and status code.",
-        ]
     numbered_steps: dict[int, str] = {}
     for evidence in payload["evidence"]:
         excerpt = str(evidence["excerpt"]).strip()
@@ -342,6 +363,87 @@ def _learning_path(payload: Mapping[str, Any]) -> list[str]:
         "Read the original material.",
         "Use the key concepts as a reference while reading.",
     ]
+
+
+def _beginner_brief(
+    source_title: str, concepts: list[Mapping[str, Any]]
+) -> str:
+    """Give a short, source-bounded orientation without filling in missing facts."""
+
+    defined = [item for item in concepts if item["limitation"] is None]
+    if defined:
+        examples = " ".join(
+            _plain(str(item["explanation"])).replace("In this material, ", "", 1).rstrip(".") + "."
+            for item in defined[:2]
+        )
+        return (
+            f"Begin with the original material. When a term blocks the next sentence, open its "
+            f"concept note. In this source: {examples}"
+        )
+    named = [str(item["label"]) for item in concepts[:2]]
+    terms = ", ".join(named) if named else "the marked terms"
+    return (
+        f"Begin with the original material. {source_title} marks {terms}; open each term's "
+        "note to see the exact source passage where it appears before deciding what to learn next."
+    )
+
+
+def _prerequisite_gaps(
+    concepts: list[Mapping[str, Any]], relations: list[Mapping[str, Any]]
+) -> list[dict[str, str]]:
+    """Expose only source-bounded missing context and reviewed prerequisites."""
+
+    gaps: list[dict[str, str]] = []
+    for item in concepts:
+        if item["limitation"] is None:
+            continue
+        evidence_groups = item["evidence_groups"]
+        locator = (
+            str(evidence_groups[0]["locator"]["value"])
+            if evidence_groups
+            else "the marked source passage"
+        )
+        gaps.append(
+            {
+                "concept_id": str(item["id"]),
+                "label": str(item["label"]),
+                "path": str(item["path"]),
+                "kind": "source_context_note",
+                "source_locator": locator,
+                "message": (
+                    f"This material names **{item['label']}** in source line {locator[1:] if locator.startswith('L') else locator}. "
+                    "KGnote did not recognise that passage as a definition, so it does not rewrite it. "
+                    "Recheck the original wording in the linked source passage, then record a question in "
+                    "Continue Here if that passage is still not enough."
+                ),
+            }
+        )
+    by_id = {str(item["id"]): item for item in concepts}
+    for relation in relations:
+        if relation.get("relation") != "requires" or relation.get("review_status") not in {"verified", "accepted", "corrected"}:
+            continue
+        prerequisite = by_id.get(str(relation["object_id"]))
+        dependent = by_id.get(str(relation["subject_id"]))
+        if prerequisite is None or dependent is None:
+            continue
+        locator = str(relation["evidence_groups"][0]["locator"]["value"])
+        gaps.append(
+            {
+                "concept_id": str(dependent["id"]),
+                "label": str(dependent["label"]),
+                "path": str(dependent["path"]),
+                "kind": "source_supported_prerequisite",
+                "source_locator": locator,
+                "message": (
+                    f"Before relying on **{dependent['label']}**, open **{prerequisite['label']}** first. "
+                    f"This source explicitly says {dependent['label']} requires {prerequisite['label']} ({locator})."
+                ),
+                "prerequisite_id": str(prerequisite["id"]),
+                "prerequisite_label": str(prerequisite["label"]),
+                "prerequisite_path": str(prerequisite["path"]),
+            }
+        )
+    return gaps
 
 
 def project_learner_workspace(payload: Mapping[str, Any]) -> LearnerProjection:
@@ -427,6 +529,15 @@ def project_learner_workspace(payload: Mapping[str, Any]) -> LearnerProjection:
     if not structure and "-" in source_title:
         source_title = source_title.replace("-", " ").strip()
         source_title = source_title[:1].upper() + source_title[1:]
+    prerequisite_gaps = _prerequisite_gaps(projected_concepts, projected_relations)
+    learning_path = _learning_path(payload)
+    reviewed_requires = [item for item in prerequisite_gaps if item["kind"] == "source_supported_prerequisite"]
+    if reviewed_requires:
+        first = reviewed_requires[0]
+        learning_path.insert(
+            0,
+            f"Read {first['prerequisite_label']} before {first['label']}; the source explicitly marks that requirement.",
+        )
     model = {
         "schema_version": LEARNER_PROJECTION_VERSION,
         "source": {
@@ -436,13 +547,19 @@ def project_learner_workspace(payload: Mapping[str, Any]) -> LearnerProjection:
         },
         "summary": payload["topic_summary"]["text"],
         "summary_locator": payload["topic_summary"]["source_locator"],
+        "beginner_brief": _beginner_brief(source_title, projected_concepts),
         "learning_goal": _learning_goal(source_title),
-        "learning_path": _learning_path(payload),
+        "learning_path": learning_path,
         "structure": structure,
         "structure_inline": short_structure,
         "source_shape": source_shape,
         "concepts": projected_concepts,
         "relationships": projected_relations,
+        "prerequisite_gaps": prerequisite_gaps,
+        "entry": {
+            "primary_surface": "obsidian_note",
+            "primary_path": "Start Here.md",
+        },
         "evidence_groups": evidence_groups,
         "canonical_ids": {
             "concepts": [item["id"] for item in concepts],

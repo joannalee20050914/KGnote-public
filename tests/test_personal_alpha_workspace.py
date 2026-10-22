@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import tempfile
@@ -33,6 +34,98 @@ class PersonalAlphaWorkspaceTests(unittest.TestCase):
     def manifest(self, workspace: Path) -> dict:
         return json.loads((workspace / ".kgnote" / "manifest.json").read_text(encoding="utf-8"))
 
+    def test_packaged_entry_rejects_obsidian_web_identity_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = self.make_source(root)
+            vault = root / "vault"
+            vault.mkdir()
+            workspace = Path(
+                materialize_learning_workspace(
+                    build_learning_workspace_preview(source, space="networking"), vault
+                ).workspace_path
+            )
+            package_path = workspace / ".kgnote" / "package-entry.json"
+            package = json.loads(package_path.read_text(encoding="utf-8"))
+            package["identity"]["concept_ids"] = []
+            package_bytes = (
+                json.dumps(package, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+            ).encode("utf-8")
+            package_path.write_bytes(package_bytes)
+            manifest = self.manifest(workspace)
+            row = next(
+                item
+                for item in manifest["managed_files"]
+                if item["path"] == ".kgnote/package-entry.json"
+            )
+            row["sha256"] = hashlib.sha256(package_bytes).hexdigest()
+            (workspace / ".kgnote" / "manifest.json").write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(PersonalAlphaMaterializationError) as caught:
+                read_back_learning_workspace(workspace)
+            self.assertEqual(caught.exception.code, "package_entry_identity_drift")
+
+    def test_packaged_entry_keeps_the_ordinary_obsidian_note_as_the_only_entry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = self.make_source(root)
+            vault = root / "vault"
+            vault.mkdir()
+            preview = build_learning_workspace_preview(source, space="networking")
+            workspace = Path(materialize_learning_workspace(preview, vault).workspace_path)
+            package = json.loads((workspace / ".kgnote" / "package-entry.json").read_text())
+            self.assertEqual(package["primary"], {"surface": "obsidian_note", "path": "Start Here.md"})
+            self.assertEqual(package["secondary"]["role"], "secondary_learning_interaction")
+            self.assertFalse(package["secondary"]["generic_editor"])
+            self.assertEqual(package["secondary"]["entry_path"], "/learn.html?personal_alpha=1")
+            audit = read_back_learning_workspace(workspace)
+            self.assertTrue(audit["web_learning"].endswith(".kgnote/web-learning.json"))
+
+    def test_read_back_rejects_changed_missing_or_substituted_web_ids(self):
+        for mutation in ("changed", "removed", "substituted"):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                source = self.make_source(root)
+                vault = root / "vault"
+                vault.mkdir()
+                workspace = Path(materialize_learning_workspace(build_learning_workspace_preview(source), vault).workspace_path)
+                package = json.loads((workspace / ".kgnote" / "package-entry.json").read_text())
+                web_path = workspace / package["secondary"]["path"]
+                web = json.loads(web_path.read_text())
+                if mutation == "removed":
+                    web["model"]["concepts"].pop(0)
+                else:
+                    web["model"]["concepts"][0]["id"] = mutation
+                content = (json.dumps(web, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode()
+                web_path.write_bytes(content)
+                manifest = self.manifest(workspace)
+                next(item for item in manifest["managed_files"] if item["path"] == package["secondary"]["path"])["sha256"] = hashlib.sha256(content).hexdigest()
+                (workspace / ".kgnote" / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+                with self.assertRaises(PersonalAlphaMaterializationError) as caught:
+                    read_back_learning_workspace(workspace)
+                self.assertEqual(caught.exception.code, "web_identity_readback_failed")
+
+    def test_read_back_rejects_missing_packaged_entry_before_claiming_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = self.make_source(root)
+            vault = root / "vault"
+            vault.mkdir()
+            workspace = Path(
+                materialize_learning_workspace(build_learning_workspace_preview(source), vault).workspace_path
+            )
+            manifest = self.manifest(workspace)
+            manifest.pop("package_entry")
+            (workspace / ".kgnote" / "manifest.json").write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(PersonalAlphaMaterializationError) as caught:
+                read_back_learning_workspace(workspace)
+            self.assertEqual(caught.exception.code, "package_entry_missing")
+
     def test_materialize_reopen_links_source_bytes_and_idempotent_rerun(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -63,9 +156,30 @@ class PersonalAlphaWorkspaceTests(unittest.TestCase):
             self.assertIn("Start reading the original material", entry)
             self.assertTrue((workspace / "My Notes.md").is_file())
             self.assertTrue((workspace / "Continue Here.md").is_file())
+            package_entry = json.loads(
+                (workspace / ".kgnote" / "package-entry.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                package_entry["primary"],
+                {"surface": "obsidian_note", "path": "Start Here.md"},
+            )
+            self.assertEqual(package_entry["secondary"]["role"], "secondary_learning_interaction")
+            self.assertEqual(
+                package_entry["identity"]["concept_ids"],
+                self.manifest(workspace)["record_ids"]["concepts"],
+            )
+            self.assertTrue(audit["package_entry"].endswith(".kgnote/package-entry.json"))
+            first_bytes = {
+                path: (workspace / path).read_bytes()
+                for path in ("Start Here.md", ".kgnote/package-entry.json")
+            }
             self.assertEqual(second.status, "unchanged")
             self.assertEqual(second.created_files, 0)
             self.assertEqual(second.updated_files, 0)
+            self.assertEqual(
+                first_bytes,
+                {path: (workspace / path).read_bytes() for path in first_bytes},
+            )
             self.assertEqual(
                 second.unchanged_files,
                 len(self.manifest(workspace)["managed_files"]) + 1,

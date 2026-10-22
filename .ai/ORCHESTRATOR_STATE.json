@@ -1,23 +1,31 @@
 {
-  "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "mainline-integration-20261020",
-  "active_goal": "GOAL-KGNOTE-MAINLINE-INTEGRATION-20261020",
-  "work_package": "MAINLINE-INTEGRATION-CANDIDATE",
-  "state": "IMPLEMENTING",
-  "current_agent": null,
-  "candidate_fingerprint": null,
-  "review_id": null,
-  "review_cycle": 0,
-  "max_review_cycles": 1,
+  "active_goal": "GOAL-KGNOTE-D2-T02-TEACHING-PROJECTION",
   "agent_failures": 0,
-  "max_agent_failures": 3,
-  "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Complete deterministic verification, seal the integration-local request, then stop READY_FOR_REVIEW_BUDGET_BLOCKED because successor Ubuntu Claude usage is 6/6.",
+  "candidate_custody": {
+    "fingerprint": null,
+    "owner": null,
+    "review_id": null,
+    "status": "NONE"
+  },
+  "candidate_fingerprint": null,
+  "created_at": "2026-10-19T15:30:00+08:00",
+  "current_agent": null,
+  "empty_reviewer_results": 0,
   "human_action_required": false,
-  "candidate_custody": {"status":"NONE","owner":null,"review_id":null,"fingerprint":null},
-  "next_human_checkpoint": {"id":"REVIEW-BUDGET-AUTHORITY","status":"not_authorized","description":"A future reviewer round requires separate owner authority; this repair must not invoke a model."},
   "last_agent_run": null,
-  "created_at": "2026-10-20T11:10:00+08:00",
-  "updated_at": "2026-10-20T11:10:00+08:00"
+  "max_agent_failures": 1,
+  "max_review_cycles": 1,
+  "next_action": "Execute the one authorized bounded implementation dispatch.",
+  "next_human_checkpoint": {
+    "id": "D2-T14-FINAL-HUMAN-ACCEPTANCE",
+    "status": "not_eligible_incomplete_product_scope"
+  },
+  "review_cycle": 0,
+  "review_id": null,
+  "run_id": "cross-issue-admission-9",
+  "schema_version": "kgnote.orchestrator-state.v1",
+  "state": "IMPLEMENTING",
+  "updated_at": "2026-10-19T15:30:00+08:00",
+  "work_package": "D2-T02-TEACHING-PROJECTION"
 }

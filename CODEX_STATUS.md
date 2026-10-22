@@ -4,24 +4,24 @@
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-20T12:25:42+08:00",
-  "goal_id": "GOAL-KGNOTE-MAINLINE-INTEGRATION-20261020",
+  "updated_at": "2026-10-20T00:00:00Z",
+  "goal_id": "GOAL-KGNOTE-D2-T02-TEACHING-PROJECTION",
   "goal_status": "active",
-  "active_milestone_id": "MAINLINE-INTEGRATION-CANDIDATE",
+  "active_milestone_id": "D2-T02-TEACHING-PROJECTION",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
-    "branch": "codex/mainline-integration-20261020",
-    "head": "d1fb319428356c80e099a08e6380098c6afec84a",
-    "base_commit": "827e4aa863fefea6f7d4a9e6120d5845bec3b9fd",
-    "checkpoint_commit": "d1fb319428356c80e099a08e6380098c6afec84a"
+    "branch": "codex/issue-9-teaching-projection",
+    "head": "d195a2ae60531e792085681ed76e71a19e99a5c2",
+    "base_commit": "0b4adf8e3eebd48db3c240db63606a97ae0a7103",
+    "checkpoint_commit": "d195a2ae60531e792085681ed76e71a19e99a5c2"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "c255eca0f33a7d77ec5d8317bfab102c8989be2e0cb7281a5484439634c17e58",
-    "starting_fingerprint": "c255eca0f33a7d77ec5d8317bfab102c8989be2e0cb7281a5484439634c17e58",
-    "expected_dirty_policy": "Only CODEX_STATUS.md may remain dirty as the self-referential HEAD handoff receipt.",
+    "fingerprint": "c2245ba0b39791f4fb41fd428b1e81cf9895749d878756202df348db2e9ec32a",
+    "starting_fingerprint": "4f1efdf35b7670c079dd10bd67dbbe8d8d38681e42284b20d5f6708b2a3e4e27",
+    "expected_dirty_policy": "Only Issue #9 sealed scope, tests and evidence may change.",
     "preserved_preexisting_dirty_paths": [],
     "unexpected_dirty_paths": []
   },
@@ -37,34 +37,22 @@
   "verification": {
     "candidate_verified": false,
     "release_verified": false,
-    "control_plane_ready": false,
-    "last_candidate_evidence": "output/control-plane/verification-20261020T111556+0800.json",
-    "last_verified_fingerprint": "f768959692c8d3444364665b49add54e51a605b1b340f4911fded9d5d84ffcee",
-    "last_result": "Review review-mainline-integration-20261020-001 was invalidated before reviewer custody: Round 6 external CHANGES_REQUIRED requires one consolidated control-plane evidence and identity repair; no reviewer budget remains."
+    "control_plane_ready": true,
+    "last_candidate_evidence": null,
+    "last_verified_fingerprint": null,
+    "last_result": "D2-T02 local slice checkpoint: 42 targeted Personal Alpha/Obsidian tests and compileall passed; requirement guard passed. Full unittest discovery is blocked before execution of 44 modules by missing Python dependency referencing, and Node/npm/gh are unavailable. candidate_verified and release_verified remain false."
   },
-  "integration": {
-    "source_prs": [
-      1,
-      22,
-      26
-    ],
-    "strategy": "single main-based integration PR",
-    "historical_active_snapshots_imported": false,
-    "automatic_merge": false,
-    "issue8_status": "integration_pending",
-    "issue9_status": "not_ready"
-  },
-  "next_action": "Commit the consolidated control-plane repair, run post-commit deterministic verification and exact PR read-back, seal review-mainline-integration-20261020-002, then stop READY_FOR_REVIEW_BUDGET_BLOCKED without invoking a model.",
+  "next_action": "Existing Runner path only: in a supported environment, rerun the bounded D2-T02 verification (including Node/Web evidence), then perform any allowed publication/read-back. This Codex dispatch must not publish, merge, invoke Claude, or invoke ChatGPT Work.",
   "external_or_human_gates": [
-    "GitHub required approval before main merge"
+    "Worker lacks project .venv dependency referencing, Node/npm, and gh; full-suite, Web render/click, preflight tooling, and Runner publication cannot run here."
   ],
   "forbidden_during_goal": [
-    "merge main",
-    "force push",
-    "clear legacy Stop Marker",
-    "reuse PR #26 PASS for new HEAD",
-    "trigger ChatGPT Work for routine review",
-    "increase model budget"
+    "automatic merge",
+    "live provider",
+    "browser-cookie automation",
+    "unapproved data egress",
+    "paid API",
+    "new Claude review budget"
   ]
 }
 ```
@@ -72,9 +60,9 @@
 
 ## Human-readable handoff
 
-Goal `GOAL-KGNOTE-MAINLINE-INTEGRATION-20261020` remains active at milestone `MAINLINE-INTEGRATION-CANDIDATE`.
+Goal `GOAL-KGNOTE-D2-T02-TEACHING-PROJECTION` remains active at milestone `D2-T02-TEACHING-PROJECTION`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Commit the consolidated control-plane repair, run post-commit deterministic verification and exact PR read-back, seal review-mainline-integration-20261020-002, then stop READY_FOR_REVIEW_BUDGET_BLOCKED without invoking a model.
+Exact next action: Existing Runner path only: in a supported environment, rerun the bounded D2-T02 verification (including Node/Web evidence), then perform any allowed publication/read-back. This Codex dispatch must not publish, merge, invoke Claude, or invoke ChatGPT Work.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

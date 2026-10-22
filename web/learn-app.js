@@ -2,6 +2,7 @@ import {buildLearnWorkspace, claimsForEvidence, conceptDetail, glossesForScope, 
 
 const byId = id => document.getElementById(id);
 const unitSlug = new URLSearchParams(location.search).get("unit") || "os";
+const personalAlpha = new URLSearchParams(location.search).get("personal_alpha") === "1";
 let workspace;
 let currentNode = null; let currentBreadcrumb = []; let currentSelected = null;
 const resumeNodeId = new URLSearchParams(location.search).get("resume");
@@ -107,11 +108,21 @@ function renderSource() {
 }
 
 try {
-  const response = await fetch(`/api/learning-units/${encodeURIComponent(unitSlug)}`, {cache: "no-store"}); const bundle = await response.json();
+  const endpoint = personalAlpha ? "/api/personal-alpha-learning" : `/api/learning-units/${encodeURIComponent(unitSlug)}`;
+  const response = await fetch(endpoint, {cache: "no-store"}); const bundle = await response.json();
   if (!response.ok || bundle.status !== "ready") throw new Error(bundle.problem?.code ?? "unit_unavailable");
-  const result = buildLearnWorkspace(bundle.model, bundle.claim_reviews, bundle.source_text, bundle.structure, bundle.reading_assist); if (result.status !== "ready") throw new Error(result.problem.code); workspace = result;
+  const result = buildLearnWorkspace(bundle.model, bundle.claim_reviews, bundle.source_text, bundle.structure, bundle.reading_assist, bundle.identity ?? null); if (result.status !== "ready") throw new Error(result.problem.code); workspace = result;
   document.title = `KGnote · ${workspace.source.label}`; byId("source-title").textContent = workspace.source.label; byId("focus-question").textContent = workspace.learning_unit.focus_question;
   const practiceHref = `./practice.html?unit=${encodeURIComponent(unitSlug)}`; byId("practice-link").href = practiceHref; byId("top-practice-link").href = practiceHref;
+  if (personalAlpha) {
+    byId("load-status").textContent = "次要學習互動 · 主要入口仍是 Obsidian 的 Start Here.md";
+    for (const id of ["top-practice-link", "practice-link", "note-link"]) {
+      const control = byId(id);
+      control.hidden = true;
+      control.style.display = "none";
+    }
+    byId("save-resume").closest(".history").hidden = true;
+  }
   const noteParameters = new URLSearchParams({note_id: `note_${unitSlug}_learning_workspace`, notebook_id: "notebook_local", learning_unit_id: workspace.learning_unit.id, title: `${workspace.source.label}閱讀筆記與疑問`, source_id: workspace.source.id, locator: workspace.learning_unit.source_locator.value, source_label: workspace.source.label}); byId("note-link").href = `./learning-note.html?${noteParameters}`;
   renderSource(); renderTree(null, byId("structure-tree")); const resumeNode=workspace.structure.nodes.find(item=>item.id===resumeNodeId); focusStructure(resumeNode??structureChildren(workspace, null)[0],false);
   if(resumeNode){try{const resumeResponse=await fetch(`/api/resume-contexts?learning_unit_id=${encodeURIComponent(workspace.learning_unit.id)}`,{cache:"no-store"});const resumeBody=await resumeResponse.json();const saved=resumeBody.context;if(resumeResponse.ok&&saved?.structural_breadcrumb?.at(-1)?.node_id===resumeNode.id)byId("resume-question").value=saved.unresolved_question??"";}catch{} }
