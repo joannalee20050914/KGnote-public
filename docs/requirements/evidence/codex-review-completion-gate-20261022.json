@@ -2,6 +2,9 @@
   "schema_version": "kgnote.review-completion-evidence.v1",
   "goal_id": "GOAL-KGNOTE-CODEX-COMPLETION-GATE-20261022",
   "milestone_id": "CONTROL-REVIEW-COMPLETION-GATE",
+  "record_role": "COMPLETED_GOAL_PROVENANCE",
+  "runtime_authority": false,
+  "goal_status": "COMPLETED_NOT_ACTIVATED",
   "review_case": {
     "repository": "joannalee20050914/KGnote-public",
     "pull_request": 29,
@@ -11,7 +14,9 @@
       6285487763,
       6285693992
     ],
-    "verdict": "CHANGES_REQUIRED"
+    "verdict": "CHANGES_REQUIRED",
+    "role": "HISTORICAL_REGRESSION_ONLY",
+    "product_findings_status": "UNRESOLVED_CHANGES_REQUIRED"
   },
   "claims": [
     {
@@ -21,7 +26,8 @@
         "finding-secondary-web-is-new-link-index",
         "finding-web-identity-readback-missing"
       ],
-      "disposition": "FIXED_PENDING_REVIEW",
+      "finding_relationship": "HISTORICAL_REGRESSION_ONLY",
+      "disposition": "NOT_A_PRODUCT_FIX",
       "authority_refs": [
         "FD-05",
         "FD-06",
@@ -69,13 +75,13 @@
       "evidence": [
         {
           "kind": "positive_test",
-          "status": "PASS",
-          "reference": "Focused unittest executes the valid Issue #9-shaped completion record."
+          "status": "RECEIPT_REQUIRED",
+          "reference": "The deterministic verifier must execute the exact positive selector and emit a selector-bound receipt."
         },
         {
           "kind": "negative_test",
-          "status": "PASS",
-          "reference": "Focused unittests independently replace the true Web entrypoint with a static HTML surface and downgrade render/click to NOT_VERIFIED; both are rejected."
+          "status": "RECEIPT_REQUIRED",
+          "reference": "The deterministic verifier must execute both exact negative selectors and emit selector-bound receipts."
         },
         {
           "kind": "read_back",
@@ -91,7 +97,8 @@
         "finding-no-render-click-or-full-suite-evidence",
         "finding-no-render-click-or-tracked-evidence"
       ],
-      "disposition": "FIXED_PENDING_REVIEW",
+      "finding_relationship": "HISTORICAL_REGRESSION_ONLY",
+      "disposition": "NOT_A_PRODUCT_FIX",
       "authority_refs": [
         "AGENTS.md sections 0, 0.1 and 5",
         ".ai/REVIEW_PROTOCOL.md candidate identity and fingerprint",
@@ -132,13 +139,13 @@
       "evidence": [
         {
           "kind": "positive_test",
-          "status": "PASS",
-          "reference": "A matching exact HEAD/fingerprint, PASS completion gate and evidence read-back are accepted."
+          "status": "RECEIPT_REQUIRED",
+          "reference": "The deterministic verifier must execute the exact matching-candidate selector and emit a selector-bound receipt."
         },
         {
           "kind": "negative_test",
-          "status": "PASS",
-          "reference": "Missing completion gate, failed evidence read-back, and stale repository HEAD are independently rejected."
+          "status": "RECEIPT_REQUIRED",
+          "reference": "The deterministic verifier must execute the exact missing/stale-evidence selector and emit a selector-bound receipt."
         },
         {
           "kind": "read_back",
@@ -150,6 +157,7 @@
   ],
   "limits": [
     "This evidence validates completion-claim admission, not the unresolved Issue #9 product behavior.",
+    "PR #29 findings remain historical CHANGES_REQUIRED regressions; this process test is not a product fix and does not change their reviewer-owned status.",
     "Teaching quality, natural prose, prerequisite semantics, and real learner usefulness remain independent Ubuntu Claude product-review judgments.",
     "Physical Obsidian/device behavior, PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified remain unverified."
   ]

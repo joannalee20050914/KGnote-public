@@ -4,24 +4,24 @@
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-22T09:58:20+08:00",
-  "goal_id": "GOAL-KGNOTE-CODEX-COMPLETION-GATE-20261022",
+  "updated_at": "2026-10-20T12:25:42+08:00",
+  "goal_id": "GOAL-KGNOTE-MAINLINE-INTEGRATION-20261020",
   "goal_status": "active",
-  "active_milestone_id": "CONTROL-REVIEW-COMPLETION-GATE",
+  "active_milestone_id": "MAINLINE-INTEGRATION-CANDIDATE",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
-    "branch": "codex/issue9-completion-gate-20261022",
-    "head": "0b4adf8e3eebd48db3c240db63606a97ae0a7103",
-    "base_commit": "0b4adf8e3eebd48db3c240db63606a97ae0a7103",
-    "checkpoint_commit": "0b4adf8e3eebd48db3c240db63606a97ae0a7103"
+    "branch": "codex/mainline-integration-20261020",
+    "head": "d1fb319428356c80e099a08e6380098c6afec84a",
+    "base_commit": "827e4aa863fefea6f7d4a9e6120d5845bec3b9fd",
+    "checkpoint_commit": "d1fb319428356c80e099a08e6380098c6afec84a"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "fb3b6c276d507e3abab1c4f51755f16a04efa227199e380076bea0a8360feda1",
-    "starting_fingerprint": "8501a48a4cd36012ea4e91d0821c77062673f32914f5f3f384d67285115791b1",
-    "expected_dirty_policy": "Only the active completion-gate control-plane, evidence, and tests listed in PLAN.md may change.",
+    "fingerprint": "c255eca0f33a7d77ec5d8317bfab102c8989be2e0cb7281a5484439634c17e58",
+    "starting_fingerprint": "c255eca0f33a7d77ec5d8317bfab102c8989be2e0cb7281a5484439634c17e58",
+    "expected_dirty_policy": "Only CODEX_STATUS.md may remain dirty as the self-referential HEAD handoff receipt.",
     "preserved_preexisting_dirty_paths": [],
     "unexpected_dirty_paths": []
   },
@@ -38,29 +38,33 @@
     "candidate_verified": false,
     "release_verified": false,
     "control_plane_ready": false,
-    "last_candidate_evidence": null,
-    "last_verified_fingerprint": null,
-    "last_result": "Completion-gate implementation and targeted regression are ready for deterministic verification."
+    "last_candidate_evidence": "output/control-plane/verification-20261020T111556+0800.json",
+    "last_verified_fingerprint": "f768959692c8d3444364665b49add54e51a605b1b340f4911fded9d5d84ffcee",
+    "last_result": "Review review-mainline-integration-20261020-001 was invalidated before reviewer custody: Round 6 external CHANGES_REQUIRED requires one consolidated control-plane evidence and identity repair; no reviewer budget remains."
   },
-  "external_case": {
-    "pull_request": 29,
-    "candidate_commit": "be8fc7eeaac93d86b6921504ce11a1bac51a0dc0",
-    "verdict": "CHANGES_REQUIRED",
-    "rounds_used": 3,
-    "codex_repairs_used": 2,
-    "mutation_authorized": false
+  "integration": {
+    "source_prs": [
+      1,
+      22,
+      26
+    ],
+    "strategy": "single main-based integration PR",
+    "historical_active_snapshots_imported": false,
+    "automatic_merge": false,
+    "issue8_status": "integration_pending",
+    "issue9_status": "not_ready"
   },
-  "next_action": "Run deterministic validation; on success create the next fingerprint-bound review request.",
+  "next_action": "Commit the consolidated control-plane repair, run post-commit deterministic verification and exact PR read-back, seal review-mainline-integration-20261020-002, then stop READY_FOR_REVIEW_BUDGET_BLOCKED without invoking a model.",
   "external_or_human_gates": [
-    "Ubuntu Claude review is intentionally not authorized for this goal",
-    "PA-HUMAN-1 and NS-HUMAN-SMOKE remain not promoted"
+    "GitHub required approval before main merge"
   ],
   "forbidden_during_goal": [
-    "modify PR #29 product files or verdict",
-    "reset Issue #9 review or repair budgets",
-    "clear Stop Marker or deploy the formal Runner",
-    "invoke Claude, ChatGPT Work, or any additional Agent",
-    "merge main"
+    "merge main",
+    "force push",
+    "clear legacy Stop Marker",
+    "reuse PR #26 PASS for new HEAD",
+    "trigger ChatGPT Work for routine review",
+    "increase model budget"
   ]
 }
 ```
@@ -68,9 +72,9 @@
 
 ## Human-readable handoff
 
-Goal `GOAL-KGNOTE-CODEX-COMPLETION-GATE-20261022` remains active at milestone `CONTROL-REVIEW-COMPLETION-GATE`.
+Goal `GOAL-KGNOTE-MAINLINE-INTEGRATION-20261020` remains active at milestone `MAINLINE-INTEGRATION-CANDIDATE`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Run deterministic validation; on success create the next fingerprint-bound review request.
+Exact next action: Commit the consolidated control-plane repair, run post-commit deterministic verification and exact PR read-back, seal review-mainline-integration-20261020-002, then stop READY_FOR_REVIEW_BUDGET_BLOCKED without invoking a model.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

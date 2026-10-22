@@ -526,6 +526,15 @@ def validate_review_request(
                     errors.append(
                         "review_request: completion_evidence digest does not match current evidence"
                     )
+                current_summary, completion_errors = validate_review_completion_gate(
+                    repo,
+                    plan,
+                    completion.get("test_receipts"),
+                )
+                if completion_errors or current_summary != completion:
+                    errors.append(
+                        "review_request: completion_evidence execution receipts do not read back"
+                    )
     return errors
 
 
@@ -1367,8 +1376,200 @@ def active_milestone(plan: dict[str, Any]) -> dict[str, Any] | None:
     )
 
 
-def validate_review_completion_gate(
+def declared_completion_test_refs(
     repo: Path, plan: dict[str, Any]
+) -> tuple[list[dict[str, str]], list[str]]:
+    """Read the selectors that an opt-in completion record asks the verifier to run."""
+    milestone = active_milestone(plan)
+    gate = milestone.get("completion_gate") if isinstance(milestone, dict) else None
+    if gate is None:
+        return [], []
+    if not isinstance(gate, dict) or not isinstance(gate.get("evidence_path"), str):
+        return [], ["review_completion_gate: cannot collect selectors without evidence_path"]
+    path = (repo / gate["evidence_path"]).resolve()
+    try:
+        path.relative_to(repo.resolve())
+        evidence = json.loads(path.read_text(encoding="utf-8"))
+    except (ValueError, OSError, json.JSONDecodeError) as exc:
+        return [], [f"review_completion_gate: cannot collect selectors: {exc}"]
+    refs: dict[tuple[str, str], dict[str, str]] = {}
+    for claim in evidence.get("claims", []):
+        if not isinstance(claim, dict):
+            continue
+        for scenario in claim.get("acceptance_scenarios", []):
+            if not isinstance(scenario, dict):
+                continue
+            for ref in scenario.get("test_refs", []):
+                if not isinstance(ref, dict):
+                    continue
+                relative, selector = ref.get("path"), ref.get("selector")
+                if isinstance(relative, str) and isinstance(selector, str):
+                    refs[(relative, selector)] = {"path": relative, "selector": selector}
+    return [refs[key] for key in sorted(refs)], []
+
+
+def completion_test_target(ref: dict[str, str]) -> str:
+    relative, selector = ref["path"], ref["selector"]
+    path = Path(relative)
+    if path.suffix == ".py":
+        return f"{'.'.join(path.with_suffix('').parts)}.{selector}"
+    return selector
+
+
+def completion_test_command(
+    repo: Path, ref: dict[str, str], test_python: Path
+) -> list[str]:
+    relative, selector = ref["path"], ref["selector"]
+    suffix = Path(relative).suffix
+    if suffix == ".py":
+        return [str(test_python), "-m", "unittest", completion_test_target(ref), "-v"]
+    if suffix in {".js", ".mjs", ".cjs"}:
+        node = shutil.which("node")
+        if not node:
+            raise ValueError("review_completion_gate: node is unavailable for JavaScript selector")
+        return [node, "--test", f"--test-name-pattern=^{re.escape(selector)}$", relative]
+    raise ValueError(f"review_completion_gate: unsupported receipt test file {relative}")
+
+
+def execute_completion_test_receipts(
+    repo: Path,
+    plan: dict[str, Any],
+    test_python: Path,
+    env: dict[str, str] | None = None,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Execute each declared selector and return verifier-owned receipts."""
+    refs, errors = declared_completion_test_refs(repo, plan)
+    receipts: list[dict[str, Any]] = []
+    for ref in refs:
+        integrity_error = validate_test_ref(repo, ref)
+        if integrity_error:
+            errors.append(integrity_error)
+            continue
+        try:
+            command = completion_test_command(repo, ref, test_python)
+        except ValueError as exc:
+            errors.append(str(exc))
+            continue
+        result = execute_gate("completion_selector", command, repo, env)
+        receipt_command = [
+            str(part).replace(str(repo.resolve()), ".") for part in result["command"]
+        ]
+        receipts.append(
+            {
+                "schema_version": "kgnote.test-execution-receipt.v1",
+                "producer": "codex_control.verify",
+                "path": ref["path"],
+                "selector": ref["selector"],
+                "target": completion_test_target(ref),
+                "test_file_sha256": sha256_file(repo / ref["path"]),
+                "command": receipt_command,
+                "exit_code": result["exit_code"],
+                "duration_seconds": result["duration_seconds"],
+                "output_sha256": result["output_sha256"],
+                "output_tail": result["output_tail"],
+                "passed": result["passed"],
+            }
+        )
+    return receipts, errors
+
+
+def empty_python_test_selector(path: Path, selector: str) -> bool:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    target: ast.FunctionDef | ast.AsyncFunctionDef | None = None
+    parts = selector.split(".", 1)
+    if len(parts) == 1:
+        target = next(
+            (
+                node
+                for node in tree.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == selector
+            ),
+            None,
+        )
+    else:
+        class_name, method_name = parts
+        for node in tree.body:
+            if isinstance(node, ast.ClassDef) and node.name == class_name:
+                target = next(
+                    (
+                        child
+                        for child in node.body
+                        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+                        and child.name == method_name
+                    ),
+                    None,
+                )
+                break
+    if target is None:
+        return False
+    body = list(target.body)
+    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+        body = body[1:]
+    return not body or all(
+        isinstance(node, ast.Pass)
+        or (
+            isinstance(node, ast.Expr)
+            and isinstance(node.value, ast.Constant)
+            and node.value.value is Ellipsis
+        )
+        for node in body
+    )
+
+
+def validate_completion_test_receipt(
+    repo: Path, ref: dict[str, Any], receipt: dict[str, Any] | None
+) -> str | None:
+    relative, selector = ref.get("path"), ref.get("selector")
+    if not isinstance(receipt, dict):
+        return f"{relative}::{selector}: execution receipt is missing"
+    if receipt.get("schema_version") != "kgnote.test-execution-receipt.v1":
+        return f"{relative}::{selector}: execution receipt schema is invalid"
+    if receipt.get("producer") != "codex_control.verify":
+        return f"{relative}::{selector}: execution receipt producer is invalid"
+    if receipt.get("path") != relative or receipt.get("selector") != selector:
+        return f"{relative}::{selector}: execution receipt selector identity mismatch"
+    path = repo / str(relative)
+    if receipt.get("test_file_sha256") != sha256_file(path):
+        return f"{relative}::{selector}: execution receipt test file digest mismatch"
+    if receipt.get("target") != completion_test_target({"path": str(relative), "selector": str(selector)}):
+        return f"{relative}::{selector}: execution receipt target mismatch"
+    command = receipt.get("command")
+    if not isinstance(command, list) or not command:
+        return f"{relative}::{selector}: execution receipt command is missing"
+    suffix = path.suffix
+    if suffix == ".py":
+        expected_tail = ["-m", "unittest", receipt["target"], "-v"]
+        if command[-4:] != expected_tail:
+            return f"{relative}::{selector}: execution receipt command mismatch"
+    elif suffix in {".js", ".mjs", ".cjs"}:
+        expected_tail = ["--test", f"--test-name-pattern=^{re.escape(str(selector))}$", str(relative)]
+        if command[-3:] != expected_tail:
+            return f"{relative}::{selector}: execution receipt command mismatch"
+    if receipt.get("exit_code") != 0 or receipt.get("passed") is not True:
+        return f"{relative}::{selector}: execution receipt is not passing"
+    digest = receipt.get("output_sha256")
+    if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+        return f"{relative}::{selector}: execution receipt output digest is invalid"
+    output = receipt.get("output_tail")
+    if not isinstance(output, str) or not output.strip():
+        return f"{relative}::{selector}: execution receipt output is missing"
+    if suffix == ".py":
+        if "Ran 1 test" not in output or "OK" not in output or "skipped=" in output:
+            return f"{relative}::{selector}: execution receipt does not prove one unittest passed"
+    elif not (
+        re.search(r"(?:^|\n)(?:ℹ )?tests 1\b", output)
+        and re.search(r"(?:^|\n)(?:ℹ )?pass 1\b", output)
+        and re.search(r"(?:^|\n)(?:ℹ )?fail 0\b", output)
+    ):
+        return f"{relative}::{selector}: execution receipt does not prove one Node test passed"
+    return None
+
+
+def validate_review_completion_gate(
+    repo: Path,
+    plan: dict[str, Any],
+    test_receipts: list[dict[str, Any]] | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     """Validate an opt-in, milestone-local completion evidence record.
 
@@ -1384,6 +1585,7 @@ def validate_review_completion_gate(
         "evidence_path": None,
         "evidence_sha256": None,
         "claims": [],
+        "test_receipts": [],
     }
     milestone = active_milestone(plan)
     gate = milestone.get("completion_gate") if isinstance(milestone, dict) else None
@@ -1391,6 +1593,19 @@ def validate_review_completion_gate(
         return summary, []
     summary["applicable"] = True
     errors: list[str] = []
+    receipts_by_ref: dict[tuple[str, str], dict[str, Any]] = {}
+    for receipt in test_receipts or []:
+        if not isinstance(receipt, dict):
+            errors.append("review_completion_gate: execution receipt must be an object")
+            continue
+        key = (receipt.get("path"), receipt.get("selector"))
+        if not all(isinstance(item, str) for item in key):
+            errors.append("review_completion_gate: execution receipt requires path and selector")
+            continue
+        if key in receipts_by_ref:
+            errors.append(f"review_completion_gate: duplicate execution receipt {key[0]}::{key[1]}")
+            continue
+        receipts_by_ref[key] = receipt
     if not isinstance(gate, dict):
         return {**summary, "passed": False}, [
             "review_completion_gate: active milestone completion_gate must be an object"
@@ -1429,6 +1644,9 @@ def validate_review_completion_gate(
         errors.append("review_completion_gate: evidence goal_id does not match PLAN")
     if evidence.get("milestone_id") != plan.get("active_milestone_id"):
         errors.append("review_completion_gate: evidence milestone_id does not match active milestone")
+    review_case = evidence.get("review_case")
+    if not isinstance(review_case, dict):
+        review_case = {}
 
     try:
         scenarios_value = json.loads(
@@ -1485,7 +1703,17 @@ def validate_review_completion_gate(
         disposition = claim.get("disposition")
         if disposition == "VERIFIED":
             errors.append(f"{claim_id}: Codex may not declare VERIFIED")
-        if finding_ids and disposition != "FIXED_PENDING_REVIEW":
+        finding_relationship = claim.get("finding_relationship")
+        if finding_relationship == "HISTORICAL_REGRESSION_ONLY":
+            if review_case.get("role") != "HISTORICAL_REGRESSION_ONLY":
+                errors.append(f"{claim_id}: historical regression role is missing from review_case")
+            if review_case.get("product_findings_status") != "UNRESOLVED_CHANGES_REQUIRED":
+                errors.append(f"{claim_id}: historical product findings must remain unresolved CHANGES_REQUIRED")
+            if disposition != "NOT_A_PRODUCT_FIX":
+                errors.append(
+                    f"{claim_id}: historical regression disposition must be NOT_A_PRODUCT_FIX"
+                )
+        elif finding_ids and disposition != "FIXED_PENDING_REVIEW":
             errors.append(
                 f"{claim_id}: reviewer findings must remain FIXED_PENDING_REVIEW until reviewer verification"
             )
@@ -1529,6 +1757,8 @@ def validate_review_completion_gate(
             errors.append(f"{claim_id}: acceptance_scenarios must be an array")
         polarities: set[str] = set()
         observed_scenarios: set[str] = set()
+        receipt_pass: dict[str, bool] = {"positive": True, "negative": True}
+        receipt_count: dict[str, int] = {"positive": 0, "negative": 0}
         for case in acceptance:
             if not isinstance(case, dict):
                 errors.append(f"{claim_id}: acceptance scenario must be an object")
@@ -1554,6 +1784,28 @@ def validate_review_completion_gate(
                 error = validate_test_ref(repo, ref)
                 if error:
                     errors.append(f"{claim_id}: {error}")
+                    if polarity in receipt_pass:
+                        receipt_pass[polarity] = False
+                    continue
+                if (
+                    isinstance(ref.get("path"), str)
+                    and Path(ref["path"]).suffix == ".py"
+                    and empty_python_test_selector(repo / ref["path"], ref["selector"])
+                ):
+                    errors.append(
+                        f"{claim_id}: {ref['path']}::{ref['selector']} has an empty test body"
+                    )
+                    if polarity in receipt_pass:
+                        receipt_pass[polarity] = False
+                key = (ref.get("path"), ref.get("selector"))
+                receipt = receipts_by_ref.get(key)
+                receipt_error = validate_completion_test_receipt(repo, ref, receipt)
+                if polarity in receipt_count:
+                    receipt_count[polarity] += 1
+                if receipt_error:
+                    errors.append(f"{claim_id}: {receipt_error}")
+                    if polarity in receipt_pass:
+                        receipt_pass[polarity] = False
         for polarity in ("positive", "negative"):
             if polarity not in polarities:
                 errors.append(f"{claim_id}: missing {polarity} acceptance scenario")
@@ -1580,11 +1832,25 @@ def validate_review_completion_gate(
                 continue
             if kind in statuses:
                 errors.append(f"{claim_id}: duplicate evidence kind {kind}")
-            if status not in {"PASS", "NOT_VERIFIED", "NOT_APPLICABLE"}:
+            if status not in {"PASS", "NOT_VERIFIED", "NOT_APPLICABLE", "RECEIPT_REQUIRED"}:
                 errors.append(f"{claim_id}: invalid evidence status for {kind}")
             statuses[kind] = status
             if not isinstance(reference, str) or not reference.strip():
                 errors.append(f"{claim_id}: evidence {kind} requires a readable reference")
+        for polarity, kind in (("positive", "positive_test"), ("negative", "negative_test")):
+            declared = statuses.get(kind)
+            if declared == "PASS":
+                errors.append(
+                    f"{claim_id}: tracked evidence may not self-declare PASS for {kind}; use RECEIPT_REQUIRED"
+                )
+            elif declared is not None and declared != "RECEIPT_REQUIRED":
+                errors.append(f"{claim_id}: {kind} must declare RECEIPT_REQUIRED")
+            if declared is not None:
+                statuses[kind] = (
+                    "PASS"
+                    if receipt_count[polarity] > 0 and receipt_pass[polarity]
+                    else "NOT_VERIFIED"
+                )
         claim_summary["evidence_status"] = dict(sorted(statuses.items()))
         required_kinds = requirement.get("required_evidence_kinds", [])
         if not isinstance(required_kinds, list):
@@ -1605,6 +1871,18 @@ def validate_review_completion_gate(
     unrequested = sorted(set(claims) - required_ids)
     if unrequested:
         errors.append(f"review_completion_gate: unrequested claims present {unrequested}")
+    used_receipt_keys = {
+        (ref.get("path"), ref.get("selector"))
+        for claim in claims.values()
+        for scenario in claim.get("acceptance_scenarios", [])
+        if isinstance(scenario, dict)
+        for ref in scenario.get("test_refs", [])
+        if isinstance(ref, dict)
+    }
+    extra_receipts = sorted(set(receipts_by_ref) - used_receipt_keys)
+    if extra_receipts:
+        errors.append(f"review_completion_gate: undeclared execution receipts {extra_receipts}")
+    summary["test_receipts"] = [receipts_by_ref[key] for key in sorted(receipts_by_ref)]
     summary["passed"] = not errors
     return summary, errors
 
@@ -1659,7 +1937,11 @@ def load_verification_evidence(
                 raise ValueError(
                     "review_request: required review_completion_gate evidence is missing or failed"
                 )
-            current_summary, completion_errors = validate_review_completion_gate(repo, plan)
+            current_summary, completion_errors = validate_review_completion_gate(
+                repo,
+                plan,
+                completion["details"].get("test_receipts"),
+            )
             if completion_errors or completion.get("details") != current_summary:
                 raise ValueError(
                     "review_request: review_completion_gate evidence does not read back from the current candidate"
@@ -2865,9 +3147,18 @@ def verify(repo: Path) -> tuple[dict[str, Any], int]:
             execute_gate("strict_git_diff_check", ["git", "diff", "--check"], repo, base_env),
         ]
         verification_plan, _ = load_plan_status(repo)
-        completion_summary, completion_errors = validate_review_completion_gate(
-            repo, verification_plan
+        completion_receipts, receipt_errors = execute_completion_test_receipts(
+            repo,
+            verification_plan,
+            test_python,
+            product_env,
         )
+        completion_summary, completion_errors = validate_review_completion_gate(
+            repo,
+            verification_plan,
+            completion_receipts,
+        )
+        completion_errors = receipt_errors + completion_errors
         completion_output = "\n".join(completion_errors)
         gates.append(
             {
