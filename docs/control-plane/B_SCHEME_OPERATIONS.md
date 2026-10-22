@@ -18,6 +18,16 @@ After those gates pass, a live Work Item still requires a Runner-owned `dispatch
 
 Each new independent-review order also carries an explicit `program_id`, `review_scope`, and repository-relative `review_authority_paths`. Goal-specific external-review config/state paths are supported by the Publisher and Consumer handoff; do not edit the singleton configuration of an older PR to impersonate a new Goal. The Ubuntu Runner request marker does not invoke ChatGPT Work.
 
+When the repository orchestrator owns that handoff, bind both Goal-scoped runtime paths on its first start/resume:
+
+```bash
+python3 scripts/codex_orchestrator.py --repo . resume \
+  --external-review-config output/control-plane/<goal-review>/config.json \
+  --external-review-state output/control-plane/<goal-review>/state.json
+```
+
+The orchestrator persists a repository-relative `external_review_binding` containing the exact `program_id`, `goal_id`, config path and state path. Later wakeups reuse it without CLI memory. A missing half, path outside the repository, Goal/program mismatch, or attempt to switch an existing binding fails closed. This binding selects evidence only; it cannot approve, activate, accept or close a Product Goal.
+
 `--product-goal-trial` returns only a plan. It does not dispatch Codex, Claude, Publisher, GitHub writes or SSH work. Without `--product-goal-trial`, the live path can route only an exact sealed binding after every authority and admission gate above passes.
 
 ## Deterministic trial

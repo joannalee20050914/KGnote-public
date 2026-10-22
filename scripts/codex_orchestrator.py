@@ -125,6 +125,90 @@ def write_state(repo: Path, state: dict[str, Any]) -> None:
     os.replace(temporary, path)
 
 
+def _repo_relative_runtime_path(repo: Path, value: Path, *, field: str) -> tuple[Path, str]:
+    """Bind mutable review runtime state to an explicit path inside the repository.
+
+    Goal-scoped external reviews may not reuse the historical singleton files.
+    Persisting repository-relative paths makes a later Runner wakeup independent
+    of the invoking shell while preventing an order from redirecting the
+    orchestrator to unrelated host files.
+    """
+    candidate = value if value.is_absolute() else repo / value
+    resolved = candidate.resolve()
+    try:
+        relative = resolved.relative_to(repo.resolve())
+    except ValueError as exc:
+        raise ValueError(f"{field} must remain inside the repository") from exc
+    if not resolved.is_file():
+        raise ValueError(f"{field} does not exist: {relative}")
+    return resolved, relative.as_posix()
+
+
+def bind_external_review_runtime(
+    repo: Path,
+    state: dict[str, Any],
+    *,
+    config_path: Path | None,
+    external_state_path: Path | None,
+) -> tuple[Path, Path]:
+    """Resolve and durably bind one Goal's external-review config and state.
+
+    Both paths are supplied together on the first wakeup. Subsequent wakeups
+    use the persisted binding and reject a silent switch to another Goal or
+    review program.
+    """
+    if (config_path is None) != (external_state_path is None):
+        raise ValueError("external review config and state paths must be supplied together")
+
+    existing = state.get("external_review_binding")
+    if existing is not None and not isinstance(existing, dict):
+        raise ValueError("external_review_binding must be an object")
+
+    if config_path is None:
+        if isinstance(existing, dict):
+            config_path = Path(str(existing.get("config_path", "")))
+            external_state_path = Path(str(existing.get("state_path", "")))
+        else:
+            # Historical repositories use the singleton paths. Preserve that
+            # compatibility without requiring those files during unrelated
+            # implementation/review phases; the handoff validates them when
+            # the state actually reaches the external-review boundary.
+            return (
+                repo / external_review_control.CONFIG_PATH,
+                repo / external_review_control.STATE_PATH,
+            )
+
+    assert external_state_path is not None
+    resolved_config, relative_config = _repo_relative_runtime_path(
+        repo, config_path, field="external review config path"
+    )
+    resolved_state, relative_state = _repo_relative_runtime_path(
+        repo, external_state_path, field="external review state path"
+    )
+    config = external_review_control.load_json(resolved_config)
+    review_state = external_review_control.load_json(resolved_state)
+    authority_errors = external_review_control.repository_authority_errors(config)
+    if authority_errors:
+        raise ValueError("; ".join(authority_errors))
+    if config.get("program_id") != review_state.get("program_id"):
+        raise ValueError("external review program identity differs between config and state")
+    if review_state.get("goal_id") != state.get("active_goal"):
+        raise ValueError("external review goal identity differs from the active orchestrator goal")
+
+    binding = {
+        "program_id": config.get("program_id"),
+        "goal_id": review_state.get("goal_id"),
+        "config_path": relative_config,
+        "state_path": relative_state,
+    }
+    if isinstance(existing, dict) and existing != binding:
+        raise ValueError("external review runtime is already bound to a different identity or path")
+    if existing != binding:
+        state["external_review_binding"] = binding
+        write_state(repo, state)
+    return resolved_config, resolved_state
+
+
 def append_event(repo: Path, state: dict[str, Any], event_type: str, **details: Any) -> None:
     path = repo / HISTORY_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -688,9 +772,15 @@ def advance_after_pass(repo: Path, state: dict[str, Any]) -> None:
         update_state(repo, state, "AUTOMATION_BLOCKED", "PASS exists but PLAN has no active work package.")
         return
     if active.get("id") == "AR-EXTERNAL-REVIEW":
-        external_state = external_review_control.load_json(
-            repo / external_review_control.STATE_PATH
-        )
+        binding = state.get("external_review_binding")
+        if isinstance(binding, dict):
+            review_config_path, external_path = bind_external_review_runtime(
+                repo, state, config_path=None, external_state_path=None
+            )
+        else:
+            review_config_path = repo / external_review_control.CONFIG_PATH
+            external_path = repo / external_review_control.STATE_PATH
+        external_state = external_review_control.load_json(external_path)
         external_result = external_state.get("external_review", {})
         if not (
             external_result.get("status") == "PASS"
@@ -730,7 +820,6 @@ def advance_after_pass(repo: Path, state: dict[str, Any]) -> None:
                 },
                 "release_verified": False,
             })
-            external_path = repo / external_review_control.STATE_PATH
             temporary = external_path.with_suffix(".json.tmp")
             temporary.write_text(
                 json.dumps(external_state, indent=2, ensure_ascii=False) + "\n",
@@ -738,7 +827,15 @@ def advance_after_pass(repo: Path, state: dict[str, Any]) -> None:
             )
             os.replace(temporary, external_path)
             try:
-                publication = publish_external_candidate.publish(repo)
+                publication = (
+                    publish_external_candidate.publish(
+                        repo,
+                        config_path=review_config_path,
+                        state_path=external_path,
+                    )
+                    if isinstance(binding, dict)
+                    else publish_external_candidate.publish(repo)
+                )
             except publish_external_candidate.PublicationError as exc:
                 state["blockers"] = [{"type": "external_publication_failed", "reason": str(exc)}]
                 update_state(
@@ -1113,16 +1210,28 @@ def start(
     max_steps: int | None,
     runner: AgentRunner,
     resume_terminal_state: str | None = None,
+    external_review_config_path: Path | None = None,
+    external_review_state_path: Path | None = None,
 ) -> dict[str, Any]:
     existing = read_state(repo)
     if resume:
         if existing is None:
             raise ValueError("orchestrator_resume: no durable state exists; use start")
         state = existing
+        review_config_path, review_state_path = bind_external_review_runtime(
+            repo,
+            state,
+            config_path=external_review_config_path,
+            external_state_path=external_review_state_path,
+        )
         if not within_authorized_work_hours():
             return state
         if state["state"] == "AWAITING_EXTERNAL_PRODUCT_REVIEW":
-            decision = external_review_handoff.process(repo)
+            decision = external_review_handoff.process(
+                repo,
+                config_path=review_config_path,
+                state_path=review_state_path,
+            )
             if not decision.get("accepted"):
                 state["next_action"] = "External review not yet accepted; a future event or bounded resume may retry."
                 write_state(repo, state)
@@ -1157,6 +1266,12 @@ def start(
         if existing and existing.get("state") not in TERMINAL_STATES:
             raise ValueError("orchestrator_start: active durable state exists; use resume or stop")
         state = derive_state(repo, max_review_cycles=max_review_cycles)
+        bind_external_review_runtime(
+            repo,
+            state,
+            config_path=external_review_config_path,
+            external_state_path=external_review_state_path,
+        )
         write_state(repo, state)
         append_event(repo, state, "ORCHESTRATOR_STARTED")
         if not within_authorized_work_hours():
@@ -1180,6 +1295,8 @@ def main() -> int:
         command = sub.add_parser(name)
         command.add_argument("--max-review-cycles", type=int, default=5)
         command.add_argument("--max-steps", type=int)
+        command.add_argument("--external-review-config", type=Path)
+        command.add_argument("--external-review-state", type=Path)
         if name == "resume":
             command.add_argument(
                 "--resume-terminal-state",
@@ -1201,6 +1318,8 @@ def main() -> int:
                 max_steps=args.max_steps,
                 runner=run_codex_agent,
                 resume_terminal_state=getattr(args, "resume_terminal_state", None),
+                external_review_config_path=args.external_review_config,
+                external_review_state_path=args.external_review_state,
             )
         elif args.command == "status":
             result = read_state(repo) or derive_state(repo)

@@ -379,6 +379,64 @@ class EnvelopeSealOrderingTests(OrchestrationSimulationTests):
             self.assertFalse(result["human_action_required"])
             self.assertEqual(result["state"], "AWAITING_EXTERNAL_PRODUCT_REVIEW")
 
+    def test_resume_consumes_goal_scoped_external_review_binding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".ai").mkdir()
+            runtime = root / "output/control-plane/goal-review"
+            runtime.mkdir(parents=True)
+            config_path = runtime / "config.json"
+            review_state_path = runtime / "state.json"
+            config_path.write_text(json.dumps({
+                "program_id": "program-goal-1", "enabled": True,
+                "canonical_repository": "owner/public", "candidate_repository": "owner/public",
+                "trigger_repository": "owner/public", "review_request_repository": "owner/public",
+                "archive_repository": "owner/archive", "review_pr_number": 31,
+                "trigger_events": ["issue_comment.created"],
+                "trigger_comment_template": ORCH.external_review_control.UBUNTU_REVIEW_TRIGGER_TEMPLATE,
+                "transport": "ubuntu_claude_runner_github_relay",
+            }))
+            review_state_path.write_text(json.dumps({
+                "program_id": "program-goal-1", "goal_id": "G",
+            }))
+            state = self.base_state()
+            state["state"] = "AWAITING_EXTERNAL_PRODUCT_REVIEW"
+            ORCH.write_state(root, state)
+            pending = {"accepted": False, "status": "PENDING"}
+            with mock.patch.object(ORCH, "within_authorized_work_hours", return_value=True), \
+                 mock.patch.object(ORCH.external_review_handoff, "process", return_value=pending) as process:
+                result = ORCH.start(
+                    root, resume=True, max_review_cycles=5, max_steps=None,
+                    runner=mock.Mock(), external_review_config_path=config_path,
+                    external_review_state_path=review_state_path,
+                )
+            process.assert_called_once_with(
+                root, config_path=config_path.resolve(), state_path=review_state_path.resolve()
+            )
+            self.assertEqual("program-goal-1", result["external_review_binding"]["program_id"])
+            persisted = json.loads((root / ORCH.STATE_PATH).read_text())
+            self.assertEqual(
+                "output/control-plane/goal-review/state.json",
+                persisted["external_review_binding"]["state_path"],
+            )
+
+    def test_goal_scoped_external_review_binding_rejects_path_escape(self):
+        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as outside:
+            root = Path(tmp)
+            (root / ".ai").mkdir()
+            state = self.base_state()
+            ORCH.write_state(root, state)
+            config_path = Path(outside) / "config.json"
+            review_state_path = Path(outside) / "state.json"
+            config_path.write_text("{}")
+            review_state_path.write_text("{}")
+            with self.assertRaisesRegex(ValueError, "must remain inside the repository"):
+                ORCH.start(
+                    root, resume=True, max_review_cycles=5, max_steps=None,
+                    runner=mock.Mock(), external_review_config_path=config_path,
+                    external_review_state_path=review_state_path,
+                )
+
     def test_approved_role_cutover_never_invokes_codex_as_routine_reviewer(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp); (root/"docs/control-plane").mkdir(parents=True)
