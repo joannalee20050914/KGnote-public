@@ -16,6 +16,8 @@ Supplying only some paths fails closed. Supplying all paths still does not grant
 
 After those gates pass, a live Work Item still requires a Runner-owned `dispatch_binding` that fixes a repository-contained Linux worker order to its path, SHA-256 and event ID. The existing Writer Lock, Stop Marker, epoch/scope admission and Linux router remain on the dispatch path. Runner appends and fsyncs an exact dispatch reservation before calling the router; a restart that sees a reservation without a reconciled checkpoint returns `RECONCILE_CHECKPOINT` and cannot blindly dispatch it again. A successful router return records only `DISPATCHED`; it does not invent a completed model result, valid review or resolved product obligation.
 
+Each new independent-review order also carries an explicit `program_id`, `review_scope`, and repository-relative `review_authority_paths`. Goal-specific external-review config/state paths are supported by the Publisher and Consumer handoff; do not edit the singleton configuration of an older PR to impersonate a new Goal. The Ubuntu Runner request marker does not invoke ChatGPT Work.
+
 `--product-goal-trial` returns only a plan. It does not dispatch Codex, Claude, Publisher, GitHub writes or SSH work. Without `--product-goal-trial`, the live path can route only an exact sealed binding after every authority and admission gate above passes.
 
 ## Deterministic trial
@@ -43,6 +45,7 @@ All items are required before adding Product Goal arguments to the LaunchAgent:
 6. The deployed Runner SHA, Ubuntu tools, verifier, Publisher, writer lock, Stop Marker and state locations are read back again.
 7. The operator explicitly updates the trusted deployment and LaunchAgent. A code merge or Codex App Goal completion is insufficient.
 8. Every initially eligible Work Item has a read-back-valid sealed order binding, and a restart test proves its reservation reconciles instead of redispatching.
+9. Every Claude review order and GitHub Consumer state bind the same Goal, PR, commit, fingerprint, program, round and review scope; no legacy hard-coded finding remains in a new Goal order.
 
 Resource capacity remains `PERCENTAGE_UNOBSERVABLE` until a trusted provider account-level percentage source is operated. Until then, the fallback is the authorized Asia/Taipei work window, concurrency one, minimum launch interval, per-window launches, provider quota backoff, checkpoint-first reconciliation and no paid API.
 

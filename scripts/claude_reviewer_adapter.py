@@ -58,6 +58,9 @@ class WorkOrder:
     requested_model: str
     requested_effort: str
     requested_provider: str
+    program_id: str
+    review_scope: str
+    review_authority_paths: tuple[str, ...]
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "WorkOrder":
@@ -83,6 +86,21 @@ class WorkOrder:
                 requested_model=str(value["requested_model"]),
                 requested_effort=str(value["requested_effort"]),
                 requested_provider=str(value["requested_provider"]),
+                program_id=str(
+                    value.get("program_id", "kgnote-source-library-successor-20261019")
+                ),
+                review_scope=str(
+                    value.get(
+                        "review_scope",
+                        "KGNOTE_PRODUCT_CONTRACT and inherited finding-r-004 only",
+                    )
+                ),
+                review_authority_paths=tuple(
+                    str(path) for path in value.get(
+                        "review_authority_paths",
+                        ["AGENTS.md", "PLAN.md", "CODEX_STATUS.md", ".ai/REVIEW_REQUEST.md"],
+                    )
+                ),
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise AdapterError(f"invalid work order: {exc}") from exc
@@ -116,6 +134,14 @@ class WorkOrder:
             REQUESTED_MODEL, REQUESTED_EFFORT, REQUESTED_PROVIDER
         ):
             raise AdapterError("formal reviewer model configuration must be Sonnet / medium / Anthropic")
+        if not self.program_id or not self.review_scope.strip():
+            raise AdapterError("program_id and review_scope must be non-empty")
+        if not self.review_authority_paths:
+            raise AdapterError("review_authority_paths must be non-empty")
+        for value in self.review_authority_paths:
+            path = Path(value)
+            if path.is_absolute() or ".." in path.parts or not value.strip():
+                raise AdapterError("review authority paths must be non-empty repository-relative paths")
         for path, label in ((self.agent_loop, "agent-loop"), (self.claude_cmd, "claude"), (self.codex_cmd, "codex")):
             if not path.is_file() or not os.access(path, os.X_OK):
                 raise AdapterError(f"{label} executable is unavailable: {path}")
@@ -143,14 +169,18 @@ def build_command(order: WorkOrder) -> list[str]:
             schema_value = json.loads(schema_path.read_text(encoding="utf-8")); schema_value.pop("$schema", None)
             schema = json.dumps(schema_value, separators=(",", ":"))
         except OSError as exc: raise AdapterError(f"review schema unavailable: {schema_path}") from exc
+        authority_paths = ", ".join(order.review_authority_paths)
         prompt = (
             "You are the independent KGnote product-contract reviewer. Review the exact read-only checkout in the current directory. "
             "Do not modify files, run commands, browse, publish, merge, or infer native UI behavior. Read AGENTS.md, PLAN.md, "
-            "CODEX_STATUS.md, the product contracts, the exact parent-to-candidate diff, and relevant tests. Return only the schema object. "
-            f"Exact identity: repository={order.repository}; pull_request={order.pull_request}; program_id=kgnote-source-library-successor-20261019; "
+            "CODEX_STATUS.md, the sealed .ai/REVIEW_REQUEST.md, the product contracts, changed implementation, and relevant tests. "
+            f"The exact authority/read set starts with: {authority_paths}. Return only the schema object. "
+            f"Exact identity: repository={order.repository}; pull_request={order.pull_request}; program_id={order.program_id}; "
             f"goal_id={order.goal_id}; candidate_commit={order.candidate_commit}; "
             f"candidate_fingerprint={order.candidate_fingerprint}; review_round={order.review_round_used + 1}. "
-            "Scope is KGNOTE_PRODUCT_CONTRACT and inherited finding-r-004 only. PASS only if the exact candidate resolves R-004 without regression. "
+            f"Scope is exactly: {order.review_scope}. "
+            "Judge every sealed acceptance criterion and negative requirement. PASS only when the exact candidate satisfies that scope, "
+            "has no blocking or major finding, and preserves every stated human gate. "
             "Set native_ui_observed=false."
         )
         return [str(order.claude_cmd), "-p", "--model", order.requested_model,

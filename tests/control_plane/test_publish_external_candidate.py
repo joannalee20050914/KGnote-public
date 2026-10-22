@@ -70,6 +70,19 @@ class PublicationTransitionTests(unittest.TestCase):
                 self.state,
             )
 
+    def test_ubuntu_transport_uses_non_work_runner_trigger(self):
+        config = {
+            **self.config,
+            "transport": "ubuntu_claude_runner_github_relay",
+            "trigger_comment_template": (
+                "<!-- kgnote-ubuntu-claude-review-request "
+                "candidate_commit={candidate_commit} -->"
+            ),
+        }
+        value = PUBLISH.review_trigger_comment(config, self.state)
+        self.assertIn("kgnote-ubuntu-claude-review-request", value)
+        self.assertNotIn("@kgnote-ai-review", value)
+
     def test_stale_marker_cleanup_is_not_limited_by_current_round_budget(self):
         body = (
             "PR\n\n<!-- REQUEST_V2 candidate_commit=" + "c" * 40

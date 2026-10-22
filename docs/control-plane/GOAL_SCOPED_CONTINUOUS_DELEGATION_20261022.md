@@ -68,6 +68,8 @@ Logical work identity and attempt identity are separate. An unknown execution st
 
 Every external dispatch uses a Runner-owned sealed order binding (repository path, content digest, and order event ID). Runner first passes the existing Writer Lock, Stop Marker, epoch/scope admission and authority gates, then durably reserves the attempt in the Goal ledger before invoking the existing Linux router. A reserved attempt without a reconciled checkpoint blocks redispatch after restart. Routing success is not model completion, review validity, publication, or obligation resolution.
 
+Independent review orders must bind the exact `program_id`, Product Goal identity, PR, commit, fingerprint, round, review scope and repository-relative authority paths. The Ubuntu Claude adapter may retain compatibility defaults for already-issued legacy orders, but every new Product Goal order supplies those fields explicitly; it may not inherit a legacy finding or product scope from a singleton prompt. Publication and Consumer read-back accept Goal-specific config/state paths so parallel or later Goals do not rewrite an older PR's review identity. The native Ubuntu Runner trigger is a non-Work marker; ChatGPT Work remains notification-only.
+
 ## 5. Resource policy
 
 Codex ChatGPT OAuth and Claude Pro OAuth are independent subscription resources. No metered API fallback is permitted.

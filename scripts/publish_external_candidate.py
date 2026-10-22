@@ -54,8 +54,16 @@ def request_marker(config: dict[str, Any], state: dict[str, Any]) -> str:
 
 def review_trigger_comment(config: dict[str, Any], state: dict[str, Any]) -> str:
     template = config.get("trigger_comment_template")
-    if template != "@kgnote-ai-review {candidate_commit}":
-        raise PublicationError("exact review trigger comment template is missing")
+    accepted = (
+        {
+            external_review_control.UBUNTU_REVIEW_TRIGGER_TEMPLATE,
+            external_review_control.LEGACY_WORK_TRIGGER_TEMPLATE,
+        }
+        if config.get("transport") == "ubuntu_claude_runner_github_relay"
+        else {external_review_control.LEGACY_WORK_TRIGGER_TEMPLATE}
+    )
+    if template not in accepted:
+        raise PublicationError("exact review trigger comment is missing for the configured transport")
     commit = state.get("candidate_commit")
     if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
         raise PublicationError("candidate commit is invalid for the review trigger")
@@ -106,10 +114,18 @@ def _run(command: list[str], *, cwd: Path) -> str:
     return completed.stdout.rstrip("\r\n")
 
 
-def publish(repo: Path, runner: Callable[..., str] | None = None) -> dict[str, Any]:
+def publish(
+    repo: Path,
+    runner: Callable[..., str] | None = None,
+    *,
+    config_path: Path | None = None,
+    state_path: Path | None = None,
+) -> dict[str, Any]:
     runner = runner or _run
-    config = external_review_control.load_json(repo / external_review_control.CONFIG_PATH)
-    state = external_review_control.load_json(repo / external_review_control.STATE_PATH)
+    config_path = config_path or repo / external_review_control.CONFIG_PATH
+    state_path = state_path or repo / external_review_control.STATE_PATH
+    config = external_review_control.load_json(config_path)
+    state = external_review_control.load_json(state_path)
     authority = external_review_control.repository_authority_errors(config)
     if authority:
         raise PublicationError("; ".join(authority))
@@ -193,18 +209,25 @@ def publish(repo: Path, runner: Callable[..., str] | None = None) -> dict[str, A
         "request_marker", "artifact_url", "is_draft", "head_branch", "base_branch",
         "dependency_pr", "dependency_state", "dependency_merged")}, "trigger_comment": trigger_body,
         "trigger_artifact_url": trigger_artifact_url}
-    temporary = repo / ".ai/external-review-state.json.tmp"
+    temporary = state_path.with_name(state_path.name + ".tmp")
+    temporary.parent.mkdir(parents=True, exist_ok=True)
     temporary.write_text(json.dumps(state, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    os.replace(temporary, repo / external_review_control.STATE_PATH)
+    os.replace(temporary, state_path)
     return state["publication"]
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, default=Path("."))
+    parser.add_argument("--config", type=Path)
+    parser.add_argument("--state", type=Path)
     args = parser.parse_args()
     try:
-        print(json.dumps(publish(args.repo.resolve()), indent=2))
+        print(json.dumps(publish(
+            args.repo.resolve(),
+            config_path=args.config.resolve() if args.config else None,
+            state_path=args.state.resolve() if args.state else None,
+        ), indent=2))
     except PublicationError as exc:
         print(json.dumps({"status": "FAILED_CLOSED", "reason": str(exc)}))
         return 1

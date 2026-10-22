@@ -8,6 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
 SPEC = importlib.util.spec_from_file_location("adapter", ROOT / "scripts/claude_reviewer_adapter.py")
 ADAPTER = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader
@@ -33,6 +34,9 @@ class ClaudeReviewerAdapterTest(unittest.TestCase):
             "allow_live_write": False, "safety_baseline_verified": False,
             "review_only_live": False,
             "requested_model":"sonnet", "requested_effort":"medium", "requested_provider":"Anthropic",
+            "program_id":"program-test-goal-review-v1",
+            "review_scope":"the exact sealed B-scheme acceptance criteria",
+            "review_authority_paths":["AGENTS.md","PLAN.md",".ai/REVIEW_REQUEST.md"],
         }
 
     def tearDown(self):
@@ -63,6 +67,21 @@ class ClaudeReviewerAdapterTest(unittest.TestCase):
         self.assertNotIn("--dry-run", command)
         self.assertNotIn("--auto-merge", command)
         self.assertFalse(self.order(review_only_live=True, safety_baseline_verified=True).allow_live_write)
+
+    def test_review_only_prompt_uses_exact_order_scope_without_legacy_hardcoding(self):
+        command = ADAPTER.build_command(
+            self.order(review_only_live=True, safety_baseline_verified=True)
+        )
+        prompt = command[-1]
+        self.assertIn("program_id=program-test-goal-review-v1", prompt)
+        self.assertIn("the exact sealed B-scheme acceptance criteria", prompt)
+        self.assertIn(".ai/REVIEW_REQUEST.md", prompt)
+        self.assertNotIn("finding-r-004", prompt)
+        self.assertNotIn("source-library-successor", prompt)
+
+    def test_review_authority_paths_reject_escape(self):
+        with self.assertRaisesRegex(ADAPTER.AdapterError, "repository-relative"):
+            self.order(review_authority_paths=["../other-repo"])
 
     def test_exhausted_budget_is_rejected(self):
         with self.assertRaisesRegex(ADAPTER.AdapterError, "budget"):

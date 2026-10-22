@@ -6,7 +6,7 @@ This factual handoff describes the Codex App implementation Goal. It is not a KG
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-22T16:01:38+08:00",
+  "updated_at": "2026-10-22T16:19:59+08:00",
   "goal_id": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
   "active_goal": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -21,13 +21,13 @@ This factual handoff describes the Codex App implementation Goal. It is not a KG
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/goal-continuous-delegation-20261022",
-    "head": "f81ccdde369c7ab9468ed07ca1fdab6d8f0b60e0",
+    "head": "e0f5bd0f258b883e682251dcac240ed7fff721aa",
     "base_commit": "f81ccdde369c7ab9468ed07ca1fdab6d8f0b60e0",
-    "checkpoint_commit": "f81ccdde369c7ab9468ed07ca1fdab6d8f0b60e0"
+    "checkpoint_commit": "e0f5bd0f258b883e682251dcac240ed7fff721aa"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "99b89a36b48176dcca4adfbe91b28d5efd6e91310fb7056409a75ebe387270dc",
+    "fingerprint": "dae2027a4120151aacec6f0b36a6f7e560edae23bd7a07ee6135e8ecab568058",
     "starting_fingerprint": "7621a96a29db9c1e8af64471fef694238210b5c7585bc8f5dcd16231816723c4",
     "expected_dirty_policy": "Only B-scheme execution contracts, schemas, Runner integration, bounded tests/evidence, PLAN/STATUS and review/publication receipts may change. Product files, PR #29, main, legacy Ledgers and deployed Runner remain untouched.",
     "preserved_preexisting_dirty_paths": [],
@@ -55,11 +55,11 @@ This factual handoff describes the Codex App implementation Goal. It is not a KG
     "candidate_verified": false,
     "release_verified": false,
     "control_plane_ready": false,
-    "last_candidate_evidence": "docs/control-plane/evidence/b-scheme-isolated-trial-20261022.json",
-    "last_verified_fingerprint": null,
-    "last_result": "Review identity changed from GOAL-KGNOTE-MAINLINE-INTEGRATION-20261020 to CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022: The user started the distinct Codex App B-scheme implementation Goal; the prior mainline-integration request was unsealed IMPLEMENTING provenance and grants no authority to this Goal."
+    "last_candidate_evidence": "output/control-plane/verification-20261022T161456+0800.json",
+    "last_verified_fingerprint": "ec32063be6d187afceb0fb3d8baace60e509eb1bb5e84746555da8da6263c473",
+    "last_result": "Invalidated review 001 and repaired the generic Ubuntu Claude review scope/config binding gap."
   },
-  "next_action": "Complete deterministic verification for the new execution Goal and issue its first exact review request.",
+  "next_action": "Run focused and full deterministic verification, commit the review-binding repair, republish PR #31, and issue review 002.",
   "external_or_human_gates": [
     {
       "id": "B-SCHEME-GO-LIVE",
@@ -95,5 +95,5 @@ Goal `CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022` remains active at milesto
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Complete deterministic verification for the new execution Goal and issue its first exact review request.
+Exact next action: Run focused and full deterministic verification, commit the review-binding repair, republish PR #31, and issue review 002.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.
