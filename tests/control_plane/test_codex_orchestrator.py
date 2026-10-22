@@ -449,11 +449,13 @@ class EnvelopeSealOrderingTests(OrchestrationSimulationTests):
             with mock.patch.object(ORCH,"recover_stale_candidate",return_value=False), \
                  mock.patch.object(ORCH.control,"load_review_artifacts",return_value=(request,{"artifact_state":"EMPTY"},{})), \
                  mock.patch.object(ORCH.control,"preflight",return_value={"status":"pass"}), \
-                 mock.patch.object(ORCH,"update_state",side_effect=lambda _r,s,new,next_action,**_k:s.update(state=new,next_action=next_action)):
+                 mock.patch.object(ORCH,"update_state",side_effect=lambda _r,s,new,next_action,**fields:s.update({"state":new,"next_action":next_action,**fields})):
                 ORCH.orchestrate_step(root,state,runner)
             runner.assert_not_called()
             self.assertEqual("AWAITING_EXTERNAL_PRODUCT_REVIEW",state["state"])
             self.assertEqual("PRODUCTION_RUNNER",state["candidate_custody"]["owner"])
+            self.assertEqual("review-1", state["review_id"])
+            self.assertEqual("a" * 64, state["candidate_fingerprint"])
             self.assertIn("Ubuntu Claude",state["next_action"])
 
     def test_internal_pass_executes_exact_publication_before_external_wait(self):

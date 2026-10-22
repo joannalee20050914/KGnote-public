@@ -1035,6 +1035,8 @@ def orchestrate_step(repo: Path, state: dict[str, Any], runner: AgentRunner = ru
             update_state(
                 repo, state, "AWAITING_EXTERNAL_PRODUCT_REVIEW",
                 "Production Runner must dispatch Ubuntu Claude for the sealed candidate, relay the exact result to GitHub, and require canonical Consumer read-back.",
+                review_id=request["review_id"],
+                candidate_fingerprint=request["candidate_fingerprint"],
             )
             return
         if state["review_cycle"] >= state["max_review_cycles"]:
@@ -1073,6 +1075,8 @@ def orchestrate_step(repo: Path, state: dict[str, Any], runner: AgentRunner = ru
             update_state(
                 repo, state, "AWAITING_EXTERNAL_PRODUCT_REVIEW",
                 "Legacy local reviewer custody is not resumed; Production Runner must dispatch Ubuntu Claude and consume canonical GitHub evidence.",
+                review_id=request["review_id"],
+                candidate_fingerprint=request["candidate_fingerprint"],
             )
             return
         # Crash/context restart recovery: custody and fingerprint remain durable,

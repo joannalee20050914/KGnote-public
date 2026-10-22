@@ -240,6 +240,102 @@ def load_review_artifacts(repo: Path) -> tuple[dict[str, Any], dict[str, Any], d
     )
 
 
+def ubuntu_claude_routine_review_active(repo: Path) -> bool:
+    """Return true only for the approved routine-review role cutover."""
+    path = repo / "docs/control-plane/CLAUDE_REVIEWER_ROLE_DECISION_20261020.md"
+    if not path.is_file():
+        return False
+    text = path.read_text(encoding="utf-8")
+    return (
+        "Status: `APPROVED`" in text
+        and "Ubuntu Claude is the sole routine independent AI product reviewer" in text
+    )
+
+
+def validate_goal_scoped_external_wait(
+    repo: Path,
+    state: dict[str, Any],
+    request: dict[str, Any],
+) -> list[str]:
+    """Validate the published exact-candidate handoff to the sole Ubuntu reviewer."""
+    errors: list[str] = []
+    binding = state.get("external_review_binding")
+    if not isinstance(binding, dict):
+        return ["orchestrator_state: sole-reviewer wait requires external_review_binding"]
+    expected_binding = {
+        "goal_id": state.get("active_goal"),
+        "program_id": binding.get("program_id"),
+    }
+    if binding.get("goal_id") != expected_binding["goal_id"]:
+        errors.append("orchestrator_state: external-review binding goal differs from active goal")
+    if not isinstance(binding.get("program_id"), str) or not binding.get("program_id"):
+        errors.append("orchestrator_state: external-review binding program_id is missing")
+
+    loaded: dict[str, dict[str, Any]] = {}
+    for key, label in (("config_path", "config"), ("state_path", "state")):
+        raw = binding.get(key)
+        path = Path(raw) if isinstance(raw, str) else Path("")
+        if not raw or path.is_absolute() or ".." in path.parts:
+            errors.append(f"orchestrator_state: external-review {label} path must be repository-relative")
+            continue
+        resolved = (repo / path).resolve()
+        try:
+            resolved.relative_to(repo.resolve())
+            value = json.loads(resolved.read_text(encoding="utf-8"))
+            if not isinstance(value, dict):
+                raise ValueError("root must be an object")
+            loaded[label] = value
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            errors.append(f"orchestrator_state: cannot load external-review {label}: {exc}")
+
+    config = loaded.get("config")
+    review_state = loaded.get("state")
+    if config is None or review_state is None:
+        return errors
+    program_id = binding.get("program_id")
+    if config.get("program_id") != program_id or review_state.get("program_id") != program_id:
+        errors.append("orchestrator_state: external-review program identity mismatch")
+    if review_state.get("goal_id") != state.get("active_goal"):
+        errors.append("orchestrator_state: external-review state goal differs from active goal")
+    repository_fields = (
+        "canonical_repository", "candidate_repository", "trigger_repository",
+        "review_request_repository",
+    )
+    repository_values = {config.get(field) for field in repository_fields}
+    if None in repository_values or len(repository_values) != 1:
+        errors.append("orchestrator_state: external-review repository identities are not exact")
+    for field in repository_fields:
+        if review_state.get(field) != config.get(field):
+            errors.append(f"orchestrator_state: external-review state/config mismatch for {field}")
+    if review_state.get("pull_request") != config.get("review_pr_number"):
+        errors.append("orchestrator_state: external-review pull request identity mismatch")
+
+    fingerprint = request.get("candidate_fingerprint")
+    head = git_text(repo, "rev-parse", "HEAD")
+    if review_state.get("candidate_fingerprint") != fingerprint:
+        errors.append("orchestrator_state: external-review state fingerprint differs from request")
+    if review_state.get("candidate_commit") != head:
+        errors.append("orchestrator_state: external-review state commit differs from HEAD")
+    publication = review_state.get("publication")
+    if not isinstance(publication, dict) or publication.get("status") != "PUBLISHED":
+        errors.append("orchestrator_state: sole-reviewer wait requires exact publication read-back")
+    else:
+        if publication.get("remote_head") != head:
+            errors.append("orchestrator_state: published remote head differs from HEAD")
+        if publication.get("candidate_fingerprint") != fingerprint:
+            errors.append("orchestrator_state: published fingerprint differs from request")
+        if not publication.get("artifact_url") or not publication.get("trigger_artifact_url"):
+            errors.append("orchestrator_state: publication or trigger read-back URL is missing")
+        template = config.get("trigger_comment_template")
+        expected_trigger = (
+            template.format(candidate_commit=head)
+            if isinstance(template, str) and "{candidate_commit}" in template else None
+        )
+        if not expected_trigger or publication.get("trigger_comment") != expected_trigger:
+            errors.append("orchestrator_state: exact reviewer trigger read-back is missing")
+    return errors
+
+
 def validate_orchestrator_state(
     repo: Path,
     plan: dict[str, Any],
@@ -288,13 +384,27 @@ def validate_orchestrator_state(
     if state.get("state") == "REVIEWING" and request.get("status") != "UNDER_REVIEW":
         errors.append("orchestrator_state: REVIEWING requires UNDER_REVIEW custody")
     if state.get("state") == "AWAITING_EXTERNAL_PRODUCT_REVIEW":
-        if request.get("status") != "PASS":
-            errors.append("orchestrator_state: external-review wait requires internal PASS")
+        sole_reviewer = ubuntu_claude_routine_review_active(repo)
+        expected_request_state = "READY_FOR_REVIEW" if sole_reviewer else "PASS"
+        if request.get("status") != expected_request_state:
+            errors.append(
+                "orchestrator_state: external-review wait requires a sealed sole-reviewer request"
+                if sole_reviewer
+                else "orchestrator_state: external-review wait requires internal PASS"
+            )
         if state.get("review_id") != request.get("review_id"):
             errors.append("orchestrator_state: waiting review_id differs from current request")
         if state.get("candidate_fingerprint") != request.get("candidate_fingerprint"):
             errors.append("orchestrator_state: waiting fingerprint differs from current request")
-        if not isinstance(custody, dict) or custody.get("status") != "NONE":
+        if sole_reviewer:
+            if (
+                not isinstance(custody, dict)
+                or custody.get("status") != "SEALED"
+                or custody.get("owner") != "PRODUCTION_RUNNER"
+            ):
+                errors.append("orchestrator_state: sole-reviewer wait requires sealed Production Runner custody")
+            errors.extend(validate_goal_scoped_external_wait(repo, state, request))
+        elif not isinstance(custody, dict) or custody.get("status") != "NONE":
             errors.append("orchestrator_state: external-review wait requires released candidate custody")
     human_states = {
         "HUMAN_CHECKPOINT_REQUIRED", "FINAL_HUMAN_ACCEPTANCE_REQUIRED",
