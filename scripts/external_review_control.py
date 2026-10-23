@@ -16,6 +16,10 @@ ACTIVE_REPOSITORY_FIELDS = (
     "trigger_repository",
     "review_request_repository",
 )
+UBUNTU_REVIEW_TRIGGER_TEMPLATE = (
+    "<!-- kgnote-ubuntu-claude-review-request candidate_commit={candidate_commit} -->"
+)
+LEGACY_WORK_TRIGGER_TEMPLATE = "@kgnote-ai-review {candidate_commit}"
 FINAL_HUMAN_GATE_ID = "D2-T14-FINAL-HUMAN-ACCEPTANCE"
 FINAL_HUMAN_GATE_AUTHORITY_REFS = {
     "docs/requirements/PERSONAL_ALPHA_INTEGRATED_STAGE_DIRECTION_20260927.md",
@@ -49,8 +53,14 @@ def repository_authority_errors(config: Mapping[str, Any]) -> list[str]:
     trigger_events = config.get("trigger_events")
     if not isinstance(trigger_events, list) or "issue_comment.created" not in trigger_events:
         errors.append("external_review: exact issue-comment trigger event must be configured")
-    if config.get("trigger_comment_template") != "@kgnote-ai-review {candidate_commit}":
-        errors.append("external_review: exact review trigger comment template is missing")
+    transport = config.get("transport")
+    accepted_triggers = (
+        {UBUNTU_REVIEW_TRIGGER_TEMPLATE, LEGACY_WORK_TRIGGER_TEMPLATE}
+        if transport == "ubuntu_claude_runner_github_relay"
+        else {LEGACY_WORK_TRIGGER_TEMPLATE}
+    )
+    if config.get("trigger_comment_template") not in accepted_triggers:
+        errors.append("external_review: exact transport-specific trigger comment template is missing")
     if config.get("schema_version") == "kgnote.github-product-reviewer-config.v2":
         if config.get("review_pr_expected_draft") is not True:
             errors.append("external_review: candidate PR must remain Draft")

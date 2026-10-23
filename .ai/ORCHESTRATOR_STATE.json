@@ -1,23 +1,35 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "mainline-integration-20261020",
-  "active_goal": "GOAL-KGNOTE-MAINLINE-INTEGRATION-20261020",
-  "work_package": "MAINLINE-INTEGRATION-CANDIDATE",
+  "run_id": "b-scheme-continuous-delegation-20261022",
+  "active_goal": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
+  "goal_layer": "CODEX_APP_EXECUTION_GOAL",
+  "product_goal_authorized": false,
+  "work_package": "B5-REPLAY-TRIAL-DELIVERY",
+  "external_review_required": true,
   "state": "IMPLEMENTING",
   "current_agent": null,
   "candidate_fingerprint": null,
   "review_id": null,
   "review_cycle": 0,
-  "max_review_cycles": 1,
+  "max_review_cycles": 5,
   "agent_failures": 0,
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Complete deterministic verification, seal the integration-local request, then stop READY_FOR_REVIEW_BUDGET_BLOCKED because successor Ubuntu Claude usage is 6/6.",
+  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-b-continuous-delegation-20261022-009.",
   "human_action_required": false,
-  "candidate_custody": {"status":"NONE","owner":null,"review_id":null,"fingerprint":null},
-  "next_human_checkpoint": {"id":"REVIEW-BUDGET-AUTHORITY","status":"not_authorized","description":"A future reviewer round requires separate owner authority; this repair must not invoke a model."},
+  "candidate_custody": {
+    "status": "NONE",
+    "owner": null,
+    "review_id": null,
+    "fingerprint": null
+  },
+  "next_human_checkpoint": {
+    "id": "B-SCHEME-GO-LIVE",
+    "status": "not_authorized",
+    "description": "Formal Product Goal go-live requires separate exact GitHub Owner authorization after the implementation candidate and isolated trial pass."
+  },
   "last_agent_run": null,
-  "created_at": "2026-10-20T11:10:00+08:00",
-  "updated_at": "2026-10-20T11:10:00+08:00"
+  "created_at": "2026-10-22T15:10:00+08:00",
+  "updated_at": "2026-10-22T17:41:15+08:00"
 }

@@ -70,6 +70,19 @@ class PublicationTransitionTests(unittest.TestCase):
                 self.state,
             )
 
+    def test_ubuntu_transport_uses_non_work_runner_trigger(self):
+        config = {
+            **self.config,
+            "transport": "ubuntu_claude_runner_github_relay",
+            "trigger_comment_template": (
+                "<!-- kgnote-ubuntu-claude-review-request "
+                "candidate_commit={candidate_commit} -->"
+            ),
+        }
+        value = PUBLISH.review_trigger_comment(config, self.state)
+        self.assertIn("kgnote-ubuntu-claude-review-request", value)
+        self.assertNotIn("@kgnote-ai-review", value)
+
     def test_stale_marker_cleanup_is_not_limited_by_current_round_budget(self):
         body = (
             "PR\n\n<!-- REQUEST_V2 candidate_commit=" + "c" * 40
@@ -100,7 +113,8 @@ class PublicationTransitionTests(unittest.TestCase):
     def test_publish_executes_push_readback_and_durable_recording(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
-            (repo / ".ai").mkdir(); (repo / ".git").mkdir()
+            (repo / ".ai").mkdir()
+            (repo / ".git").write_text("gitdir: /tmp/example-common-dir\n")
             (repo / ".ai/github-product-reviewer.json").write_text(json.dumps(self.config))
             state = {**self.state, "publication": {"status": "PENDING"}}
             (repo / ".ai/external-review-state.json").write_text(json.dumps(state))

@@ -1,27 +1,35 @@
 # KGnote Codex status
 
+This factual handoff describes the Codex App implementation Goal. It is not a KGnote Product Goal lifecycle record.
+
 <!-- BEGIN CODEX STATUS JSON -->
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-20T12:25:42+08:00",
-  "goal_id": "GOAL-KGNOTE-MAINLINE-INTEGRATION-20261020",
+  "updated_at": "2026-10-22T17:59:54+08:00",
+  "goal_id": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
+  "active_goal": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
+  "goal_layer": "CODEX_APP_EXECUTION_GOAL",
+  "authority_kind": "CURRENT_USER_EXECUTION_INSTRUCTION",
+  "lifecycle_owner": "CODEX_APP",
+  "product_goal_authorized": false,
   "goal_status": "active",
-  "active_milestone_id": "MAINLINE-INTEGRATION-CANDIDATE",
+  "active_milestone_id": "B5-REPLAY-TRIAL-DELIVERY",
+  "milestone_id": "B5-REPLAY-TRIAL-DELIVERY",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
-    "branch": "codex/mainline-integration-20261020",
-    "head": "d1fb319428356c80e099a08e6380098c6afec84a",
-    "base_commit": "827e4aa863fefea6f7d4a9e6120d5845bec3b9fd",
-    "checkpoint_commit": "d1fb319428356c80e099a08e6380098c6afec84a"
+    "branch": "codex/goal-continuous-delegation-20261022",
+    "head": "ca0c9fb7b3891c8251f4918f9d7c06cbe8ea5e1f",
+    "base_commit": "f81ccdde369c7ab9468ed07ca1fdab6d8f0b60e0",
+    "checkpoint_commit": "ca0c9fb7b3891c8251f4918f9d7c06cbe8ea5e1f"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "c255eca0f33a7d77ec5d8317bfab102c8989be2e0cb7281a5484439634c17e58",
-    "starting_fingerprint": "c255eca0f33a7d77ec5d8317bfab102c8989be2e0cb7281a5484439634c17e58",
-    "expected_dirty_policy": "Only CODEX_STATUS.md may remain dirty as the self-referential HEAD handoff receipt.",
+    "fingerprint": "db5b7bab2a77d779f6d021b1eaf1d550d03362b4be7a2794e51d9c39e0d73f1c",
+    "starting_fingerprint": "7621a96a29db9c1e8af64471fef694238210b5c7585bc8f5dcd16231816723c4",
+    "expected_dirty_policy": "Only B-scheme execution contracts, schemas, Runner integration, bounded tests/evidence, PLAN/STATUS and review/publication receipts may change. Product files, PR #29, main, legacy Ledgers and deployed Runner remain untouched.",
     "preserved_preexisting_dirty_paths": [],
     "unexpected_dirty_paths": []
   },
@@ -34,37 +42,48 @@
     "unresolved_findings": [],
     "human_decision_blockers": []
   },
+  "deployment_readback": {
+    "mac_runner_head": "951e4c312d00bea81dd9252033be8857a2a17d15",
+    "linux_router_head": "7dbaeb6872cea07f5f8eb6ebdff8b29359cd2d66",
+    "epoch_admission_head": "b3293908847ac8296c37402ab1a3876e50b2b38a",
+    "ubuntu_issue9_head": "4c11eb425f98030d6181abb74e67b0e7594d87bc",
+    "codex_cli": "0.146.0",
+    "claude_code": "2.1.302",
+    "product_goal_go_live": false
+  },
   "verification": {
     "candidate_verified": false,
     "release_verified": false,
     "control_plane_ready": false,
-    "last_candidate_evidence": "output/control-plane/verification-20261020T111556+0800.json",
-    "last_verified_fingerprint": "f768959692c8d3444364665b49add54e51a605b1b340f4911fded9d5d84ffcee",
-    "last_result": "Review review-mainline-integration-20261020-001 was invalidated before reviewer custody: Round 6 external CHANGES_REQUIRED requires one consolidated control-plane evidence and identity repair; no reviewer budget remains."
+    "last_candidate_evidence": "output/control-plane/verification-20261022T173007+0800.json",
+    "last_verified_fingerprint": "2ab47d49bb252e35c6cb99afe2e6aa39e79703e9f55e1875983435a88487f8e4",
+    "last_result": "Review 008 completion-audit repairs, updated authority lock, and Draft PR #31 handoff changed authorized B-scheme candidate bytes."
   },
-  "integration": {
-    "source_prs": [
-      1,
-      22,
-      26
-    ],
-    "strategy": "single main-based integration PR",
-    "historical_active_snapshots_imported": false,
-    "automatic_merge": false,
-    "issue8_status": "integration_pending",
-    "issue9_status": "not_ready"
-  },
-  "next_action": "Commit the consolidated control-plane repair, run post-commit deterministic verification and exact PR read-back, seal review-mainline-integration-20261020-002, then stop READY_FOR_REVIEW_BUDGET_BLOCKED without invoking a model.",
+  "next_action": "Commit and push the repaired candidate, rerun deterministic verification at the exact HEAD, then create Review 009.",
   "external_or_human_gates": [
-    "GitHub required approval before main merge"
+    {
+      "id": "B-SCHEME-GO-LIVE",
+      "status": "not_authorized"
+    },
+    {
+      "id": "D2-T14-FINAL-HUMAN-ACCEPTANCE",
+      "status": "not_promoted"
+    },
+    {
+      "id": "PA-HUMAN-1",
+      "status": "not_promoted"
+    },
+    {
+      "id": "NS-HUMAN-SMOKE",
+      "status": "not_promoted"
+    }
   ],
   "forbidden_during_goal": [
-    "merge main",
-    "force push",
-    "clear legacy Stop Marker",
-    "reuse PR #26 PASS for new HEAD",
-    "trigger ChatGPT Work for routine review",
-    "increase model budget"
+    "activate or close a KGnote Product Goal from Codex App Goal state",
+    "modify or merge PR #29 or main",
+    "deploy the new Runner policy before the B-SCHEME-GO-LIVE authority",
+    "reset legacy Ledgers, budgets, 429 records, reviews, checkpoints or Stop Markers",
+    "use paid API fallback or claim an unobservable 10 percent reserve"
   ]
 }
 ```
@@ -72,9 +91,9 @@
 
 ## Human-readable handoff
 
-Goal `GOAL-KGNOTE-MAINLINE-INTEGRATION-20261020` remains active at milestone `MAINLINE-INTEGRATION-CANDIDATE`.
+Goal `CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022` remains active at milestone `B5-REPLAY-TRIAL-DELIVERY`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Commit the consolidated control-plane repair, run post-commit deterministic verification and exact PR read-back, seal review-mainline-integration-20261020-002, then stop READY_FOR_REVIEW_BUDGET_BLOCKED without invoking a model.
+Exact next action: Commit and push the repaired candidate, rerun deterministic verification at the exact HEAD, then create Review 009.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

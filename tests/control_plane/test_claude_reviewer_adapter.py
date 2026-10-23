@@ -8,6 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
 SPEC = importlib.util.spec_from_file_location("adapter", ROOT / "scripts/claude_reviewer_adapter.py")
 ADAPTER = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader
@@ -33,6 +34,9 @@ class ClaudeReviewerAdapterTest(unittest.TestCase):
             "allow_live_write": False, "safety_baseline_verified": False,
             "review_only_live": False,
             "requested_model":"sonnet", "requested_effort":"medium", "requested_provider":"Anthropic",
+            "program_id":"program-test-goal-review-v1",
+            "review_scope":"the exact sealed B-scheme acceptance criteria",
+            "review_authority_paths":["AGENTS.md","PLAN.md",".ai/REVIEW_REQUEST.md"],
         }
 
     def tearDown(self):
@@ -63,6 +67,21 @@ class ClaudeReviewerAdapterTest(unittest.TestCase):
         self.assertNotIn("--dry-run", command)
         self.assertNotIn("--auto-merge", command)
         self.assertFalse(self.order(review_only_live=True, safety_baseline_verified=True).allow_live_write)
+
+    def test_review_only_prompt_uses_exact_order_scope_without_legacy_hardcoding(self):
+        command = ADAPTER.build_command(
+            self.order(review_only_live=True, safety_baseline_verified=True)
+        )
+        prompt = command[-1]
+        self.assertIn("program_id=program-test-goal-review-v1", prompt)
+        self.assertIn("the exact sealed B-scheme acceptance criteria", prompt)
+        self.assertIn(".ai/REVIEW_REQUEST.md", prompt)
+        self.assertNotIn("finding-r-004", prompt)
+        self.assertNotIn("source-library-successor", prompt)
+
+    def test_review_authority_paths_reject_escape(self):
+        with self.assertRaisesRegex(ADAPTER.AdapterError, "repository-relative"):
+            self.order(review_authority_paths=["../other-repo"])
 
     def test_exhausted_budget_is_rejected(self):
         with self.assertRaisesRegex(ADAPTER.AdapterError, "budget"):
@@ -155,6 +174,41 @@ class ClaudeReviewerAdapterTest(unittest.TestCase):
         )
         self.assertEqual("FAILED_CLOSED",result["status"])
         self.assertEqual("MODEL_MISMATCH",result["execution_evidence"]["effective_status"])
+        self.assertFalse(result["product_review_accepted"])
+
+    def test_structured_429_preserves_usage_but_never_creates_a_verdict(self):
+        order = self.order(review_only_live=True, safety_baseline_verified=True)
+        envelope = {
+            "api_error_status": 429,
+            "api_error": "usage_limit_reached",
+            "is_error": True,
+            "usage": {"input_tokens": 4, "output_tokens": 12},
+            "modelUsage": {
+                "claude-sonnet-5-5": {
+                    "canonicalModel": "claude-sonnet-5-5", "provider": "firstParty"
+                }
+            },
+        }
+        def runner(command, **kwargs):
+            if command[0] == "git":
+                return subprocess.CompletedProcess(
+                    command, 0, ADAPTER.PINNED_AGENT_LOOP_COMMIT + "\n", ""
+                )
+            if command[-1] == "--version":
+                return subprocess.CompletedProcess(command, 0, "2.1.302 (Claude Code)\n", "")
+            return subprocess.CompletedProcess(command, 1, json.dumps(envelope), "")
+        result = ADAPTER.execute(
+            order, runner,
+            auth_checker=lambda _path: {
+                "auth_method": "claude.ai", "api_provider": "firstParty",
+                "subscription_type": "pro",
+            },
+        )
+        self.assertEqual("FAILED_CLOSED", result["status"])
+        self.assertEqual("quota_exhausted", result["reason"])
+        self.assertEqual(12, result["execution_evidence"]["token_usage"]["output_tokens"])
+        self.assertEqual("EFFECTIVE_CONFIRMED", result["execution_evidence"]["effective_status"])
+        self.assertNotIn("review_result", result)
         self.assertFalse(result["product_review_accepted"])
 
 

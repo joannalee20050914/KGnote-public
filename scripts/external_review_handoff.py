@@ -2,6 +2,7 @@
 """One bounded GitHub read/consume/update cycle for an external product review."""
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import subprocess
@@ -29,10 +30,18 @@ def _records(reviews: list[dict[str, Any]], comments: list[dict[str, Any]]) -> l
     return rows
 
 
-def process(repo: Path, runner: Callable[..., str] | None = None) -> dict[str, Any]:
+def process(
+    repo: Path,
+    runner: Callable[..., str] | None = None,
+    *,
+    config_path: Path | None = None,
+    state_path: Path | None = None,
+) -> dict[str, Any]:
     runner = runner or _run
-    config = external_review_control.load_json(repo / external_review_control.CONFIG_PATH)
-    state = external_review_control.load_json(repo / external_review_control.STATE_PATH)
+    config_path = config_path or repo / external_review_control.CONFIG_PATH
+    state_path = state_path or repo / external_review_control.STATE_PATH
+    config = external_review_control.load_json(config_path)
+    state = external_review_control.load_json(state_path)
     blockers = external_review_control.publication_progression_blockers(config, state)
     if blockers:
         return {"status": "AUTOMATION_BLOCKED", "accepted": False, "errors": blockers}
@@ -55,7 +64,7 @@ def process(repo: Path, runner: Callable[..., str] | None = None) -> dict[str, A
         "record_id": decision["record_id"], "native_ui_observed": decision["native_ui_observed"],
         "blocking_findings": [item["id"] for item in decision["findings"]], "consumer_accepted": True,
     }
-    if decision["verdict"] == "PASS":
+    if decision["verdict"] == "PASS" and config.get("delivery_issue_number") is not None:
         marker = (f"<!-- KGNOTE_ISSUE8_REVIEW_RECEIPT commit={state['candidate_commit']} "
                   f"fingerprint={state['candidate_fingerprint']} round={state['review_round']} -->")
         issue_path = f"repos/{repository}/issues/{config['delivery_issue_number']}/comments"
@@ -83,7 +92,27 @@ def process(repo: Path, runner: Callable[..., str] | None = None) -> dict[str, A
             "issue": config["delivery_issue_number"], "issue_comment_url": issue_receipt.get("html_url"),
             "project_item_id": config["project_item_id"], "project_status": item.get("status"),
             "preserved_gates": ["PA-HUMAN-1", "NS-HUMAN-SMOKE", "release_verified=false"]}
-    temporary = repo / ".ai/external-review-state.json.tmp"
+    temporary = state_path.with_name(state_path.name + ".tmp")
+    temporary.parent.mkdir(parents=True, exist_ok=True)
     temporary.write_text(json.dumps(state, indent=2, ensure_ascii=False) + "\n")
-    os.replace(temporary, repo / external_review_control.STATE_PATH)
+    os.replace(temporary, state_path)
     return decision
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", type=Path, default=Path("."))
+    parser.add_argument("--config", type=Path)
+    parser.add_argument("--state", type=Path)
+    args = parser.parse_args()
+    result = process(
+        args.repo.resolve(),
+        config_path=args.config.resolve() if args.config else None,
+        state_path=args.state.resolve() if args.state else None,
+    )
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 0 if result.get("accepted") else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

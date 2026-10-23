@@ -1,13 +1,13 @@
 {
   "schema_version": "kgnote.authority-lock.v1",
-  "generated_at": "2026-10-05",
+  "generated_at": "2026-10-22",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "conflict_policy": "fail_closed_authority_drift",
   "product_authority": [
     {
       "path": "docs/control-plane/AUTHORITY.md",
       "role": "authority_policy",
-      "sha256": "e08ea076a20b66286cccb0508d969f83ebfee28819850336c630482940e59507",
+      "sha256": "34061a0415e76d15b2273e1e39ed5de08bd7952307c54d9f0fe96de1038676dc",
       "required_marker": "kgnote-obsidian-first-2026-09-22"
     },
     {
@@ -92,6 +92,13 @@
         "validation": "sha256",
         "sha256": "407f9a883f59b5ee93822fb47bcfd130b5e3791ec0734c061f402ab07ba37dfa",
         "required_marker": "kgnote-obsidian-first-2026-09-22"
+      },
+      {
+        "path": "docs/control-plane/GOAL_SCOPED_CONTINUOUS_DELEGATION_20261022.md",
+        "role": "goal_scoped_continuous_delegation_policy",
+        "validation": "sha256",
+        "sha256": "0e49c6256742c17c04043820f5ef4f0a06e3560b1da2a89905399c91eb13abe5",
+        "required_marker": "kgnote-goal-scoped-continuous-delegation-2026-10-22"
       },
       {
         "path": "PLAN.md",

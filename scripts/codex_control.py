@@ -240,6 +240,102 @@ def load_review_artifacts(repo: Path) -> tuple[dict[str, Any], dict[str, Any], d
     )
 
 
+def ubuntu_claude_routine_review_active(repo: Path) -> bool:
+    """Return true only for the approved routine-review role cutover."""
+    path = repo / "docs/control-plane/CLAUDE_REVIEWER_ROLE_DECISION_20261020.md"
+    if not path.is_file():
+        return False
+    text = path.read_text(encoding="utf-8")
+    return (
+        "Status: `APPROVED`" in text
+        and "Ubuntu Claude is the sole routine independent AI product reviewer" in text
+    )
+
+
+def validate_goal_scoped_external_wait(
+    repo: Path,
+    state: dict[str, Any],
+    request: dict[str, Any],
+) -> list[str]:
+    """Validate the published exact-candidate handoff to the sole Ubuntu reviewer."""
+    errors: list[str] = []
+    binding = state.get("external_review_binding")
+    if not isinstance(binding, dict):
+        return ["orchestrator_state: sole-reviewer wait requires external_review_binding"]
+    expected_binding = {
+        "goal_id": state.get("active_goal"),
+        "program_id": binding.get("program_id"),
+    }
+    if binding.get("goal_id") != expected_binding["goal_id"]:
+        errors.append("orchestrator_state: external-review binding goal differs from active goal")
+    if not isinstance(binding.get("program_id"), str) or not binding.get("program_id"):
+        errors.append("orchestrator_state: external-review binding program_id is missing")
+
+    loaded: dict[str, dict[str, Any]] = {}
+    for key, label in (("config_path", "config"), ("state_path", "state")):
+        raw = binding.get(key)
+        path = Path(raw) if isinstance(raw, str) else Path("")
+        if not raw or path.is_absolute() or ".." in path.parts:
+            errors.append(f"orchestrator_state: external-review {label} path must be repository-relative")
+            continue
+        resolved = (repo / path).resolve()
+        try:
+            resolved.relative_to(repo.resolve())
+            value = json.loads(resolved.read_text(encoding="utf-8"))
+            if not isinstance(value, dict):
+                raise ValueError("root must be an object")
+            loaded[label] = value
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            errors.append(f"orchestrator_state: cannot load external-review {label}: {exc}")
+
+    config = loaded.get("config")
+    review_state = loaded.get("state")
+    if config is None or review_state is None:
+        return errors
+    program_id = binding.get("program_id")
+    if config.get("program_id") != program_id or review_state.get("program_id") != program_id:
+        errors.append("orchestrator_state: external-review program identity mismatch")
+    if review_state.get("goal_id") != state.get("active_goal"):
+        errors.append("orchestrator_state: external-review state goal differs from active goal")
+    repository_fields = (
+        "canonical_repository", "candidate_repository", "trigger_repository",
+        "review_request_repository",
+    )
+    repository_values = {config.get(field) for field in repository_fields}
+    if None in repository_values or len(repository_values) != 1:
+        errors.append("orchestrator_state: external-review repository identities are not exact")
+    for field in repository_fields:
+        if review_state.get(field) != config.get(field):
+            errors.append(f"orchestrator_state: external-review state/config mismatch for {field}")
+    if review_state.get("pull_request") != config.get("review_pr_number"):
+        errors.append("orchestrator_state: external-review pull request identity mismatch")
+
+    fingerprint = request.get("candidate_fingerprint")
+    head = git_text(repo, "rev-parse", "HEAD")
+    if review_state.get("candidate_fingerprint") != fingerprint:
+        errors.append("orchestrator_state: external-review state fingerprint differs from request")
+    if review_state.get("candidate_commit") != head:
+        errors.append("orchestrator_state: external-review state commit differs from HEAD")
+    publication = review_state.get("publication")
+    if not isinstance(publication, dict) or publication.get("status") != "PUBLISHED":
+        errors.append("orchestrator_state: sole-reviewer wait requires exact publication read-back")
+    else:
+        if publication.get("remote_head") != head:
+            errors.append("orchestrator_state: published remote head differs from HEAD")
+        if publication.get("candidate_fingerprint") != fingerprint:
+            errors.append("orchestrator_state: published fingerprint differs from request")
+        if not publication.get("artifact_url") or not publication.get("trigger_artifact_url"):
+            errors.append("orchestrator_state: publication or trigger read-back URL is missing")
+        template = config.get("trigger_comment_template")
+        expected_trigger = (
+            template.format(candidate_commit=head)
+            if isinstance(template, str) and "{candidate_commit}" in template else None
+        )
+        if not expected_trigger or publication.get("trigger_comment") != expected_trigger:
+            errors.append("orchestrator_state: exact reviewer trigger read-back is missing")
+    return errors
+
+
 def validate_orchestrator_state(
     repo: Path,
     plan: dict[str, Any],
@@ -288,13 +384,27 @@ def validate_orchestrator_state(
     if state.get("state") == "REVIEWING" and request.get("status") != "UNDER_REVIEW":
         errors.append("orchestrator_state: REVIEWING requires UNDER_REVIEW custody")
     if state.get("state") == "AWAITING_EXTERNAL_PRODUCT_REVIEW":
-        if request.get("status") != "PASS":
-            errors.append("orchestrator_state: external-review wait requires internal PASS")
+        sole_reviewer = ubuntu_claude_routine_review_active(repo)
+        expected_request_state = "READY_FOR_REVIEW" if sole_reviewer else "PASS"
+        if request.get("status") != expected_request_state:
+            errors.append(
+                "orchestrator_state: external-review wait requires a sealed sole-reviewer request"
+                if sole_reviewer
+                else "orchestrator_state: external-review wait requires internal PASS"
+            )
         if state.get("review_id") != request.get("review_id"):
             errors.append("orchestrator_state: waiting review_id differs from current request")
         if state.get("candidate_fingerprint") != request.get("candidate_fingerprint"):
             errors.append("orchestrator_state: waiting fingerprint differs from current request")
-        if not isinstance(custody, dict) or custody.get("status") != "NONE":
+        if sole_reviewer:
+            if (
+                not isinstance(custody, dict)
+                or custody.get("status") != "SEALED"
+                or custody.get("owner") != "PRODUCTION_RUNNER"
+            ):
+                errors.append("orchestrator_state: sole-reviewer wait requires sealed Production Runner custody")
+            errors.extend(validate_goal_scoped_external_wait(repo, state, request))
+        elif not isinstance(custody, dict) or custody.get("status") != "NONE":
             errors.append("orchestrator_state: external-review wait requires released candidate custody")
     human_states = {
         "HUMAN_CHECKPOINT_REQUIRED", "FINAL_HUMAN_ACCEPTANCE_REQUIRED",
@@ -1982,6 +2092,103 @@ def next_review_id(review_id: str) -> str:
     return f"{match.group(1)}{int(match.group(2)) + 1:03d}"
 
 
+def rebind_implementing_review_to_active_goal(repo: Path, reason: str) -> dict[str, Any]:
+    """Start a fresh review identity when PLAN begins a different execution Goal.
+
+    Only an unsealed IMPLEMENTING request with an EMPTY result is eligible. The
+    previous request is archived as invalidated provenance; no candidate PASS,
+    Product Goal authority, or human gate can be inherited.
+    """
+    if not reason.strip():
+        raise ValueError("review_goal_rebind: a concrete reason is required")
+    plan, status = load_plan_status(repo)
+    request, result, _ = load_review_artifacts(repo)
+    if request.get("status") != "IMPLEMENTING":
+        raise ValueError("review_goal_rebind: request must be IMPLEMENTING")
+    if result.get("artifact_state") != "EMPTY":
+        raise ValueError("review_goal_rebind: result must be EMPTY")
+    if request.get("candidate_revision") is not None or request.get("candidate_fingerprint") is not None:
+        raise ValueError("review_goal_rebind: an unsealed request cannot retain candidate identity")
+    if request.get("goal_id") == plan.get("goal_id"):
+        return {"status": "unchanged", "review_id": request["review_id"]}
+    old_review_id = request["review_id"]
+    old_goal_id = request.get("goal_id")
+    archive_review_artifact(
+        repo, ".ai/REVIEW_REQUEST.md", old_review_id, "request", "INVALIDATED", None
+    )
+    goal_slug = re.sub(r"[^a-z0-9]+", "-", str(plan["goal_id"]).lower()).strip("-")
+    goal_slug = re.sub(r"^codex-app-goal-", "", goal_slug)
+    review_id = f"review-{goal_slug}-001"
+    history_index = json.loads(
+        (review_history_directory(repo) / "index.json").read_text(encoding="utf-8")
+    )
+    used = set(history_index.get("reviews", {}))
+    while review_id in used:
+        review_id = next_review_id(review_id)
+    active = active_milestone(plan) or {}
+    changed_areas = [
+        str(path) for path in active.get("owned_paths", [])
+        if isinstance(path, str) and path.strip()
+    ]
+    if not changed_areas:
+        raise ValueError(
+            "review_goal_rebind: active milestone must declare at least one owned path"
+        )
+    request.update({
+        "review_id": review_id,
+        "goal_id": plan["goal_id"],
+        "milestone_id": plan["active_milestone_id"],
+        "base_revision": status["git"]["base_commit"],
+        "candidate_revision": None,
+        "candidate_fingerprint": None,
+        "authoritative_specs": list(plan.get("authoritative_specs", [])),
+        "changed_areas": changed_areas,
+        "acceptance_criteria": list(active.get("acceptance", [])),
+        "negative_requirements": list(
+            plan.get("requirement_context", {}).get("forbidden_substitutes", [])
+        ),
+        "validation_performed": [],
+        "validation_results": [],
+        "known_deviations": [],
+        "known_uncertainties": [],
+        "reviewer_focus": [],
+        "preserved_human_gates": [
+            str(item.get("id"))
+            for item in plan.get("preserved_human_gates", [])
+            if isinstance(item, dict) and item.get("id")
+        ],
+        "requested_at": None,
+        "candidate_manifest": None,
+    })
+    write_review_request(repo, request)
+    status["review"] = {
+        "state": "IMPLEMENTING",
+        "current_review_id": None,
+        "candidate_revision": None,
+        "candidate_fingerprint": None,
+        "unresolved_findings": [],
+        "human_decision_blockers": [],
+    }
+    status["verification"]["candidate_verified"] = False
+    status["verification"]["control_plane_ready"] = False
+    status["verification"]["release_verified"] = False
+    status["verification"]["last_result"] = (
+        f"Review identity changed from {old_goal_id} to {plan['goal_id']}: {reason.strip()}"
+    )
+    status["next_action"] = (
+        "Complete deterministic verification for the new execution Goal and issue its first exact review request."
+    )
+    status["updated_at"] = datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds")
+    write_status(repo, status)
+    return {
+        "status": "rebound",
+        "old_goal_id": old_goal_id,
+        "old_review_id": old_review_id,
+        "goal_id": plan["goal_id"],
+        "review_id": review_id,
+    }
+
+
 def prepare_review_request(
     repo: Path,
     evidence_path: str,
@@ -2172,6 +2379,21 @@ def invalidate_ready_request(repo: Path, reason: str) -> dict[str, Any]:
         raise ValueError("; ".join(errors))
     old_review_id = request["review_id"]
     old_fingerprint = request.get("candidate_fingerprint")
+    orchestrator_path = repo / ".ai/ORCHESTRATOR_STATE.json"
+    orchestrator: dict[str, Any] | None = None
+    if orchestrator_path.is_file():
+        orchestrator = json.loads(orchestrator_path.read_text(encoding="utf-8"))
+        custody = orchestrator.get("candidate_custody")
+        bound_review_ids = {
+            value for value in (
+                orchestrator.get("review_id"),
+                custody.get("review_id") if isinstance(custody, dict) else None,
+            ) if value is not None
+        }
+        if bound_review_ids and bound_review_ids != {old_review_id}:
+            raise ValueError(
+                "review_invalidate: orchestrator custody differs from the request being invalidated"
+            )
     request["review_id"] = next_review_id(old_review_id)
     request["status"] = "IMPLEMENTING"
     request["candidate_revision"] = None
@@ -2207,6 +2429,38 @@ def invalidate_ready_request(repo: Path, reason: str) -> dict[str, Any]:
         f"and issue {request['review_id']}."
     )
     write_status(repo, status)
+    if orchestrator is not None:
+        orchestrator.update({
+            "state": "IMPLEMENTING", "current_agent": None,
+            "candidate_fingerprint": None, "review_id": None,
+            "blockers": [], "next_action": status["next_action"],
+            "human_action_required": False,
+            "candidate_custody": {
+                "status": "NONE", "owner": None, "review_id": None, "fingerprint": None,
+            },
+            "updated_at": now,
+        })
+        # A runtime binding is exact-candidate evidence.  It cannot survive
+        # invalidation and silently bind the replacement review cycle.
+        orchestrator.pop("external_review_binding", None)
+        temporary = orchestrator_path.with_suffix(".json.tmp")
+        temporary.write_text(
+            json.dumps(orchestrator, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        os.replace(temporary, orchestrator_path)
+        orchestration_history = repo / ".ai/ORCHESTRATION_HISTORY/events.jsonl"
+        orchestration_history.parent.mkdir(parents=True, exist_ok=True)
+        with orchestration_history.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps({
+                "event_type": "SEALED_CANDIDATE_INVALIDATED",
+                "run_id": orchestrator.get("run_id"),
+                "goal_id": orchestrator.get("active_goal"),
+                "work_package": orchestrator.get("work_package"),
+                "state": "IMPLEMENTING", "review_id": old_review_id,
+                "candidate_fingerprint": old_fingerprint,
+                "reason": reason.strip(), "created_at": now,
+            }, separators=(",", ":"), ensure_ascii=False) + "\n")
     append_history_event(
         repo,
         {
@@ -3257,6 +3511,8 @@ def main() -> int:
     custody_parser.add_argument("--reviewer-identity", required=True)
     invalidate_parser = sub.add_parser("review-invalidate")
     invalidate_parser.add_argument("--reason", required=True)
+    rebind_parser = sub.add_parser("review-rebind-goal")
+    rebind_parser.add_argument("--reason", required=True)
     sub.add_parser("review-submit")
     sub.add_parser("review-resume")
     fixed_parser = sub.add_parser("review-finding-fixed")
@@ -3363,6 +3619,14 @@ def main() -> int:
             print(json.dumps({"status": "fail", "errors": [str(exc)]}, indent=2, ensure_ascii=False))
             return 2
         print(json.dumps({"status": "implementing", **result}, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == "review-rebind-goal":
+        try:
+            result = rebind_implementing_review_to_active_goal(repo, args.reason)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print(json.dumps({"status": "fail", "errors": [str(exc)]}, indent=2, ensure_ascii=False))
+            return 2
+        print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0
     if args.command == "review-submit":
         try:

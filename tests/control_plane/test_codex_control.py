@@ -603,7 +603,23 @@ class ControlPlaneNegativeTests(unittest.TestCase):
              mock.patch.object(CONTROL, "history_unresolved_finding_ids", return_value=[]), \
              mock.patch.object(CONTROL, "write_status", side_effect=lambda _repo, value: captured_status.update(value)), \
              mock.patch.object(CONTROL, "append_history_event", side_effect=lambda _repo, value: captured_events.append(value)):
-            output = CONTROL.invalidate_ready_request(Path(tmp), "completion audit found a gap")
+            root = Path(tmp)
+            (root / ".ai").mkdir()
+            (root / ".ai/ORCHESTRATOR_STATE.json").write_text(json.dumps({
+                "schema_version": "kgnote.orchestrator-state.v1",
+                "run_id": "run-1", "active_goal": "goal", "work_package": "M1",
+                "state": "AWAITING_EXTERNAL_PRODUCT_REVIEW", "current_agent": None,
+                "candidate_fingerprint": request["candidate_fingerprint"],
+                "review_id": request["review_id"], "blockers": [],
+                "candidate_custody": {
+                    "status": "SEALED", "owner": "PRODUCTION_RUNNER",
+                    "review_id": request["review_id"],
+                    "fingerprint": request["candidate_fingerprint"],
+                },
+                "external_review_binding": {"state_path": "old-review.json"},
+            }), encoding="utf-8")
+            output = CONTROL.invalidate_ready_request(root, "completion audit found a gap")
+            orchestrator = json.loads((root / ".ai/ORCHESTRATOR_STATE.json").read_text())
         self.assertEqual(output["invalidated_review_id"], "review-example-001")
         self.assertEqual(output["next_review_id"], "review-example-002")
         self.assertEqual(request["status"], "IMPLEMENTING")
@@ -611,6 +627,9 @@ class ControlPlaneNegativeTests(unittest.TestCase):
         self.assertEqual(captured_status["review"]["state"], "IMPLEMENTING")
         self.assertEqual(captured_events[0]["event_type"], "INVALIDATED")
         self.assertIn("completion audit", captured_events[0]["reason"])
+        self.assertEqual("IMPLEMENTING", orchestrator["state"])
+        self.assertEqual("NONE", orchestrator["candidate_custody"]["status"])
+        self.assertNotIn("external_review_binding", orchestrator)
 
 
 class RepositoryIntegrityTests(unittest.TestCase):
@@ -876,6 +895,84 @@ class RepositoryIntegrityTests(unittest.TestCase):
                 "waiting fingerprint differs",
                 " ".join(CONTROL.validate_orchestrator_state(repo, plan, request)),
             )
+
+    def test_sole_ubuntu_reviewer_wait_requires_sealed_custody_and_publication_receipt(self):
+        head = "a" * 40
+        fingerprint = "b" * 64
+        plan = {"goal_id": "goal-1", "active_milestone_id": "milestone-1"}
+        request = {
+            "status": "READY_FOR_REVIEW",
+            "review_id": "review-001",
+            "candidate_fingerprint": fingerprint,
+        }
+        state = json.loads((ROOT / ".ai/ORCHESTRATOR_STATE.json").read_text())
+        state.update({
+            "active_goal": "goal-1",
+            "work_package": "milestone-1",
+            "state": "AWAITING_EXTERNAL_PRODUCT_REVIEW",
+            "review_id": "review-001",
+            "candidate_fingerprint": fingerprint,
+            "human_action_required": False,
+            "candidate_custody": {
+                "status": "SEALED", "owner": "PRODUCTION_RUNNER",
+                "review_id": "review-001", "fingerprint": fingerprint,
+            },
+            "external_review_binding": {
+                "program_id": "program-1", "goal_id": "goal-1",
+                "config_path": "output/review/config.json",
+                "state_path": "output/review/state.json",
+            },
+        })
+        config = {
+            "program_id": "program-1", "review_pr_number": 31,
+            "canonical_repository": "owner/public", "candidate_repository": "owner/public",
+            "trigger_repository": "owner/public", "review_request_repository": "owner/public",
+            "trigger_comment_template": "<!-- trigger candidate_commit={candidate_commit} -->",
+        }
+        review_state = {
+            "program_id": "program-1", "goal_id": "goal-1", "pull_request": 31,
+            "canonical_repository": "owner/public", "candidate_repository": "owner/public",
+            "trigger_repository": "owner/public", "review_request_repository": "owner/public",
+            "candidate_commit": head, "candidate_fingerprint": fingerprint,
+            "publication": {
+                "status": "PUBLISHED", "remote_head": head,
+                "candidate_fingerprint": fingerprint,
+                "artifact_url": "https://example.test/pr/31",
+                "trigger_artifact_url": "https://example.test/pr/31#comment",
+                "trigger_comment": f"<!-- trigger candidate_commit={head} -->",
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            (repo / ".ai").mkdir()
+            role = repo / "docs/control-plane/CLAUDE_REVIEWER_ROLE_DECISION_20261020.md"
+            role.parent.mkdir(parents=True)
+            role.write_text(
+                "Status: `APPROVED`\nUbuntu Claude is the sole routine independent AI product reviewer\n"
+            )
+            runtime = repo / "output/review"
+            runtime.mkdir(parents=True)
+            (runtime / "config.json").write_text(json.dumps(config))
+            (runtime / "state.json").write_text(json.dumps(review_state))
+            (repo / ".ai/ORCHESTRATOR_STATE.json").write_text(json.dumps(state))
+            with mock.patch.object(CONTROL, "git_text", return_value=head):
+                self.assertEqual([], CONTROL.validate_orchestrator_state(repo, plan, request))
+                review_state["publication"]["status"] = "PENDING"
+                (runtime / "state.json").write_text(json.dumps(review_state))
+                self.assertIn(
+                    "requires exact publication read-back",
+                    " ".join(CONTROL.validate_orchestrator_state(repo, plan, request)),
+                )
+                review_state["publication"]["status"] = "PUBLISHED"
+                (runtime / "state.json").write_text(json.dumps(review_state))
+                state["candidate_custody"] = {
+                    "status": "NONE", "owner": None, "review_id": None, "fingerprint": None,
+                }
+                (repo / ".ai/ORCHESTRATOR_STATE.json").write_text(json.dumps(state))
+                self.assertIn(
+                    "requires sealed Production Runner custody",
+                    " ".join(CONTROL.validate_orchestrator_state(repo, plan, request)),
+                )
 
     def test_fresh_agent_can_reconstruct_resume_state_from_repository_only(self):
         plan, status = CONTROL.load_plan_status(ROOT)

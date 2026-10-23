@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/product-goal/v1/ledger-event.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "event_id", "sequence", "previous_event_sha256", "event_sha256", "event_type", "occurred_at", "goal_id", "goal_version", "logical_work_id", "attempt_id", "payload"],
+  "properties": {
+    "schema_version": {"const": "kgnote.product-goal-ledger-event.v1"},
+    "event_id": {"type": "string", "minLength": 1},
+    "sequence": {"type": "integer", "minimum": 1},
+    "previous_event_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "event_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "event_type": {"enum": ["GOAL_AUTHORITY_VERIFIED", "GOAL_LIFECYCLE_TRANSITION", "WORK_AUTHORIZED", "WORK_STATE_TRANSITION", "MODEL_ATTEMPT_STARTED", "MODEL_ATTEMPT_FINISHED", "USAGE_OBSERVED", "REVIEW_VERDICT_ACCEPTED", "RESULT_PUBLICATION_RECORDED", "PRODUCT_OBLIGATION_EVALUATED", "CHECKPOINT_RECONCILED", "STRATEGY_ADJUSTED", "HUMAN_ACCEPTANCE_RECORDED", "NOTIFICATION_QUEUED", "NOTIFICATION_DELIVERY_FAILED", "NOTIFICATION_SENT", "NOTIFICATION_ACKNOWLEDGED", "LEGACY_EVENT_REFERENCED"]},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "goal_id": {"type": "string", "minLength": 1},
+    "goal_version": {"type": "string", "minLength": 1},
+    "logical_work_id": {"type": ["string", "null"]},
+    "attempt_id": {"type": ["string", "null"]},
+    "payload": {"type": "object"}
+  }
+}

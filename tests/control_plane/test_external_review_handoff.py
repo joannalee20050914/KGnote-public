@@ -65,6 +65,39 @@ class ExternalReviewHandoffTests(unittest.TestCase):
             self.assertFalse(result["accepted"])
             self.assertNotIn("delivery_receipt", json.loads((root / ".ai/external-review-state.json").read_text()))
 
+    def test_goal_specific_paths_and_no_delivery_side_effect_are_supported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); config, state = self.fixture(root)
+            config["delivery_issue_number"] = None
+            custom = root / "goal-review"
+            custom.mkdir()
+            config_path, state_path = custom / "config.json", custom / "state.json"
+            config_path.write_text(json.dumps(config))
+            state_path.write_text(json.dumps(state))
+            decision = {
+                "accepted": True, "verdict": "PASS",
+                "candidate_commit": state["candidate_commit"],
+                "candidate_fingerprint": state["candidate_fingerprint"],
+                "review_round": 1, "review_author": "owner",
+                "review_source": "issue_comment", "record_id": 100,
+                "native_ui_observed": False, "findings": [],
+            }
+            calls = []
+            def runner(command, *, cwd):
+                calls.append(command)
+                if "/pulls/23/reviews" in " ".join(command): return "[]"
+                if "/issues/23/comments" in " ".join(command):
+                    return json.dumps([{"id":100,"user":{"login":"owner"},"body":"result","html_url":"https://review"}])
+                raise AssertionError(command)
+            with mock.patch.object(HANDOFF.external_review_control, "publication_progression_blockers", return_value=[]), \
+                 mock.patch.object(HANDOFF.consumer, "consume_records", return_value=decision):
+                result = HANDOFF.process(
+                    root, runner, config_path=config_path, state_path=state_path,
+                )
+            self.assertEqual("PASS", result["verdict"])
+            self.assertNotIn("delivery_receipt", json.loads(state_path.read_text()))
+            self.assertFalse(any("/issues/8/comments" in " ".join(call) for call in calls))
+
 
 if __name__ == "__main__":
     unittest.main()

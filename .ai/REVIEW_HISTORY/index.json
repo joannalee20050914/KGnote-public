@@ -1,8 +1,8 @@
 {
   "schema_version": "kgnote.review-history-index.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "event_count": 2,
-  "last_event_id": "evt-0002",
+  "event_count": 19,
+  "last_event_id": "evt-0019",
   "reviews": {
     "review-mainline-integration-20261020-001": {
       "snapshots": [
@@ -14,6 +14,105 @@
       ],
       "last_event_type": "INVALIDATED",
       "candidate_fingerprint": "f768959692c8d3444364665b49add54e51a605b1b340f4911fded9d5d84ffcee"
+    },
+    "review-mainline-integration-20261020-002": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-mainline-integration-20261020-002/request-126c51cd818a66c762c04013e0036ec27ad2115901806647866f7314e4dca571.md",
+          "sha256": "126c51cd818a66c762c04013e0036ec27ad2115901806647866f7314e4dca571",
+          "event_id": "evt-0003"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": null
+    },
+    "review-b-continuous-delegation-20261022-001": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-b-continuous-delegation-20261022-001/request-cdb5cbd4ccce99c9f080ae7c731c046d1370c1e78a79987a8e194cb2bbdccc8e.md",
+          "sha256": "cdb5cbd4ccce99c9f080ae7c731c046d1370c1e78a79987a8e194cb2bbdccc8e",
+          "event_id": "evt-0004"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "ec32063be6d187afceb0fb3d8baace60e509eb1bb5e84746555da8da6263c473"
+    },
+    "review-b-continuous-delegation-20261022-002": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-b-continuous-delegation-20261022-002/request-6fe539a5dc788e8710be11bb3439b3577d5aa41c11bb7d7ec09b8b82310128d5.md",
+          "sha256": "6fe539a5dc788e8710be11bb3439b3577d5aa41c11bb7d7ec09b8b82310128d5",
+          "event_id": "evt-0006"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "e095d020f44b30db247bef29d49757514d638e2ac33e41fb28600ba82f77823c"
+    },
+    "review-b-continuous-delegation-20261022-003": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-b-continuous-delegation-20261022-003/request-8521fa27cb43ae33d20a5075c4360e261daa98bc74e365cf197303f0487f4620.md",
+          "sha256": "8521fa27cb43ae33d20a5075c4360e261daa98bc74e365cf197303f0487f4620",
+          "event_id": "evt-0008"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "f7c5527927665fd95dcf91fdee2229e9df3a011fadce9e0cee4ccf40fb3ae617"
+    },
+    "review-b-continuous-delegation-20261022-004": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-b-continuous-delegation-20261022-004/request-147f2a5d92ec0babd33dbcc8689f82b5657c28cf0ca07c7d1376f78e4e83d269.md",
+          "sha256": "147f2a5d92ec0babd33dbcc8689f82b5657c28cf0ca07c7d1376f78e4e83d269",
+          "event_id": "evt-0010"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "8cacadeb43d0456dc0559c2db90de56634d3245c1a153a586cb0f0a058aa5d66"
+    },
+    "review-b-continuous-delegation-20261022-005": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-b-continuous-delegation-20261022-005/request-6707efd4ce2ede185cbd534cde47c91648fcb2b09602bf627d12c9ff00dcd578.md",
+          "sha256": "6707efd4ce2ede185cbd534cde47c91648fcb2b09602bf627d12c9ff00dcd578",
+          "event_id": "evt-0012"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "af274a9d14be6a64dbdc9430ed5cbea498d46615de9e7edf276226eae6813824"
+    },
+    "review-b-continuous-delegation-20261022-006": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-b-continuous-delegation-20261022-006/request-55f07df59c9510b8158abf5c2366b6efba82b7ae5957ae17a1cfd75f4679e614.md",
+          "sha256": "55f07df59c9510b8158abf5c2366b6efba82b7ae5957ae17a1cfd75f4679e614",
+          "event_id": "evt-0014"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "53cae0bd073281df8ca6ba03d435274d7d7a148e4fcb2ec4fdb01706cf26832c"
+    },
+    "review-b-continuous-delegation-20261022-007": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-b-continuous-delegation-20261022-007/request-be98c38691b23d0e6ead732b2e236bfb966e6ba74e8cfa35923634c18d122a05.md",
+          "sha256": "be98c38691b23d0e6ead732b2e236bfb966e6ba74e8cfa35923634c18d122a05",
+          "event_id": "evt-0016"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "1c5ed4b713912debcf9f6ddb07ba3b0124ae1b6fdfdfd53f996723f9f485cc23"
+    },
+    "review-b-continuous-delegation-20261022-008": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-b-continuous-delegation-20261022-008/request-0bab4fa6b453a1fa9c0da47719768c7952eb9be4a2fa493f7dfcb42d85a9c93b.md",
+          "sha256": "0bab4fa6b453a1fa9c0da47719768c7952eb9be4a2fa493f7dfcb42d85a9c93b",
+          "event_id": "evt-0018"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "2ab47d49bb252e35c6cb99afe2e6aa39e79703e9f55e1875983435a88487f8e4"
     }
   },
   "findings": {}

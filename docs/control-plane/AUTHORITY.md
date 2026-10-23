@@ -45,6 +45,7 @@ Execution documents may govern how Codex works, verifies, advances, or stops. Th
 | `docs/control-plane/CANONICAL_PUBLIC_REPOSITORY_MIGRATION_20261005.md` | Canonical/archival repository identity and migration boundary | active execution authority |
 | `docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md` | Internal→publication→external-review→human gate ordering and repository identity invariants | active execution authority |
 | `docs/control-plane/CLAUDE_REVIEWER_ROLE_DECISION_20261020.md` | Ubuntu Claude routine reviewer, Runner GitHub relay, and ChatGPT Work notification-only boundary | active execution authority; supersedes the former Work-per-round reviewer role |
+| `docs/control-plane/GOAL_SCOPED_CONTINUOUS_DELEGATION_20261022.md` | B-scheme Goal identity, GitHub authorization, Runner lifecycle, accounting, recovery, backlog and go-live boundary | active execution authority; does not authorize a Product Goal |
 | `docs/control-plane/INCIDENT_EXTERNAL_REVIEW_BYPASS_20261007.md` | Durable incident analysis and regression lessons | active corrective evidence |
 | `README.md` | Orientation only | informative |
 | `docs/DEVELOPMENT_PLAIN_SUPERSEDED_20260922.md` | Prior roadmap | historical provenance |
