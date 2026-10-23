@@ -1,11 +1,8 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "b-scheme-trial-readiness-20261023",
-  "active_goal": "CODEX-APP-GOAL-B-TRIAL-READINESS-20261023",
-  "goal_layer": "CODEX_APP_EXECUTION_GOAL",
-  "product_goal_authorized": false,
-  "work_package": "BTR-3-VERIFY-REVIEW-DRAFT-PR",
-  "external_review_required": true,
+  "run_id": "orch-287c26d377de",
+  "active_goal": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
+  "work_package": "S1-DISPATCH-RESULT-WIRING",
   "state": "IMPLEMENTING",
   "current_agent": null,
   "candidate_fingerprint": null,
@@ -16,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Run full exact-candidate verification, confirm dormant runtime and preserved assets, then create the authorized Draft PR and submit the repository-mediated independent review.",
+  "next_action": "Implement G1-G3 as one bounded S1 runtime slice, then prove the real Mac Runner to Linux worker result/checkpoint/state-ledger path before S2 or review submission.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -27,9 +24,9 @@
   "next_human_checkpoint": {
     "id": "BOUNDED-TRIAL-AUTHORIZATION",
     "status": "not_authorized",
-    "description": "The first real Product Goal trial requires separate exact GitHub Owner authorization after compatibility repair, independent review, and Draft PR read-back."
+    "description": "Only after G1-G3, real integration proof, isolated deployment rehearsal and exact-candidate independent review."
   },
   "last_agent_run": null,
-  "created_at": "2026-10-23T14:58:41+08:00",
-  "updated_at": "2026-10-23T15:40:00+08:00"
+  "created_at": "2026-10-23T17:41:22+08:00",
+  "updated_at": "2026-10-23T17:41:22+08:00"
 }

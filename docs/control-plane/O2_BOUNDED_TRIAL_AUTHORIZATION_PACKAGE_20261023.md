@@ -1,22 +1,22 @@
 # O2 首次真實 Product Goal 有界試行核准包
 
-Status: prepared, not authorized. This package becomes actionable only after the trial-readiness Draft PR has exact-candidate independent review, the Product Owner explicitly authorizes its merge/deployment, and the exact GitHub Owner command below is published and read back. It does not itself authorize merge, deployment, Product Goal execution, or full B-scheme go-live.
+Status: `BLOCKED_WITH_SPECIFIC_GAPS`; prepared S0 proposal, not yet eligible for Owner authorization. The S1 runtime gaps listed below must be implemented and independently reviewed before this package can become actionable. It does not itself authorize merge, deployment, Product Goal execution, or full B-scheme go-live.
 
 ## Decision summary
 
 Selected real Product Goal: `GOAL-KGNOTE-O2-READING-EXPERIENCE`
 
-- Version: `2026-10-23.1-bounded-trial`
-- Canonical spec: `docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.1.json`
-- Canonical JSON spec digest: `cd9f03754142ff1e0f34b6bd9229afd893965d8b7bbd1d3644c7523893f6cbcc`
-- File SHA-256: `d3a5e541292b8c53e6fe61b7dee8cbf05b8959c38672ea5c836a4c1576a82413`
+- Version: `2026-10-23.2-s0-s2-proposal`
+- Canonical spec: `docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.2.json`
+- Canonical JSON spec digest: `82716b31f004f108c935169493f2fa918e5144f12419302ba2c9fdcec91b6604`
+- File SHA-256: `8434386012c09546b5c3dd17a86c78ef05248d5391699398efc8beea526e7fd9`
 - GitHub authority location: Issue [#9](https://github.com/joannalee20050914/KGnote-public/issues/9)
 - Lifecycle owner: Mac Runner
 - Model concurrency: `1`
 - Merge: forbidden to agents; requires a separate explicit Product Owner decision
 - Final acceptance: required from the Product Owner before `CLOSED`
 
-The Legacy dependency is legally dispositioned by `LEGACY_ISSUE9_DISPOSITION_20261023.md`: no history is reset, PR #29 is untouched, and its three Round 4 findings are explicit unfinished O2 obligations.
+The Legacy dependency is legally dispositioned by `LEGACY_ISSUE9_DISPOSITION_20261023.md`: no history is reset, PR #29 is untouched, and its three Round 4 findings are explicit unfinished O2 obligations. Work Item A covers the Obsidian-first reading entry and source/identity read-back. Work Item B starts only after A reaches a terminal reviewed state and covers context-local source-sentence notes, reopen and non-overwrite behavior. A's candidate, evidence or PASS cannot close B.
 
 ## Product outcome and forbidden substitutes
 
@@ -41,10 +41,20 @@ The 10% reserve remains a desired policy, not a measurable fact: both providers 
 | Concurrent model work | \- | \- | Global maximum `1` |
 | Minimum launch interval | 300 s | 300 s | Existing B fallback |
 | Per authorized work window | 3 | 3 | Existing tested B fallback; no increase |
-| Goal-version total launches | 4 | 4 | One initial implementation/review plus at most three bounded repair/re-review opportunities; matches the observed four PR #29 review rounds instead of the generic 12-launch fixture ceiling |
+| Goal-version total launches | 8 | 8 | Two initial A/B launches, up to four bounded repair/re-review launches, and two launch/envelope or quota contingencies. Historical Issue #9 evidence contains three Codex repair attempts, four valid Claude verdicts, and one Claude 429 attempt; the total is not reset or borrowed from that history. |
 | Quota backoff | 3600 s | 3600 s | Existing tested B fallback and observed 429 recovery behavior |
 
-Work window: Monday–Friday, Asia/Taipei `09:00–18:00`. A new day may restore only the per-window allowance; it never resets the Goal total. A started context consumes one launch even when it ends with 429 or unknown usage. No-progress is evaluated after two consecutive rounds; at most one in-scope strategy adjustment is allowed. The same operational failure may be attempted at most twice before that Work Item blocks. These bounds can be enlarged only by a new Owner-approved Goal version or explicit additive grant; normal `CHANGES_REQUIRED`, quota waiting and in-envelope repair need no per-round approval.
+Work window: Monday–Friday, Asia/Taipei `09:00–18:00`. Proposed observation dates are 2026-10-28, 10-29, 10-30, 11-02 and 11-03; proposed activation is 2026-10-28 09:00, coordination observation ends 2026-11-03 18:00, and the tenth-Goal-workday hard stop is 2026-11-10 18:00. If deployment misses the proposed activation, the dates must move in a new immutable version rather than shortening or backdating the trial. A new day may restore only the per-window allowance; it never resets the Goal total. A started context consumes one launch even when it ends with 429 or unknown usage. No-progress is evaluated after two consecutive rounds; at most one in-scope strategy adjustment is allowed. The same operational failure may be attempted at most twice before that Work Item blocks. These bounds can be enlarged only by a new Owner-approved Goal version or explicit additive grant; normal `CHANGES_REQUIRED`, quota waiting and in-envelope repair need no per-round approval.
+
+Trial evidence gates: successor work must start within 600 seconds of an eligible transition; at least two cross-window resumptions and one safe Runner restart must be observed; ordinary engineering relay is limited to zero; total engineering supervision is capped at 50 minutes. These are acceptance thresholds, not permission to activate the trial.
+
+## S1 blockers that prevent Owner authorization
+
+- The Runner adapter consumes only a pre-sealed `dispatch_binding` or finite `dispatch_bindings` queue. It explicitly refuses to synthesize the next order, so it cannot yet create and bind the A-to-review-to-repair-to-B sequence or a new exact candidate after a result.
+- Codex, Trusted Publisher and Ubuntu Claude entrypoints do not emit the canonical `kgnote.product-goal-worker-result.v1` envelope. Current integration tests inject that envelope as fixture data, so checkpoint reconciliation is not proof of a real worker-result path.
+- Initial/dynamic product candidate publication is not represented end to end: current epoch admission assumes an existing PR/HEAD, while the Linux bootstrap/router identity is fixed to the older `D2-Txx` work-item/event pattern rather than the O2 A/B identities.
+
+The smallest repair is to add one trusted Runner-owned order planner/binder, one shared worker-result adapter used by all three worker lanes, and O2-compatible admission/router identity validation, then demonstrate two dynamic successor orders and a genuine result envelope across the real Mac-to-Linux path. Do not publish the Owner command below until that candidate has exact-candidate independent PASS.
 
 ## Review, stop and rollback rules
 
@@ -74,8 +84,8 @@ Publish this only after approving the reviewed infrastructure Draft PR for merge
   "schema_version": "kgnote.product-goal-authority-command.v1",
   "action": "APPROVE",
   "goal_id": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
-  "goal_version": "2026-10-23.1-bounded-trial",
-  "goal_spec_sha256": "cd9f03754142ff1e0f34b6bd9229afd893965d8b7bbd1d3644c7523893f6cbcc",
+  "goal_version": "2026-10-23.2-s0-s2-proposal",
+  "goal_spec_sha256": "82716b31f004f108c935169493f2fa918e5144f12419302ba2c9fdcec91b6604",
   "permissions": [
     "activate_runner",
     "commit",
@@ -95,11 +105,11 @@ After deploying the reviewed candidate to a new immutable concentrated worktree,
 
 ```text
 --product-goal-spec
-${HOME}/Library/Application Support/KGnote/runtime/product-goals/GOAL-KGNOTE-O2-READING-EXPERIENCE/2026-10-23.1-bounded-trial/spec.json
+${HOME}/Library/Application Support/KGnote/runtime/product-goals/GOAL-KGNOTE-O2-READING-EXPERIENCE/2026-10-23.2-s0-s2-proposal/spec.json
 --product-goal-state
-${HOME}/Library/Application Support/KGnote/runtime/product-goals/GOAL-KGNOTE-O2-READING-EXPERIENCE/2026-10-23.1-bounded-trial/state.json
+${HOME}/Library/Application Support/KGnote/runtime/product-goals/GOAL-KGNOTE-O2-READING-EXPERIENCE/2026-10-23.2-s0-s2-proposal/state.json
 --product-goal-ledger
-${HOME}/Library/Application Support/KGnote/runtime/product-goals/GOAL-KGNOTE-O2-READING-EXPERIENCE/2026-10-23.1-bounded-trial/ledger.jsonl
+${HOME}/Library/Application Support/KGnote/runtime/product-goals/GOAL-KGNOTE-O2-READING-EXPERIENCE/2026-10-23.2-s0-s2-proposal/ledger.jsonl
 --product-goal-backlog
 ${HOME}/Library/Application Support/KGnote/runtime/product-goals/PRODUCT_GOAL_BACKLOG.json
 ```

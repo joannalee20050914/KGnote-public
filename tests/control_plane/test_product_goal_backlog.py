@@ -23,7 +23,7 @@ class ProductGoalBacklogTests(unittest.TestCase):
             (ROOT / "docs/control-plane/PRODUCT_GOAL_BACKLOG.json").read_text()
         )
         cls.o2_spec = json.loads(
-            (ROOT / "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.1.json").read_text()
+            (ROOT / "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.2.json").read_text()
         )
 
     def test_backlog_is_ordered_unique_and_source_bound(self):
@@ -52,9 +52,25 @@ class ProductGoalBacklogTests(unittest.TestCase):
         first=self.backlog["items"][0]
         self.assertEqual(first["goal_id"],self.o2_spec["goal_id"])
         self.assertEqual(first["goal_version"],self.o2_spec["goal_version"])
-        self.assertEqual("READY_FOR_OWNER_BOUNDED_TRIAL_APPROVAL",first["approval_eligibility"]["status"])
-        self.assertEqual(4,self.o2_spec["resource_policy"]["providers"]["codex"]["fallback"]["max_total_launches"])
-        self.assertEqual(4,self.o2_spec["resource_policy"]["providers"]["claude"]["fallback"]["max_total_launches"])
+        self.assertEqual("BLOCKED_WITH_SPECIFIC_GAPS",first["approval_eligibility"]["status"])
+        self.assertEqual(8,self.o2_spec["resource_policy"]["providers"]["codex"]["fallback"]["max_total_launches"])
+        self.assertEqual(8,self.o2_spec["resource_policy"]["providers"]["claude"]["fallback"]["max_total_launches"])
+        self.assertEqual(5,len(self.o2_spec["trial_schedule"]["observation_work_dates"]))
+        self.assertEqual(600,self.o2_spec["trial_schedule"]["transition_start_slo_seconds"])
+        self.assertEqual(0,self.o2_spec["trial_schedule"]["ordinary_human_relay_limit"])
+        ids={item["work_item_id"] for item in self.o2_spec["work_items"]}
+        self.assertIn("WI-O2-A-IMPLEMENT",ids)
+        self.assertIn("WI-O2-B-IMPLEMENT",ids)
+        self.assertNotIn("WI-O2-IMPLEMENT",ids)
+        by_id={item["work_item_id"]:item for item in self.o2_spec["work_items"]}
+        self.assertEqual(
+            ["WI-O2-A-REVIEW","WI-O2-A-REPAIR"],
+            by_id["WI-O2-B-IMPLEMENT"]["dependencies"],
+        )
+        self.assertEqual(
+            ["WI-O2-A-REVIEW","WI-O2-A-REPAIR","WI-O2-B-REVIEW","WI-O2-B-REPAIR"],
+            by_id["WI-O2-ACCEPTANCE"]["dependencies"],
+        )
         self.assertNotIn("legacy_budget",self.o2_spec)
 
     def test_prepared_owner_command_binds_exact_spec_and_permissions(self):
