@@ -57,7 +57,7 @@ This file contains one Codex App execution Goal. It prepares a bounded real-prod
     "canonical_repository": "joannalee20050914/KGnote-public",
     "base_revision": "7bb0ffb4be6d5eb19398f249f45fa8e32a083131",
     "branch": "codex/b-scheme-trial-readiness-20261023",
-    "draft_pull_request": null,
+    "draft_pull_request": 32,
     "automatic_merge": false
   },
   "auto_advance": {
