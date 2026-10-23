@@ -18,6 +18,12 @@ from datetime import datetime
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
+from product_goal_worker_identity import (
+    PRODUCT_IDENTITY_SCHEMA,
+    ProductGoalIdentityError,
+    validate_product_goal_identity,
+)
+
 
 GUEST_HOST = "kgnote-ubuntu"
 GUEST_GUARD = "/home/kgnote/.local/share/kgnote/runtime/linux_worker_guard.py"
@@ -88,12 +94,23 @@ class WorkerOrder:
         if not self.working_directory.is_absolute() or not self.working_directory.is_relative_to(WORKTREE_ROOT):
             raise RoutingError("working_directory must be inside the bounded Guest workspace root")
         if self.handoff_directory is not None:
-            if self.stage not in {"claude", "ingestion"}:
+            product_goal_handoff = (
+                isinstance(self.bootstrap_identity, dict)
+                and self.bootstrap_identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+                and self.handoff_directory == WORKTREE_ROOT / "runtime-state/product-goal"
+            )
+            if self.stage not in {"claude", "ingestion"} and not product_goal_handoff:
                 raise RoutingError("handoff_directory is allowed only for claude or ingestion")
             if not self.handoff_directory.is_absolute() or not self.handoff_directory.is_relative_to(WORKTREE_ROOT):
                 raise RoutingError("handoff_directory must be inside the bounded Guest workspace root")
             if self.handoff_directory == self.working_directory:
                 raise RoutingError("handoff_directory must be separate from the candidate worktree")
+            if (
+                isinstance(self.bootstrap_identity, dict)
+                and self.bootstrap_identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+                and not product_goal_handoff
+            ):
+                raise RoutingError("Product Goal handoff_directory differs from the exact durable root")
         if not self.command or not self.command[0].startswith(("/bin/", "/usr/bin/", "/home/kgnote/.local/")):
             raise RoutingError("command must use an approved absolute guest executable")
         if any("\x00" in item or "\n" in item for item in self.command):
@@ -135,6 +152,15 @@ def validate_bootstrap_identity(
     identity: object, *, event_id: str, stage: str, working_directory: Path,
 ) -> None:
     """Bind generic bootstrap to one owner-authorized Issue identity."""
+    if isinstance(identity, dict) and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA:
+        try:
+            validate_product_goal_identity(
+                identity, event_id=event_id, stage=stage,
+                working_directory=working_directory, worktree_root=WORKTREE_ROOT,
+            )
+        except ProductGoalIdentityError as exc:
+            raise RoutingError(str(exc)) from exc
+        return
     if not isinstance(identity, dict) or identity.get("schema_version") != "kgnote.authorized-work-identity.v1":
         raise RoutingError("generic bootstrap identity is missing or unsupported")
     repository = identity.get("repository")

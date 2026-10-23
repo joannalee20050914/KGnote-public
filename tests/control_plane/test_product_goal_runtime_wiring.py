@@ -1,0 +1,115 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+
+ROOT=Path(__file__).resolve().parents[2]
+sys.path.insert(0,str(ROOT/"scripts"))
+import github_product_goal_control as CONTROL
+import goal_continuity as GOAL
+import goal_runner_adapter as ADAPTER
+import linux_worker_router as ROUTER
+from product_goal_worker_result import adapt_worker_result
+from tests.control_plane.test_github_product_goal_control import comment
+
+
+NOW=datetime(2026,10,23,10,0,tzinfo=ZoneInfo("Asia/Taipei"))
+
+
+class Process:
+    def __init__(self,stdout): self.stdout=stdout; self.returncode=0
+    def communicate(self,timeout=None): return self.stdout,""
+    def terminate(self): pass
+    def kill(self): pass
+
+
+class ProductGoalRuntimeWiringTest(unittest.TestCase):
+    def setup_goal(self,repo:Path):
+        spec=json.loads((ROOT/"docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.2.json").read_text())
+        authority_comment=comment(spec,login="joannalee20050914")
+        authority_comment["html_url"]="https://github.com/joannalee20050914/KGnote-public/issues/9#issuecomment-100"
+        authority_comment["issue_url"]="https://api.github.com/repos/joannalee20050914/KGnote-public/issues/9"
+        authority=CONTROL.resolve_authority([authority_comment],spec)
+        state=GOAL.initial_runner_state(spec,now=NOW.isoformat())
+        state.update({
+            "authority_record":authority["record"],"authority_lease":"ACTIVE","go_live_authorized":True,
+            "lifecycle":{"state":"ACTIVE","revision":1,"changed_at":NOW.isoformat(),"reason":"isolated authority"},
+            "candidate_identity":{"commit":"1"*40,"fingerprint":"2"*64,"branch":"codex/o2-reading-experience","pull_request":33},
+        })
+        state_path=repo/"state.json"; ledger_path=repo/"ledger.jsonl"; GOAL.atomic_write_json(state_path,state)
+        record=authority["record"]
+        GOAL.append_ledger_event(
+            ledger_path,event_id="goal-authority-isolated",event_type="GOAL_AUTHORITY_VERIFIED",
+            occurred_at=NOW.isoformat(),goal_id=spec["goal_id"],goal_version=spec["goal_version"],
+            logical_work_id=None,attempt_id=None,payload={
+                "accepted":True,"action":"APPROVE","go_live_authorized":True,
+                "authority_comment_id":record["comment_id"],"authority_body_sha256":record["body_sha256"],
+                "goal_spec_sha256":GOAL.goal_spec_sha256(spec),
+            },
+        )
+        return spec,state,authority,state_path,ledger_path
+
+    def test_dynamic_order_to_real_router_checkpoint_result_state_and_next_work(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo=Path(directory)
+            spec,state,authority,state_path,ledger_path=self.setup_goal(repo)
+            decision=ADAPTER.next_action(spec,state,GOAL.read_ledger(ledger_path),authority,now=NOW,trial=False)
+            self.assertEqual("DISPATCH_IMPLEMENTATION",decision["action"])
+            state,order_path,order,attempt=ADAPTER.ensure_bound_order(
+                spec,state,decision,repo=repo,state_path=state_path,occurred_at=NOW.isoformat(),
+            )
+            reserved,_,attempt=ADAPTER.reserve_dispatch(
+                spec,state,decision,state_path=state_path,ledger_path=ledger_path,
+                repo=repo,occurred_at=NOW.isoformat(),
+            )
+            context=order["execution_context"]
+            artifact={
+                "schema_version":"kgnote.codex-product-goal-result.v1","status":"COMPLETED",
+                "candidate_parent":"1"*40,"candidate_commit":"3"*40,
+                "candidate_fingerprint":"4"*64,"branch":"codex/o2-reading-experience",
+                "pull_request":33,"verification":{"status":"PASS"},
+                "usage":{"input_tokens":11,"output_tokens":7},
+            }
+            product_result=adapt_worker_result(context,artifact,returncode=0,stdout=b"real structured evidence")
+            execution={"schema_version":"kgnote.model-execution-evidence.v1","product_goal_result":product_result}
+            marker=ROUTER.EVIDENCE_PREFIX+json.dumps(execution,separators=(",",":"))
+            routed=ROUTER.route(
+                ROUTER.WorkerOrder.from_dict(order),
+                run=lambda command,**kwargs: subprocess.CompletedProcess(command,0,"active",""),
+                popen=lambda *args,**kwargs: Process(marker), now=lambda:NOW,
+            )
+            self.assertEqual("COMPLETED",routed["status"])
+            dispatched=ADAPTER.record_route_outcome(
+                spec,reserved,state_path=state_path,work_item_id=decision["work_item_id"],
+                attempt_id=attempt,route_exit_code=0,occurred_at=NOW.isoformat(),
+            )
+            reconciled=ADAPTER.reconcile_dispatch_checkpoint(
+                spec,dispatched,state_path=state_path,ledger_path=ledger_path,
+                repo=repo,attempt_id=attempt,occurred_at=NOW.isoformat(),
+            )
+            self.assertEqual("WORK_COMPLETED",reconciled["outcome"])
+            durable=GOAL.load_json(state_path)
+            self.assertEqual("VERIFIED",durable["work_items"][0]["status"])
+            self.assertEqual("3"*40,durable["candidate_identity"]["commit"])
+            ledger=GOAL.read_ledger(ledger_path)
+            projection=GOAL.reduce_ledger(ledger)
+            self.assertTrue(projection["dispatch_reservations"][attempt]["reconciled"])
+            self.assertEqual("OBSERVED",projection["usage"][attempt]["status"])
+            next_decision=ADAPTER.next_action(spec,durable,ledger,authority,now=NOW,trial=False)
+            self.assertEqual("WI-O2-A-VERIFY",next_decision["work_item_id"])
+            successor=ADAPTER.ensure_bound_order(
+                spec,durable,next_decision,repo=repo,state_path=state_path,occurred_at=NOW.isoformat(),
+            )
+            self.assertEqual("publisher",successor[2]["stage"])
+            self.assertNotEqual(order["event_id"],successor[2]["event_id"])
+
+
+if __name__=="__main__": unittest.main()

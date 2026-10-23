@@ -1,22 +1,22 @@
 # O2 首次真實 Product Goal 有界試行核准包
 
-Status: prepared, not authorized. This package becomes actionable only after the trial-readiness Draft PR has exact-candidate independent review, the Product Owner explicitly authorizes its merge/deployment, and the exact GitHub Owner command below is published and read back. It does not itself authorize merge, deployment, Product Goal execution, or full B-scheme go-live.
+Status: `READY_FOR_EXACT_CANDIDATE_REVIEW`; not yet eligible for Owner authorization. G1–G3 and the isolated deployment/rollback rehearsal are complete, but the repaired PR #33 exact HEAD/fingerprint still requires full verification and independent Ubuntu Claude PASS. This package does not itself authorize merge, deployment, Product Goal execution, or full B-scheme go-live.
 
 ## Decision summary
 
 Selected real Product Goal: `GOAL-KGNOTE-O2-READING-EXPERIENCE`
 
-- Version: `2026-10-23.1-bounded-trial`
-- Canonical spec: `docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.1.json`
-- Canonical JSON spec digest: `cd9f03754142ff1e0f34b6bd9229afd893965d8b7bbd1d3644c7523893f6cbcc`
-- File SHA-256: `d3a5e541292b8c53e6fe61b7dee8cbf05b8959c38672ea5c836a4c1576a82413`
+- Version: `2026-10-23.2-s0-s2-proposal`
+- Canonical spec: `docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.2.json`
+- Canonical JSON spec digest: `82716b31f004f108c935169493f2fa918e5144f12419302ba2c9fdcec91b6604`
+- File SHA-256: `8434386012c09546b5c3dd17a86c78ef05248d5391699398efc8beea526e7fd9`
 - GitHub authority location: Issue [#9](https://github.com/joannalee20050914/KGnote-public/issues/9)
 - Lifecycle owner: Mac Runner
 - Model concurrency: `1`
 - Merge: forbidden to agents; requires a separate explicit Product Owner decision
 - Final acceptance: required from the Product Owner before `CLOSED`
 
-The Legacy dependency is legally dispositioned by `LEGACY_ISSUE9_DISPOSITION_20261023.md`: no history is reset, PR #29 is untouched, and its three Round 4 findings are explicit unfinished O2 obligations.
+The Legacy dependency is legally dispositioned by `LEGACY_ISSUE9_DISPOSITION_20261023.md`: no history is reset, PR #29 is untouched, and its three Round 4 findings are explicit unfinished O2 obligations. Work Item A covers the Obsidian-first reading entry and source/identity read-back. Work Item B starts only after A reaches a terminal reviewed state and covers context-local source-sentence notes, reopen and non-overwrite behavior. A's candidate, evidence or PASS cannot close B.
 
 ## Product outcome and forbidden substitutes
 
@@ -41,10 +41,20 @@ The 10% reserve remains a desired policy, not a measurable fact: both providers 
 | Concurrent model work | \- | \- | Global maximum `1` |
 | Minimum launch interval | 300 s | 300 s | Existing B fallback |
 | Per authorized work window | 3 | 3 | Existing tested B fallback; no increase |
-| Goal-version total launches | 4 | 4 | One initial implementation/review plus at most three bounded repair/re-review opportunities; matches the observed four PR #29 review rounds instead of the generic 12-launch fixture ceiling |
+| Goal-version total launches | 8 | 8 | Two initial A/B launches, up to four bounded repair/re-review launches, and two launch/envelope or quota contingencies. Historical Issue #9 evidence contains three Codex repair attempts, four valid Claude verdicts, and one Claude 429 attempt; the total is not reset or borrowed from that history. |
 | Quota backoff | 3600 s | 3600 s | Existing tested B fallback and observed 429 recovery behavior |
 
-Work window: Monday–Friday, Asia/Taipei `09:00–18:00`. A new day may restore only the per-window allowance; it never resets the Goal total. A started context consumes one launch even when it ends with 429 or unknown usage. No-progress is evaluated after two consecutive rounds; at most one in-scope strategy adjustment is allowed. The same operational failure may be attempted at most twice before that Work Item blocks. These bounds can be enlarged only by a new Owner-approved Goal version or explicit additive grant; normal `CHANGES_REQUIRED`, quota waiting and in-envelope repair need no per-round approval.
+Work window: Monday–Friday, Asia/Taipei `09:00–18:00`. Proposed observation dates are 2026-10-28, 10-29, 10-30, 11-02 and 11-03; proposed activation is 2026-10-28 09:00, coordination observation ends 2026-11-03 18:00, and the tenth-Goal-workday hard stop is 2026-11-10 18:00. If deployment misses the proposed activation, the dates must move in a new immutable version rather than shortening or backdating the trial. A new day may restore only the per-window allowance; it never resets the Goal total. A started context consumes one launch even when it ends with 429 or unknown usage. No-progress is evaluated after two consecutive rounds; at most one in-scope strategy adjustment is allowed. The same operational failure may be attempted at most twice before that Work Item blocks. These bounds can be enlarged only by a new Owner-approved Goal version or explicit additive grant; normal `CHANGES_REQUIRED`, quota waiting and in-envelope repair need no per-round approval.
+
+Trial evidence gates: successor work must start within 600 seconds of an eligible transition; at least two cross-window resumptions and one safe Runner restart must be observed; ordinary engineering relay is limited to zero; total engineering supervision is capped at 50 minutes. These are acceptance thresholds, not permission to activate the trial.
+
+## S1 runtime repair result
+
+- The exact O2 Runner now creates, seals, digests and persists each eligible A/B order from immutable Work Item, authority, state/ledger and current candidate identity; restart reuses the same attempt, and non-O2 work retains the older pre-sealed binding contract.
+- One shared result adapter consumes real Codex/verifier/Publisher/Claude evidence, preserves raw output, binds attempt/order/candidate, records observed-or-unknown usage and saves the canonical envelope before router completion. The credential-isolated Ubuntu push lane reads back the exact public branch; when the first candidate has no PR yet, the authenticated Mac Runner idempotently creates one Draft PR, reads back its number/HEAD/branch/state and binds it into state/ledger before review. Later publication reads back that exact PR. Claude's real structured schema is assigned a deterministic sealed review identity.
+- Linux router/bootstrap and epoch admission accept only the exact O2 goal/version/digest, allowed A/B lane mapping, branch/worktree/event/authority and current candidate. Cross-goal/stage/digest/path cases fail, while Legacy D2 remains compatible.
+
+The isolated integration uses the actual Runner/adapter/router/checkpoint/state/ledger code and controlled no-model transport. It proves engineering wiring and recovery, not real Codex/Claude product output. Real provider behavior, five-day trial evidence and Mac Obsidian acceptance remain post-authorization live gates. Do not publish the Owner command below until the repaired infrastructure candidate has exact-candidate independent PASS.
 
 ## Review, stop and rollback rules
 
@@ -74,8 +84,8 @@ Publish this only after approving the reviewed infrastructure Draft PR for merge
   "schema_version": "kgnote.product-goal-authority-command.v1",
   "action": "APPROVE",
   "goal_id": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
-  "goal_version": "2026-10-23.1-bounded-trial",
-  "goal_spec_sha256": "cd9f03754142ff1e0f34b6bd9229afd893965d8b7bbd1d3644c7523893f6cbcc",
+  "goal_version": "2026-10-23.2-s0-s2-proposal",
+  "goal_spec_sha256": "82716b31f004f108c935169493f2fa918e5144f12419302ba2c9fdcec91b6604",
   "permissions": [
     "activate_runner",
     "commit",
@@ -95,11 +105,11 @@ After deploying the reviewed candidate to a new immutable concentrated worktree,
 
 ```text
 --product-goal-spec
-${HOME}/Library/Application Support/KGnote/runtime/product-goals/GOAL-KGNOTE-O2-READING-EXPERIENCE/2026-10-23.1-bounded-trial/spec.json
+${HOME}/Library/Application Support/KGnote/runtime/product-goals/GOAL-KGNOTE-O2-READING-EXPERIENCE/2026-10-23.2-s0-s2-proposal/spec.json
 --product-goal-state
-${HOME}/Library/Application Support/KGnote/runtime/product-goals/GOAL-KGNOTE-O2-READING-EXPERIENCE/2026-10-23.1-bounded-trial/state.json
+${HOME}/Library/Application Support/KGnote/runtime/product-goals/GOAL-KGNOTE-O2-READING-EXPERIENCE/2026-10-23.2-s0-s2-proposal/state.json
 --product-goal-ledger
-${HOME}/Library/Application Support/KGnote/runtime/product-goals/GOAL-KGNOTE-O2-READING-EXPERIENCE/2026-10-23.1-bounded-trial/ledger.jsonl
+${HOME}/Library/Application Support/KGnote/runtime/product-goals/GOAL-KGNOTE-O2-READING-EXPERIENCE/2026-10-23.2-s0-s2-proposal/ledger.jsonl
 --product-goal-backlog
 ${HOME}/Library/Application Support/KGnote/runtime/product-goals/PRODUCT_GOAL_BACKLOG.json
 ```
@@ -108,9 +118,9 @@ Do not add `--product-goal-trial` for the real run; that flag is no-model planni
 
 ## Deployment and acceptance sequence
 
-1. Confirm the trial-readiness PR is independently reviewed at its exact HEAD/fingerprint and remains Draft/unmerged until Owner authority.
-2. On explicit Owner authorization, merge only that reviewed PR and deploy its exact merge commit to a new guard-created concentrated `runner-deploy-<sha>` worktree; verify Git common directory and clean bytes.
-3. Copy the exact Goal spec and maintained backlog to the runtime paths, initialize empty state/ledger through existing Goal helpers, and read back both spec digests.
+1. Confirm PR #33 is independently reviewed at the exact HEAD/fingerprint recorded by `.ai/REVIEW_REQUEST.md`, is stacked on exact PR #32 HEAD `de5c8c01c86ffc87896dca1337817892bfb5eff6`, and remains Draft/unmerged until Owner authority.
+2. On explicit Owner authorization, merge only that reviewed PR and deploy its exact merge commit to a new guard-created concentrated `runner-deploy-<sha>` worktree; verify Git common directory and clean bytes. Change the LaunchAgent's existing `--repo` value to that exact clean deployment worktree when applying the Product Goal arguments; do not continue to use the older dirty Issue #8 checkout as Product Goal candidate identity.
+3. From that exact deployment commit, create the fixed remote seed branch `codex/o2-reading-experience` with a non-force push and read it back at the same SHA. Copy the exact Goal spec and maintained backlog to the runtime paths, initialize empty state/ledger through existing Goal helpers, and read back both spec digests. This one-time seed is candidate identity/bootstrap, not a Work Item order, model launch, PR PASS or product acceptance. The first successful Publisher transition creates the Draft PR automatically on Mac.
 4. Back up the current plist, apply the all-or-none argument delta, reload LaunchAgent, and read back program arguments plus deployed Runner SHA before any model launch.
 5. Publish the exact Owner approval command on Issue #9. Runner must record comment ID/URL/author/body digest and activate only this Goal version.
 6. Observe one bounded real-product flow through implementation, deterministic verification, Trusted Publisher, Ubuntu Claude, in-scope repair if needed, and Mac Obsidian human acceptance. GitHub Issue notifications are canonical; ChatGPT Work absence is not a blocker.

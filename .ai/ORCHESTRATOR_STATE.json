@@ -1,11 +1,8 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "b-scheme-trial-readiness-20261023",
-  "active_goal": "CODEX-APP-GOAL-B-TRIAL-READINESS-20261023",
-  "goal_layer": "CODEX_APP_EXECUTION_GOAL",
-  "product_goal_authorized": false,
-  "work_package": "BTR-3-VERIFY-REVIEW-DRAFT-PR",
-  "external_review_required": true,
+  "run_id": "orch-454b1fbaa26b",
+  "active_goal": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
+  "work_package": "S02-VERIFY-REVIEW-DRAFT-PR",
   "state": "IMPLEMENTING",
   "current_agent": null,
   "candidate_fingerprint": null,
@@ -16,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Run full exact-candidate verification, confirm dormant runtime and preserved assets, then create the authorized Draft PR and submit the repository-mediated independent review.",
+  "next_action": "Run the full verifier, seal/push PR #33, and request independent Ubuntu Claude review for that exact candidate.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -25,11 +22,11 @@
     "fingerprint": null
   },
   "next_human_checkpoint": {
-    "id": "BOUNDED-TRIAL-AUTHORIZATION",
+    "id": "B-SCHEME-GO-LIVE",
     "status": "not_authorized",
-    "description": "The first real Product Goal trial requires separate exact GitHub Owner authorization after compatibility repair, independent review, and Draft PR read-back."
+    "description": null
   },
   "last_agent_run": null,
-  "created_at": "2026-10-23T14:58:41+08:00",
-  "updated_at": "2026-10-23T15:40:00+08:00"
+  "created_at": "2026-10-23T17:46:10+08:00",
+  "updated_at": "2026-10-23T18:25:00+08:00"
 }

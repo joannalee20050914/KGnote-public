@@ -29,7 +29,7 @@
       "identity_kind": "KGNOTE_PRODUCT_GOAL",
       "authority_kind": "GITHUB_OWNER_APPROVAL_REQUIRED",
       "lifecycle_owner": "MAC_RUNNER",
-      "goal_version": "2026-10-23.1-bounded-trial",
+      "goal_version": "2026-10-23.2-s0-s2-proposal",
       "roadmap_stage": "O2",
       "title": "最小 Obsidian-first 閱讀、教材投影與原句便利貼",
       "status": "PLANNED",
@@ -52,9 +52,9 @@
         "以 AI 補寫 unsupported clause 或靜默改原文"
       ],
       "approval_eligibility": {
-        "status": "READY_FOR_OWNER_BOUNDED_TRIAL_APPROVAL",
-        "reason": "LEGACY-ISSUE-9-DISPOSITION is durably recorded in docs/control-plane/LEGACY_ISSUE9_DISPOSITION_20261023.md. PR #29 remains historical, and its three Round 4 findings are explicit unfinished obligations in the new immutable O2 spec.",
-        "release_condition": "Owner approves exact Goal version 2026-10-23.1-bounded-trial and canonical spec digest after the trial-readiness infrastructure candidate passes independent review and is authorized for merge/deployment."
+        "status": "BLOCKED_WITH_SPECIFIC_GAPS",
+        "reason": "S0 is specified, but the real Runner still lacks dynamic next-order binding, real worker-result envelope production, and O2-compatible admission/router identity. PR #29 remains historical and its three Round 4 findings remain explicit unfinished obligations.",
+        "release_condition": "Repair the named S1 runtime gaps, prove the real Mac-to-Linux path, and obtain exact-candidate independent PASS before the Owner may approve Goal version 2026-10-23.2-s0-s2-proposal and its canonical spec digest."
       },
       "existing_evidence_disposition": {
         "issue": 9,

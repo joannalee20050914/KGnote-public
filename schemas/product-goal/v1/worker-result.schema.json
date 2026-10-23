@@ -16,8 +16,26 @@
     "work_item_id": {"type": "string", "pattern": "^WI-[A-Z0-9-]+$"},
     "order_event_id": {"type": "string", "minLength": 1},
     "outcome": {
-      "enum": ["WORK_COMPLETED", "REVIEW_PASS", "REVIEW_CHANGES_REQUIRED", "PRODUCT_DECISION_REQUIRED"]
+      "enum": ["WORK_COMPLETED", "REVIEW_PASS", "REVIEW_CHANGES_REQUIRED", "PRODUCT_DECISION_REQUIRED", "WORK_FAILED", "WORK_PENDING"]
     },
+    "attempt_id": {"type": "string", "minLength": 1},
+    "stage": {"enum": ["codex", "publisher", "push", "claude"]},
+    "provider": {"enum": ["codex", "claude", "NONE"]},
+    "result_state": {"enum": ["COMPLETED", "FAILED", "PENDING"]},
+    "failure_class": {"type": ["string", "null"]},
+    "candidate": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "object", "additionalProperties": false, "required": ["commit", "fingerprint"], "properties": {
+          "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+          "fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "branch": {"type": "string"},
+          "pull_request": {"type": ["integer", "null"], "minimum": 1}
+        }}
+      ]
+    },
+    "review_findings": {"type": "array", "items": {"type": "object"}},
+    "execution": {"type": "object"},
     "obligation_evaluations": {
       "type": "array",
       "items": {
