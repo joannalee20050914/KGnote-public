@@ -1,7 +1,7 @@
 import copy, json, sys, unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]; sys.path.insert(0,str(ROOT/"scripts"))
-from epoch_scope_admission import AdmissionError, validate
+from epoch_scope_admission import AdmissionError, validate, validate_product_goal
 
 class EpochAdmissionTest(unittest.TestCase):
     def setUp(self):
@@ -33,5 +33,17 @@ class EpochAdmissionTest(unittest.TestCase):
         for key,value in mutations:
             order=copy.deepcopy(self.order); order["review_admission"][key]=value
             with self.assertRaises(AdmissionError): validate(self.epoch,order,self.pr)
+    def test_product_goal_admission_is_exact_and_budget_bound(self):
+        identity={"goal_id":"GOAL-KGNOTE-O2-READING-EXPERIENCE","goal_version":"v1","goal_spec_sha256":"d"*64,"work_item_id":"WI-O2-A-IMPLEMENT","provider":"codex","stage":"codex","order_event_id":"o2-event"}
+        order={"event_id":"o2-event","stage":"codex","bootstrap_identity":identity,"product_goal_admission":{
+            **identity,"repository":"joannalee20050914/KGnote-public","order_event_id":"o2-event",
+            "candidate":{"commit":"a"*40,"fingerprint":"b"*64},"authority_status":"APPROVED",
+            "go_live_authorized":True,"stop_marker_clear":True,"requires_model":True,
+            "total_launches_before":0,"max_total_launches":8,
+        }}
+        self.assertEqual("PRODUCT_GOAL",validate_product_goal(self.epoch,order)["admission_kind"])
+        for key,value in (("goal_spec_sha256","0"*64),("stop_marker_clear",False),("total_launches_before",8)):
+            changed=copy.deepcopy(order); changed["product_goal_admission"][key]=value
+            with self.assertRaises(AdmissionError): validate_product_goal(self.epoch,changed)
 
 if __name__ == "__main__": unittest.main()

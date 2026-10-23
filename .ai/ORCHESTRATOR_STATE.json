@@ -2,7 +2,7 @@
   "schema_version": "kgnote.orchestrator-state.v1",
   "run_id": "orch-454b1fbaa26b",
   "active_goal": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
-  "work_package": "S1-DISPATCH-RESULT-WIRING",
+  "work_package": "S02-VERIFY-REVIEW-DRAFT-PR",
   "state": "IMPLEMENTING",
   "current_agent": null,
   "candidate_fingerprint": null,
@@ -13,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Keep Draft PR #33 blocked; implement G1-G3 before independent review, deployment rehearsal or Owner authorization.",
+  "next_action": "Run the full verifier, seal/push PR #33, and request independent Ubuntu Claude review for that exact candidate.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -28,5 +28,5 @@
   },
   "last_agent_run": null,
   "created_at": "2026-10-23T17:46:10+08:00",
-  "updated_at": "2026-10-23T17:46:10+08:00"
+  "updated_at": "2026-10-23T18:25:00+08:00"
 }

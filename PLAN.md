@@ -14,8 +14,8 @@ This file contains one Codex App execution Goal. It prepares a bounded real-prod
   "product_goal_authorized": false,
   "objective": "在不修改 PR #32 已審查候選、不啟動 O2 worker 或正式 LaunchAgent 的前提下，完成 O2 真實產品試行 S0 契約、S1 真實派工與結果接線、S2 隔離部署與回復驗證，交付一次性 Owner 核准包。",
   "status": "active",
-  "active_milestone_id": "S1-DISPATCH-RESULT-WIRING",
-  "milestone_id": "S1-DISPATCH-RESULT-WIRING",
+  "active_milestone_id": "S02-VERIFY-REVIEW-DRAFT-PR",
+  "milestone_id": "S02-VERIFY-REVIEW-DRAFT-PR",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "execution_direction_id": "kgnote-o2-s0-s2-launch-preparation-2026-10-23",
@@ -98,7 +98,7 @@ This file contains one Codex App execution Goal. It prepares a bounded real-prod
     {
       "id": "S1-DISPATCH-RESULT-WIRING",
       "title": "證明並補足真實派工與結果接線",
-      "status": "active",
+      "status": "complete",
       "dependencies": ["S0-TRIAL-CONTRACT"],
       "human_gate": "none",
       "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/", "schemas/product-goal/", "scripts/", "tests/control_plane/"],
@@ -112,7 +112,7 @@ This file contains one Codex App execution Goal. It prepares a bounded real-prod
     {
       "id": "S2-DEPLOYMENT-READINESS",
       "title": "隔離部署演練與一次性 Owner 核准包",
-      "status": "pending",
+      "status": "complete",
       "dependencies": ["S1-DISPATCH-RESULT-WIRING"],
       "human_gate": "none",
       "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/", "docs/requirements/", "scripts/", "tests/control_plane/"],
@@ -126,7 +126,7 @@ This file contains one Codex App execution Goal. It prepares a bounded real-prod
     {
       "id": "S02-VERIFY-REVIEW-DRAFT-PR",
       "title": "完整驗證、獨立審查與相依 Draft PR",
-      "status": "pending",
+      "status": "active",
       "dependencies": ["S2-DEPLOYMENT-READINESS"],
       "human_gate": "none",
       "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/", "docs/requirements/", "scripts/", "tests/control_plane/"],
@@ -153,4 +153,4 @@ This file contains one Codex App execution Goal. It prepares a bounded real-prod
 
 ## Current recovery note
 
-This Goal is stacked on immutable PR #32 candidate `de5c8c01c86ffc87896dca1337817892bfb5eff6`. PR #32 and its PASS remain unchanged. S0 is complete as proposal version `2026-10-23.2-s0-s2-proposal`. S1 is active but the readiness outcome is `BLOCKED_WITH_SPECIFIC_GAPS`: the Runner has no dynamic order planner/binder, real workers do not produce the canonical Product Goal result envelope, and the deployed generic Linux identity path rejects O2 work-item/stage identities. S2 and formal independent review cannot become green before those runtime capabilities exist. The formal Runner, O2 and every Owner command remain dormant/unpublished.
+This Goal is stacked on immutable PR #32 candidate `de5c8c01c86ffc87896dca1337817892bfb5eff6`; PR #32 and its exact PASS remain unchanged. S0, S1 and S2 are complete. The repaired path creates an O2-only Runner-owned order from exact state, admits its Codex/Publisher/Claude identity without changing Legacy D2 rules, runs a fixed lane entrypoint, saves the canonical worker result before route completion, and reconciles checkpoint/state/ledger without blind redispatch. Ubuntu temporary deployment/import and Mac temporary all-or-none plist rollback rehearsals passed without touching formal runtime configuration. S02 is active for full verification, candidate sealing/push and exact-candidate independent review. O2 is not active and no Owner command was published.

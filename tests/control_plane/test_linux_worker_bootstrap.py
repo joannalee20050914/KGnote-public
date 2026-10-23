@@ -12,6 +12,33 @@ BOOTSTRAP = importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(BOOTS
 
 
 class LinuxWorkerBootstrapTest(unittest.TestCase):
+    def product_identity(self, event):
+        return {
+            "schema_version":"kgnote.authorized-product-goal-work-identity.v1",
+            "identity_kind":"KGNOTE_PRODUCT_GOAL", "authority_kind":"GITHUB_OWNER_APPROVAL",
+            "repository":"joannalee20050914/KGnote-public", "issue":9,
+            "goal_id":"GOAL-KGNOTE-O2-READING-EXPERIENCE",
+            "goal_version":"2026-10-23.2-s0-s2-proposal",
+            "goal_spec_sha256":"82716b31f004f108c935169493f2fa918e5144f12419302ba2c9fdcec91b6604",
+            "work_item_id":"WI-O2-B-REVIEW", "provider":"claude", "stage":"claude",
+            "order_event_id":event, "branch":"codex/o2-reading-experience",
+            "worktree_slug":"goal-o2-reading-experience",
+            "authority_record":"https://github.com/joannalee20050914/KGnote-public/issues/9",
+            "authority_sha256":"d"*64, "authority_status":"APPROVED",
+            "authority_action":"APPROVE", "go_live_authorized":True,
+        }
+
+    def test_o2_bootstrap_creates_only_exact_product_goal_leaf(self):
+        event = "o2-wi-o2-b-review-claude-0123456789abcdef"
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); generic=root/"work-items"; target=generic/"goal-o2-reading-experience"
+            identity=self.product_identity(event)
+            with patch.object(BOOTSTRAP,"WORKTREE_ROOT",root), patch.object(BOOTSTRAP,"GENERIC_ROOT",generic):
+                result=BOOTSTRAP.prepare(event,"claude",target,identity)
+                self.assertEqual("READY",result["status"])
+                with self.assertRaisesRegex(BOOTSTRAP.BootstrapError,"outside the exact authorized path"):
+                    BOOTSTRAP.prepare(event,"claude",generic/"escape",identity)
+
     def generic_identity(self):
         return {
             "schema_version":"kgnote.authorized-work-identity.v1",

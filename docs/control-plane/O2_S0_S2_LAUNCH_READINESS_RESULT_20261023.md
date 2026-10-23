@@ -1,21 +1,21 @@
 # O2 S0–S2 啟動準備結果
 
-Status: `BLOCKED_WITH_SPECIFIC_GAPS`
+Status: `READY_FOR_EXACT_CANDIDATE_REVIEW`
 
 Observed at: 2026-10-23 Asia/Taipei. This is an engineering-readiness result, not Product Owner authority, independent review PASS, deployment approval, or live-product evidence.
 
 ## Outcome
 
-S0 is implemented and deterministically verified as proposal version `2026-10-23.2-s0-s2-proposal`. S1 fails on the actual runtime boundary before a lawful first O2 order can be dispatched, so S2 cannot produce an exact deployable candidate. The formal LaunchAgent remains dormant and unchanged; O2 was not activated.
+S0 and the G1–G3 S1 runtime repairs are implemented. The real code path now derives and seals one O2 order, passes exact O2 identity and epoch admission, runs a fixed Codex/Publisher/Claude lane, persists a canonical result before route completion, reconciles checkpoint/state/ledger, and selects the next eligible Work Item. The integrated proof uses the real Runner/adapter/router/checkpoint code with a controlled no-model transport substitute; no formal O2 model work was launched. S2 deployment and configuration-first rollback rehearsals passed in isolated temporary locations. Exact-candidate full verification and independent Ubuntu Claude review remain the next milestone, so this intermediate status is not yet Owner authorization.
 
 | Claim | Result | Evidence boundary |
 | --- | --- | --- |
-| IMPLEMENTED | partial | S0 spec/schema/backlog/package only |
-| DETERMINISTIC_VERIFIED | yes for S0 | Product Goal contract validation and seven targeted tests pass |
-| INTEGRATION_VERIFIED | no | current end-to-end PASS uses a no-model fixture that creates orders and worker results inside the harness |
-| INDEPENDENT_REVIEWED | no for this proposal | PR #32 baseline `de5c8c0` retains its prior exact PASS; this delta has not been submitted as a deployable candidate |
-| DEPLOYMENT_PREPARED | no | exact delta and rollback are documented, but S1 runtime bytes do not exist |
-| LIVE_PRODUCT_TRIAL_NOT_STARTED | yes | LaunchAgent has no `--product-goal-*` arguments and active count is zero |
+| IMPLEMENTED | yes for G1–G3 | O2-only dynamic builder, shared result adapter, fixed lane entrypoint and exact Linux identity/admission |
+| DETERMINISTIC_VERIFIED | pending final candidate verifier | targeted and full control-plane regression pass before candidate sealing |
+| INTEGRATION_VERIFIED | yes for engineering data flow | actual code path plus controlled no-model transport; not a provider product result |
+| INDEPENDENT_REVIEWED | pending for this candidate | PR #32 `de5c8c0` PASS remains separate and unchanged |
+| DEPLOYMENT_PREPARED | yes, isolated | Ubuntu compile/import and Mac plist add/read-back/restore rehearsal; formal deployment untouched |
+| LIVE_PRODUCT_TRIAL_NOT_STARTED | yes | existing Legacy LaunchAgent runs without Product Goal arguments; O2 model launches remain zero |
 
 ## S0 result
 
@@ -28,52 +28,35 @@ S0 is implemented and deterministically verified as proposal version `2026-10-23
 
 Canonical JSON digest: `82716b31f004f108c935169493f2fa918e5144f12419302ba2c9fdcec91b6604`. File SHA-256: `8434386012c09546b5c3dd17a86c78ef05248d5391699398efc8beea526e7fd9`.
 
-## S1 direct blockers
+## S1 G1–G3 closure
 
-### G1 — no trusted dynamic order planner/binder
+### G1 — trusted dynamic order planner/binder
 
-`scripts/goal_runner_adapter.py::validated_bound_order` explicitly resolves only an existing `dispatch_binding` or a finite `dispatch_bindings` queue and says it never synthesizes an order from Goal prose. The real O2 initial state contains neither. Reproduction against the proposed spec returns:
+`ensure_bound_order` is enabled only for the exact O2 goal/version/spec digest. It derives the lane from the immutable Work Item, binds current authority and candidate identity, selects a fixed command template, atomically writes context/order, seals the digest into state and then reuses the same attempt binding on restart. It rejects a stale action, replaced bytes, out-of-root path, Stop Marker, unmet dependency and exhausted provider total. Non-O2 and Legacy paths retain the prior sealed-binding behavior.
 
-```json
-{"error":"selected work item has no Runner-owned sealed dispatch binding","probe":"runner_dynamic_order","status":"REJECTED"}
-```
+### G2 — durable real worker-result bridge
 
-Impact: there is no lawful non-human source for the first A order, a repair order with a new candidate, the successor review order, or A-to-B dispatch.
+`product_goal_worker_lane.py` uses fixed Codex, verifier, credential-isolated Git push/read-back and Claude adapter profiles. `product_goal_worker_result.py` preserves raw stdout/stderr, validates attempt/order/candidate, atomically saves `kgnote.product-goal-worker-result.v1`, and only then exposes the route evidence marker. Exit zero without evidence is failure; no Claude verdict cannot pass; 429/quota and interruption remain classified; usage stays `UNKNOWN` unless reliable input/output totals exist. A saved exact result is replayed without another worker launch. Ubuntu reads the public remote branch/PR through GitHub REST because it has no `gh`; the authenticated Mac Runner idempotently creates and binds the first Draft PR after branch publication and before review.
 
-Minimum repair: a Runner-owned planner must derive the next order from the selected immutable Work Item and current exact state, atomically seal it, validate its digest/path/authority, and append its binding before reservation. It must never predict a future commit SHA. Positive coverage must traverse A implementation → verification/publication → review → repair/new candidate/re-review → B; negative coverage must reject stale, replaced, out-of-root and exhausted bindings.
+### G3 — exact O2 Linux identity with Legacy compatibility
 
-### G2 — real workers do not produce the Product Goal result envelope
+`product_goal_worker_identity.py` accepts only the exact O2 goal/version/digest/repository/Issue and the enumerated A/B IMPLEMENT, VERIFY, PUBLISH, REVIEW and REPAIR lane mapping. It binds event, branch, one worktree slug, authority status/action/digest and path. Cross-goal, wrong provider/stage/digest/event, unauthorized Work Item and path escape fail. The previous `D2-Txx` validator remains a distinct compatibility branch and its regression tests pass.
 
-Only `scripts/goal_runner_adapter.py` and `scripts/run_product_goal_isolated_trial.py` reference `product_goal_result` or `kgnote.product-goal-worker-result.v1`. The former consumes it; the latter fabricates it in a no-model fixture. Codex, Publisher and Claude production entrypoints emit their own evidence/checkpoint shapes but no canonical Product Goal result.
-
-Impact: a completed worker checkpoint is downgraded to `EVIDENCE_INSUFFICIENT`; attempt identity, candidate commit/fingerprint, verification, publication read-back, review findings/verdict, usage/429 and next-work evidence cannot reach the Runner through the required envelope.
-
-Minimum repair: one shared result adapter must translate each real worker's durable output into the schema, preserve raw output on invalid envelopes, bind the exact order/candidate and write the result before the route checkpoint becomes complete. Restart must reconcile that checkpoint first and must not blindly relaunch a model. Positive tests must cover all three lanes; negative tests must cover missing/mismatched/invalid envelopes and 429 without verdict.
-
-### G3 — Linux admission identity rejects O2 work items
-
-Both `scripts/linux_worker_router.py::validate_bootstrap_identity` and `scripts/linux_worker_bootstrap.py::_validate_generic_identity` restrict generic work items to `D2-T[0-9]{2}`, a Codex-only stage and a 2026-10-19 event suffix. Reproduction returns:
-
-```json
-{"error":"generic bootstrap work-item identity is invalid","probe":"linux_o2_identity","status":"REJECTED"}
-```
-
-Impact: even a correctly sealed `WI-O2-A-IMPLEMENT` order cannot pass the deployed generic router/bootstrap. Review and deterministic publisher lanes also lack an O2-compatible generic identity route.
-
-Minimum repair: validate the existing Product Goal `WI-[A-Z0-9-]+` identity together with goal/version/spec digest, order event, provider stage, exact branch/worktree and Owner authority. Preserve the legacy D2 route as a separate compatibility path. Add positive O2 Codex/Publisher/Claude cases and negative cross-goal, wrong-stage, wrong-digest and path-escape cases.
-
-## S2 read-back and boundary
+## S2 deployment/read-back/rollback rehearsal
 
 - PR #32 remains Draft/open at exact HEAD `de5c8c01c86ffc87896dca1337817892bfb5eff6`, base `7bb0ffb4be6d5eb19398f249f45fa8e32a083131`; its earlier exact independent PASS is unchanged and does not review this proposal.
-- Draft PR #33 contains this blocked preparation result and is stacked on PR #32; it is not a deployable candidate and has not been submitted for independent review.
+- Draft PR #33 remains stacked on PR #32. Its remote HEAD remains the pre-repair `978dffe` until this new candidate is committed/pushed and sealed for review.
 - Deployed Runner: `7bb0ffb4be6d5eb19398f249f45fa8e32a083131`.
 - Deployed router: `7dbaeb6872cea07f5f8eb6ebdff8b29359cd2d66`.
 - Deployed epoch/scope admission: `b3293908847ac8296c37402ab1a3876e50b2b38a`.
-- LaunchAgent read-back: `com.kgnote.local-autonomy-runner`, active count `0`, state `not running`, no `--product-goal-spec`, `--product-goal-state`, `--product-goal-ledger` or `--product-goal-backlog` arguments.
-- The existing isolated trial returns `PASS` only with `fixture_repository=example.invalid`, `production_activation=false`, `model_invocations=0` and `external_writes=0`. Its harness creates `_order` and `_worker_result` directly. This verifies reducer/recovery behavior, not the missing real integration.
+- LaunchAgent read-back at rehearsal time: `com.kgnote.local-autonomy-runner`, `state=running`, `active count=1`, pointing at Legacy Runner commit `7bb0ffb`; it has no Product Goal arguments. This is not O2 activation.
+- Mac tools: Python `3.13.7`, Git `2.39.3`, Node `24.22.1`, npm `11.19.1`, gh `2.83.2`. Ubuntu tools: Python `3.12.3`, Git `2.43.0`, Claude Code `2.1.302`, fixed Node `24.12.0`, Codex CLI `0.146.0`, pinned agent-loop executable present; Ubuntu `gh` is absent and no longer required by the O2 publisher.
+- Candidate runtime scripts were copied only to `/tmp/kgnote-o2-s2.*` on Ubuntu, compiled and imported against the existing runtime, then removed. No formal runtime path changed.
+- A copy of the current plist received all four spec/state/ledger/backlog arguments, passed `plutil`, and was copied to a temporary active file. Restoring the baseline reproduced SHA-256 `0866aa272573d0e5cb0ce0a459f11f6fb75213d1b7b50fe4ea42872ca1f2d703`, equal to the untouched formal plist.
+- The integration test traverses decision → dynamic order → existing admission → actual router implementation with a controlled SSH substitute → canonical result → checkpoint → state/ledger → next verify order. Separate tests prove first-branch publication and Mac Draft-PR binding without a real GitHub write. No test calls a model or claims live-provider evidence.
 
-Because G1–G3 block the runtime path, no LaunchAgent mutation, reload, model launch, Owner command publication or live trial was attempted. The configuration-first rollback remains: remove the all-or-none Product Goal argument set, reload the previously backed-up trusted plist, read back the prior Runner/router/epoch paths and active count, and preserve spec/state/ledger/checkpoints/reviews/receipts/Stop Marker. That procedure must be rehearsed on the repaired exact candidate before authorization.
+No LaunchAgent mutation/reload, model launch, Owner command publication or live trial was attempted. The formal deployment set must include `product_goal_worker_identity.py`, `product_goal_worker_lane.py`, `product_goal_worker_result.py`, `codex_control.py`, the modified Runner/adapter/router/bootstrap/admission files and matching schemas. Configuration-first rollback removes the all-or-none Product Goal argument set, reloads the backed-up trusted plist, reads back the prior Runner/router/epoch paths and preserves spec/state/ledger/checkpoints/reviews/receipts/Stop Marker.
 
 ## Owner decision boundary
 
-Do not authorize or publish the prepared `APPROVE` command yet. The next engineering slice is exactly G1–G3, followed by the real Mac Runner → Linux worker → result → checkpoint → state/ledger proof, isolated deployment/read-back/rollback rehearsal, full verification and exact-candidate independent review. Only then may the package status become `READY_FOR_OWNER_AUTHORIZATION`.
+Do not authorize or publish the prepared `APPROVE` command yet. The next step is to seal/push the repaired PR #33 candidate, run full exact-candidate verification and obtain independent Ubuntu Claude PASS. Only that exact PASS may change the package to `READY_FOR_OWNER_AUTHORIZATION`.

@@ -11,6 +11,12 @@ import stat
 import hashlib
 from pathlib import Path
 
+from product_goal_worker_identity import (
+    PRODUCT_IDENTITY_SCHEMA,
+    ProductGoalIdentityError,
+    validate_product_goal_identity,
+)
+
 
 SUCCESSOR_EVENT_RE = re.compile(r"source-library-successor-codex-20261019(?:-cycle-(?:0[2-9]|1[0-2]))?")
 AUTHORIZED_WORKTREE = Path("/home/kgnote/.local/share/kgnote/source-library-successor-20261019")
@@ -41,6 +47,14 @@ def _require_real_directory(
 def _validate_generic_identity(
     identity: object, *, event_id: str, stage: str, working_directory: Path,
 ) -> dict[str, object]:
+    if isinstance(identity, dict) and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA:
+        try:
+            return validate_product_goal_identity(
+                identity, event_id=event_id, stage=stage,
+                working_directory=working_directory, worktree_root=WORKTREE_ROOT,
+            )
+        except ProductGoalIdentityError as exc:
+            raise BootstrapError(str(exc)) from exc
     if not isinstance(identity, dict) or identity.get("schema_version") != "kgnote.authorized-work-identity.v1":
         raise BootstrapError("generic bootstrap identity is missing or unsupported")
     repository, issue = identity.get("repository"), identity.get("issue")
@@ -87,6 +101,18 @@ def prepare(event_id: str, stage: str, working_directory: Path, identity: object
         if not GENERIC_ROOT.exists():
             GENERIC_ROOT.mkdir(mode=0o700)
         _require_real_directory(GENERIC_ROOT, owner_uid=uid, owner_gid=gid)
+        if (
+            isinstance(identity, dict)
+            and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+        ):
+            runtime_state = WORKTREE_ROOT / "runtime-state"
+            handoff = runtime_state / "product-goal"
+            for directory in (runtime_state, handoff):
+                if directory.is_symlink():
+                    raise BootstrapError("Product Goal handoff path must not be a symbolic link")
+                if not directory.exists():
+                    directory.mkdir(mode=0o700)
+                _require_real_directory(directory, owner_uid=uid, owner_gid=gid)
     if working_directory.is_symlink():
         raise BootstrapError("working directory must not be a symbolic link")
     created = False
@@ -104,6 +130,12 @@ def prepare(event_id: str, stage: str, working_directory: Path, identity: object
         "owner_uid": metadata.st_uid,
         "owner_gid": metadata.st_gid,
         "mode": oct(stat.S_IMODE(metadata.st_mode)),
+        "handoff_directory": (
+            str(WORKTREE_ROOT / "runtime-state/product-goal")
+            if isinstance(identity, dict)
+            and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+            else None
+        ),
         "identity_sha256": hashlib.sha256(
             json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest() if identity is not None else None,

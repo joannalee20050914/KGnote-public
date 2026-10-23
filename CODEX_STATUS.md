@@ -6,7 +6,7 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-23T17:45:16+08:00",
+  "updated_at": "2026-10-23T18:25:00+08:00",
   "goal_id": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
   "active_goal": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -14,41 +14,28 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
   "lifecycle_owner": "CODEX_APP",
   "product_goal_authorized": false,
   "goal_status": "active",
-  "active_milestone_id": "S1-DISPATCH-RESULT-WIRING",
-  "milestone_id": "S1-DISPATCH-RESULT-WIRING",
+  "active_milestone_id": "S02-VERIFY-REVIEW-DRAFT-PR",
+  "milestone_id": "S02-VERIFY-REVIEW-DRAFT-PR",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/o2-s0-s2-launch-package-20261023",
-    "head": "088e7be60819bf596f46fa98f166c2944abbd25d",
+    "head": "978dffec349de11cc5ccea2d1e2a5f584cc78328",
     "base_commit": "de5c8c01c86ffc87896dca1337817892bfb5eff6",
-    "checkpoint_commit": "088e7be60819bf596f46fa98f166c2944abbd25d",
+    "checkpoint_commit": "978dffec349de11cc5ccea2d1e2a5f584cc78328",
     "draft_pull_request": 33
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "b72ba879c606c3844b6167796e480010ad8a1dc3bdfded29b9ed5578fe2de996",
+    "fingerprint": "a1a6fb59d6cb4b7df9fb7dcf898c68c0d2c72dc5ac6133e55e8bdd9a50eaa9dc",
     "starting_fingerprint": "faf5469acca25dfec4e77b86c4faa0caf1575d710d41d267afb25d927a441126",
     "expected_dirty_policy": "Only O2 S0–S2 launch-package contracts, minimum dispatch/result/deployment wiring, necessary tests/evidence, PLAN/STATUS and review/publication receipts may change. PR #32, PR #29 history, main, Legacy assets and the deployed Runner remain untouched.",
     "preserved_preexisting_dirty_paths": [],
     "unexpected_dirty_paths": []
   },
-  "readiness_outcome": "BLOCKED_WITH_SPECIFIC_GAPS",
-  "engineering_blockers": [
-    {
-      "id": "G1-DYNAMIC-ORDER-BINDING",
-      "cause": "Runner consumes only pre-sealed bindings and cannot generate/bind the next O2 order."
-    },
-    {
-      "id": "G2-WORKER-RESULT-ENVELOPE",
-      "cause": "Real Codex, Publisher and Claude lanes do not emit kgnote.product-goal-worker-result.v1."
-    },
-    {
-      "id": "G3-O2-LINUX-IDENTITY",
-      "cause": "Generic Linux router/bootstrap admission accepts only legacy D2-Txx Codex identities."
-    }
-  ],
+  "readiness_outcome": "IN_PROGRESS_EXACT_CANDIDATE_NOT_SEALED",
+  "engineering_blockers": [],
   "implementation_state": "IMPLEMENTING",
   "review": {
     "state": "IMPLEMENTING",
@@ -61,8 +48,8 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
   "deployment_readback": {
     "main_head": "7bb0ffb4be6d5eb19398f249f45fa8e32a083131",
     "runner_deploy_head": "7bb0ffb4be6d5eb19398f249f45fa8e32a083131",
-    "runner_launchd_state": "not running",
-    "runner_active_count": 0,
+    "runner_launchd_state": "running_legacy_without_product_goal_arguments",
+    "runner_active_count": 1,
     "product_goal_go_live": false,
     "model_launches_during_goal": 0
   },
@@ -70,11 +57,11 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
     "candidate_verified": false,
     "release_verified": false,
     "control_plane_ready": false,
-    "last_candidate_evidence": "docs/control-plane/O2_S0_S2_LAUNCH_READINESS_RESULT_20261023.md",
+    "last_candidate_evidence": null,
     "last_verified_fingerprint": null,
-    "last_result": "Committed S0 proposal and S1/S2 blocker evidence at 088e7be; the exact candidate is deterministically verified but remains BLOCKED_WITH_SPECIFIC_GAPS and is not deployment-ready."
+    "last_result": "G1-G3 targeted integration, durable handoff-path and first-publication/Draft-PR binding tests pass. Ubuntu temporary runtime compile/import and Mac temporary plist rollback rehearsals passed without changing formal deployment. A prior full verifier passed before the final handoff/first-publication hardening; full exact-candidate verifier must be rerun."
   },
-  "next_action": "Keep Draft PR #33 blocked; implement G1-G3 before independent review, deployment rehearsal or Owner authorization.",
+  "next_action": "Run the full verifier, seal/push PR #33, and request independent Ubuntu Claude review for that exact candidate.",
   "external_or_human_gates": [
     {
       "id": "B-SCHEME-GO-LIVE",
@@ -112,9 +99,9 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
 
 ## Human-readable handoff
 
-Goal `CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023` remains active at milestone `S1-DISPATCH-RESULT-WIRING`.
+Goal `CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023` remains active at milestone `S02-VERIFY-REVIEW-DRAFT-PR`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Keep Draft PR #33 blocked; implement G1-G3 before independent review, deployment rehearsal or Owner authorization.
+Exact next action: Run the full verifier, seal/push PR #33, and request independent Ubuntu Claude review for that exact candidate.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

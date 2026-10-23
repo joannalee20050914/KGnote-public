@@ -1,6 +1,6 @@
 # O2 首次真實 Product Goal 有界試行核准包
 
-Status: `BLOCKED_WITH_SPECIFIC_GAPS`; prepared S0 proposal, not yet eligible for Owner authorization. The S1 runtime gaps listed below must be implemented and independently reviewed before this package can become actionable. It does not itself authorize merge, deployment, Product Goal execution, or full B-scheme go-live.
+Status: `READY_FOR_EXACT_CANDIDATE_REVIEW`; not yet eligible for Owner authorization. G1–G3 and the isolated deployment/rollback rehearsal are complete, but the repaired PR #33 exact HEAD/fingerprint still requires full verification and independent Ubuntu Claude PASS. This package does not itself authorize merge, deployment, Product Goal execution, or full B-scheme go-live.
 
 ## Decision summary
 
@@ -48,13 +48,13 @@ Work window: Monday–Friday, Asia/Taipei `09:00–18:00`. Proposed observation 
 
 Trial evidence gates: successor work must start within 600 seconds of an eligible transition; at least two cross-window resumptions and one safe Runner restart must be observed; ordinary engineering relay is limited to zero; total engineering supervision is capped at 50 minutes. These are acceptance thresholds, not permission to activate the trial.
 
-## S1 blockers that prevent Owner authorization
+## S1 runtime repair result
 
-- The Runner adapter consumes only a pre-sealed `dispatch_binding` or finite `dispatch_bindings` queue. It explicitly refuses to synthesize the next order, so it cannot yet create and bind the A-to-review-to-repair-to-B sequence or a new exact candidate after a result.
-- Codex, Trusted Publisher and Ubuntu Claude entrypoints do not emit the canonical `kgnote.product-goal-worker-result.v1` envelope. Current integration tests inject that envelope as fixture data, so checkpoint reconciliation is not proof of a real worker-result path.
-- Initial/dynamic product candidate publication is not represented end to end: current epoch admission assumes an existing PR/HEAD, while the Linux bootstrap/router identity is fixed to the older `D2-Txx` work-item/event pattern rather than the O2 A/B identities.
+- The exact O2 Runner now creates, seals, digests and persists each eligible A/B order from immutable Work Item, authority, state/ledger and current candidate identity; restart reuses the same attempt, and non-O2 work retains the older pre-sealed binding contract.
+- One shared result adapter consumes real Codex/verifier/Publisher/Claude evidence, preserves raw output, binds attempt/order/candidate, records observed-or-unknown usage and saves the canonical envelope before router completion. The credential-isolated Ubuntu push lane reads back the exact public branch; when the first candidate has no PR yet, the authenticated Mac Runner idempotently creates one Draft PR, reads back its number/HEAD/branch/state and binds it into state/ledger before review. Later publication reads back that exact PR. Claude's real structured schema is assigned a deterministic sealed review identity.
+- Linux router/bootstrap and epoch admission accept only the exact O2 goal/version/digest, allowed A/B lane mapping, branch/worktree/event/authority and current candidate. Cross-goal/stage/digest/path cases fail, while Legacy D2 remains compatible.
 
-The smallest repair is to add one trusted Runner-owned order planner/binder, one shared worker-result adapter used by all three worker lanes, and O2-compatible admission/router identity validation, then demonstrate two dynamic successor orders and a genuine result envelope across the real Mac-to-Linux path. Do not publish the Owner command below until that candidate has exact-candidate independent PASS.
+The isolated integration uses the actual Runner/adapter/router/checkpoint/state/ledger code and controlled no-model transport. It proves engineering wiring and recovery, not real Codex/Claude product output. Real provider behavior, five-day trial evidence and Mac Obsidian acceptance remain post-authorization live gates. Do not publish the Owner command below until the repaired infrastructure candidate has exact-candidate independent PASS.
 
 ## Review, stop and rollback rules
 
@@ -118,9 +118,9 @@ Do not add `--product-goal-trial` for the real run; that flag is no-model planni
 
 ## Deployment and acceptance sequence
 
-1. Confirm the trial-readiness PR is independently reviewed at its exact HEAD/fingerprint and remains Draft/unmerged until Owner authority.
-2. On explicit Owner authorization, merge only that reviewed PR and deploy its exact merge commit to a new guard-created concentrated `runner-deploy-<sha>` worktree; verify Git common directory and clean bytes.
-3. Copy the exact Goal spec and maintained backlog to the runtime paths, initialize empty state/ledger through existing Goal helpers, and read back both spec digests.
+1. Confirm PR #33 is independently reviewed at the exact HEAD/fingerprint recorded by `.ai/REVIEW_REQUEST.md`, is stacked on exact PR #32 HEAD `de5c8c01c86ffc87896dca1337817892bfb5eff6`, and remains Draft/unmerged until Owner authority.
+2. On explicit Owner authorization, merge only that reviewed PR and deploy its exact merge commit to a new guard-created concentrated `runner-deploy-<sha>` worktree; verify Git common directory and clean bytes. Change the LaunchAgent's existing `--repo` value to that exact clean deployment worktree when applying the Product Goal arguments; do not continue to use the older dirty Issue #8 checkout as Product Goal candidate identity.
+3. From that exact deployment commit, create the fixed remote seed branch `codex/o2-reading-experience` with a non-force push and read it back at the same SHA. Copy the exact Goal spec and maintained backlog to the runtime paths, initialize empty state/ledger through existing Goal helpers, and read back both spec digests. This one-time seed is candidate identity/bootstrap, not a Work Item order, model launch, PR PASS or product acceptance. The first successful Publisher transition creates the Draft PR automatically on Mac.
 4. Back up the current plist, apply the all-or-none argument delta, reload LaunchAgent, and read back program arguments plus deployed Runner SHA before any model launch.
 5. Publish the exact Owner approval command on Issue #9. Runner must record comment ID/URL/author/body digest and activate only this Goal version.
 6. Observe one bounded real-product flow through implementation, deterministic verification, Trusted Publisher, Ubuntu Claude, in-scope repair if needed, and Mac Obsidian human acceptance. GitHub Issue notifications are canonical; ChatGPT Work absence is not a blocker.

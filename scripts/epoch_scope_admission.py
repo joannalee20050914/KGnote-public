@@ -8,6 +8,45 @@ from typing import Any, Callable
 
 class AdmissionError(RuntimeError): pass
 
+def validate_product_goal(epoch: dict[str, Any], order: dict[str, Any]) -> dict[str, Any]:
+    admission = order.get("product_goal_admission")
+    identity = order.get("bootstrap_identity")
+    if not isinstance(admission, dict) or not isinstance(identity, dict):
+        raise AdmissionError("Product Goal admission or bootstrap identity is missing")
+    repository = admission.get("repository")
+    if repository not in epoch.get("allowed_repositories", []):
+        raise AdmissionError("Product Goal repository is outside epoch scope")
+    exact = {
+        "goal_id": identity.get("goal_id"), "goal_version": identity.get("goal_version"),
+        "goal_spec_sha256": identity.get("goal_spec_sha256"),
+        "work_item_id": identity.get("work_item_id"), "stage": order.get("stage"),
+        "provider": identity.get("provider"), "order_event_id": order.get("event_id"),
+    }
+    if any(admission.get(key) != value for key, value in exact.items()):
+        raise AdmissionError("Product Goal admission differs from the sealed order identity")
+    candidate = admission.get("candidate")
+    if (
+        not isinstance(candidate, dict)
+        or not isinstance(candidate.get("commit"), str) or len(candidate["commit"]) != 40
+        or not isinstance(candidate.get("fingerprint"), str) or len(candidate["fingerprint"]) != 64
+    ):
+        raise AdmissionError("Product Goal candidate identity is invalid")
+    if admission.get("authority_status") != "APPROVED" or admission.get("go_live_authorized") is not True:
+        raise AdmissionError("Product Goal authority is not admitted")
+    if admission.get("stop_marker_clear") is not True:
+        raise AdmissionError("Stop Marker does not authorize Product Goal dispatch")
+    if admission.get("requires_model") is True:
+        used, limit = admission.get("total_launches_before"), admission.get("max_total_launches")
+        if not isinstance(used, int) or not isinstance(limit, int) or used < 0 or used >= limit:
+            raise AdmissionError("Product Goal provider launch ceiling is exhausted or unknown")
+    return {
+        "status":"ADMITTED", "admission_kind":"PRODUCT_GOAL",
+        "epoch_id":epoch["epoch_id"], "repository":repository,
+        "goal_id":admission["goal_id"], "goal_version":admission["goal_version"],
+        "work_item_id":admission["work_item_id"], "order_event_id":order["event_id"],
+        "activation_scope":epoch["activation_scope"],
+    }
+
 def parse_utc(value: object, label: str) -> datetime:
     if not isinstance(value, str) or not value.endswith("Z"):
         raise AdmissionError(f"{label} must be trusted UTC Z time")
@@ -59,8 +98,12 @@ def fetch_pr(repository: str, number: int, runner: Callable[..., subprocess.Comp
 def main() -> int:
     parser=argparse.ArgumentParser(); parser.add_argument("--epoch",type=Path,required=True); parser.add_argument("--order",type=Path,required=True); args=parser.parse_args()
     try:
-        epoch=json.loads(args.epoch.read_text()); order=json.loads(args.order.read_text()); admission=order.get("review_admission") or {}
-        result=validate(epoch,order,fetch_pr(str(admission.get("repository")),int(admission.get("pull_request",0))))
+        epoch=json.loads(args.epoch.read_text()); order=json.loads(args.order.read_text())
+        if isinstance(order.get("product_goal_admission"), dict):
+            result=validate_product_goal(epoch,order)
+        else:
+            admission=order.get("review_admission") or {}
+            result=validate(epoch,order,fetch_pr(str(admission.get("repository")),int(admission.get("pull_request",0))))
     except (OSError,ValueError,json.JSONDecodeError,AdmissionError) as exc:
         print(json.dumps({"status":"REJECTED","reason":str(exc)})); return 2
     print(json.dumps(result,sort_keys=True)); return 0
