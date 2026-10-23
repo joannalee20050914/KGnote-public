@@ -61,7 +61,7 @@ This file contains one Codex App execution Goal. It prepares a bounded real-prod
     "base_revision": "de5c8c01c86ffc87896dca1337817892bfb5eff6",
     "branch": "codex/o2-s0-s2-launch-package-20261023",
     "stacked_on_pull_request": 32,
-    "draft_pull_request": null,
+    "draft_pull_request": 33,
     "automatic_merge": false
   },
   "auto_advance": {

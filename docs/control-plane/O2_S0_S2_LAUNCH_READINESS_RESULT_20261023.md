@@ -65,6 +65,7 @@ Minimum repair: validate the existing Product Goal `WI-[A-Z0-9-]+` identity toge
 ## S2 read-back and boundary
 
 - PR #32 remains Draft/open at exact HEAD `de5c8c01c86ffc87896dca1337817892bfb5eff6`, base `7bb0ffb4be6d5eb19398f249f45fa8e32a083131`; its earlier exact independent PASS is unchanged and does not review this proposal.
+- Draft PR #33 contains this blocked preparation result and is stacked on PR #32; it is not a deployable candidate and has not been submitted for independent review.
 - Deployed Runner: `7bb0ffb4be6d5eb19398f249f45fa8e32a083131`.
 - Deployed router: `7dbaeb6872cea07f5f8eb6ebdff8b29359cd2d66`.
 - Deployed epoch/scope admission: `b3293908847ac8296c37402ab1a3876e50b2b38a`.

@@ -1,6 +1,6 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "orch-287c26d377de",
+  "run_id": "orch-454b1fbaa26b",
   "active_goal": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
   "work_package": "S1-DISPATCH-RESULT-WIRING",
   "state": "IMPLEMENTING",
@@ -13,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Implement G1-G3 as one bounded S1 runtime slice, then prove the real Mac Runner to Linux worker result/checkpoint/state-ledger path before S2 or review submission.",
+  "next_action": "Keep Draft PR #33 blocked; implement G1-G3 before independent review, deployment rehearsal or Owner authorization.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -22,11 +22,11 @@
     "fingerprint": null
   },
   "next_human_checkpoint": {
-    "id": "BOUNDED-TRIAL-AUTHORIZATION",
+    "id": "B-SCHEME-GO-LIVE",
     "status": "not_authorized",
-    "description": "Only after G1-G3, real integration proof, isolated deployment rehearsal and exact-candidate independent review."
+    "description": null
   },
   "last_agent_run": null,
-  "created_at": "2026-10-23T17:41:22+08:00",
-  "updated_at": "2026-10-23T17:41:22+08:00"
+  "created_at": "2026-10-23T17:46:10+08:00",
+  "updated_at": "2026-10-23T17:46:10+08:00"
 }
