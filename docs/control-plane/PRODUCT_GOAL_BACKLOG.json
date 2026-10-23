@@ -5,7 +5,7 @@
   "lifecycle_owner": "MAC_RUNNER",
   "backlog_id": "kgnote-obsidian-first-product-goals-2026-10-22",
   "source_baseline": {
-    "repository_head": "f81ccdde369c7ab9468ed07ca1fdab6d8f0b60e0",
+    "repository_head": "7bb0ffb4be6d5eb19398f249f45fa8e32a083131",
     "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r7",
     "source_sha256": {
       "DEVELOPMENT_PLAIN.md": "b37392c8ea2544cd5e16248c413b72240b84f3e96295f8ceeb7c6580164ce758",
@@ -29,7 +29,7 @@
       "identity_kind": "KGNOTE_PRODUCT_GOAL",
       "authority_kind": "GITHUB_OWNER_APPROVAL_REQUIRED",
       "lifecycle_owner": "MAC_RUNNER",
-      "goal_version": "planned-2026-10-22.1",
+      "goal_version": "2026-10-23.1-bounded-trial",
       "roadmap_stage": "O2",
       "title": "最小 Obsidian-first 閱讀、教材投影與原句便利貼",
       "status": "PLANNED",
@@ -52,16 +52,16 @@
         "以 AI 補寫 unsupported clause 或靜默改原文"
       ],
       "approval_eligibility": {
-        "status": "BLOCKED_LEGACY_DISPOSITION",
-        "reason": "Issue #9 / PR #29 remains a legacy bounded work item with Round 4 CHANGES_REQUIRED; it is evidence and possible contribution, not B-scheme Goal authority.",
-        "release_condition": "PR #29 findings and legacy authority/budget disposition are durably resolved, then this planned Goal is version-drift checked and explicitly approved by Owner."
+        "status": "READY_FOR_OWNER_BOUNDED_TRIAL_APPROVAL",
+        "reason": "LEGACY-ISSUE-9-DISPOSITION is durably recorded in docs/control-plane/LEGACY_ISSUE9_DISPOSITION_20261023.md. PR #29 remains historical, and its three Round 4 findings are explicit unfinished obligations in the new immutable O2 spec.",
+        "release_condition": "Owner approves exact Goal version 2026-10-23.1-bounded-trial and canonical spec digest after the trial-readiness infrastructure candidate passes independent review and is authorized for merge/deployment."
       },
       "existing_evidence_disposition": {
         "issue": 9,
         "pull_request": 29,
         "candidate_head": "4c11eb425f98030d6181abb74e67b0e7594d87bc",
-        "status": "LEGACY_CHANGES_REQUIRED_NOT_MIGRATED",
-        "reuse_rule": "Preserve reviews, commits, budgets and checkpoints; evaluate only as prior evidence after exact read-back."
+        "status": "PRESERVED_LEGACY_WITH_OPEN_FINDINGS",
+        "reuse_rule": "Preserve reviews, commits, budgets and checkpoints without migration. Selective code reuse starts from current main; Round 4 findings remain O2 obligations and old evidence never proves the new candidate complete."
       }
     },
     {

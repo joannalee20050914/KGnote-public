@@ -946,9 +946,11 @@ class RunnerTests(unittest.TestCase):
     def test_approved_package_routes_one_linux_worker_order_without_host_fallback(self):
         tmp, repo, router=self.fixture(); calls=[]
         order_path=repo/".ai/linux-worker-order.json"; order_path.write_text("{}")
+        epoch=repo/"epoch.json"; epoch.write_text("{}")
+        admission=repo/"epoch_scope_admission.py"; admission.write_text("")
         def fake(command, **kwargs): calls.append(command); return subprocess.CompletedProcess(command,0,"","")
         try:
-            self.assertEqual(0,RUNNER.run_once(repo,datetime(2026,10,19,10,tzinfo=ZoneInfo("Asia/Taipei")),fake,router))
+            self.assertEqual(0,RUNNER.run_once(repo,datetime(2026,10,19,10,tzinfo=ZoneInfo("Asia/Taipei")),fake,router,epoch_record=epoch,admission=admission))
             self.assertIn("--epoch",calls[0]); self.assertIn("--order",calls[0])
             self.assertEqual(["--order",str(order_path)],calls[2][-2:])
             self.assertNotIn("codex_orchestrator.py", " ".join(sum(calls, [])))
@@ -977,19 +979,34 @@ class RunnerTests(unittest.TestCase):
 
     def test_stop_marker_allows_only_private_smoke_canary_order(self):
         tmp, repo, router=self.fixture(); (repo/".ai/ORCHESTRATOR_STOP").write_text("stop\n")
-        canary=ROOT.parent/"KGnote-claude-reviewer-integration/output/claude-reviewer-final/test-order.json"
-        original_exists=canary.exists(); original=canary.read_bytes() if original_exists else None
-        canary.parent.mkdir(parents=True,exist_ok=True)
-        canary.write_text(json.dumps({"event_id":"production-canary-test","working_directory":"/home/kgnote/.local/share/kgnote/smoke-repo","checkpoint_path":str(canary.with_name("test-checkpoint.json"))}))
-        calls=[]
-        def fake(command,**kwargs): calls.append(command); return subprocess.CompletedProcess(command,0,"","")
-        try:
-            self.assertEqual(0,RUNNER.run_once(repo,datetime(2026,10,17,10,tzinfo=ZoneInfo("Asia/Taipei")),fake,router,canary,pending_goal=repo/"absent-pending.json"))
-            self.assertEqual(str(canary),calls[1][-1]); self.assertTrue((repo/".ai/ORCHESTRATOR_STOP").exists())
-        finally:
-            if original_exists: canary.write_bytes(original)
-            else: canary.unlink(missing_ok=True)
-            tmp.cleanup()
+        with tempfile.TemporaryDirectory() as integration_directory:
+            integration=Path(integration_directory).resolve()
+            canary=integration/"output/claude-reviewer-final/test-order.json"
+            canary.parent.mkdir(parents=True)
+            canary.write_text(json.dumps({"event_id":"production-canary-test","working_directory":"/home/kgnote/.local/share/kgnote/smoke-repo","checkpoint_path":str(canary.with_name("test-checkpoint.json"))}))
+            calls=[]
+            def fake(command,**kwargs): calls.append(command); return subprocess.CompletedProcess(command,0,"","")
+            try:
+                with patch.object(RUNNER,"INTEGRATION_REPO",integration):
+                    self.assertEqual(0,RUNNER.run_once(repo,datetime(2026,10,17,10,tzinfo=ZoneInfo("Asia/Taipei")),fake,router,canary,pending_goal=repo/"absent-pending.json"))
+                self.assertEqual(str(canary),calls[1][-1]); self.assertTrue((repo/".ai/ORCHESTRATOR_STOP").exists())
+            finally: tmp.cleanup()
+
+    def test_stop_marker_rejects_canary_outside_controlled_integration_root(self):
+        cases=(
+            {"event_id":"not-allowlisted","working_directory":"/home/kgnote/.local/share/kgnote/smoke-repo","checkpoint":"inside"},
+            {"event_id":"production-canary-test","working_directory":"/home/kgnote/.local/share/kgnote/not-smoke","checkpoint":"inside"},
+            {"event_id":"production-canary-test","working_directory":"/home/kgnote/.local/share/kgnote/smoke-repo","checkpoint":"outside"},
+        )
+        for case in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                root=Path(directory); integration=root/"controlled-integration"
+                allowed=integration/"output/claude-reviewer-final"; allowed.mkdir(parents=True)
+                order=root/"canary.json"
+                checkpoint=(allowed/"checkpoint.json" if case["checkpoint"]=="inside" else root/"outside.json")
+                order.write_text(json.dumps({"event_id":case["event_id"],"working_directory":case["working_directory"],"checkpoint_path":str(checkpoint)}))
+                with patch.object(RUNNER,"INTEGRATION_REPO",integration):
+                    with self.assertRaises(ValueError): RUNNER.validate_canary_order(order)
 
     def test_missing_linux_order_fails_closed_without_host_execution(self):
         tmp, repo, router=self.fixture()

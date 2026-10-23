@@ -1,0 +1,208 @@
+{
+  "schema_version": "kgnote.product-goal-spec.v1",
+  "identity_kind": "KGNOTE_PRODUCT_GOAL",
+  "authority_kind": "GITHUB_OWNER_APPROVAL",
+  "lifecycle_owner": "MAC_RUNNER",
+  "goal_id": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
+  "active_goal": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
+  "goal_version": "2026-10-23.1-bounded-trial",
+  "title": "最小 Obsidian-first 閱讀、教材投影與原句便利貼",
+  "outcome": "使用者從普通 Obsidian Markdown 開始閱讀，沿教材結構回到同一來源身分，並能建立可展開、可收合、可重開讀回且不覆寫原文的 context-local 便利貼。",
+  "repository": "joannalee20050914/KGnote-public",
+  "github_issue": 9,
+  "owner_logins": [
+    "joannalee20050914"
+  ],
+  "requirements": [
+    "KG-PLAT-08",
+    "KG-ALPHA-02",
+    "KG-CTX-10",
+    "KG-KNOW-09"
+  ],
+  "rcs": [
+    "RC-05",
+    "RC-07",
+    "RC-08",
+    "RC-12",
+    "RC-14",
+    "RC-15",
+    "RC-16",
+    "RC-31",
+    "RC-32"
+  ],
+  "fds": [
+    "FD-04",
+    "FD-05",
+    "FD-06",
+    "FD-21"
+  ],
+  "dependencies": [],
+  "allowed_operations": [
+    "activate_runner",
+    "commit",
+    "push",
+    "draft_pr",
+    "review",
+    "verify"
+  ],
+  "forbidden_operations": [
+    "merge",
+    "paid_api",
+    "delete_evidence",
+    "modify_branch_protection",
+    "force_push",
+    "clear_stop_marker",
+    "rewrite_legacy_history",
+    "unapproved_data_egress"
+  ],
+  "work_window": {
+    "timezone": "Asia/Taipei",
+    "weekdays": [0, 1, 2, 3, 4],
+    "start": "09:00",
+    "end": "18:00"
+  },
+  "resource_policy": {
+    "max_model_concurrency": 1,
+    "providers": {
+      "codex": {
+        "subscription_only": true,
+        "paid_api_fallback": false,
+        "reserve_percent": 10,
+        "capacity_observation": {
+          "status": "PERCENTAGE_UNOBSERVABLE",
+          "remaining_percent": null,
+          "source_kind": null,
+          "observed_at": null,
+          "max_age_seconds": 300
+        },
+        "fallback": {
+          "min_launch_interval_seconds": 300,
+          "max_launches_per_window": 3,
+          "max_total_launches": 4,
+          "quota_backoff_seconds": 3600
+        }
+      },
+      "claude": {
+        "subscription_only": true,
+        "paid_api_fallback": false,
+        "reserve_percent": 10,
+        "capacity_observation": {
+          "status": "PERCENTAGE_UNOBSERVABLE",
+          "remaining_percent": null,
+          "source_kind": null,
+          "observed_at": null,
+          "max_age_seconds": 300
+        },
+        "fallback": {
+          "min_launch_interval_seconds": 300,
+          "max_launches_per_window": 3,
+          "max_total_launches": 4,
+          "quota_backoff_seconds": 3600
+        }
+      }
+    }
+  },
+  "recovery_policy": {
+    "max_same_failure_attempts": 2,
+    "no_progress_before_strategy_adjustment": 2,
+    "max_strategy_adjustments": 1
+  },
+  "review_policy": {
+    "reviewer": "UBUNTU_CLAUDE",
+    "independent": true,
+    "completion_gate_required": true,
+    "round_has_hidden_fixed_limit": false
+  },
+  "completion_conditions": [
+    "all stable O2 obligations are independently VERIFIED_RESOLVED",
+    "ordinary Markdown, Obsidian projection and secondary Web reference share exact Concept, Relation and Evidence identities with executable read-back",
+    "context-local notes preserve source revision, anchor and provenance; cancel and regeneration do not overwrite source or user-owned notes",
+    "held-out natural prose, unsupported clauses and prerequisite gaps are source-bounded, actionable and beginner-readable",
+    "exact-candidate deterministic verification, Completion Gate, Trusted Publisher, GitHub read-back and Ubuntu Claude review pass",
+    "Mac Obsidian human trial passes; untested iPad/iPhone behavior remains an external gate",
+    "Product Owner issues an exact ACCEPT before CLOSED"
+  ],
+  "human_acceptance_required": true,
+  "obligations": [
+    {
+      "obligation_id": "OBL-O2-SOURCE-BOUNDED-PROSE",
+      "semantic_key": "cb8107514ce764c3fb520f16c3c386c6b11ce3297b13c25a7181e852deb000b5",
+      "authority_refs": ["KG-ALPHA-02", "FD-04", "RC-07", "RC-08", "RC-12", "RC-14", "PR29-R4:finding-unsupported-clause-not-gap-and-leaks-into-brief"],
+      "description": "Beginner prose and prerequisite-gap guidance stay source-bounded, readable and actionable; unsupported clauses do not masquerade as definitions or disappear from gap handling."
+    },
+    {
+      "obligation_id": "OBL-O2-SHARED-IDENTITY-READBACK",
+      "semantic_key": "ddc4b2cf1ac11a4111305306437de3582652da12771964142494f12ff17bbdec",
+      "authority_refs": ["KG-KNOW-09", "FD-05", "FD-06", "FD-21", "RC-15", "RC-16", "PR29-R4:finding-render-click-evidence-stale-and-untracked"],
+      "description": "Obsidian and secondary Web reference consume the same canonical identities, and current-candidate render/click plus positive/negative read-back receipts prove the journey."
+    },
+    {
+      "obligation_id": "OBL-O2-EXACT-CANDIDATE-EVIDENCE",
+      "semantic_key": "7043b07c91409c96b7faecd01d39c170e74030808d2516199d0809c4eefc6ffd",
+      "authority_refs": ["KG-PLAT-08", "RC-31", "RC-32", "PR29-R4:finding-control-plane-state-stale-vs-candidate"],
+      "description": "PLAN, STATUS, verification receipts, publication and review are bound to one exact HEAD and fingerprint; ignored or stale artifacts cannot claim completion."
+    },
+    {
+      "obligation_id": "OBL-O2-CONTEXT-LOCAL-NOTE",
+      "semantic_key": "ec201c845377bf0fdef77181e7f50fd37adf4cd554bb2930cdcf70b42f152655",
+      "authority_refs": ["KG-CTX-10", "FD-21", "RC-05", "RC-15", "SC-40", "SC-44", "SC-45", "SC-48"],
+      "description": "The Obsidian-first reading entry and context-local note preserve anchor, source revision and provenance, reopen correctly, and never overwrite source or user-owned notes."
+    }
+  ],
+  "work_items": [
+    {
+      "work_item_id": "WI-O2-IMPLEMENT",
+      "milestone_id": "O2-M1",
+      "kind": "IMPLEMENT",
+      "dependencies": [],
+      "obligation_ids": ["OBL-O2-SOURCE-BOUNDED-PROSE", "OBL-O2-SHARED-IDENTITY-READBACK", "OBL-O2-EXACT-CANDIDATE-EVIDENCE", "OBL-O2-CONTEXT-LOCAL-NOTE"],
+      "allowed_operations": ["commit", "push", "draft_pr"],
+      "provider": "codex"
+    },
+    {
+      "work_item_id": "WI-O2-VERIFY",
+      "milestone_id": "O2-M1",
+      "kind": "VERIFY",
+      "dependencies": ["WI-O2-IMPLEMENT"],
+      "obligation_ids": ["OBL-O2-SOURCE-BOUNDED-PROSE", "OBL-O2-SHARED-IDENTITY-READBACK", "OBL-O2-EXACT-CANDIDATE-EVIDENCE", "OBL-O2-CONTEXT-LOCAL-NOTE"],
+      "allowed_operations": ["verify"],
+      "provider": "NONE"
+    },
+    {
+      "work_item_id": "WI-O2-PUBLISH",
+      "milestone_id": "O2-M1",
+      "kind": "PUBLISH",
+      "dependencies": ["WI-O2-VERIFY"],
+      "obligation_ids": ["OBL-O2-SOURCE-BOUNDED-PROSE", "OBL-O2-SHARED-IDENTITY-READBACK", "OBL-O2-EXACT-CANDIDATE-EVIDENCE", "OBL-O2-CONTEXT-LOCAL-NOTE"],
+      "allowed_operations": ["push", "draft_pr"],
+      "provider": "NONE"
+    },
+    {
+      "work_item_id": "WI-O2-REVIEW",
+      "milestone_id": "O2-M1",
+      "kind": "REVIEW",
+      "dependencies": ["WI-O2-PUBLISH"],
+      "obligation_ids": ["OBL-O2-SOURCE-BOUNDED-PROSE", "OBL-O2-SHARED-IDENTITY-READBACK", "OBL-O2-EXACT-CANDIDATE-EVIDENCE", "OBL-O2-CONTEXT-LOCAL-NOTE"],
+      "allowed_operations": ["review"],
+      "provider": "claude"
+    },
+    {
+      "work_item_id": "WI-O2-REPAIR",
+      "milestone_id": "O2-M1",
+      "kind": "REPAIR",
+      "dependencies": ["WI-O2-REVIEW"],
+      "obligation_ids": ["OBL-O2-SOURCE-BOUNDED-PROSE", "OBL-O2-SHARED-IDENTITY-READBACK", "OBL-O2-EXACT-CANDIDATE-EVIDENCE", "OBL-O2-CONTEXT-LOCAL-NOTE"],
+      "allowed_operations": ["commit", "push"],
+      "provider": "codex"
+    },
+    {
+      "work_item_id": "WI-O2-ACCEPTANCE",
+      "milestone_id": "O2-M1",
+      "kind": "ACCEPTANCE_PREP",
+      "dependencies": ["WI-O2-REVIEW"],
+      "obligation_ids": ["OBL-O2-SOURCE-BOUNDED-PROSE", "OBL-O2-SHARED-IDENTITY-READBACK", "OBL-O2-EXACT-CANDIDATE-EVIDENCE", "OBL-O2-CONTEXT-LOCAL-NOTE"],
+      "allowed_operations": ["verify"],
+      "provider": "NONE"
+    }
+  ]
+}

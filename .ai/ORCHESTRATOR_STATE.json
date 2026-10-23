@@ -1,10 +1,10 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "b-scheme-continuous-delegation-20261022",
-  "active_goal": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
+  "run_id": "b-scheme-trial-readiness-20261023",
+  "active_goal": "CODEX-APP-GOAL-B-TRIAL-READINESS-20261023",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
   "product_goal_authorized": false,
-  "work_package": "B5-REPLAY-TRIAL-DELIVERY",
+  "work_package": "BTR-3-VERIFY-REVIEW-DRAFT-PR",
   "external_review_required": true,
   "state": "IMPLEMENTING",
   "current_agent": null,
@@ -16,7 +16,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-b-continuous-delegation-20261022-009.",
+  "next_action": "Run full exact-candidate verification, confirm dormant runtime and preserved assets, then create the authorized Draft PR and submit the repository-mediated independent review.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -25,11 +25,11 @@
     "fingerprint": null
   },
   "next_human_checkpoint": {
-    "id": "B-SCHEME-GO-LIVE",
+    "id": "BOUNDED-TRIAL-AUTHORIZATION",
     "status": "not_authorized",
-    "description": "Formal Product Goal go-live requires separate exact GitHub Owner authorization after the implementation candidate and isolated trial pass."
+    "description": "The first real Product Goal trial requires separate exact GitHub Owner authorization after compatibility repair, independent review, and Draft PR read-back."
   },
   "last_agent_run": null,
-  "created_at": "2026-10-22T15:10:00+08:00",
-  "updated_at": "2026-10-22T17:41:15+08:00"
+  "created_at": "2026-10-23T14:58:41+08:00",
+  "updated_at": "2026-10-23T15:40:00+08:00"
 }

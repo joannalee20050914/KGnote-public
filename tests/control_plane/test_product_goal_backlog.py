@@ -13,6 +13,7 @@ SPEC = importlib.util.spec_from_file_location(
 )
 GOAL = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(GOAL)
+import github_product_goal_control as AUTHORITY
 
 
 class ProductGoalBacklogTests(unittest.TestCase):
@@ -20,6 +21,9 @@ class ProductGoalBacklogTests(unittest.TestCase):
     def setUpClass(cls):
         cls.backlog = json.loads(
             (ROOT / "docs/control-plane/PRODUCT_GOAL_BACKLOG.json").read_text()
+        )
+        cls.o2_spec = json.loads(
+            (ROOT / "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.1.json").read_text()
         )
 
     def test_backlog_is_ordered_unique_and_source_bound(self):
@@ -42,6 +46,36 @@ class ProductGoalBacklogTests(unittest.TestCase):
         )
         self.assertEqual("APPROVAL_REQUIRED", result["status"])
         self.assertFalse(result["authority_granted"])
+
+    def test_o2_bounded_trial_spec_is_exact_and_never_inherits_legacy_budget(self):
+        GOAL.validate_goal_spec(self.o2_spec)
+        first=self.backlog["items"][0]
+        self.assertEqual(first["goal_id"],self.o2_spec["goal_id"])
+        self.assertEqual(first["goal_version"],self.o2_spec["goal_version"])
+        self.assertEqual("READY_FOR_OWNER_BOUNDED_TRIAL_APPROVAL",first["approval_eligibility"]["status"])
+        self.assertEqual(4,self.o2_spec["resource_policy"]["providers"]["codex"]["fallback"]["max_total_launches"])
+        self.assertEqual(4,self.o2_spec["resource_policy"]["providers"]["claude"]["fallback"]["max_total_launches"])
+        self.assertNotIn("legacy_budget",self.o2_spec)
+
+    def test_prepared_owner_command_binds_exact_spec_and_permissions(self):
+        package=(ROOT/"docs/control-plane/O2_BOUNDED_TRIAL_AUTHORIZATION_PACKAGE_20261023.md").read_text()
+        payload=AUTHORITY.parse_marker_payload(package)
+        self.assertEqual(GOAL.goal_spec_sha256(self.o2_spec),payload["goal_spec_sha256"])
+        self.assertEqual(self.o2_spec["goal_version"],payload["goal_version"])
+        self.assertEqual(self.o2_spec["allowed_operations"],payload["permissions"])
+
+    def test_legacy_disposition_preserves_open_findings_and_all_named_budgets(self):
+        disposition=(ROOT/"docs/control-plane/LEGACY_ISSUE9_DISPOSITION_20261023.md").read_text()
+        for finding in (
+            "finding-render-click-evidence-stale-and-untracked",
+            "finding-control-plane-state-stale-vs-candidate",
+            "finding-unsupported-clause-not-gap-and-leaks-into-brief",
+        ):
+            self.assertIn(finding,disposition)
+        for counter in ("`3/3` used","`8/8` used","`2/2` used","`0/1` used","`1/1` used"):
+            self.assertIn(counter,disposition)
+        self.assertIn("does not close Issue #9",disposition)
+        self.assertIn("They are not marked fixed",disposition)
 
     def test_path_b_closed_goal_prepares_next_but_cannot_start_it(self):
         first = self.backlog["items"][0]["goal_id"]

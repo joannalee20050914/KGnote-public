@@ -23,6 +23,21 @@ class AdmissionError(RuntimeError):
     pass
 
 
+DEFAULT_KGNOTE_SUPPORT = Path.home() / "Library/Application Support/KGnote"
+DEFAULT_PATH_POLICY = DEFAULT_KGNOTE_SUPPORT / "tooling/path-policy.json"
+DEFAULT_WORKTREE_GUARD = DEFAULT_KGNOTE_SUPPORT / "tooling/kgnote_worktree_guard.py"
+CENTRALIZED_LAYOUT = "CENTRALIZED_V1"
+CENTRALIZED_PREFIX = "${KGNOTE_WORKTREE_ROOT}/"
+LEGACY_ISSUE14_IDENTITY = {
+    "repository": "joannalee20050914/KGnote-public",
+    "issue": 14,
+    "goal_id": "GOAL-KGNOTE-TUTOR-HANDOFF",
+    "work_item_id": "D2-T07",
+    "worktree_slug": "issue-14-d2-t07",
+    "local_worktree": "${HOME}/KGnote-public-issue14-tutor-handoff",
+}
+
+
 def _run(command: list[str], *, cwd: Path, runner: Callable[..., subprocess.CompletedProcess[str]]) -> str:
     result = runner(command, cwd=cwd, text=True, capture_output=True, timeout=120, check=False)
     if result.returncode:
@@ -47,15 +62,63 @@ def _atomic_json(path: Path, value: dict[str, Any]) -> None:
     _atomic_text(path, json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
 
 
-def _authorized_local_worktree(value: object) -> Path:
-    """Expand only the explicitly supported public-safe home placeholder."""
-    raw = str(value)
-    if not raw.startswith("${HOME}/") or raw.count("${HOME}") != 1:
-        raise AdmissionError("local worktree must use the exact ${HOME}/... identity")
-    home = Path(os.environ.get("HOME", "")).resolve()
-    if not str(home) or str(home) == "/":
-        raise AdmissionError("HOME is unavailable for local worktree resolution")
-    return (home / raw.removeprefix("${HOME}/")).resolve()
+def _legacy_path_contract(admission: dict[str, Any]) -> bool:
+    """Recognize the one already-sealed Home worktree without generalizing it."""
+    return admission.get("worktree_layout") is None and all(
+        admission.get(key) == value for key, value in LEGACY_ISSUE14_IDENTITY.items()
+    )
+
+
+def _load_path_policy(path: Path) -> dict[str, Any]:
+    try:
+        policy = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise AdmissionError(f"cannot read concentrated worktree path policy: {exc}") from exc
+    required_true = (
+        "require_direct_child", "reject_root_inside_git_repository", "reject_symlink_escape",
+    )
+    if policy.get("schema_version") != "kgnote.local-path-policy.v1" or any(
+        policy.get(key) is not True for key in required_true
+    ):
+        raise AdmissionError("concentrated worktree path policy is unsupported or unsafe")
+    return policy
+
+
+def _authorized_local_worktree(
+    admission: dict[str, Any], *, path_policy: Path = DEFAULT_PATH_POLICY
+) -> Path:
+    """Resolve either one sealed Legacy path or a policy-derived new worktree path."""
+    if _legacy_path_contract(admission):
+        home = Path(os.environ.get("HOME", "")).resolve()
+        if not str(home) or str(home) == "/":
+            raise AdmissionError("HOME is unavailable for sealed Legacy worktree resolution")
+        return (home / "KGnote-public-issue14-tutor-handoff").resolve()
+
+    slug = str(admission.get("worktree_slug", ""))
+    expected = f"{CENTRALIZED_PREFIX}{slug}"
+    if admission.get("worktree_layout") != CENTRALIZED_LAYOUT:
+        raise AdmissionError("new worktree must use the CENTRALIZED_V1 path contract")
+    if admission.get("local_worktree") != expected:
+        raise AdmissionError("new worktree path must be derived from the sealed worktree slug")
+    policy = _load_path_policy(path_policy)
+    raw_root = policy.get("worktree_root")
+    if not isinstance(raw_root, str) or not raw_root.startswith("/"):
+        raise AdmissionError("configured worktree root must be an explicit absolute path")
+    root = Path(raw_root)
+    if not root.is_dir() or root.is_symlink() or root.resolve() != root:
+        raise AdmissionError("configured worktree root is absent, a symlink, or resolves elsewhere")
+    probe = subprocess.run(
+        ["/usr/bin/git", "rev-parse", "--show-toplevel"], cwd=root,
+        text=True, capture_output=True, check=False,
+    )
+    if probe.returncode == 0:
+        raise AdmissionError("configured worktree root is inside a non-bare Git working tree")
+    target = root / slug
+    if target.parent.resolve(strict=True) != root:
+        raise AdmissionError("worktree target escaped the configured concentrated root")
+    if target.is_symlink():
+        raise AdmissionError("worktree target must not be a symlink")
+    return target
 
 
 def validate_item(item: object, current: datetime) -> dict[str, Any]:
@@ -94,6 +157,10 @@ def validate_item(item: object, current: datetime) -> dict[str, Any]:
         raise AdmissionError("work item identity is invalid")
     if admission["worktree_slug"] != f"issue-{issue}-{str(admission['work_item_id']).lower()}":
         raise AdmissionError("worktree slug is not derived from Issue/work-item identity")
+    if not _legacy_path_contract(admission):
+        expected = f"{CENTRALIZED_PREFIX}{admission['worktree_slug']}"
+        if admission.get("worktree_layout") != CENTRALIZED_LAYOUT or admission.get("local_worktree") != expected:
+            raise AdmissionError("new worktree must use the sealed centralized path contract")
     if not re.fullmatch(r"codex/[a-z0-9][a-z0-9-]{2,80}", str(admission["branch"])):
         raise AdmissionError("branch is not a bounded codex/* branch")
     if current.weekday() >= 5 or not (9 <= current.hour < 18):
@@ -208,20 +275,52 @@ def _initialize_review_scope(worktree: Path, admission: dict[str, Any]) -> list[
     return [history_relative+"/events.jsonl",history_relative+"/index.json",".ai/REVIEW_REQUEST.md",".ai/REVIEW_RESULT.md",".ai/DECISIONS.md",".ai/ORCHESTRATOR_STATE.json"]
 
 
-def _initialize_worktree(repo: Path, admission: dict[str, Any], runner: Callable[..., subprocess.CompletedProcess[str]]) -> tuple[Path, str]:
-    worktree = _authorized_local_worktree(admission["local_worktree"])
-    if worktree.parent != repo.parent.resolve() or worktree.name != "KGnote-public-issue14-tutor-handoff":
-        raise AdmissionError("local worktree is outside the one authorized sibling path")
+def _git_common_directory(
+    checkout: Path, runner: Callable[..., subprocess.CompletedProcess[str]]
+) -> Path:
+    raw = Path(_run(["/usr/bin/git", "rev-parse", "--git-common-dir"], cwd=checkout, runner=runner))
+    return raw.resolve() if raw.is_absolute() else (checkout / raw).resolve()
+
+
+def _initialize_worktree(
+    repo: Path,
+    admission: dict[str, Any],
+    runner: Callable[..., subprocess.CompletedProcess[str]],
+    *,
+    path_policy: Path = DEFAULT_PATH_POLICY,
+    worktree_guard: Path = DEFAULT_WORKTREE_GUARD,
+) -> tuple[Path, str]:
+    worktree = _authorized_local_worktree(admission, path_policy=path_policy)
+    legacy = _legacy_path_contract(admission)
     branch, source = admission["branch"], admission["source_commit"]
     _run(["/usr/bin/git", "cat-file", "-e", f"{source}^{{commit}}"], cwd=repo, runner=runner)
-    if not worktree.exists():
+    if legacy and not worktree.is_dir():
+        raise AdmissionError("sealed Legacy worktree is absent; automatic Home recreation is forbidden")
+    if not legacy and not worktree.exists():
+        if not worktree_guard.is_file() or worktree_guard.is_symlink():
+            raise AdmissionError("trusted concentrated worktree guard is unavailable")
         existing = runner(
             ["/usr/bin/git","show-ref","--verify","--quiet",f"refs/heads/{branch}"],
             cwd=repo, text=True, capture_output=True, timeout=120, check=False,
         )
-        command = ["/usr/bin/git","worktree","add"]
-        command += [str(worktree),branch] if existing.returncode == 0 else ["-b",branch,str(worktree),source]
-        _run(command,cwd=repo,runner=runner)
+        command = [sys.executable, str(worktree_guard), "--config", str(path_policy), "create",
+                   "--source", str(repo), "--name", admission["worktree_slug"]]
+        if existing.returncode == 0:
+            command += ["--ref", branch]
+        else:
+            command += ["--ref", source, "--branch", branch]
+        _run(command, cwd=repo, runner=runner)
+    elif not legacy:
+        if not worktree_guard.is_file() or worktree_guard.is_symlink():
+            raise AdmissionError("trusted concentrated worktree guard is unavailable")
+        _run([
+            sys.executable, str(worktree_guard), "--config", str(path_policy), "verify-existing",
+            "--source", str(repo), "--name", admission["worktree_slug"],
+        ], cwd=repo, runner=runner)
+    if worktree.is_symlink() or not worktree.is_dir():
+        raise AdmissionError("resolved worktree is absent or unsafe")
+    if _git_common_directory(worktree, runner) != _git_common_directory(repo, runner):
+        raise AdmissionError("worktree Git common directory does not match the canonical repository")
     observed_branch = _run(["/usr/bin/git","branch","--show-current"],cwd=worktree,runner=runner)
     if observed_branch != branch:
         raise AdmissionError("local worktree branch identity mismatch")
@@ -270,4 +369,4 @@ def prepare(
     prompt=("Implement only the owner-authorized Issue #14/D2-T07 bounded feasibility spike. Read AGENTS.md, PLAN.md, CODEX_STATUS.md and authority first. Preserve PR #26 and every existing budget. Verify supported official authorization documentation, implement the copy-safe manual handoff/import fallback and a delta de-dup round-trip fixture where missing. Do not use browser cookies, live user data, paid services, data egress, Claude review, automatic merge, or main. Run targeted deterministic tests and leave a durable checkpoint before exit.")
     order={"schema_version":"kgnote.linux-worker-order.v1","event_id":"issue-14-d2-t07-codex-20261019","stage":"codex","working_directory":"/home/kgnote/.local/share/kgnote/work-items/issue-14-d2-t07","command":["/home/kgnote/.local/bin/kgnote-successor-codex","--goal-id",admission["goal_id"],"--pull-request",str(pr["number"]),"--cycle","1",admission["repository"],admission["branch"],head,prompt],"checkpoint_path":str(out/"issue-14-d2-t07-codex-route.json"),"memory_max":"4G","tasks_max":192,"timeout_seconds":max(1,min(3600,int((deadline-current).total_seconds()))),"lease_timeout_seconds":8,"deadline_at":deadline.isoformat(),"bootstrap_working_directory":True,"bootstrap_identity":identity,"execution_context":{"schema_version":"kgnote.model-execution-evidence.v1","role":"CODEX_IMPLEMENTER","goal_id":admission["goal_id"],"pull_request":pr["number"],"cycle":1,"provider":"OpenAI","authentication":"ChatGPT OAuth","requested_model":"gpt-5.6-terra","requested_effort":"medium","configuration_status":"CONFIGURED","effective_status":"EFFECTIVE_UNKNOWN","token_usage":None},"review_admission":{"admission_kind":"IMPLEMENTATION","repository":admission["repository"],"pull_request":pr["number"],"head_sha":head,"candidate_fingerprint":fingerprint,"authority":{"status":"APPROVED","goal_id":admission["goal_id"],"authority_record":admission["authority_record"]},"implementation_budget":{"authorized":1,"used":0},"work_window_allowed":True,"stop_marker_clear":True,"existing_exact_candidate_result":False}}
     _atomic_json(order_path,order)
-    return {"status":"READY","worktree":admission["local_worktree"],"head":head,"fingerprint":fingerprint,"pull_request":pr["number"],"pull_request_url":pr["url"],"order_path":str(order_path.relative_to(repo)),"issue_title":issue["title"]}
+    return {"status":"READY","worktree":str(worktree),"head":head,"fingerprint":fingerprint,"pull_request":pr["number"],"pull_request_url":pr["url"],"order_path":str(order_path.relative_to(repo)),"issue_title":issue["title"]}
