@@ -1,33 +1,35 @@
 # KGnote active execution plan
 
-This file contains one Codex App execution Goal. It implements the B-scheme control plane but is not a KGnote Product Goal authorization.
+This file contains one Codex App execution Goal. It prepares a bounded real-product trial but does not authorize or start a KGnote Product Goal.
 
 <!-- BEGIN CODEX PLAN JSON -->
 ```json
 {
   "schema_version": "kgnote.codex-plan.v1",
-  "goal_id": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
-  "active_goal": "CODEX-APP-GOAL-B-CONTINUOUS-DELEGATION-20261022",
+  "goal_id": "CODEX-APP-GOAL-B-TRIAL-READINESS-20261023",
+  "active_goal": "CODEX-APP-GOAL-B-TRIAL-READINESS-20261023",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
   "authority_kind": "CURRENT_USER_EXECUTION_INSTRUCTION",
   "lifecycle_owner": "CODEX_APP",
   "product_goal_authorized": false,
-  "objective": "實作 B 方案 Goal 級持續委任：保留既有欄位相容性，以 GitHub Owner 精確核准作為 KGnote Product Goal 唯一執行授權，由 Mac Runner 管理跨 Session／工作時段的有界開發、驗證、發布、Claude 審查、修復、結案與下一 Goal 核准交接；完成測試、隔離試行與 Draft PR 後停止，不直接 go-live。",
+  "objective": "收斂 B 方案集中目錄部署相容性，保留 Legacy Ledger、Stop Marker、Checkpoint 與既有授權身分，並為第一個合法真實 Product Goal 準備一次可由 Product Owner 單次核准的有界試行契約、部署步驟、回復方式與 Draft PR；不得啟動 Product Goal 或 B-SCHEME-GO-LIVE。",
   "status": "active",
-  "active_milestone_id": "B5-REPLAY-TRIAL-DELIVERY",
-  "milestone_id": "B5-REPLAY-TRIAL-DELIVERY",
+  "active_milestone_id": "BTR-3-VERIFY-REVIEW-DRAFT-PR",
+  "milestone_id": "BTR-3-VERIFY-REVIEW-DRAFT-PR",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
-  "execution_direction_id": "kgnote-goal-scoped-continuous-delegation-2026-10-22",
+  "execution_direction_id": "kgnote-bounded-product-trial-readiness-2026-10-23",
   "explicit_direction": {
-    "date": "2026-10-22",
+    "date": "2026-10-23",
     "speaker": "product owner",
-    "source_path": "Codex App user instruction and attached B-scheme implementation brief",
-    "durable_goal_record": "docs/control-plane/GOAL_SCOPED_CONTINUOUS_DELEGATION_20261022.md"
+    "source_path": "Codex App attachment pasted-text.txt",
+    "durable_goal_record": "docs/control-plane/BOUNDED_TRIAL_READINESS_DIRECTION_20261023.md"
   },
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
     "docs/control-plane/GOAL_SCOPED_CONTINUOUS_DELEGATION_20261022.md",
+    "docs/control-plane/BOUNDED_TRIAL_READINESS_DIRECTION_20261023.md",
+    "docs/control-plane/B_SCHEME_OPERATIONS.md",
     "docs/control-plane/CLAUDE_REVIEWER_ROLE_DECISION_20261020.md",
     "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
     ".ai/REVIEW_PROTOCOL.md",
@@ -43,20 +45,19 @@ This file contains one Codex App execution Goal. It implements the B-scheme cont
     "feature_dispositions": ["FD-12", "FD-14", "FD-17", "FD-18", "FD-19", "FD-23"],
     "scenarios": ["SC-32", "SC-33", "SC-35"],
     "forbidden_substitutes": [
-      "將 Codex App Goal 狀態視為 KGnote Product Goal 授權或結案",
-      "以 Agent 建立的 Issue、一般留言、Project 欄位或 session 變更自行增加權限",
-      "以 token、context 或估算冒充可信訂閱剩餘百分比",
-      "把模型啟動、usage、verdict、產品義務完成合併成一個 used 計數",
-      "清除或重置 Issue #9 Ledger、429、review、checkpoint、Stop Marker 或 budgets",
-      "新增第二套 Orchestrator、Dashboard、資料庫或 Agent",
-      "自動 merge main、修改 branch protection、付費 API fallback 或啟用無界委任"
+      "為使測試通過而跳過 Stop Marker、移除負向斷言或放寬路徑驗證",
+      "移動或刪除既有 Home 平行 KGnote 資產，或改寫 sealed Legacy work item 的精確路徑",
+      "把 Codex App Goal、Draft PR 或測試 PASS 視為 Product Goal 授權、Owner APPROVE、B-SCHEME-GO-LIVE 或人類產品驗收",
+      "用 ChatGPT Work 通知未驗證阻擋 GitHub Issue 通知的首次試行",
+      "以不可觀測的訂閱剩餘比例假造資源授權，或新增付費 API",
+      "新增 Agent、第二套 Orchestrator、Dashboard、資料庫或管理平台"
     ]
   },
   "repository_authority": {
     "canonical_repository": "joannalee20050914/KGnote-public",
-    "base_revision": "f81ccdde369c7ab9468ed07ca1fdab6d8f0b60e0",
-    "branch": "codex/goal-continuous-delegation-20261022",
-    "draft_pull_request": 31,
+    "base_revision": "7bb0ffb4be6d5eb19398f249f45fa8e32a083131",
+    "branch": "codex/b-scheme-trial-readiness-20261023",
+    "draft_pull_request": null,
     "automatic_merge": false
   },
   "auto_advance": {
@@ -64,80 +65,68 @@ This file contains one Codex App execution Goal. It implements the B-scheme cont
     "requires_current_milestone_green": true,
     "requires_dependencies_complete": true,
     "stop_on_human_gate": true,
-    "formal_product_goal_go_live": false
+    "formal_product_goal_go_live": false,
+    "max_review_cycles_per_milestone": 5
   },
   "preserved_human_gates": [
     {"id": "B-SCHEME-GO-LIVE", "status": "not_authorized", "release_verified": false},
+    {"id": "BOUNDED-TRIAL-AUTHORIZATION", "status": "not_authorized", "release_verified": false},
     {"id": "D2-T14-FINAL-HUMAN-ACCEPTANCE", "status": "not_promoted", "release_verified": false},
     {"id": "PA-HUMAN-1", "status": "not_promoted", "release_verified": false},
     {"id": "NS-HUMAN-SMOKE", "status": "not_promoted", "release_verified": false}
   ],
   "milestones": [
     {
-      "id": "B1-ARCHITECTURE-AUTHORITY-AUDIT",
-      "title": "正式架構、部署與授權語意核對",
+      "id": "BTR-1-PATH-SAFETY-COMPATIBILITY",
+      "title": "集中目錄測試與建立器安全相容性",
       "status": "complete",
       "dependencies": [],
       "human_gate": "none",
-      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/", "scripts/", "tests/control_plane/", "schemas/product-goal/"],
+      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/", "scripts/cross_issue_admission.py", "scripts/local_autonomy_runner.py", "tests/control_plane/"],
       "acceptance": [
-        "正式 Mac Runner、Ubuntu Codex/Claude、Verifier/Publisher、PR #29 與 Ledger 身分均有 read-back",
-        "Codex App Goal、Product Goal 與 Work Item 身分、authority source 及 lifecycle 明確分離",
-        "既有 PR #29 Round 4 與 429 事件被指定為 immutable migration fixtures，不取得新權限"
+        "重現並精確診斷 test_stop_marker_allows_only_private_smoke_canary_order 的集中目錄失敗",
+        "測試與正式 Runner 使用同一 integration-root 解析契約，Stop Marker、private smoke canary、work admission 與執行身分限制均保留",
+        "錯誤路徑、symlink escape、不合法 canary、越權工作及 non-bare repository 內嵌 worktree 仍 fail closed",
+        "Legacy sealed path 原樣可讀；新 Product Goal worktree 預設落在核准集中根目錄，不再自動建立新的 Home 平行 KGnote-* 目錄",
+        "舊路徑 fixture 與集中目錄 fixture 均通過，正式 Runner 維持 dormant 且零模型啟動"
       ]
     },
     {
-      "id": "B2-GOAL-CONTRACT-LEDGER",
-      "title": "Product Goal 委任、狀態與分離結算契約",
+      "id": "BTR-2-FIRST-PRODUCT-GOAL-PACKAGE",
+      "title": "首個真實 Product Goal 與 Legacy disposition 核准包",
       "status": "complete",
-      "dependencies": ["B1-ARCHITECTURE-AUTHORITY-AUDIT"],
+      "dependencies": ["BTR-1-PATH-SAFETY-COMPATIBILITY"],
       "human_gate": "none",
-      "owned_paths": ["docs/control-plane/", "schemas/product-goal/", "scripts/goal_continuity.py", "scripts/github_product_goal_control.py", "tests/control_plane/"],
+      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", "docs/control-plane/", "docs/requirements/", "DEVELOPMENT_PLAIN.md", "tests/control_plane/"],
       "acceptance": [
-        "GitHub Owner、Goal version、spec digest、權限與撤回狀態 fail closed 驗證",
-        "authorization、model attempt、usage、verdict、publication 與 obligation progress 分別記錄",
-        "舊 schema/fields 可讀且不被重寫；App Goal 狀態不得轉成 Product Goal transition"
+        "依 Backlog、Issue #9、PR #29、Round 4 finding 與 Feature Disposition Ledger 選出第一個合法真實 Product Goal",
+        "保留所有歷史 1/1、3/3、8/8 等 budget、Ledger、Stop Marker、Checkpoint 與 review 身分，不把未解 finding 宣稱完成",
+        "產出精確 Goal ID/version/spec digest、成功條件、禁止替代、工作時段、concurrency=1、provider／付費限制、launch ceilings、quota/no-progress/rollback、Claude review 與人類驗收",
+        "清楚區分 bounded trial authorization 與 full B-SCHEME-GO-LIVE，採 GitHub Issue 做正式核准與通知，ChatGPT Work 保持可選"
       ]
     },
     {
-      "id": "B3-RUNNER-RECOVERY-CONVERGENCE",
-      "title": "Runner 有界恢復與產品義務收斂",
-      "status": "complete",
-      "dependencies": ["B2-GOAL-CONTRACT-LEDGER"],
-      "human_gate": "none",
-      "owned_paths": ["scripts/local_autonomy_runner.py", "scripts/goal_continuity.py", "scripts/goal_runner_adapter.py", "tests/control_plane/"],
-      "acceptance": [
-        "CHANGES_REQUIRED、429、工作時段、未知結果、Publisher/GitHub failure 可按既有 authority 自動續接",
-        "同一產品義務跨 finding rename 可識別，兩次無進展先做 bounded strategy adjustment",
-        "受影響 dependency subgraph 可停，無依賴的合法工作仍可選；不重複模型或副作用"
-      ]
-    },
-    {
-      "id": "B4-BACKLOG-APPROVAL-NOTIFICATION",
-      "title": "預備 Goal backlog、核准／結案交接與通知",
-      "status": "complete",
-      "dependencies": ["B3-RUNNER-RECOVERY-CONVERGENCE"],
-      "human_gate": "none",
-      "owned_paths": ["docs/control-plane/", "scripts/goal_continuity.py", "scripts/github_product_goal_control.py", "tests/control_plane/"],
-      "acceptance": [
-        "O2–O7 依現有成果整理成可維護 Goal specs 與依賴，不把舊 active 宣告當授權",
-        "前一 Product Goal 未 CLOSED 時下一 Goal 不可核准或執行；Owner 舊版本／錯誤身分核准被拒",
-        "決策通知具唯一身分、持久化、去重及 ack；Work 未實測時如實使用 GitHub fallback"
-      ]
-    },
-    {
-      "id": "B5-REPLAY-TRIAL-DELIVERY",
-      "title": "歷史重播、隔離試行、完整驗證與 Draft PR",
+      "id": "BTR-3-VERIFY-REVIEW-DRAFT-PR",
+      "title": "完整驗證、獨立審查與 Draft PR",
       "status": "active",
-      "dependencies": ["B4-BACKLOG-APPROVAL-NOTIFICATION"],
+      "dependencies": ["BTR-2-FIRST-PRODUCT-GOAL-PACKAGE"],
       "human_gate": "none",
-      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/", "schemas/product-goal/", "scripts/", "tests/control_plane/", "tests/fixtures/control_plane/"],
+      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/", "docs/requirements/", "scripts/", "tests/control_plane/"],
       "acceptance": [
-        "Issue #9 指定歷史事件無模型 replay 通過，舊 Ledger 與新 reducer 共存且不重置",
-        "路徑 A 證明同一已批准 Goal 可跨 CHANGES_REQUIRED、quota、工作時段續接；路徑 B 證明 CLOSED 後下一 Goal 仍等待 Owner 核准",
-        "完整 deterministic verification、preflight、secret scan、read-back 與 isolated no-model trial 通過",
-        "建立 main-based 可回復 Draft PR；正式 Product Goal go-live 保持未授權"
+        "原有環境與集中目錄環境的 targeted regression、完整 deterministic verification、requirements guard、secret/public-safety scan 與 read-back 通過",
+        "精確候選完成 repository-mediated independent review，所有 blocking findings 關閉或保留為直接證據阻擋",
+        "建立 main-based Draft PR，內容含目的、範圍、驗證、風險、回復與正式 Runner dormant read-back",
+        "若所有工程與核准材料完備，狀態只能提升為 READY_FOR_BOUNDED_TRIAL_AUTHORIZATION；不得啟動 trial 或 Go-live"
       ]
+    },
+    {
+      "id": "BOUNDED-TRIAL-AUTHORIZATION",
+      "title": "Product Owner 首次真實有界試行授權",
+      "status": "pending",
+      "dependencies": ["BTR-3-VERIFY-REVIEW-DRAFT-PR"],
+      "human_gate": "required",
+      "owned_paths": [],
+      "acceptance": ["Product Owner 以核准包指定的 GitHub Issue 精確核准 Goal version、spec digest、資源上限與試行權限"]
     }
   ]
 }
@@ -146,4 +135,4 @@ This file contains one Codex App execution Goal. It implements the B-scheme cont
 
 ## Current recovery note
 
-Milestones B1–B4 are complete. Product Goal identity/authority schemas, append-only separated accounting, dormant Runner recovery adapter, O2–O7 backlog, decision-only notification layer and rollback runbook are implemented. The 25-event Issue #9 replay and 53-event isolated paths A/B pass with zero model calls and zero external writes. Draft PR #31 is open. Reviews 008–010 were invalidated before reviewer custody after bounded completion audits found recovery deadlocks, clock-dependent tests and a stale PLAN handoff identity; the repaired candidate now has durable no-model recovery releases, unknown-checkpoint idempotence, affected-subgraph blocking, GitHub notification delivery/read-back evidence and a consistent fresh-session handoff. B5 remains active for exact-candidate Review 011 and final publication read-back; `B-SCHEME-GO-LIVE` remains a separate preserved Owner gate and is not part of this implementation milestone.
+PR #31 已合併至 `main`，B 方案程式已部署但 `B-SCHEME-GO-LIVE` 未授權。本 Goal 只處理集中目錄相容性與首次真實 Product Goal 核准準備；正式 Runner、Product Goal 與 Owner 命令均保持 dormant／未發布。完成工程、獨立審查與 Draft PR 後，唯一允許的人類停點是 `BOUNDED-TRIAL-AUTHORIZATION`。
