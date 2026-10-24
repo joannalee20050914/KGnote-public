@@ -554,6 +554,7 @@ class EnvelopeSealOrderingTests(OrchestrationSimulationTests):
                  mock.patch.object(ORCH.control, "load_plan_status", return_value=(plan, {})), \
                  mock.patch.object(ORCH.control, "repository_fingerprint", return_value={"value": "b" * 64}), \
                  mock.patch.object(ORCH.control, "run_git", return_value=completed), \
+                 mock.patch.object(ORCH, "within_authorized_work_hours", return_value=True), \
                  mock.patch.object(ORCH.publish_external_candidate, "_run", side_effect=remote_runner):
                 result = ORCH.run_loop(root, state, lambda *_args: self.fail("no agent should run"), max_steps=None)
 
@@ -1113,16 +1114,51 @@ class OrchestratorDurabilityTests(unittest.TestCase):
             self.assertEqual(state["state"], "BUDGET_EXHAUSTED")
             self.assertTrue(state["human_action_required"])
 
-    def test_work_hours_are_timezone_bound_and_end_exclusive(self):
+    def test_o2_work_hours_are_weekday_timezone_bound_and_end_exclusive(self):
         zone = ORCH.WORK_TIMEZONE
         for moment, expected in (
-            (ORCH.datetime(2026, 10, 17, 8, 59, tzinfo=zone), False),
-            (ORCH.datetime(2026, 10, 17, 9, 0, tzinfo=zone), True),
-            (ORCH.datetime(2026, 10, 17, 18, 29, 59, tzinfo=zone), True),
-            (ORCH.datetime(2026, 10, 17, 18, 30, tzinfo=zone), False),
+            (ORCH.datetime(2026, 10, 24, 9, 0, tzinfo=zone), False),
+            (ORCH.datetime(2026, 10, 25, 12, 0, tzinfo=zone), False),
+            (ORCH.datetime(2026, 10, 26, 8, 59, 59, tzinfo=zone), False),
+            (ORCH.datetime(2026, 10, 26, 9, 0, 0, tzinfo=zone), True),
+            (ORCH.datetime(2026, 10, 26, 17, 59, 59, tzinfo=zone), True),
+            (ORCH.datetime(2026, 10, 26, 18, 0, 0, tzinfo=zone), False),
+            (ORCH.datetime(2026, 10, 26, 18, 29, 0, tzinfo=zone), False),
         ):
             with self.subTest(moment=moment):
                 self.assertEqual(ORCH.within_authorized_work_hours(moment), expected)
+
+    def test_o2_work_hours_convert_utc_to_taipei(self):
+        utc = ORCH.ZoneInfo("UTC")
+        self.assertTrue(
+            ORCH.within_authorized_work_hours(
+                ORCH.datetime(2026, 10, 26, 1, 0, 0, tzinfo=utc)
+            )
+        )
+        self.assertFalse(
+            ORCH.within_authorized_work_hours(
+                ORCH.datetime(2026, 10, 26, 10, 0, 0, tzinfo=utc)
+            )
+        )
+
+    def test_legacy_issue8_canary_keeps_its_independent_1830_window(self):
+        zone = ORCH.WORK_TIMEZONE
+        goal_id = "GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1"
+        self.assertTrue(
+            ORCH.within_authorized_work_hours(
+                ORCH.datetime(2026, 10, 17, 9, 0, tzinfo=zone), goal_id=goal_id
+            )
+        )
+        self.assertTrue(
+            ORCH.within_authorized_work_hours(
+                ORCH.datetime(2026, 10, 17, 18, 29, 59, tzinfo=zone), goal_id=goal_id
+            )
+        )
+        self.assertFalse(
+            ORCH.within_authorized_work_hours(
+                ORCH.datetime(2026, 10, 17, 18, 30, tzinfo=zone), goal_id=goal_id
+            )
+        )
 
     def test_ordinary_resume_preserves_protected_terminal_states_across_restart(self):
         for terminal in sorted(ORCH.EXPLICIT_RESUME_STATES):
@@ -1213,6 +1249,62 @@ class OrchestratorDurabilityTests(unittest.TestCase):
                 )
             self.assertEqual(resumed["state"], "IMPLEMENTING")
             self.assertEqual((root / ORCH.STATE_PATH).read_bytes(), persisted)
+
+    def test_o2_start_and_resume_both_apply_the_real_weekend_guard(self):
+        weekend = ORCH.datetime(2026, 10, 24, 9, 0, tzinfo=ORCH.WORK_TIMEZONE)
+        real_guard = ORCH.within_authorized_work_hours
+
+        def weekend_guard(*, goal_id=None):
+            return real_guard(weekend, goal_id=goal_id)
+
+        for resume in (False, True):
+            with self.subTest(resume=resume), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                state = OrchestrationSimulationTests().base_state()
+                state.update({
+                    "active_goal": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
+                    "state": "IMPLEMENTING",
+                })
+                if resume:
+                    ORCH.write_state(root, state)
+                    persisted = (root / ORCH.STATE_PATH).read_bytes()
+                else:
+                    persisted = None
+                with mock.patch.object(
+                    ORCH, "within_authorized_work_hours", side_effect=weekend_guard
+                ) as guard, mock.patch.object(
+                    ORCH, "derive_state", return_value=state
+                ), mock.patch.object(
+                    ORCH, "run_loop", side_effect=AssertionError("must not run or launch a model")
+                ):
+                    result = ORCH.start(
+                        root, resume=resume, max_review_cycles=5, max_steps=1,
+                        runner=lambda *_: self.fail("must not dispatch"),
+                    )
+                guard.assert_called_once_with(goal_id=state["active_goal"])
+                self.assertEqual(result["state"], "IMPLEMENTING")
+                if resume:
+                    self.assertEqual((root / ORCH.STATE_PATH).read_bytes(), persisted)
+                else:
+                    self.assertFalse((root / ORCH.STATE_PATH).exists())
+                    self.assertFalse((root / ORCH.HISTORY_PATH).exists())
+
+    def test_run_loop_rechecks_window_before_each_new_step(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = OrchestrationSimulationTests().base_state()
+            state.update({
+                "active_goal": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
+                "state": "IMPLEMENTING",
+            })
+            (root / ".ai").mkdir()
+            with mock.patch.object(
+                ORCH, "within_authorized_work_hours", side_effect=[True, False]
+            ) as guard, mock.patch.object(ORCH, "orchestrate_step") as step:
+                result = ORCH.run_loop(root, state, mock.Mock(), max_steps=None)
+            self.assertIs(result, state)
+            self.assertEqual(step.call_count, 1)
+            self.assertEqual(guard.call_count, 2)
 
     def test_superseded_intermediate_human_gate_is_skipped_for_ready_work(self):
         plan = {

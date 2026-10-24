@@ -44,7 +44,9 @@ TERMINAL_STATES = {
 EXPLICIT_RESUME_STATES = {"STOPPED", "AUTOMATION_BLOCKED", "BUDGET_EXHAUSTED"}
 WORK_TIMEZONE = ZoneInfo("Asia/Taipei")
 WORKDAY_START_MINUTE = 9 * 60
-WORKDAY_END_MINUTE = 18 * 60 + 30
+WORKDAY_END_MINUTE = 18 * 60
+LEGACY_CANARY_END_MINUTE = 18 * 60 + 30
+LEGACY_CANARY_GOAL_IDS = frozenset({"GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1"})
 MACHINE_HANDOFF_STATES = {"AWAITING_EXTERNAL_PRODUCT_REVIEW"}
 MACHINE_STATES = {
     "IMPLEMENTING",
@@ -66,16 +68,32 @@ def now() -> str:
     return datetime.now(WORK_TIMEZONE).isoformat(timespec="seconds")
 
 
-def within_authorized_work_hours(moment: datetime | None = None) -> bool:
-    """Return whether new autonomous work may start in Asia/Taipei."""
+def within_authorized_work_hours(
+    moment: datetime | None = None,
+    *,
+    goal_id: str | None = None,
+) -> bool:
+    """Return whether new autonomous work may start in Asia/Taipei.
+
+    O2 and all unrecognized goals use the current weekday-only 09:00-18:00
+    boundary.  The Legacy Issue #8 production canary keeps its separately
+    authorized 09:00-18:30 legacy window; the goal identity is repository
+    state, not an environment override.
+    """
     if moment is None:
         local = datetime.now(WORK_TIMEZONE)
     elif moment.tzinfo is None:
         local = moment.replace(tzinfo=WORK_TIMEZONE)
     else:
         local = moment.astimezone(WORK_TIMEZONE)
+    if goal_id in LEGACY_CANARY_GOAL_IDS:
+        end_minute = LEGACY_CANARY_END_MINUTE
+    else:
+        if local.weekday() >= 5:
+            return False
+        end_minute = WORKDAY_END_MINUTE
     minute = local.hour * 60 + local.minute
-    return WORKDAY_START_MINUTE <= minute < WORKDAY_END_MINUTE
+    return WORKDAY_START_MINUTE <= minute < end_minute
 
 
 def terminal_resume_authorized(state: dict[str, Any], requested_state: str | None) -> bool:
@@ -150,6 +168,7 @@ def bind_external_review_runtime(
     *,
     config_path: Path | None,
     external_state_path: Path | None,
+    persist: bool = True,
 ) -> tuple[Path, Path]:
     """Resolve and durably bind one Goal's external-review config and state.
 
@@ -203,7 +222,7 @@ def bind_external_review_runtime(
     }
     if isinstance(existing, dict) and existing != binding:
         raise ValueError("external review runtime is already bound to a different identity or path")
-    if existing != binding:
+    if existing != binding and persist:
         state["external_review_binding"] = binding
         write_state(repo, state)
     return resolved_config, resolved_state
@@ -1138,6 +1157,8 @@ def run_loop(repo: Path, state: dict[str, Any], runner: AgentRunner, max_steps: 
     try:
         steps = 0
         while state["state"] not in TERMINAL_STATES | MACHINE_HANDOFF_STATES:
+            if not within_authorized_work_hours(goal_id=state.get("active_goal")):
+                break
             if (repo / STOP_PATH).exists():
                 (repo / STOP_PATH).unlink()
                 update_state(repo, state, "STOPPED", "Operator requested a safe stop; run resume to continue.")
@@ -1222,13 +1243,15 @@ def start(
         if existing is None:
             raise ValueError("orchestrator_resume: no durable state exists; use start")
         state = existing
+        work_hours_allowed = within_authorized_work_hours(goal_id=state.get("active_goal"))
         review_config_path, review_state_path = bind_external_review_runtime(
             repo,
             state,
             config_path=external_review_config_path,
             external_state_path=external_review_state_path,
+            persist=work_hours_allowed,
         )
-        if not within_authorized_work_hours():
+        if not work_hours_allowed:
             return state
         if state["state"] == "AWAITING_EXTERNAL_PRODUCT_REVIEW":
             decision = external_review_handoff.process(
@@ -1270,16 +1293,18 @@ def start(
         if existing and existing.get("state") not in TERMINAL_STATES:
             raise ValueError("orchestrator_start: active durable state exists; use resume or stop")
         state = derive_state(repo, max_review_cycles=max_review_cycles)
+        work_hours_allowed = within_authorized_work_hours(goal_id=state.get("active_goal"))
         bind_external_review_runtime(
             repo,
             state,
             config_path=external_review_config_path,
             external_state_path=external_review_state_path,
+            persist=work_hours_allowed,
         )
+        if not work_hours_allowed:
+            return state
         write_state(repo, state)
         append_event(repo, state, "ORCHESTRATOR_STARTED")
-        if not within_authorized_work_hours():
-            return state
     return run_loop(repo, state, runner, max_steps)
 
 
