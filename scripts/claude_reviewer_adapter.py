@@ -30,6 +30,8 @@ FORBIDDEN_FLAGS = {"--auto-merge", "--dangerous-agent-permissions"}
 REQUESTED_MODEL = "sonnet"
 REQUESTED_EFFORT = "medium"
 REQUESTED_PROVIDER = "Anthropic"
+FORMAL_REVIEW_SCHEMA_RELATIVE_PATH = Path("schemas/product-review/v1/review-result.schema.json")
+FORMAL_REVIEW_SCHEMA_SHA256 = "f0b977274a82b291bea0d0aa0b447d2425155cad413da035457ba516abe898b5"
 
 
 class AdapterError(RuntimeError):
@@ -159,16 +161,37 @@ def verify_pin(order: WorkOrder, runner: Callable[..., subprocess.CompletedProce
         raise AdapterError("agent-loop checkout does not match the pinned commit")
 
 
+def load_formal_consumer_schema(adapter_file: Path | None = None) -> dict[str, Any]:
+    """Load the exact reviewed Consumer schema from the trusted install layout."""
+    adapter_path = (adapter_file or Path(__file__)).resolve()
+    runtime_root = adapter_path.parent.parent if adapter_path.parent.name == "scripts" else adapter_path.parent
+    schema_path = runtime_root / FORMAL_REVIEW_SCHEMA_RELATIVE_PATH
+    try:
+        schema_bytes = schema_path.read_bytes()
+    except OSError as exc:
+        raise AdapterError(f"formal review schema unavailable: {schema_path}") from exc
+    actual_sha256 = hashlib.sha256(schema_bytes).hexdigest()
+    if actual_sha256 != FORMAL_REVIEW_SCHEMA_SHA256:
+        raise AdapterError(
+            "formal review schema digest mismatch: "
+            f"expected {FORMAL_REVIEW_SCHEMA_SHA256}, got {actual_sha256}"
+        )
+    try:
+        schema = json.loads(schema_bytes)
+    except json.JSONDecodeError as exc:
+        raise AdapterError(f"formal review schema is invalid JSON: {schema_path}") from exc
+    if not isinstance(schema, dict):
+        raise AdapterError(f"formal review schema must be an object: {schema_path}")
+    return schema
+
+
 def build_command(order: WorkOrder) -> list[str]:
     if order.review_only_live:
-        candidates = [Path("/home/kgnote/.local/share/kgnote/final-smoke/review-result.cli.schema.json"),
-                      Path(__file__).resolve().parent / "schemas/product-review/v1/review-result.schema.json",
-                      Path(__file__).resolve().parents[1] / "schemas/product-review/v1/review-result.schema.json"]
-        schema_path = next((path for path in candidates if path.is_file()), candidates[0])
-        try:
-            schema_value = json.loads(schema_path.read_text(encoding="utf-8")); schema_value.pop("$schema", None)
-            schema = json.dumps(schema_value, separators=(",", ":"))
-        except OSError as exc: raise AdapterError(f"review schema unavailable: {schema_path}") from exc
+        schema_value = load_formal_consumer_schema()
+        # Claude's CLI does not need the dialect annotation.  All validation
+        # keywords, including allOf/if/then/else, $defs and required, remain exact.
+        schema_value.pop("$schema", None)
+        schema = json.dumps(schema_value, separators=(",", ":"))
         authority_paths = ", ".join(order.review_authority_paths)
         prompt = (
             "You are the independent KGnote product-contract reviewer. Review the exact read-only checkout in the current directory. "

@@ -5,6 +5,9 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
+
+from jsonschema import Draft202012Validator
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -67,6 +70,101 @@ class ClaudeReviewerAdapterTest(unittest.TestCase):
         self.assertNotIn("--dry-run", command)
         self.assertNotIn("--auto-merge", command)
         self.assertFalse(self.order(review_only_live=True, safety_baseline_verified=True).allow_live_write)
+
+    def _deployed_schema_layout(self, *, formal: bytes | None = None):
+        root = Path(self.temp.name) / "deployed"
+        adapter_path = root / "runtime" / "claude_reviewer_adapter.py"
+        adapter_path.parent.mkdir(parents=True)
+        adapter_path.write_text("# deployed adapter placeholder\n")
+        legacy_path = root / "final-smoke" / "review-result.cli.schema.json"
+        legacy_path.parent.mkdir(parents=True)
+        legacy_path.write_text(json.dumps({"type": "object", "$defs": {}, "properties": {}}))
+        if formal is not None:
+            formal_path = adapter_path.parent / ADAPTER.FORMAL_REVIEW_SCHEMA_RELATIVE_PATH
+            formal_path.parent.mkdir(parents=True)
+            formal_path.write_bytes(formal)
+        return adapter_path, legacy_path
+
+    def test_o2_selects_formal_schema_when_legacy_schema_also_exists(self):
+        formal = (ROOT / ADAPTER.FORMAL_REVIEW_SCHEMA_RELATIVE_PATH).read_bytes()
+        adapter_path, legacy_path = self._deployed_schema_layout(formal=formal)
+        self.assertTrue(legacy_path.is_file())
+        with mock.patch.object(ADAPTER, "__file__", str(adapter_path)):
+            command = ADAPTER.build_command(
+                self.order(review_only_live=True, safety_baseline_verified=True)
+            )
+        selected = json.loads(command[command.index("--json-schema") + 1])
+        expected = json.loads(formal)
+        expected.pop("$schema")
+        self.assertEqual(expected, selected)
+        self.assertTrue(selected["allOf"])
+
+    def test_o2_rejects_missing_or_damaged_formal_schema_without_legacy_fallback(self):
+        adapter_path, legacy_path = self._deployed_schema_layout()
+        self.assertTrue(legacy_path.is_file())
+        with mock.patch.object(ADAPTER, "__file__", str(adapter_path)):
+            with self.assertRaisesRegex(ADAPTER.AdapterError, "formal review schema unavailable"):
+                ADAPTER.build_command(
+                    self.order(review_only_live=True, safety_baseline_verified=True)
+                )
+            formal_path = adapter_path.parent / ADAPTER.FORMAL_REVIEW_SCHEMA_RELATIVE_PATH
+            formal_path.parent.mkdir(parents=True)
+            formal_path.write_text("{damaged")
+            with self.assertRaisesRegex(ADAPTER.AdapterError, "digest mismatch"):
+                ADAPTER.build_command(
+                    self.order(review_only_live=True, safety_baseline_verified=True)
+                )
+
+    def test_selected_schema_enforces_human_decisions_by_verdict(self):
+        command = ADAPTER.build_command(
+            self.order(review_only_live=True, safety_baseline_verified=True)
+        )
+        schema = json.loads(command[command.index("--json-schema") + 1])
+        self.assertIn("allOf", schema)
+        validator = Draft202012Validator(schema)
+        result = {
+            "protocol": "kgnote.product-review.v1",
+            "repository": "example/repo",
+            "pull_request": 9,
+            "program_id": "program-test-goal-review-v1",
+            "goal_id": "goal",
+            "candidate_fingerprint": "b" * 64,
+            "candidate_commit": "a" * 40,
+            "review_round": 3,
+            "verdict": "PRODUCT_DECISION_REQUIRED",
+            "findings": [{
+                "id": "finding-decision",
+                "severity": "blocking",
+                "category": "product_intent",
+                "observation": "authority is insufficient",
+                "expected_behavior": "obtain a human decision",
+                "authority_refs": ["PLAN.md"],
+                "candidate_evidence": ["candidate evidence"],
+            }],
+            "human_decisions": [{
+                "decision_id": "D-100",
+                "question": "Which behavior is intended?",
+                "why_existing_authority_is_insufficient": "The alternatives conflict.",
+                "affected_requirements": ["KG-GOV-04"],
+                "available_options": ["A", "B"],
+                "observable_consequences": ["Outcome A", "Outcome B"],
+                "blocking_scope": ["O2 review"],
+                "linked_findings": ["finding-decision"],
+            }],
+            "native_ui_observed": False,
+        }
+        self.assertEqual([], list(validator.iter_errors(result)))
+        missing = {**result}
+        missing.pop("human_decisions")
+        self.assertTrue(list(validator.iter_errors(missing)))
+        for verdict in ("PASS", "CHANGES_REQUIRED"):
+            invalid = {**result, "verdict": verdict}
+            self.assertTrue(list(validator.iter_errors(invalid)))
+
+    def test_legacy_agent_loop_order_remains_dry_run_compatible(self):
+        command = ADAPTER.build_command(self.order(review_only_live=False))
+        self.assertIn("--dry-run", command)
+        self.assertNotIn("--json-schema", command)
 
     def test_review_only_prompt_uses_exact_order_scope_without_legacy_hardcoding(self):
         command = ADAPTER.build_command(

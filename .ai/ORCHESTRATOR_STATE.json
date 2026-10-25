@@ -13,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Run the full verifier, seal/push PR #33, and request independent Ubuntu Claude review for that exact candidate.",
+  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-o2-s0-s2-launch-package-20261023-003.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -28,5 +28,5 @@
   },
   "last_agent_run": null,
   "created_at": "2026-10-23T17:46:10+08:00",
-  "updated_at": "2026-10-23T18:25:00+08:00"
+  "updated_at": "2026-10-25T14:56:35+08:00"
 }
