@@ -2477,6 +2477,344 @@ def invalidate_ready_request(repo: Path, reason: str) -> dict[str, Any]:
     return {"invalidated_review_id": old_review_id, "next_review_id": request["review_id"]}
 
 
+def _load_repo_json(repo: Path, value: str, field: str) -> tuple[Path, dict[str, Any]]:
+    path = (repo / value).resolve()
+    try:
+        relative = path.relative_to(repo.resolve())
+    except ValueError as exc:
+        raise ValueError(f"{field} must remain inside the repository") from exc
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{field} is unreadable: {relative}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"{field} must contain one JSON object")
+    return path, payload
+
+
+def _atomic_json(path: Path, value: dict[str, Any]) -> None:
+    handle, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8") as stream:
+            json.dump(value, stream, indent=2, ensure_ascii=False)
+            stream.write("\n")
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def reconcile_external_review_attempt_failure(
+    repo: Path,
+    *,
+    outcome_value: str,
+    external_state_value: str,
+    route_checkpoint_value: str,
+    reviewer_checkpoint_value: str,
+) -> dict[str, Any]:
+    """Project one conclusive no-verdict provider admission failure through canonical writers."""
+    outcome_path, outcome = _load_repo_json(repo, outcome_value, "outcome")
+    external_path, external = _load_repo_json(repo, external_state_value, "external state")
+    route_path, route = _load_repo_json(repo, route_checkpoint_value, "route checkpoint")
+    reviewer_path, reviewer = _load_repo_json(repo, reviewer_checkpoint_value, "reviewer checkpoint")
+    resolved_repo = repo.resolve()
+    request, result, _ = load_review_artifacts(repo)
+    _, status = load_plan_status(repo)
+
+    old_review_id = outcome.get("review_id")
+    expected_next_review_id = next_review_id(str(old_review_id))
+    errors: list[str] = []
+    expected_identity = {
+        "review_id": old_review_id,
+        "candidate_commit": outcome.get("candidate_commit"),
+        "candidate_fingerprint": outcome.get("candidate_fingerprint"),
+        "review_round": outcome.get("review_round"),
+    }
+    if outcome.get("status") != "BLOCKED_WITH_SPECIFIC_GAPS":
+        errors.append("outcome is not a blocked terminal attempt")
+    if outcome.get("provider_error_status") != 400:
+        errors.append("outcome is not an HTTP 400 provider admission failure")
+    if "input_schema" not in str(outcome.get("provider_error", "")):
+        errors.append("outcome lacks the input_schema provider error")
+    if outcome.get("model_invocation_started") is not True:
+        errors.append("outcome does not prove a started model launch")
+    if outcome.get("model_inference_occurred") is not False:
+        errors.append("outcome does not prove inference was absent")
+    if outcome.get("actual_models") != [] or outcome.get("input_tokens") != 0 or outcome.get("output_tokens") != 0:
+        errors.append("outcome zero-model/zero-token evidence is inconsistent")
+    if outcome.get("github_trigger_published") is not True or outcome.get("github_result_published") is not False:
+        errors.append("outcome GitHub side-effect evidence is inconsistent")
+    if outcome.get("canonical_consumer_accepted") is not False:
+        errors.append("outcome incorrectly reports Consumer acceptance")
+    if request.get("status") != "IMPLEMENTING" or request.get("review_id") != expected_next_review_id:
+        errors.append("review bus was not legally invalidated to the exact successor review ID")
+    if result.get("artifact_state") != "EMPTY":
+        errors.append("a reviewer result exists and cannot be settled as no-verdict")
+    if external.get("review_id") != old_review_id:
+        errors.append("external state review identity differs from the failed attempt")
+    for field in ("candidate_commit", "candidate_fingerprint", "review_round"):
+        if external.get(field) != expected_identity[field]:
+            errors.append(f"external state mismatch for {field}")
+    if not isinstance(external.get("publication"), dict) or not external["publication"].get("trigger_artifact_url"):
+        errors.append("published trigger evidence is missing")
+    if external.get("external_review") is not None or external.get("delivery_receipt") is not None:
+        errors.append("external state contains a verdict or delivery receipt")
+    if route.get("status") != "FAILED_CLOSED" or route.get("exit_code") != 2:
+        errors.append("route checkpoint is not the conclusive failed route")
+    execution = route.get("execution_evidence")
+    if not isinstance(execution, dict) or execution.get("actual_models") != []:
+        errors.append("route execution evidence does not preserve empty actual_models")
+    if reviewer.get("status") != "FAILED_CLOSED" or reviewer.get("exit_code") != 1:
+        errors.append("reviewer checkpoint is not the conclusive failed CLI process")
+    if reviewer.get("candidate_commit") != expected_identity["candidate_commit"]:
+        errors.append("reviewer checkpoint candidate commit differs")
+    if reviewer.get("candidate_fingerprint") != expected_identity["candidate_fingerprint"]:
+        errors.append("reviewer checkpoint candidate fingerprint differs")
+    if reviewer.get("product_review_accepted") is not False or "review_result" in reviewer:
+        errors.append("reviewer checkpoint unexpectedly contains an accepted result")
+    stdout_tail = str(reviewer.get("stdout_tail", ""))
+    if '"api_error_status":400' not in stdout_tail or "input_schema" not in stdout_tail:
+        errors.append("reviewer checkpoint lacks the exact provider admission error")
+    if errors:
+        raise ValueError("; ".join(errors))
+
+    orchestrator_path = repo / ".ai/ORCHESTRATOR_STATE.json"
+    orchestrator = json.loads(orchestrator_path.read_text(encoding="utf-8"))
+    if (
+        orchestrator.get("state") != "IMPLEMENTING"
+        or orchestrator.get("candidate_custody", {}).get("status") != "NONE"
+    ):
+        raise ValueError("orchestrator did not release failed candidate custody")
+
+    evidence = {
+        "outcome": str(outcome_path.relative_to(resolved_repo)),
+        "outcome_sha256": sha256_file(outcome_path),
+        "route_checkpoint": str(route_path.relative_to(resolved_repo)),
+        "route_checkpoint_sha256": sha256_file(route_path),
+        "reviewer_checkpoint": str(reviewer_path.relative_to(resolved_repo)),
+        "reviewer_checkpoint_sha256": sha256_file(reviewer_path),
+        "trigger_url": external["publication"]["trigger_artifact_url"],
+    }
+    incident_id = f"{old_review_id}:schema-provider-interface-admission-failure"
+    attempt = {
+        "incident_id": incident_id,
+        "classification": "SCHEMA_PROVIDER_INTERFACE_ADMISSION_FAILURE",
+        **expected_identity,
+        "cli_process_started": True,
+        "model_inference_occurred": False,
+        "actual_models": [],
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "valid_verdict_produced": False,
+        "model_launch_attempts_consumed": 1,
+        "valid_review_rounds_consumed": 0,
+        "provider_error_status": 400,
+        "provider_error": outcome["provider_error"],
+        "evidence": evidence,
+    }
+    attempts = external.setdefault("review_attempt_history", [])
+    if not isinstance(attempts, list):
+        raise ValueError("external state review_attempt_history is malformed")
+    existing = [item for item in attempts if isinstance(item, dict) and item.get("incident_id") == incident_id]
+    if existing and existing != [attempt]:
+        raise ValueError("external state contains conflicting incident bytes")
+    if not existing:
+        attempts.append(attempt)
+    external.update({
+        "phase": "REVIEW_ATTEMPT_FAILED_REPAIRING",
+        "review_rounds_consumed": 0,
+        "model_launch_attempts_consumed": 1,
+        "last_failed_attempt": attempt,
+    })
+    _atomic_json(external_path, external)
+
+    runtime = status.setdefault("external_review_runtime", {})
+    runtime.update({
+        "status": "REVIEW_ATTEMPT_FAILED_REPAIRING",
+        "review_rounds_consumed": 0,
+        "model_launch_attempts_consumed": 1,
+        "trigger_artifact_url": evidence["trigger_url"],
+        "route_checkpoint": evidence["route_checkpoint"],
+        "reviewer_checkpoint": evidence["reviewer_checkpoint"],
+        "consumer_receipt": None,
+        "last_failed_attempt": attempt,
+    })
+    wakeup = runtime.setdefault("wakeup", {})
+    wakeup.update({
+        "status": "PAUSED_AFTER_PROVIDER_ADMISSION_FAILURE",
+        "scheduler_run_count": max(1, int(wakeup.get("scheduler_run_count", 0))),
+        "probe_status": "LIVE_WAKEUP_FAILED_CLOSED_AND_RECONCILED",
+    })
+    rehearsal = runtime.setdefault("prelaunch_rehearsal", {})
+    rehearsal["formal_claude_model_invocations"] = 1
+    deployment = status.setdefault("deployment_readback", {})
+    deployment["model_launches_during_goal"] = 1
+    status["readiness_outcome"] = "BLOCKED_WITH_SPECIFIC_GAPS"
+    status["engineering_blockers"] = [{
+        "type": "SCHEMA_PROVIDER_INTERFACE_ADMISSION_FAILURE",
+        "review_id": old_review_id,
+        "evidence": evidence,
+        "repair_review_id": expected_next_review_id,
+    }]
+    status["updated_at"] = datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds")
+    write_status(repo, status)
+
+    orchestrator["last_external_review_attempt"] = attempt
+    orchestrator["updated_at"] = status["updated_at"]
+    _atomic_json(orchestrator_path, orchestrator)
+    event = {
+        "event_type": "EXTERNAL_REVIEW_ATTEMPT_RECONCILED",
+        "run_id": orchestrator.get("run_id"),
+        "goal_id": orchestrator.get("active_goal"),
+        "work_package": orchestrator.get("work_package"),
+        "state": orchestrator.get("state"),
+        "review_cycle": orchestrator.get("review_cycle"),
+        "candidate_fingerprint": expected_identity["candidate_fingerprint"],
+        "created_at": status["updated_at"],
+        "attempt": attempt,
+    }
+    history_path = repo / ".ai/ORCHESTRATION_HISTORY/events.jsonl"
+    existing_events = history_path.read_text(encoding="utf-8") if history_path.exists() else ""
+    if f'"incident_id":"{incident_id}"' not in existing_events:
+        with history_path.open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(event, separators=(",", ":"), ensure_ascii=False) + "\n")
+    return {
+        "status": "RECONCILED",
+        "incident_id": incident_id,
+        "model_launch_attempts_consumed": 1,
+        "valid_review_rounds_consumed": 0,
+        "next_review_id": expected_next_review_id,
+    }
+
+
+def reconcile_claude_schema_compatibility(repo: Path, receipt_value: str) -> dict[str, Any]:
+    """Record one authorized synthetic Claude CLI compatibility launch without creating a verdict."""
+    receipt_path, receipt = _load_repo_json(repo, receipt_value, "schema compatibility receipt")
+    errors: list[str] = []
+    expected = {
+        "schema_version": "kgnote.claude-schema-live-compatibility.v1",
+        "test_kind": "SYNTHETIC_NON_REVIEW",
+        "status": "PASS",
+        "exit_code": 0,
+        "http_status": 200,
+        "is_error": False,
+        "formal_trigger_created": False,
+        "github_accessed": False,
+        "product_review_recorded": False,
+        "candidate_data_read": False,
+        "retry_count": 0,
+        "model_launch_attempts_consumed_by_goal_after_test": 2,
+        "valid_product_review_rounds_consumed_after_test": 0,
+    }
+    for field, value in expected.items():
+        if receipt.get(field) != value:
+            errors.append(f"schema compatibility receipt mismatch for {field}")
+    if receipt.get("cli_version") != "2.1.302 (Claude Code)":
+        errors.append("schema compatibility CLI version differs from the admitted runtime")
+    authentication = receipt.get("authentication")
+    if not isinstance(authentication, dict) or not (
+        authentication.get("status") == "PASS"
+        and authentication.get("auth_method") == "claude.ai"
+        and authentication.get("api_provider") == "firstParty"
+        and authentication.get("subscription_type") == "pro"
+        and authentication.get("forbidden_metered_environment_present") is False
+    ):
+        errors.append("schema compatibility receipt lacks verified Claude Pro OAuth")
+    projection = receipt.get("schema_projection")
+    adapter_path = repo / "scripts/claude_reviewer_adapter.py"
+    spec = importlib.util.spec_from_file_location("kgnote_schema_reconcile_adapter", adapter_path)
+    if spec is None or spec.loader is None:
+        errors.append("schema compatibility adapter cannot be loaded")
+        current_projection: dict[str, Any] = {}
+    else:
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        try:
+            spec.loader.exec_module(module)
+            _, current_projection = module.build_claude_schema_projection(adapter_path)
+        except Exception as exc:
+            errors.append(f"schema compatibility adapter admission failed: {exc}")
+            current_projection = {}
+        finally:
+            sys.modules.pop(spec.name, None)
+    if not isinstance(projection, dict) or any(
+        projection.get(field) != current_projection.get(field)
+        for field in ("projection_version", "formal_schema_sha256", "claude_facing_schema_sha256")
+    ):
+        errors.append("schema compatibility receipt does not match the current projection")
+    structured = receipt.get("structured_output")
+    if not isinstance(structured, dict) or any(
+        structured.get(field) != value for field, value in {
+            "protocol": "kgnote.product-review.v1",
+            "repository": "example/schema-compat",
+            "pull_request": 1,
+            "program_id": "schema-compatibility-test",
+            "goal_id": "synthetic-interface-test",
+            "review_round": 1,
+            "verdict": "PASS",
+            "findings": [],
+            "human_decisions": [],
+            "native_ui_observed": False,
+        }.items()
+    ):
+        errors.append("schema compatibility structured output is invalid")
+    if receipt.get("actual_models") != ["claude-sonnet-5-5"]:
+        errors.append("schema compatibility did not confirm the Sonnet model")
+    if errors:
+        raise ValueError("; ".join(errors))
+
+    _, status = load_plan_status(repo)
+    orchestrator_path = repo / ".ai/ORCHESTRATOR_STATE.json"
+    orchestrator = json.loads(orchestrator_path.read_text(encoding="utf-8"))
+    if (
+        status.get("review", {}).get("state") != "IMPLEMENTING"
+        or orchestrator.get("state") != "IMPLEMENTING"
+        or orchestrator.get("candidate_custody", {}).get("status") != "NONE"
+    ):
+        raise ValueError("schema compatibility may be reconciled only during released implementation custody")
+    evidence = {
+        "receipt": str(receipt_path.relative_to(repo.resolve())),
+        "receipt_sha256": sha256_file(receipt_path),
+        "cli_version": receipt["cli_version"],
+        "projection_version": projection["projection_version"],
+        "formal_schema_sha256": projection["formal_schema_sha256"],
+        "claude_facing_schema_sha256": projection["claude_facing_schema_sha256"],
+        "actual_models": receipt["actual_models"],
+        "usage": receipt.get("usage"),
+        "model_launch_attempts_consumed": 2,
+        "valid_review_rounds_consumed": 0,
+        "formal_trigger_created": False,
+        "product_review_recorded": False,
+    }
+    runtime = status.setdefault("external_review_runtime", {})
+    runtime["model_launch_attempts_consumed"] = 2
+    runtime["review_rounds_consumed"] = 0
+    runtime["live_schema_compatibility"] = {"status": "PASS", **evidence}
+    status.setdefault("deployment_readback", {})["model_launches_during_goal"] = 2
+    status["updated_at"] = datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds")
+    write_status(repo, status)
+    orchestrator["last_schema_compatibility_test"] = evidence
+    orchestrator["updated_at"] = status["updated_at"]
+    _atomic_json(orchestrator_path, orchestrator)
+    history_path = repo / ".ai/ORCHESTRATION_HISTORY/events.jsonl"
+    event_key = f'"receipt_sha256":"{evidence["receipt_sha256"]}"'
+    existing_events = history_path.read_text(encoding="utf-8") if history_path.exists() else ""
+    if event_key not in existing_events:
+        with history_path.open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps({
+                "event_type": "CLAUDE_SCHEMA_COMPATIBILITY_RECONCILED",
+                "run_id": orchestrator.get("run_id"),
+                "goal_id": orchestrator.get("active_goal"),
+                "work_package": orchestrator.get("work_package"),
+                "state": orchestrator.get("state"),
+                "review_cycle": orchestrator.get("review_cycle"),
+                "candidate_fingerprint": None,
+                "created_at": status["updated_at"],
+                "evidence": evidence,
+            }, separators=(",", ":"), ensure_ascii=False) + "\n")
+    return {"status": "PASS_RECONCILED", **evidence}
+
+
 def invalidate_stale_review(repo: Path, reason: str) -> dict[str, Any]:
     """Invalidate a sealed/in-custody candidate whose bytes changed.
 
@@ -3511,6 +3849,13 @@ def main() -> int:
     custody_parser.add_argument("--reviewer-identity", required=True)
     invalidate_parser = sub.add_parser("review-invalidate")
     invalidate_parser.add_argument("--reason", required=True)
+    failure_parser = sub.add_parser("review-attempt-reconcile")
+    failure_parser.add_argument("--outcome", required=True)
+    failure_parser.add_argument("--external-state", required=True)
+    failure_parser.add_argument("--route-checkpoint", required=True)
+    failure_parser.add_argument("--reviewer-checkpoint", required=True)
+    compatibility_parser = sub.add_parser("review-schema-compat-reconcile")
+    compatibility_parser.add_argument("--receipt", required=True)
     rebind_parser = sub.add_parser("review-rebind-goal")
     rebind_parser.add_argument("--reason", required=True)
     sub.add_parser("review-submit")
@@ -3619,6 +3964,28 @@ def main() -> int:
             print(json.dumps({"status": "fail", "errors": [str(exc)]}, indent=2, ensure_ascii=False))
             return 2
         print(json.dumps({"status": "implementing", **result}, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == "review-attempt-reconcile":
+        try:
+            result = reconcile_external_review_attempt_failure(
+                repo,
+                outcome_value=args.outcome,
+                external_state_value=args.external_state,
+                route_checkpoint_value=args.route_checkpoint,
+                reviewer_checkpoint_value=args.reviewer_checkpoint,
+            )
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print(json.dumps({"status": "fail", "errors": [str(exc)]}, indent=2, ensure_ascii=False))
+            return 2
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == "review-schema-compat-reconcile":
+        try:
+            result = reconcile_claude_schema_compatibility(repo, args.receipt)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print(json.dumps({"status": "fail", "errors": [str(exc)]}, indent=2, ensure_ascii=False))
+            return 2
+        print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0
     if args.command == "review-rebind-goal":
         try:

@@ -13,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-o2-s0-s2-launch-package-20261023-003.",
+  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-o2-s0-s2-launch-package-20261023-004.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -28,5 +28,56 @@
   },
   "last_agent_run": null,
   "created_at": "2026-10-23T17:46:10+08:00",
-  "updated_at": "2026-10-25T14:56:35+08:00"
+  "updated_at": "2026-10-26T11:50:17+08:00",
+  "last_external_review_attempt": {
+    "incident_id": "review-o2-s0-s2-launch-package-20261023-003:schema-provider-interface-admission-failure",
+    "classification": "SCHEMA_PROVIDER_INTERFACE_ADMISSION_FAILURE",
+    "review_id": "review-o2-s0-s2-launch-package-20261023-003",
+    "candidate_commit": "d59bc370d13c31752bca4d1a9f4b2a65b98a309d",
+    "candidate_fingerprint": "b2154c774ccbdea52506ed229d9d671d7c7b11c560d9211162122c1a2b75b506",
+    "review_round": 1,
+    "cli_process_started": true,
+    "model_inference_occurred": false,
+    "actual_models": [],
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "valid_verdict_produced": false,
+    "model_launch_attempts_consumed": 1,
+    "valid_review_rounds_consumed": 0,
+    "provider_error_status": 400,
+    "provider_error": "tools.8.custom.input_schema: input_schema does not support oneOf, allOf, or anyOf at the top level",
+    "evidence": {
+      "outcome": "output/control-plane/o2-pr33-external-review-review-003/run-outcome-20261026.json",
+      "outcome_sha256": "e4c34be187de1692f3062960ae91998cfb3ee5744d36d361a59357ff9d3f55ef",
+      "route_checkpoint": "output/control-plane/o2-pr33-external-review-review-003/route-checkpoint-r1.json",
+      "route_checkpoint_sha256": "df97f083afd66e1b9d88b74293f95f28f298e16d1fe1e622abac97dc81fcff48",
+      "reviewer_checkpoint": "output/control-plane/o2-pr33-external-review-review-003/reviewer-checkpoint-r1.json",
+      "reviewer_checkpoint_sha256": "ac30ff5e93abef0cb77cf59c5e9f6cf03d4f30ea18289fd7cf5c09a2a20754a6",
+      "trigger_url": "https://github.com/joannalee20050914/KGnote-public/pull/33#issuecomment-6405914007"
+    }
+  },
+  "last_schema_compatibility_test": {
+    "receipt": "output/control-plane/o2-pr33-schema-compatibility-20261026.json",
+    "receipt_sha256": "8601aebb98f8647dc0793635867d30d2a607233d69f5c323409321c19950f79c",
+    "cli_version": "2.1.302 (Claude Code)",
+    "projection_version": "kgnote.claude-facing-review-schema.v1",
+    "formal_schema_sha256": "f0b977274a82b291bea0d0aa0b447d2425155cad413da035457ba516abe898b5",
+    "claude_facing_schema_sha256": "e1ebb0769afca14fcb657aec7a4a8011d82b8666ade52b814723aca17d3943e1",
+    "actual_models": [
+      "claude-sonnet-5-5"
+    ],
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 18403,
+      "cache_read_input_tokens": 0,
+      "output_tokens": 459,
+      "service_tier": "standard",
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "model_launch_attempts_consumed": 2,
+    "valid_review_rounds_consumed": 0,
+    "formal_trigger_created": false,
+    "product_review_recorded": false
+  }
 }
