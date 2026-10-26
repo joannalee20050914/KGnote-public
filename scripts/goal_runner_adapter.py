@@ -314,6 +314,50 @@ def in_work_window(spec: dict[str, Any], now: datetime) -> bool:
     return inside and window_weekday in window["weekdays"]
 
 
+def trial_schedule_admission(
+    spec: dict[str, Any], now: datetime,
+) -> dict[str, Any]:
+    """Apply an immutable Goal schedule to every new dispatch decision.
+
+    The production Runner supplies ``now`` from its own clock.  The model never
+    supplies or persists this value.  Existing dispatch reconciliation is
+    deliberately handled before this gate so evidence can still be settled
+    after the hard stop without authorizing another dispatch.
+    """
+    if now.tzinfo is None:
+        raise GoalRunnerError("trial schedule admission time must be timezone-aware")
+    schedule = spec.get("trial_schedule")
+    if schedule is None:
+        return {"status": "OPEN"}
+    if not isinstance(schedule, dict) or schedule.get("timezone") != "Asia/Taipei":
+        raise GoalRunnerError("trial schedule must use the trusted Asia/Taipei timezone")
+    try:
+        proposed_start = datetime.fromisoformat(str(schedule["proposed_start"]))
+        hard_stop = datetime.fromisoformat(str(schedule["goal_hard_stop"]))
+    except (KeyError, ValueError) as exc:
+        raise GoalRunnerError("trial schedule boundaries are invalid") from exc
+    if proposed_start.tzinfo is None or hard_stop.tzinfo is None:
+        raise GoalRunnerError("trial schedule boundaries must be timezone-aware")
+    if proposed_start >= hard_stop:
+        raise GoalRunnerError("trial schedule start must precede the hard stop")
+    observed = now.astimezone(ZONE)
+    start = proposed_start.astimezone(ZONE)
+    stop = hard_stop.astimezone(ZONE)
+    if observed < start:
+        return {
+            "status": "WAIT_TRIAL_START", "requires_model": False,
+            "proposed_start": start.isoformat(),
+            "reason": "the immutable Product Goal trial start has not arrived",
+        }
+    if observed >= stop:
+        return {
+            "status": "GOAL_HARD_STOP", "requires_model": False,
+            "goal_hard_stop": stop.isoformat(),
+            "reason": "the immutable Product Goal hard stop forbids new dispatch",
+        }
+    return {"status": "OPEN"}
+
+
 def resource_window_id(spec: dict[str, Any], now: datetime) -> str:
     """Return the stable local work-window identity containing ``now``."""
     local = now.astimezone(ZONE)
@@ -450,6 +494,9 @@ def next_action(
             "status": "TRIAL_ONLY" if trial else "GO_LIVE_NOT_AUTHORIZED",
             "reason": "state flag and exact ledger-bound Owner go-live receipt are both required",
         }
+    schedule_admission = trial_schedule_admission(spec, now)
+    if schedule_admission["status"] != "OPEN":
+        return schedule_admission
     if not in_work_window(spec, now):
         return {"status": "WAIT_WORK_WINDOW", "requires_model": False}
     runtime_block = state.get("runtime_block")
@@ -969,7 +1016,12 @@ def ensure_bound_order(
         occurred = datetime.fromisoformat(occurred_at)
     except ValueError as exc:
         raise GoalRunnerError("dynamic order creation time is invalid") from exc
-    if occurred.tzinfo is None or not in_work_window(spec, occurred):
+    schedule_admission = trial_schedule_admission(spec, occurred)
+    if schedule_admission["status"] != "OPEN":
+        raise GoalRunnerError(
+            f"dynamic order creation blocked by {schedule_admission['status']}"
+        )
+    if not in_work_window(spec, occurred):
         raise GoalRunnerError("dynamic order creation is outside the authorized work window")
     if (repo / ".ai/ORCHESTRATOR_STOP").exists():
         raise GoalRunnerError("Stop Marker blocks dynamic order creation")
@@ -1167,6 +1219,11 @@ def reserve_dispatch(
         or not isinstance(state.get("authority_record"), dict)
     ):
         raise GoalRunnerError("dispatch requires an active exact Product Goal authority")
+    schedule_admission = trial_schedule_admission(spec, occurred)
+    if schedule_admission["status"] != "OPEN":
+        raise GoalRunnerError(
+            f"dispatch reservation blocked by {schedule_admission['status']}"
+        )
     if not in_work_window(spec, occurred):
         raise GoalRunnerError("dispatch reservation is outside the authorized work window")
     if isinstance(state.get("runtime_block"), dict):

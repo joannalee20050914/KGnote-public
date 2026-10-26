@@ -6,7 +6,7 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-26T13:16:00+08:00",
+  "updated_at": "2026-10-26T15:16:14+08:00",
   "goal_id": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
   "active_goal": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -14,32 +14,37 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
   "lifecycle_owner": "CODEX_APP",
   "product_goal_authorized": false,
   "goal_status": "active",
-  "active_milestone_id": "S02-VERIFY-REVIEW-DRAFT-PR",
-  "milestone_id": "S02-VERIFY-REVIEW-DRAFT-PR",
+  "active_milestone_id": "S3-TRIAL-SCHEDULE-ADMISSION",
+  "milestone_id": "S3-TRIAL-SCHEDULE-ADMISSION",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
-    "branch": "codex/o2-s0-s2-launch-package-20261023",
-    "head": "10150cac44c3e94c55513a0c3e5cb21d4167e6ac",
-    "base_commit": "de5c8c01c86ffc87896dca1337817892bfb5eff6",
-    "checkpoint_commit": "10150cac44c3e94c55513a0c3e5cb21d4167e6ac",
+    "branch": "codex/o2-trial-schedule-admission-20261026",
+    "head": "204a3ef951c441dbdafb1e31bf14297820bc0577",
+    "base_commit": "204a3ef951c441dbdafb1e31bf14297820bc0577",
+    "checkpoint_commit": "204a3ef951c441dbdafb1e31bf14297820bc0577",
     "draft_pull_request": 33
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "28a0871e3328d0c267c32892886c4a81449745b103489f849f04c065deeabe3a",
+    "fingerprint": "02543d9f48a0b743bd4f6decc8d930f51948f9565aa44d1b7550a2d793aa6f10",
     "starting_fingerprint": "faf5469acca25dfec4e77b86c4faa0caf1575d710d41d267afb25d927a441126",
-    "expected_dirty_policy": "Only O2 S0–S2 launch-package contracts, minimum dispatch/result/deployment wiring, necessary tests/evidence, PLAN/STATUS and review/publication receipts may change. PR #32, PR #29 history, main, Legacy assets and the deployed Runner remain untouched.",
+    "expected_dirty_policy": "Only the O2 immutable trial start/hard-stop admission in goal_runner_adapter, its boundary regressions, bounded control-plane evidence, PLAN/STATUS and review receipts may change. PR #32, the reviewed 204a3ef candidate, main, Legacy assets and deployed runtimes remain untouched until a new PASS.",
     "preserved_preexisting_dirty_paths": [],
     "unexpected_dirty_paths": []
   },
-  "readiness_outcome": "REVIEW_SCOPE_REPAIR_VERIFIED_PENDING_CHECKPOINT_COMMIT",
+  "readiness_outcome": "TRIAL_SCHEDULE_ADMISSION_REPAIR_IMPLEMENTING",
   "engineering_blockers": [
     {
       "type": "REVIEW_SCOPE_INGESTION_CONTRACT_MISMATCH",
-      "status": "FIXED_VERIFIED_PENDING_REVIEW",
-      "evidence": "output/control-plane/o2-pr33-review-004-full-contact/isolated-matrix.json"
+      "status": "FIXED_VERIFIED_BY_REVIEW_005",
+      "evidence": "https://github.com/joannalee20050914/KGnote-public/pull/33#issuecomment-6408858741"
+    },
+    {
+      "type": "TRIAL_SCHEDULE_NOT_ENFORCED_AT_RUNTIME",
+      "status": "FIXED_PENDING_EXACT_CANDIDATE_REVIEW",
+      "evidence": "tests/control_plane/test_product_goal_runtime_wiring.py"
     }
   ],
   "implementation_state": "IMPLEMENTING",
@@ -52,7 +57,7 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
     "human_decision_blockers": []
   },
   "external_review_runtime": {
-    "status": "REPAIR_VERIFIED_PENDING_RESEAL",
+    "status": "REVIEW_005_PASS_PRESERVED_NEW_SCHEDULE_REVIEW_REQUIRED",
     "program_id": "program-kgnote-o2-s0-s2-pr33-review-20261023",
     "config_path": "output/control-plane/o2-pr33-external-review-review-004/config.json",
     "state_path": "output/control-plane/o2-pr33-external-review-review-004/state.json",
@@ -210,11 +215,11 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
     "candidate_verified": true,
     "release_verified": false,
     "control_plane_ready": true,
-    "last_candidate_evidence": "output/control-plane/verification-20261026T131403+0800.json",
-    "last_verified_fingerprint": "28a0871e3328d0c267c32892886c4a81449745b103489f849f04c065deeabe3a",
-    "last_result": "PASS: Review 004 was invalidated before reviewer custody; the exact descriptive review_scope binding and adapter checkpoint-to-ingestion bridge were repaired. Full verification passed (control-plane 380, Python 348, Node 60), fingerprint stayed stable, public safety scan passed, and isolated full-contact verdict/rejection/idempotency paths passed."
+    "last_candidate_evidence": "output/control-plane/verification-20261026T151834+0800.json",
+    "last_verified_fingerprint": "02543d9f48a0b743bd4f6decc8d930f51948f9565aa44d1b7550a2d793aa6f10",
+    "last_result": "PASS before checkpoint: requirements 16, control-plane 383, Python product 348 and Node 60; fingerprint 02543d9f remained stable. Review 005 stays bound only to 204a3ef9/9ab80bde, so post-commit verification and Review 006 are still required."
   },
-  "next_action": "Create the path-explicit checkpoint commit, rerun identity-bound verification, and issue review-o2-s0-s2-launch-package-20261023-005.",
+  "next_action": "Complete the bounded schedule-admission implementation, commit path-explicitly, run full deterministic verification, and issue review-o2-s0-s2-launch-package-20261023-006 without merging or deploying first.",
   "external_or_human_gates": [
     {
       "id": "B-SCHEME-GO-LIVE",
@@ -252,9 +257,9 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
 
 ## Human-readable handoff
 
-Goal `CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023` remains active at milestone `S02-VERIFY-REVIEW-DRAFT-PR`.
+Goal `CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023` remains active at milestone `S3-TRIAL-SCHEDULE-ADMISSION`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Create the path-explicit checkpoint commit, rerun identity-bound verification, and issue review-o2-s0-s2-launch-package-20261023-005.
+Exact next action: Complete the bounded schedule-admission implementation, commit path-explicitly, run full deterministic verification, and issue review-o2-s0-s2-launch-package-20261023-006 without merging or deploying first.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

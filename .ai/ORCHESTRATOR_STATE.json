@@ -2,7 +2,7 @@
   "schema_version": "kgnote.orchestrator-state.v1",
   "run_id": "orch-454b1fbaa26b",
   "active_goal": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
-  "work_package": "S02-VERIFY-REVIEW-DRAFT-PR",
+  "work_package": "S3-TRIAL-SCHEDULE-ADMISSION",
   "state": "IMPLEMENTING",
   "current_agent": null,
   "candidate_fingerprint": null,
@@ -13,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-o2-s0-s2-launch-package-20261023-005.",
+  "next_action": "Complete bounded schedule-admission repair, verify the exact candidate, and issue review-o2-s0-s2-launch-package-20261023-006 before merge or deployment.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
