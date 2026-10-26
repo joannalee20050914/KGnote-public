@@ -7,7 +7,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 {
   "schema_version": "kgnote.review-request.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "review_id": "review-o2-s0-s2-launch-package-20261023-004",
+  "review_id": "review-o2-s0-s2-launch-package-20261023-005",
   "goal_id": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
   "milestone_id": "S02-VERIFY-REVIEW-DRAFT-PR",
   "status": "IMPLEMENTING",
@@ -31,7 +31,9 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     "AGENTS.md"
   ],
   "changed_areas": [
-    "O2 review_only_live formal Consumer Schema selection, digest-bound fail-closed loading, and regression coverage"
+    "Claude-facing Schema projection with exact formal/facing digest admission",
+    "Formal Consumer Schema post-generation validation and negative regression coverage",
+    "Review 003 failure accounting and one-shot Ubuntu compatibility evidence reconciliation"
   ],
   "acceptance_criteria": [
     "requirements guard、targeted/integration/full tests、public safety scan、git diff --check 與 exact-candidate verifier 通過",
@@ -64,57 +66,57 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     {
       "name": "requirements_guard",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261025T145933+0800.json#requirements_guard"
+      "evidence": "output/control-plane/verification-20261026T115337+0800.json#requirements_guard"
     },
     {
       "name": "requirements_guard_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261025T145933+0800.json#requirements_guard_tests"
+      "evidence": "output/control-plane/verification-20261026T115337+0800.json#requirements_guard_tests"
     },
     {
       "name": "control_plane_negative_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261025T145933+0800.json#control_plane_negative_tests"
+      "evidence": "output/control-plane/verification-20261026T115337+0800.json#control_plane_negative_tests"
     },
     {
       "name": "python_product_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261025T145933+0800.json#python_product_tests"
+      "evidence": "output/control-plane/verification-20261026T115337+0800.json#python_product_tests"
     },
     {
       "name": "node_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261025T145933+0800.json#node_tests"
+      "evidence": "output/control-plane/verification-20261026T115337+0800.json#node_tests"
     },
     {
       "name": "strict_git_diff_check",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261025T145933+0800.json#strict_git_diff_check"
+      "evidence": "output/control-plane/verification-20261026T115337+0800.json#strict_git_diff_check"
     },
     {
       "name": "review_completion_gate",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261025T145933+0800.json#review_completion_gate"
+      "evidence": "output/control-plane/verification-20261026T115337+0800.json#review_completion_gate"
     },
     {
       "name": "public_safety_scan",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261025T145933+0800.json#public_safety_scan"
+      "evidence": "output/control-plane/verification-20261026T115337+0800.json#public_safety_scan"
     },
     {
       "name": "untracked_whitespace",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261025T145933+0800.json#untracked_whitespace"
+      "evidence": "output/control-plane/verification-20261026T115337+0800.json#untracked_whitespace"
     }
   ],
   "known_deviations": [],
   "known_uncertainties": [
-    "The formal Claude invocation remains intentionally unstarted; deployed command/schema read-back is completed separately before the existing Scheduler is re-armed."
+    "The formal Review 004 Claude product review remains intentionally unstarted until Ubuntu deployment read-back and the existing scheduler are safely armed."
   ],
   "reviewer_focus": [
-    "Verify the exact O2 command uses the complete formal Consumer Schema, including allOf/if/then/else and $defs, never the legacy final-smoke schema.",
-    "Confirm PRODUCT_DECISION_REQUIRED requires non-empty human_decisions and every other verdict rejects non-empty human_decisions.",
-    "Confirm O2 prompt reads the sealed .ai/REVIEW_REQUEST.md, contains no finding-r-004, and Legacy non-live adapter behavior remains unchanged."
+    "Confirm the live Claude command receives only the admitted Claude-facing projection while the returned object is still validated against the unchanged formal Consumer Schema.",
+    "Confirm malformed projection input, digest drift and unsupported schema shapes fail before authentication or model process launch.",
+    "Confirm Review 003 remains one launch attempt, zero valid verdict rounds, and the compatibility test adds one launch without creating a product review record."
   ],
   "preserved_human_gates": [
     "B-SCHEME-GO-LIVE",
@@ -130,7 +132,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
   "candidate_manifest": {
     "algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
     "branch": "codex/o2-s0-s2-launch-package-20261023",
-    "head": "d59bc370d13c31752bca4d1a9f4b2a65b98a309d",
+    "head": "10150cac44c3e94c55513a0c3e5cb21d4167e6ac",
     "excluded_paths": [
       ".ai/DECISIONS.md",
       ".ai/ORCHESTRATOR.lock",
@@ -1339,13 +1341,13 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "scripts/claude_reviewer_adapter.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "577a6799d3d4a54b752e9a68f62ac00cc2d54221b1d32c58c6e35886345d402d"
+        "sha256": "28c07ad2304f35edca4a18e9912a2a99b057d21ca83d62e7561bda642d30b4a5"
       },
       {
         "path": "scripts/codex_control.py",
         "kind": "file",
         "mode": "0o755",
-        "sha256": "048b8cff6426a1cf13c26f57f7443139702988eb9f896a196923b668d6985410"
+        "sha256": "e23fdcd3f8e637d9ef4bf565344bf388f9f5ed159661ecd334b936c4039817ea"
       },
       {
         "path": "scripts/codex_orchestrator.py",
@@ -1963,7 +1965,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/control_plane/test_claude_reviewer_adapter.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "9497718a5364a095a52227b54b0a5b60ecbe5a1ba912e9fce9c782fe70fceeae"
+        "sha256": "7a2d9ae3d2bce2b88b5cde4a9adf7b40307b0a0be6632cd5bedcc48fa6981c43"
       },
       {
         "path": "tests/control_plane/test_claude_reviewer_e2e.py",
@@ -1975,7 +1977,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/control_plane/test_codex_control.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "54efe338444eba4d269c08a0617a541e00d90c622248bd3498f774b818bc04c3"
+        "sha256": "133cb10f2a02d3c0768b330f93371bd176d11a1427a79e1b4c210007322b0280"
       },
       {
         "path": "tests/control_plane/test_codex_orchestrator.py",
@@ -2108,6 +2110,12 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "kind": "file",
         "mode": "0o644",
         "sha256": "d73358b0c18e0d05ddd734414846d3d56ada9fb207bcc03de5246078892aca18"
+      },
+      {
+        "path": "tests/control_plane/test_product_review_consumer_schema.py",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "4704331a30a87cd3d682f027efdd02880921c64440b659cea16ca58a3a4ea63f"
       },
       {
         "path": "tests/control_plane/test_publication_receipt_contract.py",
@@ -3116,6 +3124,6 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 
 ## Human-readable status
 
-Review `review-o2-s0-s2-launch-package-20261023-004` is `IMPLEMENTING`.
+Review `review-o2-s0-s2-launch-package-20261023-005` is `IMPLEMENTING`.
 It has no active candidate binding and cannot be interpreted as a review request or PASS.
 Codex must complete deterministic verification before issuing this request.

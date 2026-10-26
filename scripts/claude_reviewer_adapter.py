@@ -617,7 +617,9 @@ def execute(
     started = datetime.now(ZoneInfo("Asia/Taipei")).isoformat()
     _atomic_json(order.checkpoint_path, {
         "schema_version":"kgnote.claude-reviewer-adapter-checkpoint.v1", "status":"RUNNING",
-        "identity_key":identity_key, "repository":order.repository, "pull_request":order.pull_request,
+        "identity_key":identity_key, "goal_id":order.goal_id, "repository":order.repository,
+        "issue":order.issue, "pull_request":order.pull_request, "program_id":order.program_id,
+        "review_scope":order.review_scope,
         "candidate_commit":order.candidate_commit, "candidate_fingerprint":order.candidate_fingerprint,
         "review_round":review_round, "started_at":started, "product_review_accepted":False,
         "schema_projection": schema_projection,
@@ -670,9 +672,12 @@ def execute(
         "schema_version": "kgnote.claude-reviewer-adapter-checkpoint.v1",
         "status": status,
         "reason": reason,
+        "goal_id": order.goal_id,
         "repository": order.repository,
         "issue": order.issue,
         "pull_request": order.pull_request,
+        "program_id": order.program_id,
+        "review_scope": order.review_scope,
         "candidate_commit": order.candidate_commit,
         "candidate_fingerprint": order.candidate_fingerprint,
         "identity_key": identity_key,

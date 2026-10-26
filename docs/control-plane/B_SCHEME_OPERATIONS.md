@@ -28,7 +28,7 @@ An unknown or interrupted terminal-looking checkpoint is not consumed as a faile
 
 Closure creates a digest-bound dependency receipt in the same Runner state/ledger. With the optional maintained backlog path, the next tick selects only the next dependency-satisfied Goal and queues a deduplicated GitHub-native approval request on the closing Issue. The successor remains `APPROVAL_REQUIRED`; its own exact spec refuses `APPROVE` unless all named dependency receipts are present.
 
-Each new independent-review order also carries an explicit `program_id`, `review_scope`, and repository-relative `review_authority_paths`. Goal-specific external-review config/state paths are supported by the Publisher and Consumer handoff; do not edit the singleton configuration of an older PR to impersonate a new Goal. The Ubuntu Runner request marker does not invoke ChatGPT Work.
+Each new independent-review order also carries an explicit `program_id`, descriptive `review_scope`, and repository-relative `review_authority_paths`. The goal-scoped external-review config binds exactly one `product_contract_review_scope` to that full descriptive scope; Ingestion must not require the order to masquerade as a generic scope token, and any other scope remains `CODE_REVIEW_ONLY`. Adapter completion is converted to `REVIEW_SUBMITTED` only through the exact checkpoint/work-order identity bridge. Goal-specific external-review config/state paths are supported by the Publisher and Consumer handoff; do not edit the singleton configuration of an older PR to impersonate a new Goal. The Ubuntu Runner request marker does not invoke ChatGPT Work.
 
 When the repository orchestrator owns that handoff, bind both Goal-scoped runtime paths on its first start/resume:
 

@@ -320,6 +320,48 @@ class ClaudeReviewerAdapterTest(unittest.TestCase):
         self.assertEqual(["claude-sonnet-5-5"],evidence["actual_models"])
         self.assertEqual(5,evidence["token_usage"]["output_tokens"])
 
+    def test_completed_live_checkpoint_preserves_ingestion_binding(self):
+        order = self.order(review_only_live=True, safety_baseline_verified=True)
+        structured = {
+            "protocol": "kgnote.product-review.v1", "repository": "example/repo",
+            "pull_request": 9, "program_id": "program-test-goal-review-v1",
+            "goal_id": "goal", "candidate_fingerprint": "b" * 64,
+            "candidate_commit": "a" * 40, "review_round": 3,
+            "verdict": "PASS", "findings": [], "human_decisions": [],
+            "native_ui_observed": False,
+        }
+        envelope = {
+            "structured_output": structured,
+            "usage": {"input_tokens": 3, "output_tokens": 5},
+            "modelUsage": {
+                "claude-sonnet-5-5": {
+                    "canonicalModel": "claude-sonnet-5-5", "provider": "firstParty"
+                }
+            },
+        }
+
+        def runner(command, **kwargs):
+            if command[0] == "git":
+                stdout = ADAPTER.PINNED_AGENT_LOOP_COMMIT + "\n"
+            elif command[-1] == "--version":
+                stdout = "2.1.302 (Claude Code)\n"
+            else:
+                stdout = json.dumps(envelope)
+            return subprocess.CompletedProcess(command, 0, stdout, "")
+
+        result = ADAPTER.execute(
+            order, runner,
+            auth_checker=lambda _path: {
+                "auth_method": "claude.ai", "api_provider": "firstParty",
+                "subscription_type": "pro",
+            },
+        )
+        self.assertEqual("COMPLETED", result["status"])
+        self.assertEqual(order.goal_id, result["goal_id"])
+        self.assertEqual(order.program_id, result["program_id"])
+        self.assertEqual(order.review_scope, result["review_scope"])
+        self.assertEqual(structured, result["review_result"])
+
     def test_model_usage_mismatch_is_explicit(self):
         order=self.order(review_only_live=True,safety_baseline_verified=True)
         envelope={"usage":{},"modelUsage":{"claude-opus-5-5":{"canonicalModel":"claude-opus-5-5","provider":"firstParty"}}}

@@ -20,6 +20,7 @@ class IngestionError(RuntimeError):
 
 
 TERMINAL_FAILURES = {"TIMEOUT", "QUOTA_EXHAUSTED", "PROVIDER_FAILURE", "CRASHED"}
+LEGACY_PRODUCT_CONTRACT_SCOPE = "KGNOTE_PRODUCT_CONTRACT"
 
 
 def _github(command: list[str], *, cwd: Path) -> str:
@@ -143,6 +144,118 @@ def _atomic(path: Path, value: dict[str, Any]) -> None:
             os.unlink(temporary)
 
 
+def _configured_product_contract_scope(config: dict[str, Any]) -> str:
+    """Return the one exact descriptive scope authorized as product review.
+
+    Older goal-scoped configs used the literal legacy scope.  New configs bind
+    the complete descriptive scope so ingestion does not require the order to
+    masquerade as a different work type and does not broaden admission to every
+    non-empty scope.
+    """
+    scope = config.get("product_contract_review_scope", LEGACY_PRODUCT_CONTRACT_SCOPE)
+    if not isinstance(scope, str) or not scope.strip():
+        raise IngestionError("config.product_contract_review_scope must be a non-empty string")
+    return scope
+
+
+def event_from_adapter_checkpoint(
+    *, reviewer_checkpoint: dict[str, Any], work_order: dict[str, Any],
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    """Convert one exact Adapter checkpoint into the canonical ingestion event."""
+    required_order = {
+        "goal_id", "repository", "issue", "pull_request", "candidate_commit",
+        "candidate_fingerprint", "review_round_used", "review_round_limit",
+        "program_id", "review_scope",
+    }
+    missing = sorted(required_order - work_order.keys())
+    if missing:
+        raise IngestionError(f"work order is missing ingestion fields: {missing}")
+    for field in ("issue", "pull_request", "review_round_used", "review_round_limit"):
+        if isinstance(work_order[field], bool) or not isinstance(work_order[field], int):
+            raise IngestionError(f"work order field {field} must be an integer")
+    for field in (
+        "goal_id", "repository", "candidate_commit", "candidate_fingerprint",
+        "program_id", "review_scope",
+    ):
+        if not isinstance(work_order[field], str) or not work_order[field].strip():
+            raise IngestionError(f"work order field {field} must be a non-empty string")
+    if reviewer_checkpoint.get("schema_version") != "kgnote.claude-reviewer-adapter-checkpoint.v1":
+        raise IngestionError("reviewer checkpoint schema is not supported")
+    round_number = work_order["review_round_used"] + 1
+    identity_key = hashlib.sha256(
+        (
+            f"{work_order['repository']}\0{work_order['pull_request']}\0"
+            f"{work_order['candidate_commit']}\0{work_order['candidate_fingerprint']}\0"
+            f"{round_number}"
+        ).encode()
+    ).hexdigest()
+    expected_checkpoint = {
+        "identity_key": identity_key,
+        "goal_id": work_order["goal_id"],
+        "repository": work_order["repository"],
+        "issue": work_order["issue"],
+        "pull_request": work_order["pull_request"],
+        "candidate_commit": work_order["candidate_commit"],
+        "candidate_fingerprint": work_order["candidate_fingerprint"],
+        "review_round": round_number,
+        "review_round_limit": work_order["review_round_limit"],
+        "program_id": work_order["program_id"],
+        "review_scope": work_order["review_scope"],
+    }
+    mismatches = [
+        field for field, expected in expected_checkpoint.items()
+        if reviewer_checkpoint.get(field) != expected
+    ]
+    if mismatches:
+        raise IngestionError(
+            "reviewer checkpoint/work-order mismatch: " + ", ".join(sorted(mismatches))
+        )
+    trusted = config.get("trusted_reviewer_identities")
+    if (
+        not isinstance(trusted, list) or len(trusted) != 1
+        or not isinstance(trusted[0], str) or not trusted[0]
+    ):
+        raise IngestionError("adapter bridge requires exactly one trusted reviewer identity")
+    status = reviewer_checkpoint.get("status")
+    if status in {"COMPLETED", "ALREADY_COMPLETED"}:
+        review = reviewer_checkpoint.get("review_result")
+        if not isinstance(review, dict):
+            raise IngestionError("completed reviewer checkpoint has no structured review result")
+        evidence = reviewer_checkpoint.get("execution_evidence")
+        if not isinstance(evidence, dict) or evidence.get("effective_status") != "EFFECTIVE_CONFIRMED":
+            raise IngestionError("completed reviewer checkpoint lacks confirmed model identity")
+        event_status = "REVIEW_SUBMITTED"
+    elif status == "FAILED_CLOSED":
+        review = None
+        event_status = {
+            "timeout": "TIMEOUT",
+            "quota_exhausted": "QUOTA_EXHAUSTED",
+            "provider_authentication_failure": "PROVIDER_FAILURE",
+            "schema_provider_interface_admission_failure": "PROVIDER_FAILURE",
+        }.get(str(reviewer_checkpoint.get("reason")), "CRASHED")
+    else:
+        raise IngestionError("reviewer checkpoint is not terminal")
+    event: dict[str, Any] = {
+        "event_id": f"claude-reviewer-{identity_key}",
+        "status": event_status,
+        "repository": work_order["repository"],
+        "issue": work_order["issue"],
+        "pull_request": work_order["pull_request"],
+        "program_id": work_order["program_id"],
+        "goal_id": work_order["goal_id"],
+        "candidate_commit": work_order["candidate_commit"],
+        "candidate_fingerprint": work_order["candidate_fingerprint"],
+        "review_round": round_number,
+        "cumulative_round_limit": work_order["review_round_limit"],
+        "reviewer_identity": trusted[0],
+        "review_scope": work_order["review_scope"],
+    }
+    if review is not None:
+        event["review"] = review
+    return event
+
+
 def ingest(*, event: dict[str, Any], config: dict[str, Any], schema: dict[str, Any], checkpoint_path: Path) -> dict[str, Any]:
     required = {
         "event_id", "status", "repository", "issue", "pull_request", "program_id",
@@ -188,7 +301,8 @@ def ingest(*, event: dict[str, Any], config: dict[str, Any], schema: dict[str, A
         raise IngestionError("event ID was reused with different bytes")
     if isinstance(previous.get("review_round"), int) and event["review_round"] < previous["review_round"]:
         raise IngestionError("review round regressed across resume")
-    if event["review_scope"] != "KGNOTE_PRODUCT_CONTRACT":
+    authorized_scope = _configured_product_contract_scope(config)
+    if event["review_scope"] != authorized_scope:
         checkpoint = {
             "schema_version": "kgnote.claude-review-ingestion.v1",
             "status": "CODE_REVIEW_ONLY",
@@ -271,7 +385,10 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--event", type=Path, required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--event", type=Path)
+    source.add_argument("--reviewer-checkpoint", type=Path)
+    parser.add_argument("--work-order", type=Path)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--schema", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -279,8 +396,21 @@ def main() -> int:
     parser.add_argument("--cwd", type=Path)
     args = parser.parse_args()
     try:
+        config = _read_json(args.config)
+        if args.event is not None:
+            if args.work_order is not None:
+                raise IngestionError("--work-order is valid only with --reviewer-checkpoint")
+            event = _read_json(args.event)
+        else:
+            if args.work_order is None:
+                raise IngestionError("--reviewer-checkpoint requires --work-order")
+            event = event_from_adapter_checkpoint(
+                reviewer_checkpoint=_read_json(args.reviewer_checkpoint),
+                work_order=_read_json(args.work_order),
+                config=config,
+            )
         values = {
-            "event": _read_json(args.event), "config": _read_json(args.config),
+            "event": event, "config": config,
             "schema": _read_json(args.schema), "checkpoint_path": args.checkpoint,
         }
         result = (publish_validated_review(

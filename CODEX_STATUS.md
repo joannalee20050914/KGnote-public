@@ -6,7 +6,7 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-26T11:52:34+08:00",
+  "updated_at": "2026-10-26T13:16:00+08:00",
   "goal_id": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
   "active_goal": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -21,34 +21,25 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/o2-s0-s2-launch-package-20261023",
-    "head": "d59bc370d13c31752bca4d1a9f4b2a65b98a309d",
+    "head": "10150cac44c3e94c55513a0c3e5cb21d4167e6ac",
     "base_commit": "de5c8c01c86ffc87896dca1337817892bfb5eff6",
-    "checkpoint_commit": "d59bc370d13c31752bca4d1a9f4b2a65b98a309d",
+    "checkpoint_commit": "10150cac44c3e94c55513a0c3e5cb21d4167e6ac",
     "draft_pull_request": 33
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "98d71a1ed2815f9ee47013793ea1caf2ed35ad7eecffee9703fc481c31a6686f",
+    "fingerprint": "28a0871e3328d0c267c32892886c4a81449745b103489f849f04c065deeabe3a",
     "starting_fingerprint": "faf5469acca25dfec4e77b86c4faa0caf1575d710d41d267afb25d927a441126",
     "expected_dirty_policy": "Only O2 S0–S2 launch-package contracts, minimum dispatch/result/deployment wiring, necessary tests/evidence, PLAN/STATUS and review/publication receipts may change. PR #32, PR #29 history, main, Legacy assets and the deployed Runner remain untouched.",
     "preserved_preexisting_dirty_paths": [],
     "unexpected_dirty_paths": []
   },
-  "readiness_outcome": "BLOCKED_WITH_SPECIFIC_GAPS",
+  "readiness_outcome": "REVIEW_SCOPE_REPAIR_VERIFIED_PENDING_CHECKPOINT_COMMIT",
   "engineering_blockers": [
     {
-      "type": "SCHEMA_PROVIDER_INTERFACE_ADMISSION_FAILURE",
-      "review_id": "review-o2-s0-s2-launch-package-20261023-003",
-      "evidence": {
-        "outcome": "output/control-plane/o2-pr33-external-review-review-003/run-outcome-20261026.json",
-        "outcome_sha256": "e4c34be187de1692f3062960ae91998cfb3ee5744d36d361a59357ff9d3f55ef",
-        "route_checkpoint": "output/control-plane/o2-pr33-external-review-review-003/route-checkpoint-r1.json",
-        "route_checkpoint_sha256": "df97f083afd66e1b9d88b74293f95f28f298e16d1fe1e622abac97dc81fcff48",
-        "reviewer_checkpoint": "output/control-plane/o2-pr33-external-review-review-003/reviewer-checkpoint-r1.json",
-        "reviewer_checkpoint_sha256": "ac30ff5e93abef0cb77cf59c5e9f6cf03d4f30ea18289fd7cf5c09a2a20754a6",
-        "trigger_url": "https://github.com/joannalee20050914/KGnote-public/pull/33#issuecomment-6405914007"
-      },
-      "repair_review_id": "review-o2-s0-s2-launch-package-20261023-004"
+      "type": "REVIEW_SCOPE_INGESTION_CONTRACT_MISMATCH",
+      "status": "FIXED_VERIFIED_PENDING_REVIEW",
+      "evidence": "output/control-plane/o2-pr33-review-004-full-contact/isolated-matrix.json"
     }
   ],
   "implementation_state": "IMPLEMENTING",
@@ -61,52 +52,40 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
     "human_decision_blockers": []
   },
   "external_review_runtime": {
-    "status": "REVIEW_ATTEMPT_FAILED_REPAIRING",
+    "status": "REPAIR_VERIFIED_PENDING_RESEAL",
     "program_id": "program-kgnote-o2-s0-s2-pr33-review-20261023",
-    "config_path": "output/control-plane/o2-pr33-external-review-review-003/config.json",
-    "state_path": "output/control-plane/o2-pr33-external-review-review-003/state.json",
+    "config_path": "output/control-plane/o2-pr33-external-review-review-004/config.json",
+    "state_path": "output/control-plane/o2-pr33-external-review-review-004/state.json",
     "orchestrator_binding_persisted": true,
     "review_round": 1,
     "review_rounds_consumed": 0,
     "max_review_cycles": 5,
-    "sealed_request_sha256": "f5435b6a21260531cba180e6ebf18f77cacba53c7276fcba06317f785999363f",
-    "ubuntu_checkout": "/home/kgnote/.local/share/kgnote/o2-pr33-review-d59bc37",
-    "ubuntu_runtime": "/home/kgnote/.local/share/kgnote/o2-pr33-review-runtime-003",
-    "route_order": "output/control-plane/o2-pr33-external-review-review-003/route-order-r1.json",
-    "trigger_artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/33#issuecomment-6405914007",
-    "route_checkpoint": "output/control-plane/o2-pr33-external-review-review-003/route-checkpoint-r1.json",
-    "reviewer_checkpoint": "output/control-plane/o2-pr33-external-review-review-003/reviewer-checkpoint-r1.json",
+    "sealed_request_sha256": "3551d0ad5426fea52602792f0415ee5af51379c0708697dd7253cd821cf7a26f",
+    "ubuntu_checkout": "/home/kgnote/.local/share/kgnote/o2-pr33-review-10150ca",
+    "ubuntu_runtime": "/home/kgnote/.local/share/kgnote/o2-pr33-review-runtime-004",
+    "route_order": "output/control-plane/o2-pr33-external-review-review-004/route-order-r1.json",
+    "trigger_artifact_url": "https://github.com/joannalee20050914/KGnote-public/pull/33#issuecomment-6407864603",
+    "route_checkpoint": null,
+    "reviewer_checkpoint": null,
     "consumer_receipt": null,
     "runtime_validation": {
       "status": "PASS",
-      "tests_run": 102,
-      "test_modules": [
-        "tests.control_plane.test_claude_reviewer_adapter",
-        "tests.control_plane.test_claude_review_ingestion",
-        "tests.test_github_product_review_consumer",
-        "tests.control_plane.test_linux_worker_routing",
-        "tests.control_plane.test_goal_runner_adapter"
-      ],
-      "proved_boundaries": [
-        "O2 Saturday and Sunday launches are rejected",
-        "O2 launch window ends exclusively at 18:00 Asia/Taipei",
-        "UTC is converted to Asia/Taipei before the launch decision",
-        "start, resume, and each loop step apply the launch guard",
-        "the independently authorized Legacy Issue #8 18:30 canary remains isolated",
-        "wrong PR or candidate identity fails closed",
-        "a running or completed route cannot be blindly redispatched",
-        "restart recovery preserves checkpoint identity and accounting"
-      ],
-      "exact_candidate_verifier": "output/control-plane/verification-20261025T145933+0800.json",
-      "candidate_fingerprint_after_validation": "b2154c774ccbdea52506ed229d9d671d7c7b11c560d9211162122c1a2b75b506",
-      "adapter_sha256": "577a6799d3d4a54b752e9a68f62ac00cc2d54221b1d32c58c6e35886345d402d",
+      "targeted_tests": 166,
+      "control_plane_tests": 376,
+      "python_product_tests": 348,
+      "node_tests": 60,
+      "exact_candidate_verifier": "output/control-plane/verification-20261026T131403+0800.json",
+      "candidate_fingerprint_after_validation": "28a0871e3328d0c267c32892886c4a81449745b103489f849f04c065deeabe3a",
+      "adapter_sha256": "28c07ad2304f35edca4a18e9912a2a99b057d21ca83d62e7561bda642d30b4a5",
       "formal_consumer_schema_sha256": "f0b977274a82b291bea0d0aa0b447d2425155cad413da035457ba516abe898b5",
-      "json_schema_all_of_readback": true,
+      "claude_facing_schema_sha256": "e1ebb0769afca14fcb657aec7a4a8011d82b8666ade52b814723aca17d3943e1",
+      "projection_version": "kgnote.claude-facing-review-schema.v1",
+      "schema_admission": "PASS",
       "ubuntu_actual_layout_validation": "PASS"
     },
     "wakeup": {
       "automation_id": "kgnote-pr-33-ubuntu-claude",
-      "status": "PAUSED_AFTER_PROVIDER_ADMISSION_FAILURE",
+      "status": "PAUSED",
       "target_thread_native_cwd": "/Users/joanna/KGnote-public-rewrite-20261005",
       "database_cwds": [],
       "effective_worktree": "/Users/joanna/Library/Application Support/KGnote/worktrees/o2-s0-s2-launch-package-20261023",
@@ -115,9 +94,9 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
         "2026-10-26T09:00:00+08:00",
         "2026-10-27T09:00:00+08:00"
       ],
-      "scheduler_next_run_at": "2026-10-26T09:00:00+08:00",
+      "scheduler_next_run_at": "2026-10-27T09:00:00+08:00",
       "scheduler_run_count": 1,
-      "probe_status": "LIVE_WAKEUP_FAILED_CLOSED_AND_RECONCILED",
+      "probe_status": "PAUSED_AFTER_REVIEW_004_INVALIDATION",
       "mac_readiness": {
         "current_ac_power": true,
         "battery_percent": 100,
@@ -136,17 +115,18 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
           "keep the network and kgnote-ubuntu SSH route available"
         ]
       },
-      "purpose": "Bounded same-task resume only; no Product Goal authority and no Legacy LaunchAgent mutation."
+      "purpose": "Bounded same-task resume only; no Product Goal authority and no Legacy LaunchAgent mutation.",
+      "review_id": "review-o2-s0-s2-launch-package-20261023-004",
+      "candidate_commit": "10150cac44c3e94c55513a0c3e5cb21d4167e6ac",
+      "candidate_fingerprint": "60d359404844e3f7c9c88046d4e64b2094e8fb36616a4060d7788c66f155e308"
     },
     "prelaunch_rehearsal": {
       "status": "PASS_NO_MODEL",
-      "receipt": "output/control-plane/o2-pr33-external-review-review-003/deployment-and-preflight-receipt.json",
-      "previous_receipt": "output/control-plane/o2-pr33-prelaunch-rehearsal/prelaunch-rehearsal-receipt-20261023.json",
-      "mac_to_ubuntu_no_model_route": "COMPLETED",
-      "duplicate_route": "ALREADY_COMPLETED",
-      "consumer_wrong_identity": "REJECTED",
-      "formal_github_writes": 0,
-      "formal_claude_model_invocations": 1
+      "receipt": "output/control-plane/o2-pr33-external-review-review-004/deployment-and-rearm-receipt.json",
+      "formal_github_writes": 1,
+      "formal_claude_model_invocations": 0,
+      "new_trigger_created_once": true,
+      "old_trigger_preserved": true
     },
     "manual_relay_count": 0,
     "model_launch_attempts_consumed": 2,
@@ -201,7 +181,8 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
       "valid_review_rounds_consumed": 0,
       "formal_trigger_created": false,
       "product_review_recorded": false
-    }
+    },
+    "expected_route_checkpoint": "output/control-plane/o2-pr33-external-review-review-004/route-checkpoint-r1.json"
   },
   "deployment_readback": {
     "main_head": "7bb0ffb4be6d5eb19398f249f45fa8e32a083131",
@@ -211,21 +192,29 @@ This factual handoff describes the O2 S0–S2 launch-preparation Codex App Goal.
     "runner_completed_runs": 605,
     "product_goal_go_live": false,
     "model_launches_during_goal": 2,
-    "ubuntu_adapter_before_sha256": "fca032acabcade15cc064c9113c0ebde379fc5d4a328bc138806aaf7ac167e1d",
-    "ubuntu_adapter_after_sha256": "577a6799d3d4a54b752e9a68f62ac00cc2d54221b1d32c58c6e35886345d402d",
+    "ubuntu_adapter_before_sha256": "577a6799d3d4a54b752e9a68f62ac00cc2d54221b1d32c58c6e35886345d402d",
+    "ubuntu_adapter_after_sha256": "28c07ad2304f35edca4a18e9912a2a99b057d21ca83d62e7561bda642d30b4a5",
     "formal_consumer_schema_sha256": "f0b977274a82b291bea0d0aa0b447d2425155cad413da035457ba516abe898b5",
-    "rollback_directory": "/home/kgnote/.local/share/kgnote/runtime-backups/o2-schema-fix-d59bc37",
-    "deployment_receipt": "output/control-plane/o2-pr33-external-review-review-003/deployment-and-preflight-receipt.json"
+    "rollback_directory": "/home/kgnote/.local/share/kgnote/runtime-backups/o2-schema-projection-10150ca",
+    "deployment_receipt": "output/control-plane/o2-pr33-external-review-review-004/deployment-and-rearm-receipt.json",
+    "claude_facing_schema_sha256": "e1ebb0769afca14fcb657aec7a4a8011d82b8666ade52b814723aca17d3943e1",
+    "schema_projection_version": "kgnote.claude-facing-review-schema.v1",
+    "ubuntu_checkout": "/home/kgnote/.local/share/kgnote/o2-pr33-review-10150ca",
+    "ubuntu_runtime": "/home/kgnote/.local/share/kgnote/o2-pr33-review-runtime-004",
+    "formal_review_processes_at_readback": 0,
+    "ubuntu_exact_candidate_fingerprint": "60d359404844e3f7c9c88046d4e64b2094e8fb36616a4060d7788c66f155e308",
+    "ubuntu_mode_entries_normalized": 493,
+    "ubuntu_review_request_sha256": "3551d0ad5426fea52602792f0415ee5af51379c0708697dd7253cd821cf7a26f"
   },
   "verification": {
-    "candidate_verified": false,
+    "candidate_verified": true,
     "release_verified": false,
-    "control_plane_ready": false,
-    "last_candidate_evidence": "output/control-plane/verification-20261025T145933+0800.json",
-    "last_verified_fingerprint": "b2154c774ccbdea52506ed229d9d671d7c7b11c560d9211162122c1a2b75b506",
-    "last_result": "Consumer Schema negative coverage moved into the active milestone owned path; candidate awaits deterministic verification."
+    "control_plane_ready": true,
+    "last_candidate_evidence": "output/control-plane/verification-20261026T131403+0800.json",
+    "last_verified_fingerprint": "28a0871e3328d0c267c32892886c4a81449745b103489f849f04c065deeabe3a",
+    "last_result": "PASS: Review 004 was invalidated before reviewer custody; the exact descriptive review_scope binding and adapter checkpoint-to-ingestion bridge were repaired. Full verification passed (control-plane 380, Python 348, Node 60), fingerprint stayed stable, public safety scan passed, and isolated full-contact verdict/rejection/idempotency paths passed."
   },
-  "next_action": "Run deterministic validation; on success create the next fingerprint-bound review request.",
+  "next_action": "Create the path-explicit checkpoint commit, rerun identity-bound verification, and issue review-o2-s0-s2-launch-package-20261023-005.",
   "external_or_human_gates": [
     {
       "id": "B-SCHEME-GO-LIVE",
@@ -267,5 +256,5 @@ Goal `CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023` remains active at milesto
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Run deterministic validation; on success create the next fingerprint-bound review request.
+Exact next action: Create the path-explicit checkpoint commit, rerun identity-bound verification, and issue review-o2-s0-s2-launch-package-20261023-005.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

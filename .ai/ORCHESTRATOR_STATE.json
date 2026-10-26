@@ -13,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-o2-s0-s2-launch-package-20261023-004.",
+  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-o2-s0-s2-launch-package-20261023-005.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -28,7 +28,7 @@
   },
   "last_agent_run": null,
   "created_at": "2026-10-23T17:46:10+08:00",
-  "updated_at": "2026-10-26T11:50:17+08:00",
+  "updated_at": "2026-10-26T13:08:55+08:00",
   "last_external_review_attempt": {
     "incident_id": "review-o2-s0-s2-launch-package-20261023-003:schema-provider-interface-admission-failure",
     "classification": "SCHEMA_PROVIDER_INTERFACE_ADMISSION_FAILURE",
