@@ -7,12 +7,12 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 {
   "schema_version": "kgnote.review-request.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "review_id": "review-o2-s0-s2-launch-package-20261023-005",
+  "review_id": "review-o2-s0-s2-launch-package-20261023-006",
   "goal_id": "CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
-  "milestone_id": "S02-VERIFY-REVIEW-DRAFT-PR",
+  "milestone_id": "S3-TRIAL-SCHEDULE-ADMISSION",
   "status": "IMPLEMENTING",
   "author_role": "CODEX_IMPLEMENTER",
-  "base_revision": "de5c8c01c86ffc87896dca1337817892bfb5eff6",
+  "base_revision": "204a3ef951c441dbdafb1e31bf14297820bc0577",
   "candidate_revision": null,
   "candidate_fingerprint": null,
   "authoritative_specs": [
@@ -31,9 +31,9 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     "AGENTS.md"
   ],
   "changed_areas": [
-    "Claude-facing Schema projection with exact formal/facing digest admission",
-    "Formal Consumer Schema post-generation validation and negative regression coverage",
-    "Review 003 failure accounting and one-shot Ubuntu compatibility evidence reconciliation"
+    "Immutable O2 proposed_start and goal_hard_stop admission in goal_runner_adapter.next_action",
+    "Dynamic order creation and final dispatch reservation schedule rechecks",
+    "Boundary, restart and post-cutoff evidence-reconciliation regressions"
   ],
   "acceptance_criteria": [
     "requirements guard、targeted/integration/full tests、public safety scan、git diff --check 與 exact-candidate verifier 通過",
@@ -3124,6 +3124,6 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 
 ## Human-readable status
 
-Review `review-o2-s0-s2-launch-package-20261023-005` is `IMPLEMENTING`.
+Review `review-o2-s0-s2-launch-package-20261023-006` is `IMPLEMENTING`.
 It has no active candidate binding and cannot be interpreted as a review request or PASS.
 Codex must complete deterministic verification before issuing this request.

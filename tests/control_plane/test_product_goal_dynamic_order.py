@@ -15,7 +15,7 @@ import goal_continuity as GOAL
 import goal_runner_adapter as ADAPTER
 import local_autonomy_runner as RUNNER
 from tests.control_plane.test_github_product_goal_control import comment
-NOW = "2026-10-23T10:00:00+08:00"
+NOW = "2026-10-28T10:00:00+08:00"
 
 
 class ProductGoalDynamicOrderTest(unittest.TestCase):

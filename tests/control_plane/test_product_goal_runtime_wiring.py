@@ -21,7 +21,7 @@ from product_goal_worker_result import adapt_worker_result
 from tests.control_plane.test_github_product_goal_control import comment
 
 
-NOW=datetime(2026,10,23,10,0,tzinfo=ZoneInfo("Asia/Taipei"))
+NOW=datetime(2026,10,28,10,0,tzinfo=ZoneInfo("Asia/Taipei"))
 
 
 class Process:
@@ -110,6 +110,87 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
             )
             self.assertEqual("publisher",successor[2]["stage"])
             self.assertNotEqual(order["event_id"],successor[2]["event_id"])
+
+    def test_o2_trial_schedule_boundaries_gate_planning_from_runner_clock(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo=Path(directory)
+            spec,state,authority,_state_path,ledger_path=self.setup_goal(repo)
+            ledger=GOAL.read_ledger(ledger_path)
+            cases=(
+                (datetime(2026,10,27,10,0,tzinfo=ZoneInfo("Asia/Taipei")),"WAIT_TRIAL_START"),
+                (datetime(2026,10,28,9,0,tzinfo=ZoneInfo("Asia/Taipei")),"ACTION_READY"),
+                (datetime(2026,11,10,17,59,59,tzinfo=ZoneInfo("Asia/Taipei")),"ACTION_READY"),
+                (datetime(2026,11,10,18,0,tzinfo=ZoneInfo("Asia/Taipei")),"GOAL_HARD_STOP"),
+                (datetime(2026,11,11,10,0,tzinfo=ZoneInfo("Asia/Taipei")),"GOAL_HARD_STOP"),
+            )
+            for observed,expected in cases:
+                with self.subTest(observed=observed.isoformat()):
+                    decision=ADAPTER.next_action(
+                        spec,state,ledger,authority,now=observed,trial=False,
+                    )
+                    self.assertEqual(expected,decision["status"])
+
+            restarted=json.loads(json.dumps(state))
+            reset_window=datetime(2026,11,11,9,0,tzinfo=ZoneInfo("Asia/Taipei"))
+            self.assertEqual(
+                "GOAL_HARD_STOP",
+                ADAPTER.next_action(
+                    spec,restarted,ledger,authority,now=reset_window,trial=False,
+                )["status"],
+            )
+
+    def test_o2_dynamic_order_and_reservation_recheck_schedule_boundaries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo=Path(directory)
+            spec,state,authority,state_path,ledger_path=self.setup_goal(repo)
+            start=datetime(2026,10,28,9,0,tzinfo=ZoneInfo("Asia/Taipei"))
+            before=datetime(2026,10,27,10,0,tzinfo=ZoneInfo("Asia/Taipei"))
+            hard_stop=datetime(2026,11,10,18,0,tzinfo=ZoneInfo("Asia/Taipei"))
+            action=ADAPTER.next_action(
+                spec,state,GOAL.read_ledger(ledger_path),authority,
+                now=start,trial=False,
+            )
+            with self.assertRaisesRegex(ADAPTER.GoalRunnerError,"WAIT_TRIAL_START"):
+                ADAPTER.ensure_bound_order(
+                    spec,state,action,repo=repo,state_path=state_path,
+                    occurred_at=before.isoformat(),
+                )
+            bound,_,_,_=ADAPTER.ensure_bound_order(
+                spec,state,action,repo=repo,state_path=state_path,
+                occurred_at=start.isoformat(),
+            )
+            with self.assertRaisesRegex(ADAPTER.GoalRunnerError,"GOAL_HARD_STOP"):
+                ADAPTER.reserve_dispatch(
+                    spec,bound,action,state_path=state_path,ledger_path=ledger_path,
+                    repo=repo,occurred_at=hard_stop.isoformat(),
+                )
+
+    def test_o2_hard_stop_allows_existing_dispatch_evidence_reconciliation_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo=Path(directory)
+            spec,state,authority,state_path,ledger_path=self.setup_goal(repo)
+            before_stop=datetime(2026,11,10,17,59,tzinfo=ZoneInfo("Asia/Taipei"))
+            hard_stop=datetime(2026,11,10,18,0,tzinfo=ZoneInfo("Asia/Taipei"))
+            action=ADAPTER.next_action(
+                spec,state,GOAL.read_ledger(ledger_path),authority,
+                now=before_stop,trial=False,
+            )
+            bound,_,_,attempt=ADAPTER.ensure_bound_order(
+                spec,state,action,repo=repo,state_path=state_path,
+                occurred_at=before_stop.isoformat(),
+            )
+            reserved,_,reserved_attempt=ADAPTER.reserve_dispatch(
+                spec,bound,action,state_path=state_path,ledger_path=ledger_path,
+                repo=repo,occurred_at=before_stop.isoformat(),
+            )
+            self.assertEqual(attempt,reserved_attempt)
+            decision=ADAPTER.next_action(
+                spec,reserved,GOAL.read_ledger(ledger_path),authority,
+                now=hard_stop,trial=False,
+            )
+            self.assertEqual("RECOVERY_READY",decision["status"])
+            self.assertEqual("RECONCILE_CHECKPOINT",decision["action"])
+            self.assertEqual(attempt,decision["attempt_id"])
 
 
 if __name__=="__main__": unittest.main()
