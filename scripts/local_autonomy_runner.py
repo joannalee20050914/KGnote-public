@@ -2317,6 +2317,83 @@ def hold_writer_lock(repo: Path, command: list[str], identity: dict[str, object]
         return completed.returncode
 
 
+def ensure_product_goal_pull_request(
+    repo: Path, spec: dict[str, object], state: dict[str, object], *,
+    state_path: Path, ledger_path: Path, occurred_at: str,
+    command_runner=subprocess.run,
+) -> dict[str, object]:
+    """Create/read back the first O2 Draft PR with the Mac's existing gh identity."""
+    candidate = state.get("candidate_identity")
+    if not isinstance(candidate, dict) or candidate.get("pull_request") is not None:
+        return state
+    repository = str(spec["repository"])
+    branch = str(candidate.get("branch") or "")
+    head = str(candidate.get("commit") or "")
+    query = command_runner(
+        [
+            "/opt/homebrew/bin/gh", "pr", "list", "--repo", repository,
+            "--head", branch, "--state", "open", "--json",
+            "number,headRefOid,headRefName,state,isDraft,url",
+        ],
+        cwd=repo, capture_output=True, text=True, timeout=30, check=False,
+    )
+    if query.returncode:
+        raise goal_runner_adapter.GoalRunnerError("GitHub candidate PR lookup failed")
+    try:
+        rows = json.loads(query.stdout)
+    except json.JSONDecodeError as exc:
+        raise goal_runner_adapter.GoalRunnerError("GitHub candidate PR lookup is not JSON") from exc
+    if not isinstance(rows, list):
+        raise goal_runner_adapter.GoalRunnerError("GitHub candidate PR lookup is not a list")
+    if len(rows) > 1:
+        raise goal_runner_adapter.GoalRunnerError("GitHub candidate PR lookup is ambiguous")
+    if not rows:
+        body = (
+            "## 目的\n\n"
+            "承載 O2 有界試行的產品候選；此 Draft PR 不代表 Owner 驗收或合併授權。\n\n"
+            "## 邊界\n\n"
+            "候選仍須通過 deterministic verification、Ubuntu Claude 獨立審查與最終人工驗收。"
+        )
+        created = command_runner(
+            [
+                "/opt/homebrew/bin/gh", "pr", "create", "--repo", repository,
+                "--head", branch, "--base", "main", "--draft",
+                "--title", "[O2] Obsidian-first 閱讀與原句便利貼",
+                "--body", body,
+            ],
+            cwd=repo, capture_output=True, text=True, timeout=30, check=False,
+        )
+        if created.returncode:
+            raise goal_runner_adapter.GoalRunnerError("GitHub Draft PR creation failed")
+    readback = command_runner(
+        [
+            "/opt/homebrew/bin/gh", "pr", "view", branch, "--repo", repository,
+            "--json", "number,headRefOid,headRefName,state,isDraft,url",
+        ],
+        cwd=repo, capture_output=True, text=True, timeout=30, check=False,
+    )
+    if readback.returncode:
+        raise goal_runner_adapter.GoalRunnerError("GitHub candidate PR read-back failed")
+    try:
+        observed = json.loads(readback.stdout)
+    except json.JSONDecodeError as exc:
+        raise goal_runner_adapter.GoalRunnerError("GitHub candidate PR read-back is not JSON") from exc
+    if (
+        not isinstance(observed, dict)
+        or observed.get("headRefOid") != head
+        or observed.get("headRefName") != branch
+        or observed.get("state") != "OPEN"
+        or observed.get("isDraft") is not True
+        or not isinstance(observed.get("url"), str)
+    ):
+        raise goal_runner_adapter.GoalRunnerError("GitHub candidate PR read-back differs from the exact candidate")
+    return goal_runner_adapter.bind_candidate_pull_request(
+        spec, state, state_path=state_path, ledger_path=ledger_path,
+        pull_request=int(observed["number"]), head=head, branch=branch,
+        artifact_url=observed["url"], occurred_at=occurred_at,
+    )
+
+
 def run_product_goal_mode(
     repo: Path,
     *,
@@ -2488,9 +2565,29 @@ def run_product_goal_mode(
         if decision.get("status") != "ACTION_READY":
             append("product_goal_scheduler_decision", decision=decision)
             return decision
+        if (
+            not trial
+            and decision.get("action") == "DISPATCH_REVIEW"
+            and isinstance(state.get("candidate_identity"), dict)
+            and state["candidate_identity"].get("pull_request") is None
+        ):
+            try:
+                state = ensure_product_goal_pull_request(
+                    repo, spec, state, state_path=state_path,
+                    ledger_path=ledger_path,
+                    occurred_at=(current or datetime.now(ZONE)).isoformat(timespec="seconds"),
+                    command_runner=command_runner,
+                )
+            except goal_runner_adapter.GoalRunnerError as exc:
+                append("product_goal_candidate_pr_rejected", reason=str(exc))
+                return {
+                    **decision, "status": "CANDIDATE_PR_REQUIRED",
+                    "requires_model": False, "reason": str(exc),
+                }
         try:
-            order_path, _, _ = goal_runner_adapter.validated_bound_order(
-                spec, state, decision, repo=repo
+            state, order_path, _, _ = goal_runner_adapter.ensure_bound_order(
+                spec, state, decision, repo=repo, state_path=state_path,
+                occurred_at=(current or datetime.now(ZONE)).isoformat(timespec="seconds"),
             )
         except goal_runner_adapter.GoalRunnerError as exc:
             append("product_goal_dispatch_binding_rejected", reason=str(exc))
@@ -2599,6 +2696,7 @@ def main() -> int:
                 "ADMISSION_UNAVAILABLE", "ADMISSION_REJECTED",
                 "ROUTE_FAILED_RECONCILIATION_REQUIRED",
                 "AUTHORITY_COMMAND_REJECTED", "CHECKPOINT_RECONCILIATION_REJECTED",
+                "CANDIDATE_PR_REQUIRED",
             }
             return 0 if result["status"] not in failures else 2
         if args.hold_lock:

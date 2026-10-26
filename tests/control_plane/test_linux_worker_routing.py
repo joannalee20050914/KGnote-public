@@ -11,7 +11,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 from linux_worker_router import (
-    GUEST_HOST, RoutingError, WorkerOrder, bootstrap_command, command_digest, execution_evidence, remote_command, route, sandbox_command,
+    GUEST_HOST, RoutingError, WorkerOrder, bootstrap_command, command_digest,
+    execution_evidence, remote_command, route, sandbox_command,
+    validate_bootstrap_identity,
 )
 
 
@@ -34,6 +36,82 @@ class DeadlineProcess(FakeProcess):
 
 
 class LinuxWorkerRoutingTest(unittest.TestCase):
+    def product_identity(self, **changes):
+        identity = {
+            "schema_version":"kgnote.authorized-product-goal-work-identity.v1",
+            "identity_kind":"KGNOTE_PRODUCT_GOAL", "authority_kind":"GITHUB_OWNER_APPROVAL",
+            "repository":"joannalee20050914/KGnote-public", "issue":9,
+            "goal_id":"GOAL-KGNOTE-O2-READING-EXPERIENCE",
+            "goal_version":"2026-10-23.2-s0-s2-proposal",
+            "goal_spec_sha256":"82716b31f004f108c935169493f2fa918e5144f12419302ba2c9fdcec91b6604",
+            "work_item_id":"WI-O2-A-IMPLEMENT", "provider":"codex", "stage":"codex",
+            "order_event_id":"o2-wi-o2-a-implement-codex-0123456789abcdef",
+            "branch":"codex/o2-reading-experience", "worktree_slug":"goal-o2-reading-experience",
+            "authority_record":"https://github.com/joannalee20050914/KGnote-public/issues/9",
+            "authority_sha256":"c"*64, "authority_status":"APPROVED",
+            "authority_action":"APPROVE", "go_live_authorized":True,
+        }
+        identity.update(changes)
+        return identity
+
+    def test_o2_product_goal_lanes_are_identity_bound(self):
+        cases = [
+            ("WI-O2-A-IMPLEMENT", "codex", "codex", "o2-wi-o2-a-implement-codex-0123456789abcdef"),
+            ("WI-O2-A-VERIFY", "publisher", "NONE", "o2-wi-o2-a-verify-publisher-0123456789abcdef"),
+            ("WI-O2-A-PUBLISH", "push", "NONE", "o2-wi-o2-a-publish-push-0123456789abcdef"),
+            ("WI-O2-A-REVIEW", "claude", "claude", "o2-wi-o2-a-review-claude-0123456789abcdef"),
+            ("WI-O2-B-REPAIR", "codex", "codex", "o2-wi-o2-b-repair-codex-0123456789abcdef"),
+        ]
+        directory = Path("/home/kgnote/.local/share/kgnote/work-items/goal-o2-reading-experience")
+        for work_item, stage, provider, event in cases:
+            with self.subTest(work_item=work_item):
+                identity = self.product_identity(
+                    work_item_id=work_item, stage=stage, provider=provider,
+                    order_event_id=event,
+                )
+                validate_bootstrap_identity(
+                    identity, event_id=event, stage=stage,
+                    working_directory=directory,
+                )
+
+    def test_o2_product_goal_handoff_is_fixed_and_writable_in_sandbox(self):
+        event = "o2-wi-o2-a-implement-codex-0123456789abcdef"
+        directory = Path("/home/kgnote/.local/share/kgnote/work-items/goal-o2-reading-experience")
+        handoff = Path("/home/kgnote/.local/share/kgnote/runtime-state/product-goal")
+        raw = {
+            "schema_version": "kgnote.linux-worker-order.v1", "event_id": event,
+            "stage": "codex", "working_directory": str(directory),
+            "handoff_directory": str(handoff), "command": ["/usr/bin/true"],
+            "checkpoint_path": "/tmp/checkpoint.json", "bootstrap_working_directory": True,
+            "bootstrap_identity": self.product_identity(),
+        }
+        order = WorkerOrder.from_dict(raw)
+        command = sandbox_command(order)
+        self.assertIn(str(handoff), command)
+        raw["handoff_directory"] = "/home/kgnote/.local/share/kgnote/runtime-state/foreign"
+        with self.assertRaisesRegex(RoutingError, "handoff_directory"):
+            WorkerOrder.from_dict(raw)
+
+    def test_o2_product_goal_identity_rejects_cross_goal_stage_digest_event_and_path(self):
+        event = "o2-wi-o2-a-implement-codex-0123456789abcdef"
+        directory = Path("/home/kgnote/.local/share/kgnote/work-items/goal-o2-reading-experience")
+        cases = [
+            (self.product_identity(goal_id="GOAL-KGNOTE-FOREIGN"), directory),
+            (self.product_identity(stage="claude"), directory),
+            (self.product_identity(goal_spec_sha256="0"*64), directory),
+            (self.product_identity(order_event_id="o2-wi-o2-a-implement-codex-fedcba9876543210"), directory),
+            (self.product_identity(go_live_authorized=False), directory),
+            (self.product_identity(work_item_id="WI-O2-C-IMPLEMENT"), directory),
+            (self.product_identity(branch="codex/other-o2-branch"), directory),
+            (self.product_identity(), Path("/home/kgnote/.local/share/kgnote/escape")),
+        ]
+        for identity, path in cases:
+            with self.subTest(identity=identity, path=path), self.assertRaises(RoutingError):
+                validate_bootstrap_identity(
+                    identity, event_id=event, stage="codex",
+                    working_directory=path,
+                )
+
     def generic_identity(self):
         return {
             "schema_version":"kgnote.authorized-work-identity.v1",

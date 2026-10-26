@@ -1447,6 +1447,95 @@ class ReviewHelperIntegrationTests(unittest.TestCase):
             self.assertEqual(correction["corrected_actor_role"], "CODEX_IMPLEMENTER")
             self.assertEqual(CONTROL.validate_review_artifacts(root)[0], [])
 
+    def test_external_schema_admission_failure_reconciliation_separates_launch_and_verdict_counts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            evidence = root / "output"
+            evidence.mkdir()
+            old_review = "review-example-003"
+            candidate_commit = "a" * 40
+            candidate_fingerprint = "b" * 64
+            outcome = {
+                "status": "BLOCKED_WITH_SPECIFIC_GAPS",
+                "review_id": old_review,
+                "candidate_commit": candidate_commit,
+                "candidate_fingerprint": candidate_fingerprint,
+                "review_round": 1,
+                "model_invocation_started": True,
+                "model_inference_occurred": False,
+                "actual_models": [],
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "provider_error_status": 400,
+                "provider_error": "tools.8.custom.input_schema rejected allOf",
+                "github_trigger_published": True,
+                "github_result_published": False,
+                "canonical_consumer_accepted": False,
+            }
+            external = {
+                "review_id": old_review,
+                "candidate_commit": candidate_commit,
+                "candidate_fingerprint": candidate_fingerprint,
+                "review_round": 1,
+                "publication": {"trigger_artifact_url": "https://example.test/trigger"},
+                "external_review": None,
+                "delivery_receipt": None,
+            }
+            route = {
+                "status": "FAILED_CLOSED", "exit_code": 2,
+                "execution_evidence": {"actual_models": []},
+            }
+            reviewer = {
+                "status": "FAILED_CLOSED", "exit_code": 1,
+                "candidate_commit": candidate_commit,
+                "candidate_fingerprint": candidate_fingerprint,
+                "product_review_accepted": False,
+                "stdout_tail": '{"api_error_status":400,"result":"input_schema rejected"}',
+            }
+            for name, value in (
+                ("outcome.json", outcome), ("external.json", external),
+                ("route.json", route), ("reviewer.json", reviewer),
+            ):
+                (evidence / name).write_text(json.dumps(value))
+            (root / ".ai/ORCHESTRATION_HISTORY").mkdir(parents=True)
+            (root / ".ai/ORCHESTRATOR_STATE.json").write_text(json.dumps({
+                "run_id": "run-1", "active_goal": "goal", "work_package": "milestone",
+                "state": "IMPLEMENTING", "review_cycle": 0,
+                "candidate_custody": {"status": "NONE"},
+            }))
+            request = {"status": "IMPLEMENTING", "review_id": "review-example-004"}
+            result = {"artifact_state": "EMPTY"}
+            status = {
+                "review": {"state": "IMPLEMENTING"},
+                "external_review_runtime": {"wakeup": {}, "prelaunch_rehearsal": {}},
+                "deployment_readback": {},
+            }
+            captured = {}
+            with mock.patch.object(
+                CONTROL, "load_review_artifacts", return_value=(request, result, {})
+            ), mock.patch.object(
+                CONTROL, "load_plan_status", return_value=({}, status)
+            ), mock.patch.object(
+                CONTROL, "write_status", side_effect=lambda _repo, value: captured.update(copy.deepcopy(value))
+            ):
+                reconciled = CONTROL.reconcile_external_review_attempt_failure(
+                    root,
+                    outcome_value="output/outcome.json",
+                    external_state_value="output/external.json",
+                    route_checkpoint_value="output/route.json",
+                    reviewer_checkpoint_value="output/reviewer.json",
+                )
+            self.assertEqual(1, reconciled["model_launch_attempts_consumed"])
+            self.assertEqual(0, reconciled["valid_review_rounds_consumed"])
+            self.assertEqual("REVIEW_ATTEMPT_FAILED_REPAIRING", captured["external_review_runtime"]["status"])
+            self.assertEqual(1, captured["deployment_readback"]["model_launches_during_goal"])
+            written_external = json.loads((evidence / "external.json").read_text())
+            self.assertEqual(1, written_external["model_launch_attempts_consumed"])
+            self.assertEqual(0, written_external["review_rounds_consumed"])
+            self.assertIsNone(written_external["external_review"])
+            history = (root / ".ai/ORCHESTRATION_HISTORY/events.jsonl").read_text()
+            self.assertIn("EXTERNAL_REVIEW_ATTEMPT_RECONCILED", history)
+
 
 if __name__ == "__main__":
     unittest.main()

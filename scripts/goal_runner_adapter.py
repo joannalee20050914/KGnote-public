@@ -13,6 +13,7 @@ import json
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
+import subprocess
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -20,6 +21,7 @@ import github_product_goal_control as github_control
 import goal_continuity
 import goal_notifications
 import linux_worker_router
+import product_goal_worker_identity
 
 
 ZONE = ZoneInfo("Asia/Taipei")
@@ -46,6 +48,7 @@ def _state_patch(state: dict[str, Any]) -> dict[str, Any]:
         for key in (
             "milestone_id", "lifecycle", "authority_lease", "authority_record",
             "work_items", "obligations", "go_live_authorized", "dependency_receipts",
+            "candidate_identity",
         )
         if key in state
     } | {
@@ -67,6 +70,7 @@ def synchronize_state_from_ledger(
         "milestone_id", "lifecycle", "authority_lease", "authority_record",
         "work_items", "obligations", "go_live_authorized",
         "dependency_receipts", "resource_accounting", "runtime_block",
+        "candidate_identity",
     }
     for event in rows[start:]:
         patch = event["payload"].get("state_patch")
@@ -827,7 +831,10 @@ def validated_bound_order(
         raise GoalRunnerError(f"sealed order is not a valid Linux worker order: {exc}") from exc
     expected_stage = {
         "DISPATCH_IMPLEMENTATION": "codex", "DISPATCH_REPAIR": "codex",
-        "DISPATCH_REVIEW": "claude", "RETRY_PUBLICATION": "publisher",
+        "DISPATCH_REVIEW": "claude",
+        "RETRY_PUBLICATION": (
+            "push" if binding.get("builder") == "RUNNER_DYNAMIC_V1" else "publisher"
+        ),
         "RUN_DETERMINISTIC_VERIFICATION": "publisher",
         "RETRY_COMPLETION_GATE": "publisher",
     }.get(action["action"])
@@ -842,13 +849,283 @@ def validated_bound_order(
         raise GoalRunnerError(
             f"{action['action']} requires model accounting for provider {expected_stage}"
         )
-    if expected_stage == "publisher" and action.get("requires_model") is not False:
+    if expected_stage in {"publisher", "push"} and action.get("requires_model") is not False:
         raise GoalRunnerError(f"{action['action']} is a deterministic publisher action")
     if order.get("event_id") != binding["order_event_id"]:
         raise GoalRunnerError("sealed order event identity differs from the Runner state binding")
     attempt_number = int(work.get("attempts", 0)) + 1
-    attempt_id = f"attempt-{spec['goal_version']}-{action['work_item_id']}-{attempt_number}"
+    attempt_id = str(
+        work.get("active_attempt_id")
+        or f"attempt-{spec['goal_version']}-{action['work_item_id']}-{attempt_number}"
+    )
+    if binding.get("builder") == "RUNNER_DYNAMIC_V1" and (
+        binding.get("attempt_id") != attempt_id or binding.get("action") != action["action"]
+    ):
+        raise GoalRunnerError("dynamic binding is stale for the selected attempt/action")
     return order_path, order, attempt_id
+
+
+def _current_candidate_identity(repo: Path) -> dict[str, Any]:
+    """Read the exact local candidate; order creation never predicts a future SHA."""
+    from codex_control import repository_fingerprint
+
+    fingerprint = repository_fingerprint(repo)
+    branch = subprocess.run(
+        ["/usr/bin/git", "branch", "--show-current"], cwd=repo,
+        text=True, capture_output=True, timeout=10, check=False,
+    )
+    if branch.returncode or not branch.stdout.strip().startswith("codex/"):
+        raise GoalRunnerError("dynamic order requires an exact codex/* candidate branch")
+    return {
+        "commit": fingerprint["head"], "fingerprint": fingerprint["value"],
+        "branch": product_goal_worker_identity.PRODUCT_BRANCH,
+        "pull_request": None,
+    }
+
+
+def _dynamic_lane(action: str) -> tuple[str, str]:
+    mapping = {
+        "DISPATCH_IMPLEMENTATION": ("codex", "codex"),
+        "DISPATCH_REPAIR": ("codex", "codex"),
+        "RUN_DETERMINISTIC_VERIFICATION": ("publisher", "NONE"),
+        "RETRY_PUBLICATION": ("push", "NONE"),
+        "DISPATCH_REVIEW": ("claude", "claude"),
+        "RETRY_COMPLETION_GATE": ("publisher", "NONE"),
+    }
+    try:
+        return mapping[action]
+    except KeyError as exc:
+        raise GoalRunnerError("selected action has no trusted worker profile") from exc
+
+
+def _dynamic_worker_command(
+    spec: dict[str, Any], action: dict[str, Any], candidate: dict[str, Any],
+    *, context: dict[str, Any], evidence_path: Path, result_path: Path,
+    stdout_path: Path, stderr_path: Path,
+) -> list[str]:
+    """Select a fixed executable template; Goal prose never becomes shell."""
+    runtime = Path("/home/kgnote/.local/share/kgnote/runtime")
+    stage, _provider = _dynamic_lane(str(action["action"]))
+    work_item_id = str(action["work_item_id"])
+    nested_command: list[str] | None = None
+    if stage == "codex":
+        prompt = (
+            f"Execute only immutable Product Goal Work Item {work_item_id}. "
+            "Read the sealed Goal spec and authority from the repository. Preserve all gates. "
+            "Implement and deterministically verify the scoped change, then create one successor commit. "
+            "Do not push, merge, or treat final prose/process exit as completion; the trusted lane records evidence."
+        )
+        nested_command = [
+            "/home/kgnote/.local/bin/kgnote-successor-codex",
+            "--goal-id", spec["goal_id"], "--pull-request",
+            str(candidate.get("pull_request") or 0), "--cycle", "1",
+            spec["repository"], candidate["branch"], candidate["commit"], prompt,
+        ]
+        mode = "codex"
+    elif action["action"] in {
+        "RUN_DETERMINISTIC_VERIFICATION", "RETRY_COMPLETION_GATE",
+    }:
+        mode = "verify"
+    elif action["action"] == "RETRY_PUBLICATION":
+        mode = "publish"
+    else:
+        mode = "review"
+    lane_command = [
+        "/usr/bin/python3", str(runtime / "product_goal_worker_lane.py"),
+        "--mode", mode,
+        "--context-json", json.dumps(context, sort_keys=True, separators=(",", ":")),
+        "--evidence", str(evidence_path),
+    ]
+    if nested_command is not None:
+        lane_command.extend(["--command-json", json.dumps(nested_command, separators=(",", ":"))])
+    return [
+        "/usr/bin/python3", str(runtime / "product_goal_worker_result.py"),
+        "--context-json", json.dumps(context, sort_keys=True, separators=(",", ":")),
+        "--evidence", str(evidence_path),
+        "--result", str(result_path), "--stdout", str(stdout_path),
+        "--stderr", str(stderr_path),
+        "--command-json", json.dumps(lane_command, separators=(",", ":")),
+    ]
+
+
+def ensure_bound_order(
+    spec: dict[str, Any], state: dict[str, Any], action: dict[str, Any], *,
+    repo: Path, state_path: Path, occurred_at: str,
+) -> tuple[dict[str, Any], Path, dict[str, Any], str]:
+    """Atomically create/reuse one Runner-owned order for the next exact attempt."""
+    if action.get("status") != "ACTION_READY":
+        raise GoalRunnerError("only an ACTION_READY decision can create an order")
+    if not (
+        spec.get("goal_id") == product_goal_worker_identity.PRODUCT_GOAL_ID
+        and spec.get("goal_version") == product_goal_worker_identity.PRODUCT_GOAL_VERSION
+        and goal_continuity.goal_spec_sha256(spec)
+        == product_goal_worker_identity.PRODUCT_GOAL_SPEC_SHA256
+    ):
+        path, order, attempt_id = validated_bound_order(
+            spec, state, action, repo=repo,
+        )
+        return state, path, order, attempt_id
+    try:
+        occurred = datetime.fromisoformat(occurred_at)
+    except ValueError as exc:
+        raise GoalRunnerError("dynamic order creation time is invalid") from exc
+    if occurred.tzinfo is None or not in_work_window(spec, occurred):
+        raise GoalRunnerError("dynamic order creation is outside the authorized work window")
+    if (repo / ".ai/ORCHESTRATOR_STOP").exists():
+        raise GoalRunnerError("Stop Marker blocks dynamic order creation")
+    durable = goal_continuity.load_json(state_path)
+    goal_continuity.validate_runner_state(durable, spec)
+    if goal_continuity.canonical_json_bytes(durable) != goal_continuity.canonical_json_bytes(state):
+        raise GoalRunnerError("in-memory Runner state is stale before order creation")
+    if (
+        durable["lifecycle"]["state"] != "ACTIVE"
+        or durable["authority_lease"] != "ACTIVE"
+        or durable.get("go_live_authorized") is not True
+        or not isinstance(durable.get("authority_record"), dict)
+    ):
+        raise GoalRunnerError("dynamic order creation requires exact active authority")
+    work = next(
+        row for row in durable["work_items"]
+        if row["work_item_id"] == action["work_item_id"]
+    )
+    by_id = {row["work_item_id"]: row for row in durable["work_items"]}
+    if (
+        work["status"] not in RUNNABLE_WORK
+        or not _dependency_ready(work, by_id)
+        or work.get("active_attempt_id") is not None
+    ):
+        raise GoalRunnerError("dynamic order Work Item is not eligible")
+    work_spec = next(row for row in spec["work_items"] if row["work_item_id"] == work["work_item_id"])
+    live_plan = _work_action(work, work_spec)
+    if action.get("action") != live_plan["action"] or action.get("requires_model") is not live_plan["requires_model"]:
+        raise GoalRunnerError("dynamic order action is stale for the immutable Work Item")
+    if action.get("requires_model"):
+        provider = str(action.get("provider") or work_spec["provider"])
+        total = action.get("total_launches_before")
+        maximum = spec["resource_policy"]["providers"][provider]["fallback"]["max_total_launches"]
+        if not isinstance(total, int) or total < 0 or total >= maximum:
+            raise GoalRunnerError("dynamic order provider launch ceiling is exhausted or unknown")
+    attempt_number = int(work.get("attempts", 0)) + 1
+    attempt_id = f"attempt-{spec['goal_version']}-{action['work_item_id']}-{attempt_number}"
+    binding = work.get("dispatch_binding")
+    if (
+        isinstance(binding, dict) and binding.get("builder") == "RUNNER_DYNAMIC_V1"
+        and binding.get("attempt_id") == attempt_id
+        and binding.get("action") == action["action"]
+    ):
+        path, order, validated_attempt = validated_bound_order(
+            spec, durable, action, repo=repo,
+        )
+        return durable, path, order, validated_attempt
+    if work.get("active_attempt_id") is not None:
+        raise GoalRunnerError("active dispatch cannot be replaced by a new order")
+
+    candidate = deepcopy(durable.get("candidate_identity") or _current_candidate_identity(repo))
+    stage, provider = _dynamic_lane(str(action["action"]))
+    identity_seed = {
+        "goal_id": spec["goal_id"], "goal_version": spec["goal_version"],
+        "goal_spec_sha256": goal_continuity.goal_spec_sha256(spec),
+        "work_item_id": action["work_item_id"], "action": action["action"],
+        "attempt_id": attempt_id, "candidate": candidate,
+        "authority_sha256": durable["authority_record"]["body_sha256"],
+    }
+    event_suffix = hashlib.sha256(goal_continuity.canonical_json_bytes(identity_seed)).hexdigest()[:16]
+    event_id = f"o2-{str(action['work_item_id']).lower()}-{stage}-{event_suffix}"
+    output = repo / "output/control-plane/product-goal"
+    orders = output / "orders"
+    context_path = output / "contexts" / f"{event_id}.json"
+    evidence_path = output / "evidence" / f"{event_id}.json"
+    result_path = output / "results" / f"{event_id}.json"
+    stdout_path = output / "raw" / f"{event_id}.stdout.log"
+    stderr_path = output / "raw" / f"{event_id}.stderr.log"
+    order_path = orders / f"{event_id}.json"
+    for candidate_path in (context_path, evidence_path, result_path, stdout_path, stderr_path, order_path):
+        try:
+            candidate_path.resolve().relative_to(repo.resolve())
+        except ValueError as exc:
+            raise GoalRunnerError("dynamic order path escapes the repository evidence root") from exc
+    context = {
+        "schema_version": "kgnote.product-goal-worker-context.v1",
+        "goal_id": spec["goal_id"], "goal_version": spec["goal_version"],
+        "goal_spec_sha256": goal_continuity.goal_spec_sha256(spec),
+        "work_item_id": action["work_item_id"], "order_event_id": event_id,
+        "attempt_id": attempt_id, "stage": stage, "provider": provider,
+        "action": action["action"], "repository": spec["repository"],
+        "issue": spec["github_issue"],
+        "total_launches_before": action.get("total_launches_before"),
+        "max_total_launches": (
+            spec["resource_policy"]["providers"][provider]["fallback"]["max_total_launches"]
+            if provider in {"codex", "claude"} else None
+        ),
+        "candidate_commit": candidate["commit"],
+        "candidate_fingerprint": candidate["fingerprint"],
+        "branch": candidate["branch"],
+        "pull_request": candidate.get("pull_request"),
+        "obligation_ids": deepcopy(work["obligation_ids"]),
+    }
+    goal_continuity.atomic_write_json(context_path, context)
+    guest_root = Path("/home/kgnote/.local/share/kgnote")
+    guest_output = guest_root / "runtime-state/product-goal"
+    guest_evidence = guest_output / "evidence" / evidence_path.name
+    guest_result = guest_output / "results" / result_path.name
+    guest_stdout = guest_output / "raw" / stdout_path.name
+    guest_stderr = guest_output / "raw" / stderr_path.name
+    command = _dynamic_worker_command(
+        spec, action, candidate, context=context,
+        evidence_path=guest_evidence, result_path=guest_result,
+        stdout_path=guest_stdout, stderr_path=guest_stderr,
+    )
+    bootstrap_identity = {
+        "schema_version": "kgnote.authorized-product-goal-work-identity.v1",
+        "identity_kind": "KGNOTE_PRODUCT_GOAL", "authority_kind": "GITHUB_OWNER_APPROVAL",
+        "repository": spec["repository"], "issue": spec["github_issue"],
+        "goal_id": spec["goal_id"], "goal_version": spec["goal_version"],
+        "goal_spec_sha256": goal_continuity.goal_spec_sha256(spec),
+        "work_item_id": action["work_item_id"], "provider": provider, "stage": stage,
+        "order_event_id": event_id, "branch": candidate["branch"],
+        "worktree_slug": "goal-o2-reading-experience",
+        "authority_record": f"https://github.com/{spec['repository']}/issues/{spec['github_issue']}",
+        "authority_sha256": durable["authority_record"]["body_sha256"],
+        "authority_status": "APPROVED", "authority_action": "APPROVE",
+        "go_live_authorized": True,
+    }
+    order = {
+        "schema_version": "kgnote.linux-worker-order.v1", "event_id": event_id,
+        "stage": stage,
+        "working_directory": str(guest_root / "work-items/goal-o2-reading-experience"),
+        "handoff_directory": str(guest_output),
+        "command": command,
+        "checkpoint_path": str((repo / "output/control-plane/product-goal/checkpoints" / f"{event_id}.json").resolve()),
+        "memory_max": "4G" if stage in {"codex", "claude"} else "2G",
+        "tasks_max": 192, "timeout_seconds": 3600, "lease_timeout_seconds": 8,
+        "bootstrap_working_directory": True, "bootstrap_identity": bootstrap_identity,
+        "execution_context": {**context, "branch": candidate["branch"]},
+        "product_goal_admission": {
+            **identity_seed, "repository": spec["repository"],
+            "issue": spec["github_issue"], "stage": stage, "provider": provider,
+            "order_event_id": event_id, "authority_status": "APPROVED",
+            "go_live_authorized": True, "stop_marker_clear": True,
+            "requires_model": bool(action.get("requires_model")),
+            "total_launches_before": action.get("total_launches_before"),
+            "max_total_launches": (
+                spec["resource_policy"]["providers"][provider]["fallback"]["max_total_launches"]
+                if provider in {"codex", "claude"} else None
+            ),
+        },
+    }
+    goal_continuity.atomic_write_json(order_path, order)
+    updated = deepcopy(durable)
+    updated["candidate_identity"] = candidate
+    updated_work = next(row for row in updated["work_items"] if row["work_item_id"] == action["work_item_id"])
+    updated_work["dispatch_binding"] = {
+        "order_path": str(order_path.relative_to(repo)),
+        "order_sha256": hashlib.sha256(order_path.read_bytes()).hexdigest(),
+        "order_event_id": event_id, "attempt_id": attempt_id,
+        "action": action["action"], "builder": "RUNNER_DYNAMIC_V1",
+    }
+    goal_continuity.validate_runner_state(updated, spec)
+    goal_continuity.atomic_write_json(state_path, updated)
+    return updated, order_path, order, attempt_id
 
 
 def reserve_dispatch(
@@ -1057,6 +1334,71 @@ def record_route_outcome(
     return updated
 
 
+def bind_candidate_pull_request(
+    spec: dict[str, Any], state: dict[str, Any], *, state_path: Path,
+    ledger_path: Path, pull_request: int, head: str, branch: str,
+    artifact_url: str, occurred_at: str,
+) -> dict[str, Any]:
+    """Bind one Mac GitHub read-back to the already-published exact candidate."""
+    if (
+        spec.get("goal_id") != product_goal_worker_identity.PRODUCT_GOAL_ID
+        or spec.get("goal_version") != product_goal_worker_identity.PRODUCT_GOAL_VERSION
+        or goal_continuity.goal_spec_sha256(spec)
+        != product_goal_worker_identity.PRODUCT_GOAL_SPEC_SHA256
+    ):
+        raise GoalRunnerError("candidate PR binding is available only to the exact O2 Goal")
+    if not isinstance(pull_request, int) or isinstance(pull_request, bool) or pull_request < 1:
+        raise GoalRunnerError("candidate PR number is invalid")
+    durable = goal_continuity.load_json(state_path)
+    durable = synchronize_state_from_ledger(
+        spec, durable, goal_continuity.read_ledger(ledger_path), state_path=state_path,
+    )
+    if goal_continuity.canonical_json_bytes(durable) != goal_continuity.canonical_json_bytes(state):
+        raise GoalRunnerError("in-memory state is stale before candidate PR binding")
+    candidate = durable.get("candidate_identity")
+    if not isinstance(candidate, dict):
+        raise GoalRunnerError("candidate PR binding lacks exact candidate identity")
+    if candidate.get("commit") != head or candidate.get("branch") != branch:
+        raise GoalRunnerError("GitHub PR read-back differs from the current candidate")
+    prior = candidate.get("pull_request")
+    if prior is not None:
+        if prior != pull_request:
+            raise GoalRunnerError("candidate is already bound to a different PR")
+        return durable
+    published = [
+        row for row in durable["work_items"]
+        if row["status"] in TERMINAL_WORK
+        and next(item for item in spec["work_items"] if item["work_item_id"] == row["work_item_id"])["kind"] == "PUBLISH"
+    ]
+    if not published:
+        raise GoalRunnerError("candidate PR cannot be created before publication completes")
+    updated = deepcopy(durable)
+    updated["candidate_identity"]["pull_request"] = pull_request
+    event_id = "candidate-pr-bound-" + hashlib.sha256(
+        goal_continuity.canonical_json_bytes({
+            "goal_spec_sha256": goal_continuity.goal_spec_sha256(spec),
+            "commit": head, "branch": branch, "pull_request": pull_request,
+        })
+    ).hexdigest()[:20]
+    event, _ = goal_continuity.append_ledger_event(
+        ledger_path, event_id=event_id, event_type="WORK_STATE_TRANSITION",
+        occurred_at=occurred_at, goal_id=spec["goal_id"],
+        goal_version=spec["goal_version"], logical_work_id=None,
+        attempt_id=None, payload={
+            "operation": "CANDIDATE_PULL_REQUEST_BOUND",
+            "pull_request": pull_request, "candidate_commit": head,
+            "branch": branch, "artifact_url": artifact_url,
+            "state_patch": _state_patch(updated),
+        },
+    )
+    updated["event_cursor"] = {
+        "sequence": event["sequence"], "event_sha256": event["event_sha256"],
+    }
+    goal_continuity.validate_runner_state(updated, spec)
+    goal_continuity.atomic_write_json(state_path, updated)
+    return updated
+
+
 def _checkpoint_failure_class(
     checkpoint: dict[str, Any], *, repo: Path
 ) -> str:
@@ -1246,7 +1588,64 @@ def _apply_worker_result(
             "release_condition": "an exact Owner-authorized Goal version resolves the product WHAT",
         }
     work["active_attempt_id"] = None
+    result_candidate = result.get("candidate")
+    if isinstance(result_candidate, dict):
+        prior_candidate = updated.get("candidate_identity", {})
+        branch = result_candidate.get("branch") or prior_candidate.get("branch")
+        if isinstance(branch, str):
+            updated["candidate_identity"] = {
+                "commit": result_candidate["commit"],
+                "fingerprint": result_candidate["fingerprint"],
+                "branch": branch,
+                "pull_request": result_candidate.get(
+                    "pull_request", prior_candidate.get("pull_request")
+                ),
+            }
     return updated
+
+
+def _validate_worker_result_binding(
+    spec: dict[str, Any], result: dict[str, Any], *, work_item_id: str,
+    attempt_id: str, order: dict[str, Any], work_spec: dict[str, Any],
+) -> str:
+    """Validate rich result identity while retaining legacy v1 compatibility."""
+    goal_continuity.validate_document(result, "worker-result.schema.json")
+    exact = {
+        "goal_id": spec["goal_id"], "goal_version": spec["goal_version"],
+        "goal_spec_sha256": goal_continuity.goal_spec_sha256(spec),
+        "work_item_id": work_item_id, "order_event_id": order["event_id"],
+    }
+    if any(result.get(key) != value for key, value in exact.items()):
+        raise GoalRunnerError("worker result does not bind the exact Goal/Work Item/order")
+    result_state = str(result.get("result_state") or "COMPLETED")
+    rich_fields = {"attempt_id", "stage", "provider", "candidate", "execution"}
+    if rich_fields.intersection(result):
+        if rich_fields - set(result):
+            raise GoalRunnerError("rich worker result identity is incomplete")
+        if result["attempt_id"] != attempt_id or result["stage"] != order["stage"]:
+            raise GoalRunnerError("worker result attempt or stage differs from the sealed order")
+        if result["provider"] != work_spec["provider"]:
+            raise GoalRunnerError("worker result provider differs from the immutable Work Item")
+        if result_state == "COMPLETED" and not isinstance(result.get("candidate"), dict):
+            raise GoalRunnerError("completed worker result lacks exact candidate identity")
+        context = order.get("execution_context")
+        candidate = result.get("candidate")
+        if (
+            isinstance(context, dict) and isinstance(candidate, dict)
+            and order["stage"] != "codex"
+            and (
+                candidate.get("commit") != context.get("candidate_commit")
+                or candidate.get("fingerprint") != context.get("candidate_fingerprint")
+            )
+        ):
+            raise GoalRunnerError("worker result candidate differs from the sealed order")
+    if result_state == "COMPLETED" and result["outcome"] in {"WORK_FAILED", "WORK_PENDING"}:
+        raise GoalRunnerError("completed worker result carries a non-complete outcome")
+    if result_state == "FAILED" and result["outcome"] != "WORK_FAILED":
+        raise GoalRunnerError("failed worker result carries the wrong outcome")
+    if result_state == "PENDING" and result["outcome"] != "WORK_PENDING":
+        raise GoalRunnerError("pending worker result carries the wrong outcome")
+    return result_state
 
 
 def queue_human_decision_notifications(
@@ -1392,25 +1791,63 @@ def reconcile_dispatch_checkpoint(
     is_success = checkpoint.get("status") in {"COMPLETED", "ALREADY_COMPLETED"}
     result = None
     result_error = None
+    result_failure_class = None
     if is_success:
         evidence = checkpoint.get("execution_evidence")
         result = evidence.get("product_goal_result") if isinstance(evidence, dict) else None
         try:
             if not isinstance(result, dict):
                 raise GoalRunnerError("completed checkpoint lacks product_goal_result evidence")
-            if result.get("order_event_id") != order["event_id"]:
-                raise GoalRunnerError("worker result binds a different order event")
-            updated = _apply_worker_result(spec, state, result, work_item_id=work_item_id)
+            result_state = _validate_worker_result_binding(
+                spec, result, work_item_id=work_item_id, attempt_id=attempt_id,
+                order=order, work_spec=work_spec,
+            )
+            if result_state == "PENDING":
+                result_sha256 = hashlib.sha256(
+                    goal_continuity.canonical_json_bytes(result)
+                ).hexdigest()
+                goal_continuity.append_ledger_event(
+                    ledger_path,
+                    event_id=f"{attempt_id}-result-unresolved-{result_sha256[:16]}",
+                    event_type="CHECKPOINT_RECONCILED",
+                    occurred_at=reservation["reserved_at"],
+                    goal_id=spec["goal_id"], goal_version=spec["goal_version"],
+                    logical_work_id=work_item_id, attempt_id=attempt_id,
+                    payload={
+                        "operation": "CHECKPOINT_UNRESOLVED_PROBE",
+                        "failure_class": result.get("failure_class") or "UNKNOWN_OUTCOME",
+                        "checkpoint_status": checkpoint.get("status"),
+                        "worker_result_sha256": result_sha256,
+                        "redispatch_allowed": False,
+                    },
+                )
+                state = synchronize_state_from_ledger(
+                    spec, state, goal_continuity.read_ledger(ledger_path),
+                    state_path=state_path,
+                )
+                return {
+                    "status": "CHECKPOINT_UNRESOLVED", "requires_model": False,
+                    "attempt_id": attempt_id, "work_item_id": work_item_id,
+                    "failure_class": result.get("failure_class") or "UNKNOWN_OUTCOME",
+                    "redispatch_allowed": False,
+                }
+            if result_state == "FAILED":
+                result_failure_class = str(result.get("failure_class") or "EVIDENCE_INSUFFICIENT")
+                is_success = False
+            else:
+                updated = _apply_worker_result(spec, state, result, work_item_id=work_item_id)
         except (GoalRunnerError, goal_continuity.GoalContractError) as exc:
             result_error = str(exc)
             is_success = False
 
     if reservation.get("event_type") == "MODEL_ATTEMPT_STARTED":
         finish_payload = {
-            "outcome": result["outcome"] if is_success and result else "FAILED",
+            "outcome": result["outcome"] if result and not result_error else "FAILED",
             "checkpoint_status": checkpoint.get("status"),
             "failure_class": None if is_success else (
-                "EVIDENCE_INSUFFICIENT" if result_error else _checkpoint_failure_class(checkpoint, repo=repo)
+                "EVIDENCE_INSUFFICIENT" if result_error else (
+                    result_failure_class or _checkpoint_failure_class(checkpoint, repo=repo)
+                )
             ),
         }
         _append_attempt_event(
@@ -1420,14 +1857,17 @@ def reconcile_dispatch_checkpoint(
         _append_attempt_event(
             ledger_path, spec, reservation, attempt_id=attempt_id,
             suffix="usage", event_type="USAGE_OBSERVED",
-            payload=result["usage"] if is_success and result else _failure_usage(checkpoint),
+            payload=result["usage"] if result and not result_error else _failure_usage(checkpoint),
         )
     if is_success and result is not None:
         if result["review_verdict"] is not None:
             _append_attempt_event(
                 ledger_path, spec, reservation, attempt_id=attempt_id,
                 suffix="review-verdict", event_type="REVIEW_VERDICT_ACCEPTED",
-                payload=result["review_verdict"],
+                payload={
+                    **result["review_verdict"],
+                    "findings": result.get("review_findings", []),
+                },
             )
         if result["publication"] is not None:
             _append_attempt_event(
@@ -1451,7 +1891,9 @@ def reconcile_dispatch_checkpoint(
     else:
         updated = deepcopy(state)
         updated_work = next(row for row in updated["work_items"] if row["work_item_id"] == work_item_id)
-        failure_class = "EVIDENCE_INSUFFICIENT" if result_error else _checkpoint_failure_class(checkpoint, repo=repo)
+        failure_class = "EVIDENCE_INSUFFICIENT" if result_error else (
+            result_failure_class or _checkpoint_failure_class(checkpoint, repo=repo)
+        )
         updated_work["active_attempt_id"] = None
         updated_work["status"] = str(reservation.get("prior_work_status") or "READY")
         runtime_block: dict[str, Any] = {
@@ -1475,7 +1917,7 @@ def reconcile_dispatch_checkpoint(
         }:
             counts = updated_work.setdefault("failure_counts", {})
             counts[failure_class] = int(counts.get(failure_class, 0)) + 1
-            if result_error:
+            if result_error or result_failure_class:
                 cursor = updated_work.setdefault("dispatch_binding_cursor", {})
                 cursor[reservation["action"]] = int(cursor.get(reservation["action"], 0)) + 1
             if counts[failure_class] >= spec["recovery_policy"]["max_same_failure_attempts"]:

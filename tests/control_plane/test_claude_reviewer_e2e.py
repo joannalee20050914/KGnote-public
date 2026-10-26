@@ -42,6 +42,7 @@ class ClaudeReviewerFixtureE2E(unittest.TestCase):
             config = {"enabled": True, "result_marker": "kgnote-ai-product-review:v1",
                       "trusted_reviewer_author_login": "claude-code-local",
                       "trusted_reviewer_identities": ["claude-code:fixture"],
+                      "product_contract_review_scope": "KGNOTE_PRODUCT_CONTRACT",
                       "last_reviewed_candidate_fingerprint": None}
             checkpoint = root / "review.json"
             common = {"repository": "fixture/repo", "issue": 1, "pull_request": 2,

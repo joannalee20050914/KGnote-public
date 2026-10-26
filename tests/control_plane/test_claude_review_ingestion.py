@@ -6,7 +6,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-from claude_review_ingestion import IngestionError, ingest, publish_validated_review
+from claude_review_ingestion import (
+    IngestionError,
+    event_from_adapter_checkpoint,
+    ingest,
+    publish_validated_review,
+)
 
 
 class ClaudeReviewIngestionTest(unittest.TestCase):
@@ -16,6 +21,7 @@ class ClaudeReviewIngestionTest(unittest.TestCase):
         cls.config = {"enabled": True, "result_marker": "kgnote-ai-product-review:v1",
                       "trusted_reviewer_author_login": "claude-code-local",
                       "trusted_reviewer_identities": ["claude-code:fixture"],
+                      "product_contract_review_scope": "KGNOTE_PRODUCT_CONTRACT",
                       "last_reviewed_candidate_fingerprint": None}
 
     def setUp(self):
@@ -96,6 +102,42 @@ class ClaudeReviewIngestionTest(unittest.TestCase):
         self.assertEqual("ALREADY_CONSUMED", second["status"])
         self.assertEqual(1, sum("-f" in command for command in calls))
 
+    def test_unknown_write_result_is_recovered_by_canonical_readback(self):
+        comments = []
+        post_count = 0
+        fail_after_write = True
+
+        def run(command, cwd):
+            nonlocal post_count, fail_after_write
+            if command[:3] == ["gh", "pr", "view"]:
+                return json.dumps({"headRefOid": "a" * 40})
+            if "--paginate" in command:
+                return json.dumps(comments)
+            post_count += 1
+            body = command[-1][5:]
+            comments.append({
+                "id": 988, "html_url": "https://github.test/pull/9#issuecomment-988",
+                "created_at": "2026-10-20T03:00:00Z", "body": body,
+                "user": {"login": "owner"},
+            })
+            if fail_after_write:
+                fail_after_write = False
+                raise IngestionError("write result unknown")
+            return "{}"
+
+        with self.assertRaisesRegex(IngestionError, "unknown"):
+            publish_validated_review(
+                event=self.event, config=self.github_config(), schema=self.schema,
+                checkpoint_path=self.checkpoint, cwd=Path(self.temp.name), runner=run,
+            )
+        recovered = publish_validated_review(
+            event=self.event, config=self.github_config(), schema=self.schema,
+            checkpoint_path=self.checkpoint, cwd=Path(self.temp.name), runner=run,
+        )
+        self.assertTrue(recovered["product_review_accepted"])
+        self.assertEqual(988, recovered["canonical_record"]["record_id"])
+        self.assertEqual(1, post_count)
+
     def test_invalid_github_record_id_and_identity_are_rejected(self):
         for kwargs, message in (({"bad_id": True}, "metadata is invalid"),
                                 ({"wrong_author": True}, "Consumer rejected")):
@@ -116,6 +158,58 @@ class ClaudeReviewIngestionTest(unittest.TestCase):
         result = ingest(event=self.event, config=self.config, schema=self.schema, checkpoint_path=self.checkpoint)
         self.assertEqual("CODE_REVIEW_ONLY", result["status"])
         self.assertFalse(result["product_review_accepted"])
+
+    def test_exact_config_bound_descriptive_scope_is_product_review(self):
+        descriptive = "Review exact PR #33 Review 004 and preserve every owner gate."
+        self.event["review_scope"] = descriptive
+        config = {**self.config, "product_contract_review_scope": descriptive}
+        result = ingest(
+            event=self.event, config=config, schema=self.schema,
+            checkpoint_path=self.checkpoint,
+        )
+        self.assertEqual("VALIDATED_PENDING_GITHUB_WRITEBACK", result["status"])
+        self.assertEqual(descriptive, result["review_scope"])
+
+    def test_adapter_checkpoint_bridge_preserves_exact_identity_and_scope(self):
+        descriptive = "Review exact PR #33 Review 004 and preserve every owner gate."
+        order = {
+            "goal_id": self.event["goal_id"], "repository": self.event["repository"],
+            "issue": self.event["issue"], "pull_request": self.event["pull_request"],
+            "candidate_commit": self.event["candidate_commit"],
+            "candidate_fingerprint": self.event["candidate_fingerprint"],
+            "review_round_used": self.event["review_round"] - 1,
+            "review_round_limit": self.event["cumulative_round_limit"],
+            "program_id": self.event["program_id"], "review_scope": descriptive,
+        }
+        import hashlib
+        identity_key = hashlib.sha256(
+            (
+                f"{order['repository']}\0{order['pull_request']}\0"
+                f"{order['candidate_commit']}\0{order['candidate_fingerprint']}\0"
+                f"{self.event['review_round']}"
+            ).encode()
+        ).hexdigest()
+        checkpoint = {
+            "schema_version": "kgnote.claude-reviewer-adapter-checkpoint.v1",
+            "status": "COMPLETED", "identity_key": identity_key,
+            "goal_id": order["goal_id"], "repository": order["repository"],
+            "issue": order["issue"], "pull_request": order["pull_request"],
+            "program_id": order["program_id"], "review_scope": descriptive,
+            "candidate_commit": order["candidate_commit"],
+            "candidate_fingerprint": order["candidate_fingerprint"],
+            "review_round": self.event["review_round"],
+            "review_round_limit": order["review_round_limit"],
+            "review_result": self.event["review"],
+            "execution_evidence": {"effective_status": "EFFECTIVE_CONFIRMED"},
+        }
+        event = event_from_adapter_checkpoint(
+            reviewer_checkpoint=checkpoint, work_order=order,
+            config={**self.config, "product_contract_review_scope": descriptive},
+        )
+        self.assertEqual("REVIEW_SUBMITTED", event["status"])
+        self.assertEqual(descriptive, event["review_scope"])
+        self.assertEqual(self.event["candidate_commit"], event["candidate_commit"])
+        self.assertEqual("claude-code:fixture", event["reviewer_identity"])
 
     def test_untrusted_reviewer_identity_is_rejected(self):
         self.event["reviewer_identity"] = "claude-code:unknown"
