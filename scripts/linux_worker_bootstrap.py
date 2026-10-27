@@ -9,10 +9,13 @@ import os
 import re
 import stat
 import hashlib
+import subprocess
 from pathlib import Path
 
 from product_goal_worker_identity import (
     PRODUCT_IDENTITY_SCHEMA,
+    PRODUCT_BRANCH,
+    PRODUCT_REPOSITORY_URL,
     ProductGoalIdentityError,
     validate_product_goal_identity,
 )
@@ -26,6 +29,108 @@ GENERIC_ROOT = WORKTREE_ROOT / "work-items"
 
 class BootstrapError(RuntimeError):
     pass
+
+
+def _git_text(
+    command: list[str], *, cwd: Path,
+    runner: object = subprocess.run,
+) -> str:
+    completed = runner(
+        command, cwd=cwd, text=True, capture_output=True,
+        timeout=30, check=False,
+    )
+    if completed.returncode:
+        raise BootstrapError(f"Product Goal checkout Git command failed: {command[1]}")
+    return completed.stdout.strip()
+
+
+def _prepare_product_checkout(
+    working_directory: Path,
+    identity: dict[str, object],
+    *,
+    runner: object = subprocess.run,
+) -> dict[str, object]:
+    """Create once or validate the exact private O2 branch checkout before model launch."""
+    candidate_commit = str(identity["candidate_commit"])
+    entries = list(working_directory.iterdir())
+    cloned = False
+    if not entries:
+        ref = f"refs/heads/{PRODUCT_BRANCH}"
+        remote = _git_text(
+            ["/usr/bin/git", "ls-remote", "--heads", PRODUCT_REPOSITORY_URL, ref],
+            cwd=working_directory,
+            runner=runner,
+        ).splitlines()
+        if len(remote) != 1:
+            raise BootstrapError("Product Goal seed branch remote read-back is missing or ambiguous")
+        fields = remote[0].split()
+        if len(fields) != 2 or fields[0] != candidate_commit or fields[1] != ref:
+            raise BootstrapError("Product Goal seed branch differs from the sealed candidate")
+        _git_text(
+            [
+                "/usr/bin/git", "clone", "--branch", PRODUCT_BRANCH,
+                "--single-branch", PRODUCT_REPOSITORY_URL, ".",
+            ],
+            cwd=working_directory,
+            runner=runner,
+        )
+        cloned = True
+    git_marker = working_directory / ".git"
+    if git_marker.is_symlink() or not git_marker.is_dir():
+        raise BootstrapError("Product Goal checkout must use its own real Git common directory")
+    common_raw = _git_text(
+        ["/usr/bin/git", "rev-parse", "--git-common-dir"],
+        cwd=working_directory,
+        runner=runner,
+    )
+    common_path = Path(common_raw)
+    common_path = (
+        common_path.resolve()
+        if common_path.is_absolute()
+        else (working_directory / common_path).resolve()
+    )
+    if common_path != git_marker.resolve() or common_path.is_symlink():
+        raise BootstrapError("Product Goal checkout Git common directory is not private to the work item")
+    if _git_text(
+        ["/usr/bin/git", "remote", "get-url", "origin"],
+        cwd=working_directory,
+        runner=runner,
+    ) != PRODUCT_REPOSITORY_URL:
+        raise BootstrapError("Product Goal checkout repository identity is invalid")
+    branch = _git_text(
+        ["/usr/bin/git", "branch", "--show-current"],
+        cwd=working_directory,
+        runner=runner,
+    )
+    head = _git_text(
+        ["/usr/bin/git", "rev-parse", "HEAD"],
+        cwd=working_directory,
+        runner=runner,
+    )
+    if branch != PRODUCT_BRANCH or head != candidate_commit:
+        raise BootstrapError("Product Goal checkout branch or HEAD differs from the sealed candidate")
+    if _git_text(
+        ["/usr/bin/git", "status", "--porcelain=v1", "--untracked-files=all"],
+        cwd=working_directory,
+        runner=runner,
+    ):
+        raise BootstrapError("Product Goal checkout is dirty; bootstrap will not overwrite it")
+    tree = _git_text(
+        ["/usr/bin/git", "rev-parse", "HEAD^{tree}"],
+        cwd=working_directory,
+        runner=runner,
+    )
+    return {
+        "status": "CHECKOUT_READY",
+        "cloned": cloned,
+        "repository": str(identity["repository"]),
+        "branch": branch,
+        "commit": head,
+        "tree": tree,
+        "git_common_dir": str(common_path),
+        "remote_url": PRODUCT_REPOSITORY_URL,
+        "clean": True,
+    }
 
 
 def _require_real_directory(
@@ -120,6 +225,13 @@ def prepare(event_id: str, stage: str, working_directory: Path, identity: object
         working_directory.mkdir(mode=0o700)
         created = True
     metadata = _require_real_directory(working_directory, owner_uid=uid, owner_gid=gid)
+    checkout = None
+    if (
+        isinstance(identity, dict)
+        and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+    ):
+        checkout = _prepare_product_checkout(working_directory, identity)
+        metadata = _require_real_directory(working_directory, owner_uid=uid, owner_gid=gid)
     return {
         "schema_version": "kgnote.worker-bootstrap.v1",
         "status": "READY",
@@ -139,6 +251,7 @@ def prepare(event_id: str, stage: str, working_directory: Path, identity: object
         "identity_sha256": hashlib.sha256(
             json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest() if identity is not None else None,
+        "checkout": checkout,
     }
 
 

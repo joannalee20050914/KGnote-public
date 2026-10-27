@@ -47,6 +47,7 @@ class LinuxWorkerRoutingTest(unittest.TestCase):
             "work_item_id":"WI-O2-A-IMPLEMENT", "provider":"codex", "stage":"codex",
             "order_event_id":"o2-wi-o2-a-implement-codex-0123456789abcdef",
             "branch":"codex/o2-reading-experience", "worktree_slug":"goal-o2-reading-experience",
+            "candidate_commit":"1"*40, "candidate_fingerprint":"2"*64,
             "authority_record":"https://github.com/joannalee20050914/KGnote-public/issues/9",
             "authority_sha256":"c"*64, "authority_status":"APPROVED",
             "authority_action":"APPROVE", "go_live_authorized":True,

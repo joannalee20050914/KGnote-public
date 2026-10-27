@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import codex_control
 import product_goal_worker_lane as LANE
+import claude_reviewer_adapter as CLAUDE
 from product_goal_worker_result import adapt_worker_result
 
 
@@ -128,22 +129,56 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
             "goal_id": context["goal_id"], "candidate_commit": context["candidate_commit"],
             "candidate_fingerprint": context["candidate_fingerprint"],
             "review_round": 1, "verdict": "PASS", "findings": [],
-            "native_ui_observed": False,
+            "human_decisions": [], "native_ui_observed": False,
         }
         checkpoint = {
             "status": "COMPLETED", "review_result": structured,
             "execution_evidence": {"token_usage": None},
         }
-        with patch.object(LANE.WorkOrder, "from_dict", return_value=object()):
-            code = LANE.run_review(
-                self.repo, context, evidence,
-                executor=lambda _order: checkpoint,
-            )
+        runtime=self.evidence_root/"runtime"; runtime.mkdir()
+        checkout=runtime/"agent-loop-checkout"; checkout.mkdir()
+        paths={
+            "agent_loop":str(runtime/"agent-loop"),
+            "agent_loop_checkout":str(checkout),
+            "claude_cmd":str(runtime/"claude"),
+            "codex_cmd":str(runtime/"codex"),
+        }
+        for name in ("agent_loop","claude_cmd","codex_cmd"):
+            path=Path(paths[name]); path.write_text("#!/bin/sh\nexit 0\n"); path.chmod(0o755)
+        captured=[]
+
+        def preflight(order):
+            captured.append(order)
+            command, metadata=CLAUDE.build_command_with_metadata(order)
+            self.assertIn("--json-schema",command)
+            self.assertEqual(order.claude_facing_schema_sha256,metadata["claude_facing_schema_sha256"])
+            return checkpoint
+
+        code = LANE.run_review(
+            self.repo, context, evidence,
+            executor=preflight, runtime_paths=paths,
+        )
         self.assertEqual(0, code)
+        self.assertEqual(CLAUDE.FORMAL_REVIEW_SCHEMA_SHA256,captured[0].formal_consumer_schema_sha256)
+        self.assertEqual(CLAUDE.CLAUDE_SCHEMA_PROJECTION_VERSION,captured[0].schema_projection_version)
         adapted = adapt_worker_result(context, checkpoint, returncode=0)
         self.assertEqual("REVIEW_PASS", adapted["outcome"])
         self.assertTrue(adapted["review_verdict"]["review_id"].startswith(context["order_event_id"]))
         self.assertEqual(64, len(adapted["review_verdict"]["candidate_identity_sha256"]))
+
+    def test_review_schema_projection_mismatch_fails_before_executor(self):
+        evidence=self.evidence_root/"review-mismatch.json"
+        context={**self.context,"work_item_id":"WI-O2-A-REVIEW","stage":"claude","provider":"claude","action":"DISPATCH_REVIEW"}
+        called=[]
+        bad={
+            "formal_schema_sha256":"0"*64,
+            "claude_facing_schema_sha256":"1"*64,
+            "projection_version":CLAUDE.CLAUDE_SCHEMA_PROJECTION_VERSION,
+        }
+        with patch.object(LANE,"build_claude_schema_projection",return_value=({},bad)):
+            with self.assertRaisesRegex(LANE.LaneError,"metadata is inconsistent"):
+                LANE.run_review(self.repo,context,evidence,executor=lambda order:called.append(order))
+        self.assertEqual([],called)
 
 
 if __name__ == "__main__":

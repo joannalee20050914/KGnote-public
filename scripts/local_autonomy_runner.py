@@ -2587,6 +2587,7 @@ def run_product_goal_mode(
         try:
             state, order_path, _, _ = goal_runner_adapter.ensure_bound_order(
                 spec, state, decision, repo=repo, state_path=state_path,
+                ledger_path=ledger_path,
                 occurred_at=(current or datetime.now(ZONE)).isoformat(timespec="seconds"),
             )
         except goal_runner_adapter.GoalRunnerError as exc:

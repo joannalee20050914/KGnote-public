@@ -1,6 +1,7 @@
 from __future__ import annotations
 import importlib.util, json, subprocess, sys, tempfile, unittest
 import hashlib
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -12,6 +13,127 @@ SPEC = importlib.util.spec_from_file_location("runner", ROOT / "scripts/local_au
 RUNNER = importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(RUNNER)
 
 class RunnerTests(unittest.TestCase):
+    def test_o2_first_window_runner_binds_seed_bootstraps_checkout_and_reserves_once(self):
+        """Exercise the real first-dispatch boundary without launching a model."""
+        from tests.control_plane.test_github_product_goal_control import comment
+        import codex_control
+        import goal_continuity as goal
+        import linux_worker_bootstrap as bootstrap
+        import product_goal_worker_identity as identity
+
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); source=root/"source"; origin=root/"origin.git"
+            central=root/"central"; deploy=root/"deploy"; runtime=root/"runtime"
+            source.mkdir(); runtime.mkdir()
+            subprocess.run(["git","init","-b",identity.PRODUCT_BRANCH],cwd=source,check=True,capture_output=True)
+            subprocess.run(["git","config","user.email","test@example.invalid"],cwd=source,check=True)
+            subprocess.run(["git","config","user.name","Test"],cwd=source,check=True)
+            (source/".gitignore").write_text("output/\n")
+            (source/"seed.txt").write_text("seed\n")
+            (source/"scripts").mkdir()
+            for name in ("router.py","admission.py"):
+                (source/"scripts"/name).write_text("# trusted fixture\n")
+            subprocess.run(["git","add","."],cwd=source,check=True)
+            subprocess.run(["git","commit","-m","seed"],cwd=source,check=True,capture_output=True)
+            seed=subprocess.check_output(["git","rev-parse","HEAD"],cwd=source,text=True).strip()
+            subprocess.run(["git","clone","--bare",str(source),str(origin)],check=True,capture_output=True)
+            subprocess.run(["git","clone",str(origin),str(central)],check=True,capture_output=True)
+            subprocess.run(["git","config","user.email","test@example.invalid"],cwd=central,check=True)
+            subprocess.run(["git","config","user.name","Test"],cwd=central,check=True)
+            subprocess.run(["git","switch","-c","codex/hotfix-fixture"],cwd=central,check=True,capture_output=True)
+            (central/"hotfix.txt").write_text("runner hotfix\n")
+            subprocess.run(["git","add","hotfix.txt"],cwd=central,check=True)
+            subprocess.run(["git","commit","-m","hotfix"],cwd=central,check=True,capture_output=True)
+            hotfix=subprocess.check_output(["git","rev-parse","HEAD"],cwd=central,text=True).strip()
+            subprocess.run(["git","worktree","add","--detach",str(deploy),hotfix],cwd=central,check=True,capture_output=True)
+
+            spec=json.loads((ROOT/"docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.2.json").read_text())
+            spec_path=runtime/"spec.json"; state_path=runtime/"state.json"
+            ledger_path=runtime/"ledger.jsonl"; comments_path=runtime/"comments.json"
+            spec_path.write_text(json.dumps(spec))
+            goal.atomic_write_json(state_path,goal.initial_runner_state(spec,now="2026-10-27T08:00:00+08:00"))
+            authority_comment=comment(spec,login="joannalee20050914")
+            authority_comment["html_url"]="https://github.com/joannalee20050914/KGnote-public/issues/9#issuecomment-6431195804"
+            authority_comment["issue_url"]="https://api.github.com/repos/joannalee20050914/KGnote-public/issues/9"
+            comments_path.write_text(json.dumps([authority_comment]))
+            epoch=runtime/"epoch.json"; epoch.write_text("{}")
+            router=deploy/"scripts/router.py"; admission=deploy/"scripts/admission.py"
+            calls=[]
+            def no_model(command,**kwargs):
+                calls.append(command)
+                return subprocess.CompletedProcess(command,0,"{}\n","")
+
+            patches=(
+                patch.object(RUNNER.goal_runner_adapter.product_goal_worker_identity,"PRODUCT_REPOSITORY_URL",str(origin)),
+                patch.object(RUNNER.goal_runner_adapter.product_goal_worker_identity,"PRODUCT_SEED_COMMIT",seed),
+                patch.object(bootstrap,"PRODUCT_REPOSITORY_URL",str(origin)),
+            )
+            with patches[0],patches[1],patches[2]:
+                before=RUNNER.run_product_goal_mode(
+                    deploy,spec_path=spec_path,state_path=state_path,ledger_path=ledger_path,
+                    comments_path=comments_path,backlog_path=None,trial=False,router=router,
+                    epoch_record=epoch,admission=admission,runner_identity={"sha256":"fixture"},
+                    current=datetime(2026,10,27,10,0,tzinfo=ZoneInfo("Asia/Taipei")),command_runner=no_model,
+                )
+                self.assertEqual("WAIT_TRIAL_START",before["status"])
+                self.assertEqual(0,len(goal.reduce_ledger(goal.read_ledger(ledger_path))["dispatch_reservations"]))
+                pre_dispatch=deepcopy(goal.load_json(state_path))
+
+                first=RUNNER.run_product_goal_mode(
+                    deploy,spec_path=spec_path,state_path=state_path,ledger_path=ledger_path,
+                    comments_path=comments_path,backlog_path=None,trial=False,router=router,
+                    epoch_record=epoch,admission=admission,runner_identity={"sha256":"fixture"},
+                    current=datetime(2026,10,28,9,0,tzinfo=ZoneInfo("Asia/Taipei")),command_runner=no_model,
+                )
+                self.assertEqual("DISPATCHED",first["status"])
+                saved=goal.load_json(state_path)
+                self.assertEqual(seed,saved["candidate_identity"]["commit"])
+                self.assertIsNone(saved["candidate_identity"]["pull_request"])
+                binding=saved["work_items"][0]["dispatch_binding"]
+                order_path=deploy/binding["order_path"]
+                self.assertEqual(binding["order_sha256"],hashlib.sha256(order_path.read_bytes()).hexdigest())
+                order=json.loads(order_path.read_text())
+                lane=json.loads(order["command"][order["command"].index("--command-json")+1])
+                nested=json.loads(lane[lane.index("--command-json")+1])
+                self.assertEqual("0",nested[nested.index("--pull-request")+1])
+
+                guest=root/"ubuntu"
+                with patch.object(bootstrap,"WORKTREE_ROOT",guest),patch.object(bootstrap,"GENERIC_ROOT",guest/"work-items"):
+                    guest.mkdir(mode=0o700)
+                    checkout=bootstrap.prepare(
+                        order["event_id"],order["stage"],guest/"work-items/goal-o2-reading-experience",
+                        order["bootstrap_identity"],
+                    )
+                self.assertEqual("CHECKOUT_READY",checkout["checkout"]["status"])
+                self.assertEqual(
+                    saved["candidate_identity"]["fingerprint"],
+                    codex_control.repository_fingerprint(guest/"work-items/goal-o2-reading-experience")["value"],
+                )
+
+                call_count=len(calls)
+                replay=RUNNER.run_product_goal_mode(
+                    deploy,spec_path=spec_path,state_path=state_path,ledger_path=ledger_path,
+                    comments_path=comments_path,backlog_path=None,trial=False,router=router,
+                    epoch_record=epoch,admission=admission,runner_identity={"sha256":"fixture"},
+                    current=datetime(2026,10,28,9,0,tzinfo=ZoneInfo("Asia/Taipei")),command_runner=no_model,
+                )
+                self.assertEqual("CHECKPOINT_PENDING",replay["status"])
+                self.assertEqual(call_count,len(calls))
+                projection=goal.reduce_ledger(goal.read_ledger(ledger_path))
+                self.assertEqual(1,len(projection["dispatch_reservations"]))
+                self.assertEqual(1,len(projection["model_attempts"]))
+
+                at_close=RUNNER.goal_runner_adapter.next_action(
+                    spec,pre_dispatch,goal.read_ledger(ledger_path)[:3],
+                    RUNNER.goal_runner_adapter.github_control.resolve_authority([authority_comment],spec),
+                    now=datetime(2026,10,28,18,0,tzinfo=ZoneInfo("Asia/Taipei")),trial=False,
+                )
+                self.assertEqual("WAIT_WORK_WINDOW",at_close["status"])
+                hard=RUNNER.goal_runner_adapter.trial_schedule_admission(
+                    spec,datetime(2026,11,10,18,0,tzinfo=ZoneInfo("Asia/Taipei"))
+                )
+                self.assertEqual("GOAL_HARD_STOP",hard["status"])
+
     def test_product_goal_mode_never_bypasses_existing_stop_marker(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

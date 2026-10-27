@@ -7,10 +7,12 @@ import unittest
 import sys
 from copy import deepcopy
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import github_product_goal_control as CONTROL
+import codex_control as CODEX
 import goal_continuity as GOAL
 import goal_runner_adapter as ADAPTER
 import local_autonomy_runner as RUNNER
@@ -63,6 +65,75 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
                 self.spec,updated,self.action,repo=repo,state_path=state_path,occurred_at=NOW,
             )
             self.assertEqual(path,replay[1]); self.assertEqual(order["event_id"],replay[2]["event_id"])
+
+    def test_detached_first_seed_binding_is_remote_verified_ledgered_and_restart_safe(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); source=root/"source"; origin=root/"origin.git"; central=root/"central"; deploy=root/"deploy"
+            source.mkdir()
+            subprocess.run(["git","init","-b","codex/o2-reading-experience"],cwd=source,check=True,capture_output=True)
+            subprocess.run(["git","config","user.email","test@example.invalid"],cwd=source,check=True)
+            subprocess.run(["git","config","user.name","Test"],cwd=source,check=True)
+            (source/"seed.txt").write_text("seed\n")
+            subprocess.run(["git","add","seed.txt"],cwd=source,check=True)
+            subprocess.run(["git","commit","-m","seed"],cwd=source,check=True,capture_output=True)
+            seed=subprocess.check_output(["git","rev-parse","HEAD"],cwd=source,text=True).strip()
+            subprocess.run(["git","clone","--bare",str(source),str(origin)],check=True,capture_output=True)
+            subprocess.run(["git","clone",str(origin),str(central)],check=True,capture_output=True)
+            subprocess.run(["git","config","user.email","test@example.invalid"],cwd=central,check=True)
+            subprocess.run(["git","config","user.name","Test"],cwd=central,check=True)
+            (central/"hotfix.txt").write_text("runner hotfix\n")
+            subprocess.run(["git","add","hotfix.txt"],cwd=central,check=True)
+            subprocess.run(["git","commit","-m","runner hotfix"],cwd=central,check=True,capture_output=True)
+            hotfix=subprocess.check_output(["git","rev-parse","HEAD"],cwd=central,text=True).strip()
+            subprocess.run(["git","worktree","add","--detach",str(deploy),hotfix],cwd=central,check=True,capture_output=True)
+            state=deepcopy(self.state); state.pop("candidate_identity")
+            runtime=root/"runtime"; runtime.mkdir(); state_path=runtime/"state.json"; ledger_path=runtime/"ledger.jsonl"
+            GOAL.atomic_write_json(state_path,state)
+            with patch.object(ADAPTER.product_goal_worker_identity,"PRODUCT_REPOSITORY_URL",str(origin)), patch.object(ADAPTER.product_goal_worker_identity,"PRODUCT_SEED_COMMIT",seed):
+                updated,path,order,attempt=ADAPTER.ensure_bound_order(
+                    self.spec,state,self.action,repo=deploy,state_path=state_path,
+                    ledger_path=ledger_path,occurred_at=NOW,
+                )
+                self.assertEqual(seed,updated["candidate_identity"]["commit"])
+                self.assertNotEqual(hotfix,updated["candidate_identity"]["commit"])
+                self.assertIsNone(updated["candidate_identity"]["pull_request"])
+                self.assertEqual(seed,order["bootstrap_identity"]["candidate_commit"])
+                branch_clone=root/"branch-clone"
+                subprocess.run(
+                    ["git","clone","--branch","codex/o2-reading-experience","--single-branch",str(origin),str(branch_clone)],
+                    check=True,capture_output=True,
+                )
+                self.assertEqual(
+                    CODEX.repository_fingerprint(branch_clone)["value"],
+                    updated["candidate_identity"]["fingerprint"],
+                )
+                events=GOAL.read_ledger(ledger_path)
+                self.assertEqual(1,len(events))
+                self.assertEqual("INITIAL_CANDIDATE_AND_ORDER_BOUND",events[0]["payload"]["operation"])
+                restarted=ADAPTER.synchronize_state_from_ledger(self.spec,state,events)
+                self.assertEqual(updated["candidate_identity"],restarted["candidate_identity"])
+                replay=ADAPTER.ensure_bound_order(
+                    self.spec,updated,self.action,repo=deploy,state_path=state_path,
+                    ledger_path=ledger_path,occurred_at=NOW,
+                )
+                self.assertEqual(path,replay[1]); self.assertEqual(attempt,replay[3])
+                self.assertEqual(1,len(GOAL.read_ledger(ledger_path)))
+
+                subprocess.run(["git","config","user.email","test@example.invalid"],cwd=source,check=True)
+                (source/"later.txt").write_text("later\n")
+                subprocess.run(["git","add","later.txt"],cwd=source,check=True)
+                subprocess.run(["git","commit","-m","later"],cwd=source,check=True,capture_output=True)
+                subprocess.run(["git","push",str(origin),"HEAD:refs/heads/codex/o2-reading-experience"],cwd=source,check=True,capture_output=True)
+                deploy2=root/"deploy2"
+                subprocess.run(["git","worktree","add","--detach",str(deploy2),hotfix],cwd=central,check=True,capture_output=True)
+                fresh=deepcopy(state); GOAL.atomic_write_json(state_path,fresh)
+                ledger_path.unlink()
+                with self.assertRaisesRegex(ADAPTER.GoalRunnerError,"no longer points"):
+                    ADAPTER.ensure_bound_order(
+                        self.spec,fresh,self.action,repo=deploy2,state_path=state_path,
+                        ledger_path=ledger_path,occurred_at=NOW,
+                    )
+                self.assertFalse(ledger_path.exists())
 
     def test_tampered_order_stale_binding_stop_marker_and_exhausted_budget_fail_closed(self):
         with tempfile.TemporaryDirectory() as directory:

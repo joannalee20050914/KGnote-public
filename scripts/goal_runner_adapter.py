@@ -14,6 +14,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
 import subprocess
+import tempfile
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -912,19 +913,104 @@ def validated_bound_order(
     return order_path, order, attempt_id
 
 
-def _current_candidate_identity(repo: Path) -> dict[str, Any]:
-    """Read the exact local candidate; order creation never predicts a future SHA."""
+def _git_text(repo: Path, *arguments: str, timeout: int = 20) -> str:
+    completed = subprocess.run(
+        ["/usr/bin/git", *arguments], cwd=repo,
+        text=True, capture_output=True, timeout=timeout, check=False,
+    )
+    if completed.returncode:
+        raise GoalRunnerError(f"candidate Git read-back failed: {' '.join(arguments)}")
+    return completed.stdout.strip()
+
+
+def _resolved_git_path(repo: Path, value: str) -> Path:
+    path = Path(value)
+    return path.resolve() if path.is_absolute() else (repo / path).resolve()
+
+
+def _initial_o2_candidate_identity(repo: Path) -> dict[str, Any]:
+    """Bind the exact remote O2 seed without treating the detached Runner as a product branch."""
     from codex_control import repository_fingerprint
 
-    fingerprint = repository_fingerprint(repo)
-    branch = subprocess.run(
-        ["/usr/bin/git", "branch", "--show-current"], cwd=repo,
-        text=True, capture_output=True, timeout=10, check=False,
-    )
-    if branch.returncode or not branch.stdout.strip().startswith("codex/"):
-        raise GoalRunnerError("dynamic order requires an exact codex/* candidate branch")
+    if _git_text(repo, "branch", "--show-current"):
+        raise GoalRunnerError("initial O2 binding requires the clean detached Runner deployment")
+    if _git_text(repo, "status", "--porcelain=v1", "--untracked-files=all"):
+        raise GoalRunnerError("initial O2 binding refuses a dirty Runner deployment")
+    if _git_text(repo, "remote", "get-url", "origin") != product_goal_worker_identity.PRODUCT_REPOSITORY_URL:
+        raise GoalRunnerError("initial O2 binding repository remote is not canonical")
+
+    common_dir = _resolved_git_path(repo, _git_text(repo, "rev-parse", "--git-common-dir"))
+    git_dir = _resolved_git_path(repo, _git_text(repo, "rev-parse", "--git-dir"))
+    if (
+        common_dir.is_symlink()
+        or git_dir.is_symlink()
+        or not common_dir.is_dir()
+        or not git_dir.is_dir()
+        or not (common_dir / "objects").is_dir()
+        or not (
+            git_dir == common_dir
+            or (git_dir.parent.name == "worktrees" and git_dir.parent.parent == common_dir)
+        )
+    ):
+        raise GoalRunnerError("initial O2 binding Git common directory is invalid")
+
+    branch_ref = f"refs/heads/{product_goal_worker_identity.PRODUCT_BRANCH}"
+    rows = _git_text(repo, "ls-remote", "--heads", "origin", branch_ref).splitlines()
+    if len(rows) != 1:
+        raise GoalRunnerError("initial O2 seed branch remote read-back is missing or ambiguous")
+    parts = rows[0].split()
+    if len(parts) != 2 or parts[1] != branch_ref:
+        raise GoalRunnerError("initial O2 seed branch remote read-back is malformed")
+    remote_commit = parts[0]
+    if remote_commit != product_goal_worker_identity.PRODUCT_SEED_COMMIT:
+        raise GoalRunnerError("initial O2 seed branch no longer points at the authorized seed")
+    tracking_ref = f"refs/remotes/origin/{product_goal_worker_identity.PRODUCT_BRANCH}"
+    if _git_text(repo, "rev-parse", tracking_ref) != remote_commit:
+        raise GoalRunnerError("initial O2 local remote-tracking ref differs from GitHub")
+    trees = {
+        _git_text(repo, "rev-parse", f"{tracking_ref}^{{tree}}"),
+        _git_text(repo, "rev-parse", f"{remote_commit}^{{tree}}"),
+    }
+    if len(trees) != 1:
+        raise GoalRunnerError("initial O2 local candidate tree differs from the remote seed")
+    # The repository fingerprint includes the current branch.  Compute it from
+    # an actual private product-branch clone, not from this detached deployment,
+    # so the identity is byte-for-byte reproducible by the Ubuntu checkout.
+    with tempfile.TemporaryDirectory(prefix="kgnote-o2-seed-") as directory:
+        candidate_repo = Path(directory) / "candidate"
+        _git_text(
+            repo, "clone", "--branch", product_goal_worker_identity.PRODUCT_BRANCH,
+            "--single-branch", product_goal_worker_identity.PRODUCT_REPOSITORY_URL,
+            str(candidate_repo),
+        )
+        candidate_common = _resolved_git_path(
+            candidate_repo,
+            _git_text(candidate_repo, "rev-parse", "--git-common-dir"),
+        )
+        if (
+            candidate_common != (candidate_repo / ".git").resolve()
+            or candidate_common.is_symlink()
+            or not candidate_common.is_dir()
+        ):
+            raise GoalRunnerError("initial O2 candidate checkout uses the wrong Git common directory")
+        if (
+            _git_text(candidate_repo, "remote", "get-url", "origin")
+            != product_goal_worker_identity.PRODUCT_REPOSITORY_URL
+            or _git_text(candidate_repo, "rev-parse", "HEAD") != remote_commit
+            or _git_text(candidate_repo, "branch", "--show-current")
+            != product_goal_worker_identity.PRODUCT_BRANCH
+            or _git_text(candidate_repo, "status", "--porcelain=v1", "--untracked-files=all")
+            or _git_text(candidate_repo, "rev-parse", "HEAD^{tree}") not in trees
+        ):
+            raise GoalRunnerError("initial O2 candidate checkout differs from the remote seed")
+        fingerprint = repository_fingerprint(candidate_repo)
+    if (
+        fingerprint.get("head") != remote_commit
+        or fingerprint.get("branch") != product_goal_worker_identity.PRODUCT_BRANCH
+    ):
+        raise GoalRunnerError("initial O2 fingerprint is not bound to the product seed branch")
     return {
-        "commit": fingerprint["head"], "fingerprint": fingerprint["value"],
+        "commit": remote_commit, "fingerprint": fingerprint["value"],
         "branch": product_goal_worker_identity.PRODUCT_BRANCH,
         "pull_request": None,
     }
@@ -998,6 +1084,7 @@ def _dynamic_worker_command(
 def ensure_bound_order(
     spec: dict[str, Any], state: dict[str, Any], action: dict[str, Any], *,
     repo: Path, state_path: Path, occurred_at: str,
+    ledger_path: Path | None = None,
 ) -> tuple[dict[str, Any], Path, dict[str, Any], str]:
     """Atomically create/reuse one Runner-owned order for the next exact attempt."""
     if action.get("status") != "ACTION_READY":
@@ -1072,7 +1159,10 @@ def ensure_bound_order(
     if work.get("active_attempt_id") is not None:
         raise GoalRunnerError("active dispatch cannot be replaced by a new order")
 
-    candidate = deepcopy(durable.get("candidate_identity") or _current_candidate_identity(repo))
+    initial_binding = durable.get("candidate_identity") is None
+    candidate = deepcopy(
+        durable.get("candidate_identity") or _initial_o2_candidate_identity(repo)
+    )
     stage, provider = _dynamic_lane(str(action["action"]))
     identity_seed = {
         "goal_id": spec["goal_id"], "goal_version": spec["goal_version"],
@@ -1135,6 +1225,8 @@ def ensure_bound_order(
         "goal_spec_sha256": goal_continuity.goal_spec_sha256(spec),
         "work_item_id": action["work_item_id"], "provider": provider, "stage": stage,
         "order_event_id": event_id, "branch": candidate["branch"],
+        "candidate_commit": candidate["commit"],
+        "candidate_fingerprint": candidate["fingerprint"],
         "worktree_slug": "goal-o2-reading-experience",
         "authority_record": f"https://github.com/{spec['repository']}/issues/{spec['github_issue']}",
         "authority_sha256": durable["authority_record"]["body_sha256"],
@@ -1175,6 +1267,38 @@ def ensure_bound_order(
         "order_event_id": event_id, "attempt_id": attempt_id,
         "action": action["action"], "builder": "RUNNER_DYNAMIC_V1",
     }
+    if initial_binding:
+        if ledger_path is None:
+            raise GoalRunnerError("initial O2 binding requires the append-only Goal ledger")
+        event_id = "initial-candidate-bound-" + hashlib.sha256(
+            goal_continuity.canonical_json_bytes({
+                "goal_spec_sha256": goal_continuity.goal_spec_sha256(spec),
+                "candidate": candidate,
+                "attempt_id": attempt_id,
+                "order_sha256": updated_work["dispatch_binding"]["order_sha256"],
+            })
+        ).hexdigest()[:20]
+        event, _ = goal_continuity.append_ledger_event(
+            ledger_path,
+            event_id=event_id,
+            event_type="WORK_STATE_TRANSITION",
+            occurred_at=occurred_at,
+            goal_id=spec["goal_id"],
+            goal_version=spec["goal_version"],
+            logical_work_id=action["work_item_id"],
+            attempt_id=None,
+            payload={
+                "operation": "INITIAL_CANDIDATE_AND_ORDER_BOUND",
+                "candidate_commit": candidate["commit"],
+                "candidate_fingerprint": candidate["fingerprint"],
+                "branch": candidate["branch"],
+                "pull_request": None,
+                "state_patch": _state_patch(updated),
+            },
+        )
+        updated["event_cursor"] = {
+            "sequence": event["sequence"], "event_sha256": event["event_sha256"],
+        }
     goal_continuity.validate_runner_state(updated, spec)
     goal_continuity.atomic_write_json(state_path, updated)
     return updated, order_path, order, attempt_id
