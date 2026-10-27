@@ -21,7 +21,14 @@ from pathlib import Path
 from typing import Any, Callable
 
 import codex_control
-from claude_reviewer_adapter import AdapterError, WorkOrder, execute as execute_claude
+from claude_reviewer_adapter import (
+    AdapterError,
+    CLAUDE_SCHEMA_PROJECTION_VERSION,
+    FORMAL_REVIEW_SCHEMA_SHA256,
+    WorkOrder,
+    build_claude_schema_projection,
+    execute as execute_claude,
+)
 from product_goal_worker_result import WorkerResultError, validate_context
 
 
@@ -249,6 +256,7 @@ def _github_branch_snapshot(repository: str, branch: str) -> dict[str, Any]:
 def run_review(
     repo: Path, context: dict[str, Any], evidence_path: Path, *,
     executor: Callable[[WorkOrder], dict[str, Any]] = execute_claude,
+    runtime_paths: dict[str, str] | None = None,
 ) -> int:
     candidate = _exact_candidate(repo, context)
     if (
@@ -263,7 +271,27 @@ def run_review(
     limit = context.get("max_total_launches")
     if not isinstance(used, int) or not isinstance(limit, int) or not 0 <= used < limit:
         raise LaneError("review launch accounting is missing or exhausted")
+    try:
+        _, projection = build_claude_schema_projection()
+    except AdapterError as exc:
+        raise LaneError(f"formal Claude schema projection failed: {exc}") from exc
+    if (
+        projection.get("formal_schema_sha256") != FORMAL_REVIEW_SCHEMA_SHA256
+        or projection.get("projection_version") != CLAUDE_SCHEMA_PROJECTION_VERSION
+        or not isinstance(projection.get("claude_facing_schema_sha256"), str)
+    ):
+        raise LaneError("formal Claude schema projection metadata is inconsistent")
     checkpoint = evidence_path.with_name(evidence_path.stem + "-claude-checkpoint.json")
+    paths = {
+        "agent_loop": "/home/kgnote/.local/share/kgnote/coding-review-agent-loop/.venv/bin/agent-loop",
+        "agent_loop_checkout": "/home/kgnote/.local/share/kgnote/coding-review-agent-loop",
+        "claude_cmd": "/home/kgnote/.local/bin/claude",
+        "codex_cmd": "/home/kgnote/.local/bin/codex",
+    }
+    if runtime_paths is not None:
+        if set(runtime_paths) != set(paths):
+            raise LaneError("review runtime path override is incomplete")
+        paths = dict(runtime_paths)
     order = WorkOrder.from_dict({
         "goal_id": context["goal_id"], "repository": context["repository"],
         "issue": context["issue"], "pull_request": pull_request,
@@ -271,10 +299,7 @@ def run_review(
         "candidate_fingerprint": candidate["fingerprint"],
         "review_round_used": used, "review_round_limit": limit,
         "timeout_seconds": 1800, "checkpoint_path": str(checkpoint),
-        "agent_loop": "/home/kgnote/.local/share/kgnote/coding-review-agent-loop/.venv/bin/agent-loop",
-        "agent_loop_checkout": "/home/kgnote/.local/share/kgnote/coding-review-agent-loop",
-        "claude_cmd": "/home/kgnote/.local/bin/claude",
-        "codex_cmd": "/home/kgnote/.local/bin/codex",
+        **paths,
         "allow_live_write": False, "review_only_live": True,
         "safety_baseline_verified": True,
         "requested_model": "sonnet", "requested_effort": "medium",
@@ -288,7 +313,16 @@ def run_review(
             "AGENTS.md", "PLAN.md", "CODEX_STATUS.md",
             "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.2.json",
         ],
+        "formal_consumer_schema_sha256": projection["formal_schema_sha256"],
+        "claude_facing_schema_sha256": projection["claude_facing_schema_sha256"],
+        "schema_projection_version": projection["projection_version"],
     })
+    if (
+        order.formal_consumer_schema_sha256 != projection["formal_schema_sha256"]
+        or order.claude_facing_schema_sha256 != projection["claude_facing_schema_sha256"]
+        or order.schema_projection_version != projection["projection_version"]
+    ):
+        raise LaneError("Reviewer WorkOrder schema admission differs from the formal projection")
     result = executor(order)
     _atomic_json(evidence_path, result)
     return 0 if result.get("status") in {"COMPLETED", "ALREADY_COMPLETED"} else 2

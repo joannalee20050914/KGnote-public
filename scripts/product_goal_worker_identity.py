@@ -16,6 +16,8 @@ PRODUCT_REPOSITORY = "joannalee20050914/KGnote-public"
 PRODUCT_ISSUE = 9
 PRODUCT_WORKTREE_SLUG = "goal-o2-reading-experience"
 PRODUCT_BRANCH = "codex/o2-reading-experience"
+PRODUCT_SEED_COMMIT = "483f9e64066821d5d647d411e6da8ddb50ad88e5"
+PRODUCT_REPOSITORY_URL = f"https://github.com/{PRODUCT_REPOSITORY}.git"
 PRODUCT_BRANCH_RE = re.compile(r"codex/[a-z0-9][a-z0-9-]{2,80}")
 EVENT_RE = re.compile(
     r"o2-wi-o2-(?:a|b)-(?:implement|verify|publish|review|repair)-"
@@ -51,7 +53,7 @@ def validate_product_goal_identity(
         "goal_version", "goal_spec_sha256", "work_item_id", "provider", "stage",
         "order_event_id", "branch", "worktree_slug", "authority_record",
         "authority_sha256", "authority_status", "authority_action",
-        "go_live_authorized",
+        "go_live_authorized", "candidate_commit", "candidate_fingerprint",
     }
     if required - set(identity):
         raise ProductGoalIdentityError("Product Goal bootstrap identity is incomplete")
@@ -84,6 +86,16 @@ def validate_product_goal_identity(
         or identity["branch"] != PRODUCT_BRANCH
     ):
         raise ProductGoalIdentityError("Product Goal branch is invalid")
+    if (
+        not isinstance(identity["candidate_commit"], str)
+        or re.fullmatch(r"[0-9a-f]{40}", identity["candidate_commit"]) is None
+    ):
+        raise ProductGoalIdentityError("Product Goal candidate commit is invalid")
+    if (
+        not isinstance(identity["candidate_fingerprint"], str)
+        or re.fullmatch(r"[0-9a-f]{64}", identity["candidate_fingerprint"]) is None
+    ):
+        raise ProductGoalIdentityError("Product Goal candidate fingerprint is invalid")
     if not isinstance(identity["authority_sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", identity["authority_sha256"]) is None:
         raise ProductGoalIdentityError("Product Goal authority digest is invalid")
     expected_directory = worktree_root / "work-items" / PRODUCT_WORKTREE_SLUG
