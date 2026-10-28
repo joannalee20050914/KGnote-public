@@ -1,72 +1,80 @@
 # KGnote Codex status
 
-This factual handoff describes the bounded O2 runtime context recovery. It does not authorize `RESUME` or another O2 product-model attempt.
+This handoff describes the bounded O2 Ubuntu Worker runtime import repair. It does not authorize `RESUME` or another O2 product-model attempt.
 
 <!-- BEGIN CODEX STATUS JSON -->
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-28T10:56:33+08:00",
-  "goal_id": "CODEX-APP-GOAL-O2-RUNTIME-CONTEXT-RECOVERY-20261028",
-  "active_goal": "CODEX-APP-GOAL-O2-RUNTIME-CONTEXT-RECOVERY-20261028",
+  "updated_at": "2026-10-28T14:04:36+08:00",
+  "goal_id": "CODEX-APP-GOAL-O2-WORKER-RUNTIME-IMPORT-REPAIR-20261028",
+  "active_goal": "CODEX-APP-GOAL-O2-WORKER-RUNTIME-IMPORT-REPAIR-20261028",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
   "authority_kind": "CURRENT_USER_EXECUTION_INSTRUCTION",
   "lifecycle_owner": "CODEX_APP",
   "product_goal_authorized": false,
   "goal_status": "active",
-  "active_milestone_id": "R3-INDEPENDENT-REVIEW",
-  "milestone_id": "R3-INDEPENDENT-REVIEW",
+  "active_milestone_id": "W2-EXACT-VERIFICATION",
+  "milestone_id": "W2-EXACT-VERIFICATION",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
-    "branch": "codex/o2-runtime-context-recovery-20261028",
-    "head": "9271bf8645858eed49effa8eca3df8ea491bfc17",
-    "base_commit": "9271bf8645858eed49effa8eca3df8ea491bfc17",
+    "branch": "codex/o2-worker-runtime-import-repair-20261028",
+    "head": "8fc5a7f99cf5d01afa9bb544ba3774ee7cdf11ba",
+    "base_commit": "8fc5a7f99cf5d01afa9bb544ba3774ee7cdf11ba",
     "checkpoint_commit": null,
     "draft_pull_request": null
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "90ee98f579917a33b3c86c7f830a0576ca489257df7f3f74636fd7ad526edbe8",
-    "starting_fingerprint": "06304d9129ca9ad5e80ebfa1e548f22c64f5b4e7a5e6b2d1db85c47bdfe5d82f",
-    "expected_dirty_policy": "Only the bounded runtime-context, Ubuntu pre-model environment, evidence-classification/reconciliation repair, tests, PLAN/STATUS/review artifacts and exact receipts may change. Formal O2 state/ledger may change only after reviewed deployment through append-only trusted reconciliation; RESUME and a third model attempt are forbidden.",
+    "fingerprint": "97fd29fa46dea4c8994f74668f0ac5cc8e180c8c06648fe56df9cfece50e51df",
+    "starting_fingerprint": "dbec3a25268467b6c4d7c56b50e1e34bfe96b0d1746232b5a0235a75378429b1",
+    "expected_dirty_policy": "Only the bounded Ubuntu Worker runtime module/lock deployment repair, tests, PLAN/STATUS/review artifacts and exact verification receipts may change. Formal O2 state/ledger are read-only; RESUME and a fourth product attempt are forbidden.",
     "preserved_preexisting_dirty_paths": [],
     "unexpected_dirty_paths": []
   },
-  "readiness_outcome": "RUNTIME_CONTEXT_RECOVERY_REVIEW_PREPARATION",
+  "readiness_outcome": "RUNTIME_DEPLOYMENT_REPAIR_IMPLEMENTING",
   "formal_o2_readback": {
-    "deployed_commit": "9271bf8645858eed49effa8eca3df8ea491bfc17",
-    "pause_comment_id": "6458880366",
-    "ledger_cursor": 15,
-    "state_sha256": "b2f2e37c3e15ba9733f07ea31f4b27276da7f69aa1434f07a7ee658d72cf446d",
-    "ledger_sha256": "19515c795f59e10cdcfacdb3dad47f06c9c526548c2ba7aa13a04de1b0c21415",
+    "deployed_commit": "8fc5a7f99cf5d01afa9bb544ba3774ee7cdf11ba",
+    "pause_comment_id": "6461719798",
+    "ledger_cursor": 26,
+    "state_sha256": "5786046a481f412b945dc58664758dbe3d7202040ba275fa77ced617acbb3765",
+    "ledger_sha256": "a88d1f1c563a3845ae3e75ec6fb302352fe9648978e444c28c5b8f8b559afbdb",
+    "ledger_tail_event_sha256": "b63490ea283cc",
     "lifecycle": "BLOCKED",
     "authority_lease": "PAUSED",
     "go_live_authorized": false,
-    "work_item_attempts": 2,
+    "work_item_attempts": 3,
+    "goal_launches_used": 3,
     "model_attempts": 2,
-    "third_reservation_or_attempt": false,
+    "fourth_reservation_or_attempt": false,
     "runner_status": "WAIT_AUTHORITY"
   },
-  "preserved_failure_evidence": [
-    {
-      "attempt_id": "o2-wi-o2-a-implement-codex-c7ebf68b7d1eb5a7",
-      "checkpoint_sha256": "b187de690f7ef21e7b9a4ef3abf0611a8c6d6d356f12767c70d91fe5a2275e69",
-      "stdout_sha256": "f13ed7ff260f6831a8213c8e78c24487fe36e258896bb803e24d6de8f9c585c8",
-      "stderr_sha256": "2553a8bf52c98f2355a18f98559cb6b57c44e6b3465363a2718ae259972c819a",
-      "observed_cause": "STALE_REPOSITORY_AUTHORITY_CONTEXT",
-      "provider_rate_limit_evidence": false
-    },
-    {
-      "attempt_id": "o2-wi-o2-a-implement-codex-34ce7891c1d73523",
-      "checkpoint_sha256": "bac13415d172a25379373630fd1e7e2a95e6b8b7116d986ef602550d63c2c95b",
-      "stdout_sha256": "e8907c1ceb6356f39201670b5a4f36e5554811307dfa6a056a67ec9100a4480e",
-      "stderr_sha256": "07bbe6238bc68a1ae1b3a73507b7fde8dde01b407cf7f90129822f0ef51968bb",
-      "observed_cause": "STALE_REPOSITORY_CONTEXT_AND_INCOMPLETE_DEV_ENVIRONMENT",
-      "provider_rate_limit_evidence": false
-    }
-  ],
+  "third_attempt_evidence": {
+    "attempt_id": "o2-wi-o2-a-implement-codex-33383dc5b9d42939",
+    "started_at": "2026-10-28T12:48:14+08:00",
+    "status": "FAILED_CLOSED",
+    "codex_event_count": 0,
+    "turn_completed": false,
+    "observed_cause": "DEPLOYED_PYTHON_MODULE_IMPORT_FAILURE",
+    "reservation_preserved": true
+  },
+  "production_runtime_discovery": {
+    "ubuntu_host": "kgnote-ubuntu",
+    "flat_runtime": "/home/kgnote/.local/share/kgnote/runtime",
+    "reviewed_release": "/home/kgnote/.local/share/kgnote/runtime/releases/o2-8fc5a7f",
+    "product_checkout": "/home/kgnote/.local/share/kgnote/work-items/goal-o2-reading-experience",
+    "product_checkout_revision": "483f9e64066821d5d647d411e6da8ddb50ad88e5",
+    "missing_module_observed": "codex_jsonl_evidence.py",
+    "reviewed_module_sha256": "e6eebee348f4be6b532d234566669b3f889134b7dd7499183f2b5c4a016ca844",
+    "module_synced_atomically": true,
+    "direct_import_closure": "PASS_AFTER_SYNC",
+    "worker_result_help": "PASS_AFTER_SYNC",
+    "worker_lane_help": "PASS_AFTER_SYNC",
+    "full_no_model_admission": "FAIL_CLOSED_REQUIREMENTS_RUNTIME_LOCK_ABSENT_FROM_PRODUCT_CHECKOUT",
+    "model_started_during_validation": false
+  },
   "implementation_state": "IMPLEMENTING",
   "review": {
     "state": "IMPLEMENTING",
@@ -83,38 +91,43 @@ This factual handoff describes the bounded O2 runtime context recovery. It does 
     "consumer_status": null,
     "repair_review_is_not_o2_product_attempt": true
   },
-  "deployment_readback": {
-    "main_head": "9271bf8645858eed49effa8eca3df8ea491bfc17",
-    "runner_deploy_head": "9271bf8645858eed49effa8eca3df8ea491bfc17",
-    "runner_deploy_path": "/Users/joanna/Library/Application Support/KGnote/worktrees/runner-deploy-9271bf8",
-    "launchagent_python": "/Users/joanna/Library/Application Support/KGnote/runtime/python/runner-9271bf8-py3.13.7/bin/python",
-    "launchagent_python_status": "TRUSTED_PINNED_RUNTIME_READ_BACK",
-    "formal_state_and_ledger_preserved": true,
-    "rollback_status": "NOT_RUN"
-  },
   "verification": {
     "candidate_verified": true,
     "release_verified": false,
     "control_plane_ready": false,
-    "last_candidate_evidence": "output/control-plane/verification-20261028T105552+0800.json",
-    "last_verified_fingerprint": "90ee98f579917a33b3c86c7f830a0576ca489257df7f3f74636fd7ad526edbe8",
-    "last_result": "Final pre-commit exact verifier PASS: 403 control-plane tests, 348 product Python tests, 16 requirements-guard tests, 60 Node tests, strict diff, public-safety, untracked-whitespace and read-back all passed. Commit and post-commit verification remain before review sealing."
+    "last_candidate_evidence": "output/control-plane/verification-20261028T140349+0800.json",
+    "last_verified_fingerprint": "97fd29fa46dea4c8994f74668f0ac5cc8e180c8c06648fe56df9cfece50e51df",
+    "last_result": "Exact pre-commit verification PASS: 414 control-plane tests, 348 product Python tests, 16 requirements-guard tests, 60 Node tests, strict diff, public-safety scan, untracked-whitespace scan, fingerprint stability and evidence read-back all passed."
   },
-  "next_action": "Create the single bounded repair commit, rerun exact post-commit verification, publish one Draft PR, and seal the exact candidate for independent Ubuntu Claude review without publishing RESUME.",
+  "next_action": "Create the single bounded repair commit, rerun post-commit exact verification, publish one Draft PR, and seal the exact candidate for independent Ubuntu Claude review without publishing RESUME.",
   "external_or_human_gates": [
-    {"id": "REPAIR-EXACT-CLAUDE-PASS", "status": "not_started"},
-    {"id": "O2-AUTHORITY-LEASE", "status": "PAUSED"},
-    {"id": "D2-T14-FINAL-HUMAN-ACCEPTANCE", "status": "not_promoted"},
-    {"id": "PA-HUMAN-1", "status": "not_promoted"},
-    {"id": "NS-HUMAN-SMOKE", "status": "not_promoted"}
+    {
+      "id": "REPAIR-EXACT-CLAUDE-PASS",
+      "status": "not_started"
+    },
+    {
+      "id": "O2-AUTHORITY-LEASE",
+      "status": "PAUSED"
+    },
+    {
+      "id": "D2-T14-FINAL-HUMAN-ACCEPTANCE",
+      "status": "not_promoted"
+    },
+    {
+      "id": "PA-HUMAN-1",
+      "status": "not_promoted"
+    },
+    {
+      "id": "NS-HUMAN-SMOKE",
+      "status": "not_promoted"
+    }
   ],
   "forbidden_during_goal": [
     "publish RESUME or reissue Owner APPROVE",
-    "start a third O2 reservation, model attempt, dispatch or Ubuntu checkpoint",
-    "change the O2 Goal WHAT, requirements, DAG, resource limits, trial dates or hard stop",
+    "start a fourth O2 reservation, model attempt, dispatch or Ubuntu checkpoint",
+    "modify the sealed product checkout to supply runtime-only dependencies",
     "overwrite formal ledger/checkpoints/raw logs or reset attempt/launch accounting",
-    "classify arbitrary prose containing quota/429/rate limit as provider RATE_LIMITED",
-    "merge before exact Ubuntu Claude PASS and GitHub rule read-back",
+    "deploy code before exact Ubuntu Claude PASS and GitHub rule read-back",
     "force push, administrator bypass, direct main writes or stale PASS reuse",
     "promote D2-T14-FINAL-HUMAN-ACCEPTANCE, PA-HUMAN-1, NS-HUMAN-SMOKE or release_verified"
   ]
@@ -124,9 +137,9 @@ This factual handoff describes the bounded O2 runtime context recovery. It does 
 
 ## Human-readable handoff
 
-Goal `CODEX-APP-GOAL-O2-RUNTIME-CONTEXT-RECOVERY-20261028` remains active at milestone `R3-INDEPENDENT-REVIEW`.
+Goal `CODEX-APP-GOAL-O2-WORKER-RUNTIME-IMPORT-REPAIR-20261028` remains active at milestone `W2-EXACT-VERIFICATION`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Create the single bounded repair commit, rerun exact post-commit verification, publish one Draft PR, and seal the exact candidate for independent Ubuntu Claude review without publishing RESUME.
+Exact next action: Create the single bounded repair commit, rerun post-commit exact verification, publish one Draft PR, and seal the exact candidate for independent Ubuntu Claude review without publishing RESUME.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

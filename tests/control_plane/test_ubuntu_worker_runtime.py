@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,8 +10,46 @@ from unittest.mock import patch
 
 from scripts import install_ubuntu_worker_runtime as RUNTIME
 
+ROOT = Path(__file__).resolve().parents[2]
+
 
 class UbuntuWorkerRuntimeTest(unittest.TestCase):
+    def _worker_release(self, root: Path):
+        release = root / "release"
+        (release / "scripts").mkdir(parents=True)
+        files = {}
+        for name, relative in RUNTIME.WORKER_RUNTIME_SOURCES.items():
+            source = release / relative
+            source.parent.mkdir(parents=True, exist_ok=True)
+            if name == "requirements-runtime.lock":
+                source.write_text("jsonschema==4.26.0\n")
+            elif name in RUNTIME.WORKER_RUNTIME_ENTRYPOINTS:
+                source.write_text(
+                    "import argparse\n"
+                    "parser=argparse.ArgumentParser()\n"
+                    "parser.parse_args()\n"
+                )
+            else:
+                source.write_text("VALUE = True\n")
+            files[name] = hashlib.sha256(source.read_bytes()).hexdigest()
+        manifest = release / RUNTIME.WORKER_RUNTIME_MANIFEST_RELATIVE
+        manifest.parent.mkdir(parents=True, exist_ok=True)
+        manifest.write_text(json.dumps({
+            "schema_version": RUNTIME.WORKER_RUNTIME_MANIFEST_SCHEMA,
+            "files": files,
+        }))
+        return release, manifest, files
+
+    def test_repository_worker_runtime_manifest_matches_sources(self):
+        manifest = RUNTIME._load_worker_runtime_manifest(
+            ROOT / RUNTIME.WORKER_RUNTIME_MANIFEST_RELATIVE,
+        )
+        observed = {
+            name: hashlib.sha256((ROOT / relative).read_bytes()).hexdigest()
+            for name, relative in RUNTIME.WORKER_RUNTIME_SOURCES.items()
+        }
+        self.assertEqual(manifest["files"], observed)
+
     def test_install_receipt_binds_checkout_python_node_npm_and_gh(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); runtime=root/".local"; checkout=root/"checkout"; checkout.mkdir()
@@ -20,6 +60,7 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
             for path in (node,npm,codex_js): path.write_text("tool\n"); path.chmod(0o755)
             archive=root/RUNTIME.GH_ARCHIVE; archive.write_bytes(b"pinned archive")
             lock=root/"requirements-runtime.lock"; lock.write_text("jsonschema==4.26.0\n")
+            release,manifest,runtime_files=self._worker_release(root)
             gh=runtime/"bin/gh"; gh.parent.mkdir(parents=True); gh.write_text("gh\n"); gh.chmod(0o755)
             uv=runtime/RUNTIME.UV_RELATIVE; uv.write_text("uv\n"); uv.chmod(0o755)
             python=checkout/".venv/bin/python"; python.parent.mkdir(parents=True); python.write_text("python\n"); python.chmod(0o755)
@@ -32,18 +73,65 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
                 if command[0] == str(python): return RUNTIME.PYTHON_VERSION
                 self.fail(command)
             receipt_path=root/"receipt.json"
-            with patch.object(RUNTIME.platform,"machine",return_value="aarch64"), patch.object(RUNTIME,"_validate_checkout",return_value=identity) as checkout_check, patch.object(RUNTIME,"_install_gh",return_value=gh), patch.object(RUNTIME,"_validate_uv",return_value=uv_identity), patch.object(RUNTIME,"_install_venv",return_value=(python,"4.26.0:6.0.3")), patch.object(RUNTIME,"_run",side_effect=command):
+            runtime_receipt={"target":str(root),"files":runtime_files,"model_launches":0}
+            with patch.object(RUNTIME.platform,"machine",return_value="aarch64"), patch.object(RUNTIME,"_validate_checkout",return_value=identity) as checkout_check, patch.object(RUNTIME,"_install_gh",return_value=gh), patch.object(RUNTIME,"_validate_uv",return_value=uv_identity), patch.object(RUNTIME,"_install_worker_runtime",return_value=runtime_receipt), patch.object(RUNTIME,"_install_venv",return_value=(python,"4.26.0:6.0.3")), patch.object(RUNTIME,"_run",side_effect=command):
                 receipt=RUNTIME.install(
                     archive=archive,checkout=checkout,expected_head="a"*40,
-                    runtime_root=runtime,requirements_lock=lock,receipt_path=receipt_path,
+                    runtime_root=runtime,release_root=release,
+                    runtime_manifest=manifest,reviewed_revision="c"*40,
+                    receipt_path=receipt_path,
                 )
             self.assertEqual("PASS",receipt["status"])
             self.assertEqual(0,receipt["model_launches"])
             self.assertEqual("2.103.2",receipt["gh"]["version"])
             self.assertEqual(RUNTIME.UV_SHA256,receipt["uv"]["sha256"])
             self.assertEqual("Python 3.12.3",receipt["python"]["version"])
+            self.assertEqual(runtime_receipt,receipt["worker_runtime"])
             self.assertEqual(2,checkout_check.call_count)
             self.assertTrue(receipt_path.is_file())
+
+    def test_worker_runtime_install_attests_files_and_cold_starts_entrypoints(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); release,manifest,files=self._worker_release(root)
+            runtime=root/"runtime-root"
+            receipt=RUNTIME._install_worker_runtime(
+                release_root=release,runtime_root=runtime,
+                manifest_path=manifest,reviewed_revision="a"*40,
+                python=Path(sys.executable),
+            )
+            self.assertEqual(files,receipt["files"])
+            self.assertEqual(0,receipt["model_launches"])
+            self.assertEqual(0,receipt["installed_cold_start"]["model_launches"])
+            self.assertEqual(
+                set(RUNTIME.WORKER_RUNTIME_ENTRYPOINTS),
+                set(receipt["installed_cold_start"]["entrypoints"]),
+            )
+
+    def test_worker_runtime_missing_module_fails_before_target_mutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); release,manifest,_files=self._worker_release(root)
+            (release/RUNTIME.WORKER_RUNTIME_SOURCES["codex_jsonl_evidence.py"]).unlink()
+            runtime=root/"runtime-root"
+            with self.assertRaisesRegex(RUNTIME.UbuntuRuntimeError,"source is absent"):
+                RUNTIME._install_worker_runtime(
+                    release_root=release,runtime_root=runtime,
+                    manifest_path=manifest,reviewed_revision="a"*40,
+                    python=Path(sys.executable),
+                )
+            self.assertFalse((runtime/RUNTIME.WORKER_RUNTIME_RELATIVE).exists())
+
+    def test_worker_runtime_source_hash_drift_fails_before_target_mutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); release,manifest,_files=self._worker_release(root)
+            (release/RUNTIME.WORKER_RUNTIME_SOURCES["codex_jsonl_evidence.py"]).write_text("TAMPERED=True\n")
+            runtime=root/"runtime-root"
+            with self.assertRaisesRegex(RUNTIME.UbuntuRuntimeError,"SHA-256 differs"):
+                RUNTIME._install_worker_runtime(
+                    release_root=release,runtime_root=runtime,
+                    manifest_path=manifest,reviewed_revision="a"*40,
+                    python=Path(sys.executable),
+                )
+            self.assertFalse((runtime/RUNTIME.WORKER_RUNTIME_RELATIVE).exists())
 
     def test_gh_archive_digest_mismatch_fails_before_install(self):
         with tempfile.TemporaryDirectory() as directory:

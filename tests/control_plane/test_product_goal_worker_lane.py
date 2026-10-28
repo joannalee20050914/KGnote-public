@@ -122,6 +122,26 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
             hashlib.sha256(lock.read_bytes()).hexdigest(),
             receipt["dependency_probe"]["requirements_lock_sha256"],
         )
+        self.assertEqual(str(lock), receipt["dependency_probe"]["requirements_lock_path"])
+
+    def test_codex_environment_admission_uses_deployed_lock_when_checkout_has_none(self):
+        runtime = self.evidence_root / "runtime"
+        runtime.mkdir()
+        lane = runtime / "product_goal_worker_lane.py"
+        lane.write_text("# deployed lane\n")
+        lock = runtime / LANE.REQUIREMENTS_LOCK
+        lock.write_text("jsonschema==4.26.0\n")
+        with patch.object(LANE, "__file__", str(lane)):
+            self.assertEqual(lock.resolve(), LANE._runtime_requirements_lock(self.repo))
+
+    def test_codex_environment_admission_rejects_missing_deployed_lock(self):
+        runtime = self.evidence_root / "runtime"
+        runtime.mkdir()
+        lane = runtime / "product_goal_worker_lane.py"
+        lane.write_text("# deployed lane\n")
+        with patch.object(LANE, "__file__", str(lane)):
+            with self.assertRaisesRegex(LANE.LaneError, "deployed requirements-runtime.lock"):
+                LANE._runtime_requirements_lock(self.repo)
 
     def test_codex_environment_admission_rejects_dependency_lock_drift(self):
         python = self.repo / ".venv/bin/python"
