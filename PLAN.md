@@ -126,6 +126,7 @@ This file contains one bounded Ubuntu Worker deployment-repair Goal. It does not
         "缺檔、hash drift、import failure 或 entrypoint cold-start failure 在 model 前 fail closed",
         "正向、缺檔、tamper、import failure、entrypoint non-zero 與 compatibility tests 通過",
         "八個 Worker runtime 檔案以 immutable generation 加單一 current pointer 整組切換；第三檔中斷仍完整保留舊 generation",
+        "正式 8fc5a7f flat runtime 只缺 requirements-runtime.lock；首次 migration 只允許以已驗證的新 lock 建立 legacy bridge，其他部分缺檔仍 fail closed，且 pointer 切換後 cold-start 失敗會退回 bridge",
         "reviewed_revision 必須等於 clean release Git checkout HEAD，manifest 與每個 source blob 必須與該 commit 完全一致"
       ]
     },
@@ -155,6 +156,7 @@ This file contains one bounded Ubuntu Worker deployment-repair Goal. It does not
       "human_gate": "none",
       "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "GitHub main/PR metadata", "Ubuntu runtime", "formal read-only state/ledger evidence"],
       "acceptance": [
+        "以 clean real Git checkout 建立 reviewed release；既有無 .git 的 o2-8fc5a7f tar extraction 不得冒充 reviewed source identity",
         "正式 runtime 的 module/lock hashes、import closure、兩個 entrypoint --help 與 full no-model admission 全綠",
         "正式部署 receipt 已產生並讀回；但 O2-RUNTIME-RECEIPT-PRE-RESERVATION 在另有授權修復前仍維持 NOT_IMPLEMENTED，不得發布任何新 reservation",
         "正式狀態仍為 BLOCKED/PAUSED，attempts=3，沒有第四次派工",

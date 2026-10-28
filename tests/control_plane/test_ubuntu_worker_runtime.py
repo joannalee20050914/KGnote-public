@@ -65,11 +65,16 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
         ).stdout.strip()
         return release, manifest, files, revision
 
-    def _seed_flat_runtime(self, runtime: Path) -> tuple[Path, dict[str, bytes]]:
+    def _seed_flat_runtime(
+        self, runtime: Path, *, missing: set[str] | None = None,
+    ) -> tuple[Path, dict[str, bytes]]:
         target = runtime / RUNTIME.WORKER_RUNTIME_RELATIVE
         target.mkdir(parents=True)
         old = {}
+        missing = missing or set()
         for name in RUNTIME.WORKER_RUNTIME_SOURCES:
+            if name in missing:
+                continue
             old[name] = f"OLD:{name}\n".encode()
             (target / name).write_bytes(old[name])
         return target, old
@@ -248,6 +253,87 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
             )
             self.assertEqual(files, receipt["files"])
             self.assertTrue(all((target / name).is_symlink() for name in files))
+
+    def test_formal_partial_flat_runtime_interruption_keeps_safe_bridge(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release, manifest, files, revision = self._worker_release(root)
+            runtime = root / "runtime-root"
+            target, old = self._seed_flat_runtime(
+                runtime, missing={"requirements-runtime.lock"},
+            )
+            original = RUNTIME._atomic_symlink
+            promoted = []
+
+            def interrupt_third(source, destination):
+                if destination.name in RUNTIME.WORKER_RUNTIME_SOURCES:
+                    promoted.append(destination.name)
+                    if len(promoted) == 3:
+                        raise RUNTIME.UbuntuRuntimeError("forced partial-baseline interruption")
+                return original(source, destination)
+
+            with patch.object(RUNTIME, "_atomic_symlink", side_effect=interrupt_third):
+                with self.assertRaisesRegex(
+                    RUNTIME.UbuntuRuntimeError, "partial-baseline interruption",
+                ):
+                    RUNTIME._install_worker_runtime(
+                        release_root=release, runtime_root=runtime,
+                        manifest_path=manifest, reviewed_revision=revision,
+                        python=Path(sys.executable),
+                    )
+            self.assertEqual(3, len(promoted))
+            self.assertEqual(
+                old,
+                {name: (target / name).read_bytes() for name in old},
+            )
+            self.assertEqual(
+                (release / "requirements-runtime.lock").read_bytes(),
+                (target / "requirements-runtime.lock").read_bytes(),
+            )
+            self.assertFalse(any(
+                hashlib.sha256((target / name).read_bytes()).hexdigest() == files[name]
+                for name in old
+            ))
+            receipt = RUNTIME._install_worker_runtime(
+                release_root=release, runtime_root=runtime,
+                manifest_path=manifest, reviewed_revision=revision,
+                python=Path(sys.executable),
+            )
+            self.assertEqual(files, receipt["files"])
+            self.assertTrue(all((target / name).is_symlink() for name in files))
+
+    def test_post_switch_cold_start_failure_rolls_back_current_pointer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release, manifest, _files, revision = self._worker_release(root)
+            runtime = root / "runtime-root"
+            target, old = self._seed_flat_runtime(runtime)
+            staged = {
+                "python": str(sys.executable), "imports": [],
+                "import_stdout": "", "entrypoints": {}, "model_launches": 0,
+            }
+            with patch.object(
+                RUNTIME, "_cold_start_worker_runtime",
+                side_effect=[
+                    staged,
+                    RUNTIME.UbuntuRuntimeError("forced post-switch cold-start failure"),
+                ],
+            ):
+                with self.assertRaisesRegex(
+                    RUNTIME.UbuntuRuntimeError, "post-switch cold-start failure",
+                ):
+                    RUNTIME._install_worker_runtime(
+                        release_root=release, runtime_root=runtime,
+                        manifest_path=manifest, reviewed_revision=revision,
+                        python=Path(sys.executable),
+                    )
+            self.assertEqual(
+                old,
+                {name: (target / name).read_bytes() for name in RUNTIME.WORKER_RUNTIME_SOURCES},
+            )
+            current = target / RUNTIME.WORKER_RUNTIME_CURRENT
+            self.assertTrue(current.is_symlink())
+            self.assertTrue(Path(current.resolve()).name.startswith("legacy-"))
 
     def test_reviewed_revision_must_equal_clean_release_git_head(self):
         with tempfile.TemporaryDirectory() as directory:

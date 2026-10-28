@@ -258,19 +258,34 @@ def _generation_from_link(releases: Path, link: Path) -> Path:
     return generation
 
 
-def _prepare_legacy_generation(target: Path, releases: Path) -> Path | None:
+def _prepare_legacy_generation(
+    target: Path, releases: Path, fallback_generation: Path,
+) -> Path | None:
     existing = [
         (target / name).exists() or (target / name).is_symlink()
         for name in WORKER_RUNTIME_SOURCES
     ]
     if not any(existing):
         return None
-    if not all(existing):
+    missing = {
+        name for name, present in zip(WORKER_RUNTIME_SOURCES, existing)
+        if not present
+    }
+    # The formal 8fc5a7f runtime is known to contain every legacy Python file
+    # while lacking only the newly deployed dependency lock.  Bridging that
+    # non-code file from the already validated candidate generation keeps the
+    # old worker lane fail-closed while making the first pointer migration
+    # recoverable.  Any missing executable/module remains an unsupported drift.
+    if missing and missing != {"requirements-runtime.lock"}:
         raise UbuntuRuntimeError("existing flat worker runtime is incomplete")
     sources: dict[str, Path] = {}
     digests: dict[str, str] = {}
     for name in WORKER_RUNTIME_SOURCES:
-        path = target / name
+        path = (
+            fallback_generation / name
+            if name in missing
+            else target / name
+        )
         if not path.is_file() or path.is_symlink():
             raise UbuntuRuntimeError(
                 f"existing flat worker runtime is not a regular file: {name}"
@@ -306,7 +321,9 @@ def _promote_worker_generation(
     if current.is_symlink():
         visible_generation = _generation_from_link(releases, current)
     else:
-        visible_generation = _prepare_legacy_generation(target, releases)
+        visible_generation = _prepare_legacy_generation(
+            target, releases, generation,
+        )
         if visible_generation is None:
             visible_generation = generation
         relative = os.path.relpath(visible_generation, target)
@@ -323,18 +340,23 @@ def _promote_worker_generation(
         if path.exists():
             if not path.is_file() or _sha256(path) != visible_hashes[name]:
                 raise UbuntuRuntimeError(f"existing worker runtime file differs: {name}")
-        elif visible_generation != generation:
-            raise UbuntuRuntimeError(f"existing worker runtime file is absent: {name}")
         _atomic_symlink(expected_link, path)
 
+    previous_pointer = os.readlink(current)
+    switched = visible_generation != generation
     if visible_generation != generation:
         _atomic_symlink(os.path.relpath(generation, target), current)
-    if _worker_generation_hashes(generation) != manifest["files"]:
-        raise UbuntuRuntimeError("promoted worker runtime generation differs")
-    installed = {name: _sha256(target / name) for name in WORKER_RUNTIME_SOURCES}
-    if installed != manifest["files"]:
-        raise UbuntuRuntimeError("installed worker runtime differs from the reviewed manifest")
-    _cold_start_worker_runtime(target, python)
+    try:
+        if _worker_generation_hashes(generation) != manifest["files"]:
+            raise UbuntuRuntimeError("promoted worker runtime generation differs")
+        installed = {name: _sha256(target / name) for name in WORKER_RUNTIME_SOURCES}
+        if installed != manifest["files"]:
+            raise UbuntuRuntimeError("installed worker runtime differs from the reviewed manifest")
+        _cold_start_worker_runtime(target, python)
+    except Exception:
+        if switched:
+            _atomic_symlink(previous_pointer, current)
+        raise
 
 
 def _cold_start_worker_runtime(directory: Path, python: Path) -> dict[str, Any]:
