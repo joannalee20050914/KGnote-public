@@ -27,7 +27,7 @@ BASELINE_LEDGER_SHA256 = "19515c795f59e10cdcfacdb3dad47f06c9c526548c2ba7aa13a04d
 REMOTE_RAW_ROOT = Path("/home/kgnote/.local/share/kgnote/runtime-state/product-goal/raw")
 WORK_ITEM_ID = "WI-O2-A-IMPLEMENT"
 REVIEW_REPOSITORY = "joannalee20050914/KGnote-public"
-REVIEW_PULL_REQUEST = 36
+REVIEW_PULL_REQUEST = 37
 REVIEW_GOAL_ID = "CODEX-APP-GOAL-O2-RUNTIME-CONTEXT-RECOVERY-20261028"
 REVIEW_PROGRAM_ID = "program-kgnote-o2-runtime-context-recovery-20261028"
 REVIEWER_IDENTITY = "claude-code:ubuntu-review-only"
@@ -36,7 +36,7 @@ REVIEW_RESULT_MARKER = "kgnote-ai-product-review:v1"
 REVIEW_SCHEMA = Path("schemas/product-review/v1/review-result.schema.json")
 REVIEW_SCOPE = (
     "Bounded O2 runtime-context recovery: sealed Runner-verified authority/work/candidate/ledger "
-    "context; pre-model exact Ubuntu checkout and pinned Python/Node/npm/gh/Codex/dependencies; "
+    "context; pre-model exact Ubuntu checkout and pinned Python/uv/Node/npm/gh/Codex/dependencies; "
     "structured Codex JSONL-only provider-failure classification; append-only exact-evidence "
     "reconciliation of two historical attempts; preserve PAUSE/BLOCKED/go_live_authorized=false, "
     "attempts/model launches=2, no RESUME or third dispatch, and all human/release gates."

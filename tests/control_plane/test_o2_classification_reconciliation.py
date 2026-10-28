@@ -52,7 +52,7 @@ class O2ClassificationReconciliationTest(unittest.TestCase):
             f"```json\n{json.dumps(result,ensure_ascii=False)}\n```"
         )
         record={
-            "id":987,"html_url":"https://github.test/pull/36#issuecomment-987",
+            "id":987,"html_url":"https://github.test/pull/37#issuecomment-987",
             "created_at":"2026-10-28T04:00:00Z","body":body,
             "user":{"login":RECONCILE.TRUSTED_GITHUB_AUTHOR},
         }
