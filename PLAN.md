@@ -14,7 +14,7 @@ This file contains one bounded Ubuntu Worker deployment-repair Goal. It does not
   "product_goal_authorized": false,
   "objective": "在維持正式 O2 PAUSE 與既有三次 launch accounting 不變的前提下，限縮修復 Ubuntu Worker runtime 的 Python 模組、dependency lock、部署完整性與無模型冷啟動驗收；只有 exact candidate 經獨立審查後才能正式部署，全程禁止 RESUME 與第四次派工。",
   "status": "active",
-  "active_milestone_id": "W2-EXACT-VERIFICATION",
+  "active_milestone_id": "W3-INDEPENDENT-REVIEW",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "execution_direction_id": "kgnote-o2-worker-runtime-import-repair-2026-10-28",
@@ -121,7 +121,7 @@ This file contains one bounded Ubuntu Worker deployment-repair Goal. It does not
     {
       "id": "W2-EXACT-VERIFICATION",
       "title": "全套 deterministic verification 與 exact-candidate sealing",
-      "status": "active",
+      "status": "complete",
       "dependencies": ["W1-RUNTIME-IMPORT-AND-LOCK-REPAIR"],
       "human_gate": "none",
       "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "tests/control_plane/", "output/control-plane/"],
@@ -130,7 +130,7 @@ This file contains one bounded Ubuntu Worker deployment-repair Goal. It does not
     {
       "id": "W3-INDEPENDENT-REVIEW",
       "title": "Draft PR 與 Ubuntu Claude exact-candidate review",
-      "status": "pending",
+      "status": "active",
       "dependencies": ["W2-EXACT-VERIFICATION"],
       "human_gate": "none",
       "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "GitHub repair PR metadata", "existing Ubuntu Claude review runtime"],

@@ -2,7 +2,7 @@
   "schema_version": "kgnote.orchestrator-state.v1",
   "run_id": "orch-o2-worker-runtime-import-repair-20261028",
   "active_goal": "CODEX-APP-GOAL-O2-WORKER-RUNTIME-IMPORT-REPAIR-20261028",
-  "work_package": "W2-EXACT-VERIFICATION",
+  "work_package": "W3-INDEPENDENT-REVIEW",
   "state": "STOPPED",
   "current_agent": null,
   "candidate_fingerprint": null,

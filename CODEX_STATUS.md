@@ -14,21 +14,21 @@ This handoff describes the bounded O2 Ubuntu Worker runtime import repair. It do
   "lifecycle_owner": "CODEX_APP",
   "product_goal_authorized": false,
   "goal_status": "active",
-  "active_milestone_id": "W2-EXACT-VERIFICATION",
-  "milestone_id": "W2-EXACT-VERIFICATION",
+  "active_milestone_id": "W3-INDEPENDENT-REVIEW",
+  "milestone_id": "W3-INDEPENDENT-REVIEW",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
     "branch": "codex/o2-worker-runtime-import-repair-20261028",
-    "head": "8fc5a7f99cf5d01afa9bb544ba3774ee7cdf11ba",
+    "head": "ea7c4513fb242dcd3a8491612b81b3a624f620a7",
     "base_commit": "8fc5a7f99cf5d01afa9bb544ba3774ee7cdf11ba",
-    "checkpoint_commit": null,
+    "checkpoint_commit": "ea7c4513fb242dcd3a8491612b81b3a624f620a7",
     "draft_pull_request": null
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "97fd29fa46dea4c8994f74668f0ac5cc8e180c8c06648fe56df9cfece50e51df",
+    "fingerprint": "70470cdc7b0299803d6cd165fb89ec70101865d4ad35804ea2c6a73cc1627341",
     "starting_fingerprint": "dbec3a25268467b6c4d7c56b50e1e34bfe96b0d1746232b5a0235a75378429b1",
     "expected_dirty_policy": "Only the bounded Ubuntu Worker runtime module/lock deployment repair, tests, PLAN/STATUS/review artifacts and exact verification receipts may change. Formal O2 state/ledger are read-only; RESUME and a fourth product attempt are forbidden.",
     "preserved_preexisting_dirty_paths": [],
@@ -92,12 +92,12 @@ This handoff describes the bounded O2 Ubuntu Worker runtime import repair. It do
     "repair_review_is_not_o2_product_attempt": true
   },
   "verification": {
-    "candidate_verified": true,
+    "candidate_verified": false,
     "release_verified": false,
     "control_plane_ready": false,
-    "last_candidate_evidence": "output/control-plane/verification-20261028T140349+0800.json",
-    "last_verified_fingerprint": "97fd29fa46dea4c8994f74668f0ac5cc8e180c8c06648fe56df9cfece50e51df",
-    "last_result": "Exact pre-commit verification PASS: 414 control-plane tests, 348 product Python tests, 16 requirements-guard tests, 60 Node tests, strict diff, public-safety scan, untracked-whitespace scan, fingerprint stability and evidence read-back all passed."
+    "last_candidate_evidence": "output/control-plane/verification-20261028T140538+0800.json",
+    "last_verified_fingerprint": "7bdec8a95c02b97f6a06798e05bebebf4b4b3555976806052a8c2395447bf696",
+    "last_result": "Exact post-commit verification PASS for ea7c4513fb242dcd3a8491612b81b3a624f620a7: 414 control-plane tests, 348 product Python tests, 16 requirements-guard tests, 60 Node tests, strict diff, public-safety scan, untracked-whitespace scan, fingerprint stability and evidence read-back all passed."
   },
   "next_action": "Create the single bounded repair commit, rerun post-commit exact verification, publish one Draft PR, and seal the exact candidate for independent Ubuntu Claude review without publishing RESUME.",
   "external_or_human_gates": [
@@ -137,7 +137,7 @@ This handoff describes the bounded O2 Ubuntu Worker runtime import repair. It do
 
 ## Human-readable handoff
 
-Goal `CODEX-APP-GOAL-O2-WORKER-RUNTIME-IMPORT-REPAIR-20261028` remains active at milestone `W2-EXACT-VERIFICATION`.
+Goal `CODEX-APP-GOAL-O2-WORKER-RUNTIME-IMPORT-REPAIR-20261028` remains active at milestone `W3-INDEPENDENT-REVIEW`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
