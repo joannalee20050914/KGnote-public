@@ -63,7 +63,7 @@ class LinuxWorkerBootstrapTest(unittest.TestCase):
             identity=self.product_identity(
                 event,work_item="WI-O2-A-IMPLEMENT",provider="codex",stage="codex",commit=commit,
             )
-            with patch.object(BOOTSTRAP,"WORKTREE_ROOT",root), patch.object(BOOTSTRAP,"GENERIC_ROOT",generic), patch.object(BOOTSTRAP,"PRODUCT_REPOSITORY_URL",str(origin)):
+            with patch.object(BOOTSTRAP,"WORKTREE_ROOT",root), patch.object(BOOTSTRAP,"GENERIC_ROOT",generic), patch.object(BOOTSTRAP,"PRODUCT_REPOSITORY_URL",str(origin)), patch.object(BOOTSTRAP,"_validate_product_dev_environment",return_value={"status":"DEVELOPMENT_ENVIRONMENT_READY","versions":{}}):
                 first=BOOTSTRAP.prepare(event,"codex",target,identity)
                 second=BOOTSTRAP.prepare(event,"codex",target,identity)
                 self.assertTrue(first["checkout"]["cloned"])

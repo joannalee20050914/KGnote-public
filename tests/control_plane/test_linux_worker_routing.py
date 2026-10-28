@@ -1,3 +1,4 @@
+import hashlib
 import json
 import shlex
 import subprocess
@@ -55,6 +56,46 @@ class LinuxWorkerRoutingTest(unittest.TestCase):
         identity.update(changes)
         return identity
 
+    def runtime_context(self, identity):
+        authority = {
+            "schema_version":"kgnote.product-goal-authority.v1",
+            "identity_kind":"KGNOTE_PRODUCT_GOAL",
+            "authority_kind":"GITHUB_OWNER_APPROVAL",
+            "repository":identity["repository"], "issue":identity["issue"],
+            "comment_id":123, "comment_url":"https://example.invalid/comment/123",
+            "author_login":"owner", "author_association":"OWNER",
+            "created_at":"2026-10-28T09:00:00+08:00", "action":identity["authority_action"],
+            "goal_id":identity["goal_id"], "goal_version":identity["goal_version"],
+            "goal_spec_sha256":identity["goal_spec_sha256"],
+            "permissions":["activate_runner"], "expires_at":None,
+            "body_sha256":identity["authority_sha256"],
+        }
+        authority_sha=hashlib.sha256(json.dumps(authority,sort_keys=True,separators=(",",":"),ensure_ascii=False).encode()).hexdigest()
+        obligations=["OBL-O2-A"]
+        return {
+            "schema_version":"kgnote.product-goal-worker-context.v2",
+            "goal_id":identity["goal_id"], "goal_version":identity["goal_version"],
+            "goal_spec_sha256":identity["goal_spec_sha256"],
+            "repository":identity["repository"], "issue":identity["issue"],
+            "work_item_id":identity["work_item_id"], "order_event_id":identity["order_event_id"],
+            "attempt_id":"attempt-o2-1", "stage":identity["stage"], "provider":identity["provider"],
+            "candidate_commit":identity["candidate_commit"],
+            "candidate_fingerprint":identity["candidate_fingerprint"], "branch":identity["branch"],
+            "obligation_ids":obligations,
+            "runner_context":{
+                "schema_version":"kgnote.runner-verified-work-context.v1",
+                "source":"MAC_RUNNER_DURABLE_STATE",
+                "repository_plan_status_authoritative":False,
+                "state_projection_sha256":"3"*64,
+                "event_cursor":{"sequence":2,"event_sha256":"4"*64},
+                "lifecycle":{"state":"ACTIVE","revision":2,"changed_at":"2026-10-28T09:00:00+08:00","reason":"Owner authority active"},
+                "authority_lease":"ACTIVE", "go_live_authorized":True,
+                "authority_record":authority, "authority_record_sha256":authority_sha,
+                "work_item":{"work_item_id":identity["work_item_id"],"status":"PLANNED","attempts_before":0,"active_attempt_id":None,"dispatch_attempt_id":"attempt-o2-1","dependencies":[],"obligation_ids":obligations},
+                "candidate_identity":{"commit":identity["candidate_commit"],"fingerprint":identity["candidate_fingerprint"],"branch":identity["branch"],"pull_request":None},
+            },
+        }
+
     def test_o2_product_goal_lanes_are_identity_bound(self):
         cases = [
             ("WI-O2-A-IMPLEMENT", "codex", "codex", "o2-wi-o2-a-implement-codex-0123456789abcdef"),
@@ -79,12 +120,14 @@ class LinuxWorkerRoutingTest(unittest.TestCase):
         event = "o2-wi-o2-a-implement-codex-0123456789abcdef"
         directory = Path("/home/kgnote/.local/share/kgnote/work-items/goal-o2-reading-experience")
         handoff = Path("/home/kgnote/.local/share/kgnote/runtime-state/product-goal")
+        identity = self.product_identity()
         raw = {
             "schema_version": "kgnote.linux-worker-order.v1", "event_id": event,
             "stage": "codex", "working_directory": str(directory),
             "handoff_directory": str(handoff), "command": ["/usr/bin/true"],
             "checkpoint_path": "/tmp/checkpoint.json", "bootstrap_working_directory": True,
-            "bootstrap_identity": self.product_identity(),
+            "bootstrap_identity": identity,
+            "execution_context": self.runtime_context(identity),
         }
         order = WorkerOrder.from_dict(raw)
         command = sandbox_command(order)
@@ -92,6 +135,25 @@ class LinuxWorkerRoutingTest(unittest.TestCase):
         raw["handoff_directory"] = "/home/kgnote/.local/share/kgnote/runtime-state/foreign"
         with self.assertRaisesRegex(RoutingError, "handoff_directory"):
             WorkerOrder.from_dict(raw)
+
+    def test_o2_runtime_context_tamper_fails_before_routing(self):
+        identity=self.product_identity()
+        context=self.runtime_context(identity)
+        raw={
+            "schema_version":"kgnote.linux-worker-order.v1",
+            "event_id":identity["order_event_id"], "stage":"codex",
+            "working_directory":"/home/kgnote/.local/share/kgnote/work-items/goal-o2-reading-experience",
+            "handoff_directory":"/home/kgnote/.local/share/kgnote/runtime-state/product-goal",
+            "command":["/usr/bin/true"], "checkpoint_path":"/tmp/checkpoint.json",
+            "bootstrap_working_directory":True, "bootstrap_identity":identity,
+            "execution_context":context,
+        }
+        changed=json.loads(json.dumps(context)); changed["runner_context"]["repository_plan_status_authoritative"]=True
+        with self.assertRaisesRegex(RoutingError,"authority projection"):
+            WorkerOrder.from_dict({**raw,"execution_context":changed})
+        changed=json.loads(json.dumps(context)); changed["runner_context"]["authority_record"]["body_sha256"]="f"*64
+        with self.assertRaisesRegex(RoutingError,"digest differs"):
+            WorkerOrder.from_dict({**raw,"execution_context":changed})
 
     def test_o2_product_goal_identity_rejects_cross_goal_stage_digest_event_and_path(self):
         event = "o2-wi-o2-a-implement-codex-0123456789abcdef"
@@ -208,13 +270,16 @@ class LinuxWorkerRoutingTest(unittest.TestCase):
         self.assertEqual(1, len(launches))
         self.assertIn(GUEST_HOST, launches[0])
 
-    def test_codex_execution_evidence_adds_terminal_token_footer(self):
+    def test_codex_execution_evidence_uses_structured_turn_usage(self):
         configured={"requested_model":"gpt-5.6-terra","requested_effort":"medium","effective_status":"EFFECTIVE_UNKNOWN"}
         order=self.order(stage="codex",execution_context=configured)
-        stdout='KGNOTE_EXECUTION_EVIDENCE='+json.dumps(configured)+'\ntokens used\n12,345\n'
+        stdout=(
+            'KGNOTE_EXECUTION_EVIDENCE='+json.dumps(configured)+'\n'
+            +json.dumps({"type":"turn.completed","usage":{"input_tokens":12000,"output_tokens":345}})+'\n'
+        )
         evidence=execution_evidence(order,stdout,"")
         self.assertEqual("gpt-5.6-terra",evidence["requested_model"])
-        self.assertEqual(12345,evidence["token_usage"]["total_tokens"])
+        self.assertEqual({"input_tokens":12000,"output_tokens":345},evidence["token_usage"])
 
     def test_deterministic_execution_evidence_is_preserved_without_model(self):
         context={"role":"DETERMINISTIC_VERIFICATION","model_usage_status":"NOT_APPLICABLE","requested_model":None}
@@ -244,6 +309,23 @@ class LinuxWorkerRoutingTest(unittest.TestCase):
         run=lambda command,**kwargs: subprocess.CompletedProcess(command,2,"","rejected")
         result=route(order,run=run,popen=lambda *a,**k:self.fail("worker launched"))
         self.assertEqual("BLOCKED",result["status"]); self.assertEqual("bootstrap_failed",result["reason"])
+
+    def test_product_environment_admission_failure_never_enters_model_landlock(self):
+        identity=self.product_identity()
+        order=self.order(
+            event_id=identity["order_event_id"], stage="codex",
+            working_directory="/home/kgnote/.local/share/kgnote/work-items/goal-o2-reading-experience",
+            handoff_directory="/home/kgnote/.local/share/kgnote/runtime-state/product-goal",
+            bootstrap_working_directory=True, bootstrap_identity=identity,
+            execution_context=self.runtime_context(identity),
+        )
+        run=lambda command,**kwargs: subprocess.CompletedProcess(command,0,json.dumps({
+            "status":"READY", "development_environment":None,
+        }),"")
+        result=route(order,run=run,popen=lambda *a,**k:self.fail("model worker launched"))
+        self.assertEqual("BLOCKED",result["status"])
+        self.assertEqual("bootstrap_admission_failed",result["reason"])
+        self.assertEqual("WORKER_ENVIRONMENT_ADMISSION_FAILED",result["failure_class"])
 
     def test_ssh_remote_command_round_trips_spaces_and_quotes(self):
         order = self.order(command=["/usr/bin/python3", "-c", "print('quoted value')"])

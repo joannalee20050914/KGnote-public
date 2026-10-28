@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -29,11 +30,22 @@ from claude_reviewer_adapter import (
     build_claude_schema_projection,
     execute as execute_claude,
 )
-from product_goal_worker_result import WorkerResultError, validate_context
+from product_goal_worker_result import CONTEXT_SCHEMA, WorkerResultError, validate_context
 
 
 MODES = {"codex", "verify", "publish", "review"}
 GUEST_NODE_BIN = "/home/kgnote/.local/lib/node-v24.12.0/bin"
+GUEST_NODE = f"{GUEST_NODE_BIN}/node"
+GUEST_NPM = f"{GUEST_NODE_BIN}/npm"
+GUEST_GH = "/home/kgnote/.local/bin/gh"
+GUEST_GH_VERSION = "2.103.2"
+GUEST_CODEX_JS = "/home/kgnote/.local/lib/node-v24.12.0/lib/node_modules/@openai/codex/bin/codex.js"
+GUEST_PYTHON_VERSION = "Python 3.12.3"
+GUEST_NODE_VERSION = "v24.12.0"
+GUEST_NPM_VERSION = "11.6.2"
+GUEST_CODEX_VERSION = "codex-cli 0.146.0"
+REQUIREMENTS_LOCK = "requirements-runtime.lock"
+VENV_BOOTSTRAP_DISTRIBUTIONS = {"pip"}
 
 
 class LaneError(RuntimeError):
@@ -61,9 +73,10 @@ def _atomic_json(path: Path, value: dict[str, Any]) -> None:
 
 def _run(
     command: list[str], *, cwd: Path,
+    env: dict[str, str] | None = None,
     runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> subprocess.CompletedProcess[str]:
-    return runner(command, cwd=cwd, text=True, capture_output=True, check=False)
+    return runner(command, cwd=cwd, env=env, text=True, capture_output=True, check=False)
 
 
 def _prepare_verifier_environment(repo: Path) -> None:
@@ -96,14 +109,179 @@ def _exact_candidate(repo: Path, context: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _probe(command: list[str], *, repo: Path) -> str:
+    environment = dict(os.environ)
+    environment["PATH"] = f"{GUEST_NODE_BIN}:/home/kgnote/.local/bin:/usr/bin:/bin"
+    completed = subprocess.run(
+        command, cwd=repo, env=environment, text=True, capture_output=True,
+        timeout=30, check=False,
+    )
+    if completed.returncode:
+        raise LaneError(f"development environment probe failed: {Path(command[0]).name}")
+    return completed.stdout.strip() or completed.stderr.strip()
+
+
+def _normalized_distribution_name(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _locked_dependencies(lock: Path) -> dict[str, str]:
+    if not lock.is_file() or lock.is_symlink():
+        raise LaneError("requirements-runtime.lock is absent or not a regular file")
+    expected: dict[str, str] = {}
+    for line in lock.read_text(encoding="utf-8").splitlines():
+        value = line.strip()
+        if not value or value.startswith("#"):
+            continue
+        if value.count("==") != 1:
+            raise LaneError("requirements-runtime.lock contains a non-exact pin")
+        raw_name, version = value.split("==", 1)
+        name = _normalized_distribution_name(raw_name.strip())
+        if not name or not version.strip() or name in expected:
+            raise LaneError("requirements-runtime.lock contains an invalid or duplicate pin")
+        expected[name] = version.strip()
+    if not expected:
+        raise LaneError("requirements-runtime.lock contains no pinned dependencies")
+    return expected
+
+
+def _admit_locked_dependencies(python: Path, repo: Path) -> dict[str, Any]:
+    """Compare the complete venv distribution set with the candidate lock."""
+    lock = repo / REQUIREMENTS_LOCK
+    expected = _locked_dependencies(lock)
+    raw = _probe(
+        [
+            str(python), "-c",
+            "import importlib.metadata,json,re; "
+            "normalize=lambda value:re.sub(r'[-_.]+','-',value).lower(); "
+            "print(json.dumps({normalize(dist.metadata['Name']):dist.version "
+            "for dist in importlib.metadata.distributions() if dist.metadata['Name']}))",
+        ],
+        repo=repo,
+    )
+    try:
+        observed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise LaneError("Python dependency inventory is not valid JSON") from exc
+    if not isinstance(observed, dict) or any(
+        not isinstance(name, str) or not isinstance(version, str)
+        for name, version in observed.items()
+    ):
+        raise LaneError("Python dependency inventory is malformed")
+    missing = sorted(set(expected) - set(observed))
+    mismatched = sorted(
+        name for name in set(expected) & set(observed)
+        if observed[name] != expected[name]
+    )
+    unexpected = sorted(set(observed) - set(expected) - VENV_BOOTSTRAP_DISTRIBUTIONS)
+    if missing or mismatched or unexpected:
+        raise LaneError(
+            "repository venv differs from requirements-runtime.lock: "
+            f"missing={missing}, mismatched={mismatched}, unexpected={unexpected}"
+        )
+    pip_check = _probe([str(python), "-m", "pip", "check"], repo=repo)
+    return {
+        "requirements_lock_sha256": hashlib.sha256(lock.read_bytes()).hexdigest(),
+        "expected": expected,
+        "observed": {name: observed[name] for name in sorted(expected)},
+        "allowed_bootstrap_distributions": sorted(
+            set(observed) & VENV_BOOTSTRAP_DISTRIBUTIONS
+        ),
+        "pip_check": pip_check,
+    }
+
+
+def admit_codex_development_environment(
+    repo: Path, context: dict[str, Any], evidence_path: Path,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Prove the exact checkout and toolchain before invoking Codex."""
+    context = validate_context(context)
+    if context.get("schema_version") != CONTEXT_SCHEMA:
+        raise LaneError("Codex development admission requires Runner-verified context v2")
+    candidate = _exact_candidate(repo, context)
+    if (
+        candidate["commit"] != context["candidate_commit"]
+        or candidate["fingerprint"] != context["candidate_fingerprint"]
+    ):
+        raise LaneError("pre-model checkout differs from the sealed Runner context")
+    python = repo / ".venv/bin/python"
+    required = {
+        "python": python,
+        "node": Path(GUEST_NODE),
+        "npm": Path(GUEST_NPM),
+        "gh": Path(GUEST_GH),
+        "git": Path("/usr/bin/git"),
+        "codex_js": Path(GUEST_CODEX_JS),
+    }
+    missing = [name for name, path in required.items() if not path.is_file() or not os.access(path, os.X_OK if name != "codex_js" else os.R_OK)]
+    if missing:
+        raise LaneError("development environment is incomplete: " + ", ".join(sorted(missing)))
+    versions = {
+        "python": _probe([str(python), "--version"], repo=repo),
+        "node": _probe([GUEST_NODE, "--version"], repo=repo),
+        "npm": _probe([GUEST_NPM, "--version"], repo=repo),
+        "gh": _probe([GUEST_GH, "--version"], repo=repo).splitlines()[0],
+        "git": _probe(["/usr/bin/git", "--version"], repo=repo),
+        "codex": _probe([GUEST_NODE, GUEST_CODEX_JS, "--version"], repo=repo),
+    }
+    if (
+        versions["python"] != GUEST_PYTHON_VERSION
+        or versions["node"] != GUEST_NODE_VERSION
+        or versions["npm"] != GUEST_NPM_VERSION
+        or versions["codex"] != GUEST_CODEX_VERSION
+        or not versions["gh"].startswith(f"gh version {GUEST_GH_VERSION}")
+    ):
+        raise LaneError("development environment version differs from the pinned runtime")
+    dependency_probe = _admit_locked_dependencies(python, repo)
+    context_path = evidence_path.parent.parent / "contexts" / f"{context['order_event_id']}.json"
+    admission_path = evidence_path.parent.parent / "admissions" / f"{context['order_event_id']}.json"
+    _atomic_json(context_path, context)
+    receipt = {
+        "schema_version": "kgnote.codex-development-environment-admission.v1",
+        "status": "PASS",
+        "order_event_id": context["order_event_id"],
+        "attempt_id": context["attempt_id"],
+        "candidate": candidate,
+        "runner_context_sha256": hashlib.sha256(_canonical(context["runner_context"])).hexdigest(),
+        "context_path": str(context_path),
+        "context_sha256": hashlib.sha256(context_path.read_bytes()).hexdigest(),
+        "versions": versions,
+        "dependency_probe": dependency_probe,
+    }
+    _atomic_json(admission_path, receipt)
+    child_env = dict(os.environ)
+    child_env.update({
+        "KGNOTE_PRODUCT_GOAL_CONTEXT": str(context_path),
+        "KGNOTE_PRODUCT_GOAL_CONTEXT_SHA256": receipt["context_sha256"],
+        "KGNOTE_TEST_PYTHON": str(python),
+        "PATH": f"{python.parent}:/home/kgnote/.local/bin:{GUEST_NODE_BIN}:/usr/bin:/bin",
+    })
+    return receipt, child_env
+
+
 def run_codex(
     repo: Path, context: dict[str, Any], evidence_path: Path, command: list[str],
     *, runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
     verifier: Callable[[Path], tuple[dict[str, Any], int]] = codex_control.verify,
+    admitter: Callable[[Path, dict[str, Any], Path], tuple[dict[str, Any], dict[str, str]]] = admit_codex_development_environment,
 ) -> int:
     if not command or command[0] != "/home/kgnote/.local/bin/kgnote-successor-codex":
         raise LaneError("Codex lane command is not the fixed successor entrypoint")
-    completed = _run(command, cwd=repo, runner=runner)
+    try:
+        admission, child_env = admitter(repo, context, evidence_path)
+    except (OSError, WorkerResultError, LaneError) as exc:
+        _atomic_json(evidence_path, {
+            "schema_version": "kgnote.codex-product-goal-result.v1",
+            "status": "BLOCKED",
+            "failure_class": "WORKER_ENVIRONMENT_ADMISSION_FAILED",
+            "classification_evidence": {
+                "source": "trusted_pre_model_environment_admission",
+                "error_type": type(exc).__name__,
+                "error_sha256": hashlib.sha256(str(exc).encode()).hexdigest(),
+            },
+        })
+        raise
+    completed = _run(command, cwd=repo, env=child_env, runner=runner)
     _emit_child(completed)
     if completed.returncode:
         return completed.returncode
@@ -124,6 +302,12 @@ def run_codex(
             "verification_id": verification.get("verification_id"),
             "evidence_path": verification.get("evidence_path"),
             "evidence_sha256": hashlib.sha256(_canonical(verification)).hexdigest(),
+        },
+        "environment_admission": {
+            "status": admission["status"],
+            "context_sha256": admission["context_sha256"],
+            "runner_context_sha256": admission["runner_context_sha256"],
+            "versions": admission["versions"],
         },
     }
     _atomic_json(evidence_path, artifact)

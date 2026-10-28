@@ -38,6 +38,7 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
                 "commit":"1"*40, "fingerprint":"2"*64,
                 "branch":"codex/o2-reading-experience", "pull_request":33,
             },
+            "event_cursor": {"sequence": 1, "event_sha256": "3" * 64},
         })
         self.action = {
             "status":"ACTION_READY", "action":"DISPATCH_IMPLEMENTATION",
@@ -57,6 +58,18 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
             self.assertEqual("RUNNER_DYNAMIC_V1",updated["work_items"][0]["dispatch_binding"]["builder"])
             self.assertEqual(attempt,updated["work_items"][0]["dispatch_binding"]["attempt_id"])
             self.assertIn("product_goal_worker_result.py",order["command"][1])
+            context=order["execution_context"]
+            self.assertEqual("kgnote.product-goal-worker-context.v2",context["schema_version"])
+            self.assertEqual("MAC_RUNNER_DURABLE_STATE",context["runner_context"]["source"])
+            self.assertFalse(context["runner_context"]["repository_plan_status_authoritative"])
+            self.assertEqual(self.state["authority_record"],context["runner_context"]["authority_record"])
+            self.assertEqual(self.state["event_cursor"],context["runner_context"]["event_cursor"])
+            self.assertEqual("PLANNED",context["runner_context"]["work_item"]["status"])
+            lane_command=json.loads(order["command"][-1])
+            nested=json.loads(lane_command[-1])
+            prompt=nested[-1]
+            self.assertIn("Runner-verified execution authority",prompt)
+            self.assertIn("MUST NOT be used",prompt)
             self.assertEqual(
                 "/home/kgnote/.local/share/kgnote/runtime-state/product-goal",
                 order["handoff_directory"],
@@ -65,6 +78,17 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
                 self.spec,updated,self.action,repo=repo,state_path=state_path,occurred_at=NOW,
             )
             self.assertEqual(path,replay[1]); self.assertEqual(order["event_id"],replay[2]["event_id"])
+
+    def test_resume_authority_is_preserved_in_runtime_context(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo=Path(directory); state=deepcopy(self.state)
+            state["authority_record"]["action"]="RESUME"
+            state_path=self.write_state(repo,state)
+            _,_,order,_=ADAPTER.ensure_bound_order(
+                self.spec,state,self.action,repo=repo,state_path=state_path,occurred_at=NOW,
+            )
+            self.assertEqual("RESUME",order["bootstrap_identity"]["authority_action"])
+            self.assertEqual("RESUME",order["execution_context"]["runner_context"]["authority_record"]["action"])
 
     def test_detached_first_seed_binding_is_remote_verified_ledgered_and_restart_safe(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -88,6 +112,15 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
             subprocess.run(["git","worktree","add","--detach",str(deploy),hotfix],cwd=central,check=True,capture_output=True)
             state=deepcopy(self.state); state.pop("candidate_identity")
             runtime=root/"runtime"; runtime.mkdir(); state_path=runtime/"state.json"; ledger_path=runtime/"ledger.jsonl"
+            authority_event,_=GOAL.append_ledger_event(
+                ledger_path,event_id="goal-authority-test",event_type="GOAL_AUTHORITY_VERIFIED",
+                occurred_at=NOW,goal_id=self.spec["goal_id"],goal_version=self.spec["goal_version"],
+                logical_work_id=None,attempt_id=None,payload={"accepted":True,"action":"APPROVE"},
+            )
+            state["event_cursor"]={
+                "sequence":authority_event["sequence"],
+                "event_sha256":authority_event["event_sha256"],
+            }
             GOAL.atomic_write_json(state_path,state)
             with patch.object(ADAPTER.product_goal_worker_identity,"PRODUCT_REPOSITORY_URL",str(origin)), patch.object(ADAPTER.product_goal_worker_identity,"PRODUCT_SEED_COMMIT",seed):
                 updated,path,order,attempt=ADAPTER.ensure_bound_order(
@@ -108,8 +141,8 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
                     updated["candidate_identity"]["fingerprint"],
                 )
                 events=GOAL.read_ledger(ledger_path)
-                self.assertEqual(1,len(events))
-                self.assertEqual("INITIAL_CANDIDATE_AND_ORDER_BOUND",events[0]["payload"]["operation"])
+                self.assertEqual(2,len(events))
+                self.assertEqual("INITIAL_CANDIDATE_AND_ORDER_BOUND",events[1]["payload"]["operation"])
                 restarted=ADAPTER.synchronize_state_from_ledger(self.spec,state,events)
                 self.assertEqual(updated["candidate_identity"],restarted["candidate_identity"])
                 replay=ADAPTER.ensure_bound_order(
@@ -117,7 +150,7 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
                     ledger_path=ledger_path,occurred_at=NOW,
                 )
                 self.assertEqual(path,replay[1]); self.assertEqual(attempt,replay[3])
-                self.assertEqual(1,len(GOAL.read_ledger(ledger_path)))
+                self.assertEqual(2,len(GOAL.read_ledger(ledger_path)))
 
                 subprocess.run(["git","config","user.email","test@example.invalid"],cwd=source,check=True)
                 (source/"later.txt").write_text("later\n")
@@ -203,6 +236,7 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
     def test_first_publication_is_bound_to_one_mac_created_draft_pr(self):
         with tempfile.TemporaryDirectory() as directory:
             repo=Path(directory); state=deepcopy(self.state)
+            state["event_cursor"]={"sequence":0,"event_sha256":None}
             state["candidate_identity"]["pull_request"]=None
             publish=next(row for row in state["work_items"] if row["work_item_id"]=="WI-O2-A-PUBLISH")
             publish["status"]="VERIFIED"

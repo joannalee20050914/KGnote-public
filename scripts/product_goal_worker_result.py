@@ -18,8 +18,24 @@ import tempfile
 from pathlib import Path
 from typing import Any, Callable
 
+try:
+    from codex_jsonl_evidence import parse_codex_jsonl, provider_failure_from_output
+    from product_goal_worker_identity import (
+        PRODUCT_RUNTIME_CONTEXT_SCHEMA,
+        ProductGoalIdentityError,
+        validate_product_goal_runtime_context,
+    )
+except ModuleNotFoundError:  # Package import in repository unit tests.
+    from scripts.codex_jsonl_evidence import parse_codex_jsonl, provider_failure_from_output
+    from scripts.product_goal_worker_identity import (
+        PRODUCT_RUNTIME_CONTEXT_SCHEMA,
+        ProductGoalIdentityError,
+        validate_product_goal_runtime_context,
+    )
 
-CONTEXT_SCHEMA = "kgnote.product-goal-worker-context.v1"
+
+CONTEXT_SCHEMA = PRODUCT_RUNTIME_CONTEXT_SCHEMA
+LEGACY_CONTEXT_SCHEMA = "kgnote.product-goal-worker-context.v1"
 RESULT_SCHEMA = "kgnote.product-goal-worker-result.v1"
 EVIDENCE_PREFIX = "KGNOTE_EXECUTION_EVIDENCE="
 SHA1_RE = re.compile(r"[0-9a-f]{40}")
@@ -53,8 +69,15 @@ def _atomic_json(path: Path, value: dict[str, Any]) -> None:
 
 
 def validate_context(context: object) -> dict[str, Any]:
-    if not isinstance(context, dict) or context.get("schema_version") != CONTEXT_SCHEMA:
+    if not isinstance(context, dict) or context.get("schema_version") not in {
+        CONTEXT_SCHEMA, LEGACY_CONTEXT_SCHEMA,
+    }:
         raise WorkerResultError("worker context is missing or unsupported")
+    if context.get("schema_version") == CONTEXT_SCHEMA:
+        try:
+            validate_product_goal_runtime_context(context)
+        except ProductGoalIdentityError as exc:
+            raise WorkerResultError(str(exc)) from exc
     required = {
         "goal_id", "goal_version", "goal_spec_sha256", "work_item_id",
         "order_event_id", "attempt_id", "stage", "provider",
@@ -99,24 +122,34 @@ def _usage(raw: object, *, source: str) -> dict[str, Any]:
     }
 
 
-def _failure_class(returncode: int | None, output: bytes, artifact: object) -> str:
-    text = output.decode("utf-8", errors="replace").lower()
+def _failure_class(
+    returncode: int | None, output: bytes, artifact: object,
+) -> tuple[str, dict[str, Any]]:
+    text = output.decode("utf-8", errors="replace")
     if isinstance(artifact, dict):
         reported = artifact.get("failure_class") or artifact.get("reason")
         if isinstance(reported, str):
             normalized = reported.upper()
             if normalized in {
-                "RATE_LIMITED", "QUOTA_EXHAUSTED", "USAGE_LIMIT_REACHED",
                 "PUBLICATION_FAILED", "GITHUB_WRITEBACK_FAILED",
                 "DETERMINISTIC_WORKER_FAILURE", "EVIDENCE_INSUFFICIENT",
                 "UNKNOWN_OUTCOME", "TRANSPORT_INTERRUPTED",
+                "WORKER_ENVIRONMENT_ADMISSION_FAILED",
             }:
-                return normalized
-    if "429" in text or "rate limit" in text or "quota" in text or "usage_limit_reached" in text:
-        return "RATE_LIMITED"
-    if returncode is None or "interrupted" in text or "timeout" in text:
-        return "UNKNOWN_OUTCOME"
-    return "DETERMINISTIC_WORKER_FAILURE"
+                return normalized, {
+                    "source": "structured_worker_artifact",
+                    "artifact_sha256": hashlib.sha256(_canonical(artifact)).hexdigest(),
+                    "reported_field": "failure_class" if artifact.get("failure_class") else "reason",
+                }
+    provider_failure = provider_failure_from_output(text)
+    if provider_failure is not None:
+        return str(provider_failure["failure_class"]), provider_failure
+    if returncode is None:
+        return "UNKNOWN_OUTCOME", {"source": "missing_process_outcome"}
+    return "DETERMINISTIC_WORKER_FAILURE", {
+        "source": "process_exit_without_structured_provider_error",
+        "exit_code": returncode,
+    }
 
 
 def _candidate(context: dict[str, Any], artifact: dict[str, Any], *, allow_successor: bool) -> dict[str, Any]:
@@ -163,6 +196,8 @@ def adapt_worker_result(
         execution_evidence = artifact.get("execution_evidence")
         if isinstance(execution_evidence, dict):
             usage_raw = execution_evidence.get("token_usage")
+    if not isinstance(usage_raw, dict):
+        usage_raw = parse_codex_jsonl(combined.decode("utf-8", errors="replace")).get("usage")
     result: dict[str, Any] = {
         "schema_version": RESULT_SCHEMA,
         **{key: context[key] for key in (
@@ -186,10 +221,11 @@ def adapt_worker_result(
         },
     }
     if returncode != 0:
-        failure = _failure_class(returncode, combined, artifact)
+        failure, classification_evidence = _failure_class(returncode, combined, artifact)
         if context["stage"] in {"publisher", "push"} and failure == "DETERMINISTIC_WORKER_FAILURE":
             failure = "PUBLICATION_FAILED"
         result["failure_class"] = failure
+        result["execution"]["classification_evidence"] = classification_evidence
         if failure in {"UNKNOWN_OUTCOME", "TRANSPORT_INTERRUPTED"}:
             result["result_state"] = "PENDING"
             result["outcome"] = "WORK_PENDING"

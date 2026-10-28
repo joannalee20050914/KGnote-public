@@ -46,7 +46,7 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
         })
         state_path=repo/"state.json"; ledger_path=repo/"ledger.jsonl"; GOAL.atomic_write_json(state_path,state)
         record=authority["record"]
-        GOAL.append_ledger_event(
+        authority_event,_=GOAL.append_ledger_event(
             ledger_path,event_id="goal-authority-isolated",event_type="GOAL_AUTHORITY_VERIFIED",
             occurred_at=NOW.isoformat(),goal_id=spec["goal_id"],goal_version=spec["goal_version"],
             logical_work_id=None,attempt_id=None,payload={
@@ -55,6 +55,11 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
                 "goal_spec_sha256":GOAL.goal_spec_sha256(spec),
             },
         )
+        state["event_cursor"]={
+            "sequence":authority_event["sequence"],
+            "event_sha256":authority_event["event_sha256"],
+        }
+        GOAL.atomic_write_json(state_path,state)
         return spec,state,authority,state_path,ledger_path
 
     def test_dynamic_order_to_real_router_checkpoint_result_state_and_next_work(self):
@@ -81,9 +86,17 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
             product_result=adapt_worker_result(context,artifact,returncode=0,stdout=b"real structured evidence")
             execution={"schema_version":"kgnote.model-execution-evidence.v1","product_goal_result":product_result}
             marker=ROUTER.EVIDENCE_PREFIX+json.dumps(execution,separators=(",",":"))
+            def guest_run(command,**kwargs):
+                if "linux_worker_bootstrap.py" in command[-1]:
+                    return subprocess.CompletedProcess(command,0,json.dumps({
+                        "status":"READY",
+                        "development_environment":{"status":"DEVELOPMENT_ENVIRONMENT_READY"},
+                    }),"")
+                return subprocess.CompletedProcess(command,0,"active","")
+
             routed=ROUTER.route(
                 ROUTER.WorkerOrder.from_dict(order),
-                run=lambda command,**kwargs: subprocess.CompletedProcess(command,0,"active",""),
+                run=guest_run,
                 popen=lambda *args,**kwargs: Process(marker), now=lambda:NOW,
             )
             self.assertEqual("COMPLETED",routed["status"])

@@ -30,15 +30,30 @@ class SuccessorEntrypointTest(unittest.TestCase):
             self.assertIn('model_reasoning_effort="medium"',popen.call_args.args[0])
             self.assertIn("--strict-config",popen.call_args.args[0])
 
-    def test_usage_limit_is_checkpointed_as_quota_exhausted(self):
+    def test_structured_usage_limit_is_checkpointed_with_provider_evidence(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); (root/".git").mkdir()
-            process=Process(returncode=1,stderr="usage limit reached")
+            process=Process(returncode=1,stdout=json.dumps({"type":"error","code":"usage_limit_reached","message":"usage limit reached"})+"\n")
             with patch.object(ENTRY.subprocess,"check_output",side_effect=["codex/successor\n","a"*40+"\n","codex-cli 0.146.0\n","a"*40+"\n"]), patch.object(ENTRY.subprocess,"Popen",return_value=process):
                 self.assertEqual(1,ENTRY.run("owner/repo","codex/successor","a"*40,"prompt",root))
             checkpoint=json.loads((root/".git/kgnote-successor-worker-checkpoint.json").read_text())
             self.assertEqual("FAILED_CLOSED",checkpoint["status"])
-            self.assertEqual("quota_exhausted",checkpoint["reason"])
+            self.assertEqual("usage_limit_reached",checkpoint["reason"])
+            self.assertEqual("USAGE_LIMIT_REACHED",checkpoint["failure_class"])
+            self.assertEqual("codex_jsonl_structured_event",checkpoint["provider_failure"]["source"])
+
+    def test_transcript_quota_words_do_not_become_provider_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); (root/".git").mkdir()
+            process=Process(returncode=1,stdout=json.dumps({
+                "type":"item.completed",
+                "item":{"type":"agent_message","text":"docs mention quota, 429 and rate limit"},
+            })+"\n")
+            with patch.object(ENTRY.subprocess,"check_output",side_effect=["codex/successor\n","a"*40+"\n","codex-cli 0.146.0\n","a"*40+"\n"]), patch.object(ENTRY.subprocess,"Popen",return_value=process):
+                self.assertEqual(1,ENTRY.run("owner/repo","codex/successor","a"*40,"prompt",root))
+            checkpoint=json.loads((root/".git/kgnote-successor-worker-checkpoint.json").read_text())
+            self.assertEqual("DETERMINISTIC_WORKER_FAILURE",checkpoint["failure_class"])
+            self.assertIsNone(checkpoint["provider_failure"])
 
     def test_first_run_rejects_wrong_inherited_head(self):
         with tempfile.TemporaryDirectory() as directory:

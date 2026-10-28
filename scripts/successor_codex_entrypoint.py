@@ -12,6 +12,11 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+try:
+    from codex_jsonl_evidence import PROVIDER_FAILURE_PREFIX, parse_codex_jsonl
+except ModuleNotFoundError:  # Package import in repository unit tests.
+    from scripts.codex_jsonl_evidence import PROVIDER_FAILURE_PREFIX, parse_codex_jsonl
+
 
 NODE = "/home/kgnote/.local/lib/node-v24.12.0/bin/node"
 CODEX_JS = "/home/kgnote/.local/lib/node-v24.12.0/lib/node_modules/@openai/codex/bin/codex.js"
@@ -20,14 +25,6 @@ REQUESTED_EFFORT = "medium"
 PROVIDER = "OpenAI"
 AUTHENTICATION = "ChatGPT OAuth"
 EVIDENCE_PREFIX = "KGNOTE_EXECUTION_EVIDENCE="
-
-
-def quota_failure_reason(output: str) -> str | None:
-    """Use the same fail-closed quota vocabulary as the Claude adapter."""
-    lowered = output.lower()
-    if "quota" in lowered or "rate limit" in lowered or "usage limit" in lowered:
-        return "quota_exhausted"
-    return None
 
 
 def atomic_json(path: Path, value: dict[str, object]) -> None:
@@ -52,7 +49,7 @@ def codex_command(prompt: str, worktree: Path) -> list[str]:
         "--model", REQUESTED_MODEL,
         "--config", f'model_reasoning_effort="{REQUESTED_EFFORT}"',
         "-a", "never", "-s", "danger-full-access", "-C", str(worktree),
-        "exec", "--ephemeral", prompt,
+        "exec", "--ephemeral", "--json", prompt,
     ]
 
 
@@ -120,11 +117,33 @@ def run(
     if stderr:
         print(stderr, end="" if stderr.endswith("\n") else "\n", file=sys.stderr, flush=True)
     exit_code = child.returncode
-    reason = None if exit_code == 0 else quota_failure_reason(stdout + stderr)
-    if exit_code != 0 and reason is None:
-        reason = "codex_process_returned_non_zero"
+    summary = parse_codex_jsonl(stdout)
+    provider_failure = summary["provider_failure"]
+    if provider_failure is not None:
+        print(PROVIDER_FAILURE_PREFIX + json.dumps(provider_failure, sort_keys=True), flush=True)
+    failure_class = (
+        provider_failure["failure_class"]
+        if isinstance(provider_failure, dict)
+        else ("DETERMINISTIC_WORKER_FAILURE" if exit_code != 0 else None)
+    )
+    reason = failure_class.lower() if isinstance(failure_class, str) else None
     head = subprocess.check_output(["/usr/bin/git", "-C", str(worktree), "rev-parse", "HEAD"], text=True).strip()
-    atomic_json(checkpoint, {"schema_version":"kgnote.successor-worker-checkpoint.v1","status":"COMPLETED" if exit_code == 0 else "FAILED_CLOSED","reason":reason,"exit_code":exit_code,"head":head,"execution_evidence":evidence,"recorded_at":datetime.now(timezone.utc).isoformat()})
+    atomic_json(checkpoint, {
+        "schema_version":"kgnote.successor-worker-checkpoint.v1",
+        "status":"COMPLETED" if exit_code == 0 else "FAILED_CLOSED",
+        "reason":reason,
+        "failure_class":failure_class,
+        "provider_failure":provider_failure,
+        "codex_jsonl": {
+            "event_count": summary["event_count"],
+            "turn_completed": summary["turn_completed"],
+            "usage": summary["usage"],
+        },
+        "exit_code":exit_code,
+        "head":head,
+        "execution_evidence":evidence,
+        "recorded_at":datetime.now(timezone.utc).isoformat(),
+    })
     return exit_code
 
 

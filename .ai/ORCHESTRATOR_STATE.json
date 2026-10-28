@@ -1,8 +1,8 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "orch-8cb9880782d8",
-  "active_goal": "CODEX-APP-GOAL-O2-PRELAUNCH-HOTFIX-20261027",
-  "work_package": "H3-CLAUDE-INDEPENDENT-REVIEW",
+  "run_id": "orch-o2-runtime-context-recovery-20261028",
+  "active_goal": "CODEX-APP-GOAL-O2-RUNTIME-CONTEXT-RECOVERY-20261028",
+  "work_package": "R3-INDEPENDENT-REVIEW",
   "state": "STOPPED",
   "current_agent": null,
   "candidate_fingerprint": null,
@@ -13,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Operator requested a safe stop; run resume to continue.",
+  "next_action": "Codex App owns the bounded implementation; do not start orchestrator review until exact verification has sealed a candidate.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -22,11 +22,11 @@
     "fingerprint": null
   },
   "next_human_checkpoint": {
-    "id": "D2-T14-FINAL-HUMAN-ACCEPTANCE",
-    "status": "not_promoted",
-    "description": null
+    "id": "O2-AUTHORITY-LEASE",
+    "status": "PAUSED",
+    "description": "No RESUME or additional O2 model dispatch is authorized by this repair goal."
   },
   "last_agent_run": null,
-  "created_at": "2026-10-27T10:51:25+08:00",
-  "updated_at": "2026-10-27T10:51:25+08:00"
+  "created_at": "2026-10-28T10:26:42+08:00",
+  "updated_at": "2026-10-28T10:55:29+08:00"
 }

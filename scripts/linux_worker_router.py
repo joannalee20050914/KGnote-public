@@ -18,10 +18,12 @@ from datetime import datetime
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
+from codex_jsonl_evidence import parse_codex_jsonl, provider_failure_from_output
 from product_goal_worker_identity import (
     PRODUCT_IDENTITY_SCHEMA,
     ProductGoalIdentityError,
     validate_product_goal_identity,
+    validate_product_goal_runtime_context,
 )
 
 
@@ -146,6 +148,16 @@ class WorkerOrder:
                 )
         if self.execution_context is not None and not isinstance(self.execution_context, dict):
             raise RoutingError("execution_context must be an object")
+        if (
+            isinstance(self.bootstrap_identity, dict)
+            and self.bootstrap_identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+        ):
+            try:
+                validate_product_goal_runtime_context(
+                    self.execution_context, identity=self.bootstrap_identity,
+                )
+            except ProductGoalIdentityError as exc:
+                raise RoutingError(str(exc)) from exc
 
 
 def validate_bootstrap_identity(
@@ -255,12 +267,15 @@ def execution_evidence(order: WorkerOrder, stdout: str, stderr: str) -> dict[str
     if evidence is None and isinstance(order.execution_context, dict):
         evidence = dict(order.execution_context)
     if evidence is not None and order.stage == "codex":
-        match = re.search(r"tokens used\s*\n\s*([0-9][0-9,]*)", stdout + "\n" + stderr, re.IGNORECASE)
+        summary = parse_codex_jsonl(stdout)
+        provider_failure = provider_failure_from_output(stdout + "\n" + stderr)
         evidence = dict(evidence)
-        evidence["token_usage"] = (
-            {"total_tokens": int(match.group(1).replace(",", "")), "source": "codex_cli_terminal_footer"}
-            if match else None
-        )
+        evidence["token_usage"] = summary.get("usage")
+        evidence["provider_failure"] = provider_failure
+        evidence["codex_jsonl"] = {
+            "event_count": summary["event_count"],
+            "turn_completed": summary["turn_completed"],
+        }
     return evidence
 
 
@@ -352,14 +367,39 @@ def route(
             [*ssh_base, shlex.join(bootstrap_command(order))],
             text=True, capture_output=True, timeout=15, check=False,
         )
-        if prepared.returncode:
+        try:
+            bootstrap_receipt = json.loads(prepared.stdout) if prepared.stdout.strip() else None
+        except json.JSONDecodeError:
+            bootstrap_receipt = None
+        product_codex = (
+            order.stage == "codex"
+            and isinstance(order.bootstrap_identity, dict)
+            and order.bootstrap_identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+        )
+        bootstrap_admitted = (
+            isinstance(bootstrap_receipt, dict)
+            and bootstrap_receipt.get("status") == "READY"
+            and (
+                not product_codex
+                or (bootstrap_receipt.get("development_environment") or {}).get("status")
+                == "DEVELOPMENT_ENVIRONMENT_READY"
+            )
+        )
+        if prepared.returncode or not bootstrap_admitted:
             blocked = {
                 "schema_version": "kgnote.linux-worker-route.v1", "status": "BLOCKED",
-                "reason": "bootstrap_failed", "event_id": order.event_id,
+                "reason": "bootstrap_failed" if prepared.returncode else "bootstrap_admission_failed",
+                "failure_class": (
+                    "WORKER_ENVIRONMENT_ADMISSION_FAILED"
+                    if product_codex else "DETERMINISTIC_WORKER_FAILURE"
+                ),
+                "event_id": order.event_id,
                 "command_digest": digest, "exit_code": prepared.returncode,
                 "attempt_count": int(prior.get("attempt_count", 0)),
                 "memory_max": order.memory_max, "tasks_max": order.tasks_max,
                 "lease_timeout_seconds": order.lease_timeout_seconds,
+                "bootstrap_stdout_sha256": hashlib.sha256(prepared.stdout.encode()).hexdigest(),
+                "bootstrap_stderr_sha256": hashlib.sha256(prepared.stderr.encode()).hexdigest(),
                 "host_fallback_used": False,
             }
             _atomic_json(order.checkpoint_path, blocked)

@@ -23,6 +23,7 @@ import goal_continuity
 import goal_notifications
 import linux_worker_router
 import product_goal_worker_identity
+from codex_jsonl_evidence import provider_failure_from_output
 
 
 ZONE = ZoneInfo("Asia/Taipei")
@@ -398,6 +399,8 @@ def classify_recovery(failure: dict[str, Any]) -> dict[str, Any]:
         return {"action": "DISPATCH_REPAIR", "requires_model": True}
     if failure_class in {"DETERMINISTIC_WORKER_FAILURE", "EVIDENCE_INSUFFICIENT"}:
         return {"action": "RETRY_FAILED_WORK", "requires_model": False}
+    if failure_class == "WORKER_ENVIRONMENT_ADMISSION_FAILED":
+        return {"action": "WAIT_ENVIRONMENT_REPAIR", "requires_model": False}
     if failure_class in {"PRODUCT_DECISION_REQUIRED", "NEW_PERMISSION_REQUIRED", "NEW_EXPENSE"}:
         return {"action": "WAIT_HUMAN_DECISION", "requires_model": False}
     return {"action": "ADJUST_STRATEGY", "requires_model": False}
@@ -1042,9 +1045,17 @@ def _dynamic_worker_command(
     work_item_id = str(action["work_item_id"])
     nested_command: list[str] | None = None
     if stage == "codex":
+        sealed_runtime = json.dumps(
+            context["runner_context"], sort_keys=True, separators=(",", ":"),
+            ensure_ascii=False,
+        )
         prompt = (
             f"Execute only immutable Product Goal Work Item {work_item_id}. "
-            "Read the sealed Goal spec and authority from the repository. Preserve all gates. "
+            "The following JSON is the sealed, Runner-verified execution authority and current "
+            f"work projection: {sealed_runtime}. "
+            "Repository PLAN.md and CODEX_STATUS.md may be historical and MUST NOT be used to "
+            "grant, deny, or reconstruct runtime Owner authority. Preserve every product gate and "
+            "use repository specifications only for the authorized Work Item scope. "
             "Implement and deterministically verify the scoped change, then create one successor commit. "
             "Do not push, merge, or treat final prose/process exit as completion; the trusted lane records evidence."
         )
@@ -1186,8 +1197,34 @@ def ensure_bound_order(
             candidate_path.resolve().relative_to(repo.resolve())
         except ValueError as exc:
             raise GoalRunnerError("dynamic order path escapes the repository evidence root") from exc
+    runner_context = {
+        "schema_version": "kgnote.runner-verified-work-context.v1",
+        "source": "MAC_RUNNER_DURABLE_STATE",
+        "repository_plan_status_authoritative": False,
+        "state_projection_sha256": hashlib.sha256(
+            goal_continuity.canonical_json_bytes(durable)
+        ).hexdigest(),
+        "event_cursor": deepcopy(durable["event_cursor"]),
+        "lifecycle": deepcopy(durable["lifecycle"]),
+        "authority_lease": durable["authority_lease"],
+        "go_live_authorized": durable["go_live_authorized"],
+        "authority_record": deepcopy(durable["authority_record"]),
+        "authority_record_sha256": hashlib.sha256(
+            goal_continuity.canonical_json_bytes(durable["authority_record"])
+        ).hexdigest(),
+        "work_item": {
+            "work_item_id": work["work_item_id"],
+            "status": work["status"],
+            "attempts_before": int(work.get("attempts", 0)),
+            "active_attempt_id": work.get("active_attempt_id"),
+            "dispatch_attempt_id": attempt_id,
+            "dependencies": deepcopy(work["dependencies"]),
+            "obligation_ids": deepcopy(work["obligation_ids"]),
+        },
+        "candidate_identity": deepcopy(candidate),
+    }
     context = {
-        "schema_version": "kgnote.product-goal-worker-context.v1",
+        "schema_version": product_goal_worker_identity.PRODUCT_RUNTIME_CONTEXT_SCHEMA,
         "goal_id": spec["goal_id"], "goal_version": spec["goal_version"],
         "goal_spec_sha256": goal_continuity.goal_spec_sha256(spec),
         "work_item_id": action["work_item_id"], "order_event_id": event_id,
@@ -1204,6 +1241,7 @@ def ensure_bound_order(
         "branch": candidate["branch"],
         "pull_request": candidate.get("pull_request"),
         "obligation_ids": deepcopy(work["obligation_ids"]),
+        "runner_context": runner_context,
     }
     goal_continuity.atomic_write_json(context_path, context)
     guest_root = Path("/home/kgnote/.local/share/kgnote")
@@ -1230,7 +1268,8 @@ def ensure_bound_order(
         "worktree_slug": "goal-o2-reading-experience",
         "authority_record": f"https://github.com/{spec['repository']}/issues/{spec['github_issue']}",
         "authority_sha256": durable["authority_record"]["body_sha256"],
-        "authority_status": "APPROVED", "authority_action": "APPROVE",
+        "authority_status": "APPROVED",
+        "authority_action": durable["authority_record"]["action"],
         "go_live_authorized": True,
     }
     order = {
@@ -1583,7 +1622,24 @@ def bind_candidate_pull_request(
 def _checkpoint_failure_class(
     checkpoint: dict[str, Any], *, repo: Path
 ) -> str:
+    direct = checkpoint.get("failure_class")
+    if direct in {"WORKER_ENVIRONMENT_ADMISSION_FAILED", "DETERMINISTIC_WORKER_FAILURE"}:
+        return str(direct)
     evidence = checkpoint.get("execution_evidence")
+    result = evidence.get("product_goal_result") if isinstance(evidence, dict) else None
+    if isinstance(result, dict) and isinstance(result.get("failure_class"), str):
+        value = result["failure_class"].upper()
+        if value in {
+            "QUOTA_EXHAUSTED", "RATE_LIMITED", "USAGE_LIMIT_REACHED",
+            "WORK_WINDOW_CLOSED", "UNKNOWN_OUTCOME", "CHECKPOINT_MISSING",
+            "TRANSPORT_INTERRUPTED", "PUBLICATION_FAILED",
+            "GITHUB_WRITEBACK_FAILED", "COMPLETION_GATE_FAILED",
+            "COMPLETION_RECEIPT_MISSING", "DETERMINISTIC_WORKER_FAILURE",
+            "EVIDENCE_INSUFFICIENT", "PRODUCT_DECISION_REQUIRED",
+            "NEW_PERMISSION_REQUIRED", "NEW_EXPENSE",
+            "WORKER_ENVIRONMENT_ADMISSION_FAILED",
+        }:
+            return value
     if isinstance(evidence, dict) and isinstance(evidence.get("failure_class"), str):
         value = evidence["failure_class"].upper()
         if value in {
@@ -1594,6 +1650,7 @@ def _checkpoint_failure_class(
             "COMPLETION_GATE_FAILED", "COMPLETION_RECEIPT_MISSING",
             "DETERMINISTIC_WORKER_FAILURE", "EVIDENCE_INSUFFICIENT",
             "PRODUCT_DECISION_REQUIRED", "NEW_PERMISSION_REQUIRED", "NEW_EXPENSE",
+            "WORKER_ENVIRONMENT_ADMISSION_FAILED",
         }:
             return value
     reason = str(checkpoint.get("reason") or "").lower()
@@ -1601,7 +1658,7 @@ def _checkpoint_failure_class(
         return "WORK_WINDOW_CLOSED"
     if reason == "controller_interrupted":
         return "UNKNOWN_OUTCOME"
-    text = reason
+    text = ""
     for key in ("stdout_path", "stderr_path"):
         raw = checkpoint.get(key)
         if not isinstance(raw, str):
@@ -1616,11 +1673,10 @@ def _checkpoint_failure_class(
             content = path.read_bytes()
             if isinstance(expected, str) and hashlib.sha256(content).hexdigest() != expected:
                 raise GoalRunnerError(f"{key} digest differs from routing checkpoint")
-            text += "\n" + content.decode("utf-8", errors="replace").lower()
-    if "usage_limit_reached" in text or "quota_exhausted" in text or "http 429" in text:
-        return "USAGE_LIMIT_REACHED"
-    if "rate limit" in text:
-        return "RATE_LIMITED"
+            text += "\n" + content.decode("utf-8", errors="replace")
+    provider_failure = provider_failure_from_output(text)
+    if provider_failure is not None:
+        return str(provider_failure["failure_class"])
     return "DETERMINISTIC_WORKER_FAILURE"
 
 
