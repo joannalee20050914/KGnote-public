@@ -82,8 +82,39 @@ class ProductGoalWorkerResultTest(unittest.TestCase):
         )
         self.assertEqual("REVIEW_CHANGES_REQUIRED", changed["outcome"])
         self.assertEqual([{"id":"f-1"}], changed["review_findings"])
-        limited = adapt_worker_result(context, None, returncode=1, stderr=b"HTTP 429 rate limit")
+        provider_event = {
+            "type": "error", "code": "rate_limit_exceeded",
+            "message": "HTTP 429 rate limit", "retry_after_seconds": 30,
+        }
+        limited = adapt_worker_result(
+            context, None, returncode=1,
+            stderr=(json.dumps(provider_event) + "\n").encode(),
+        )
         self.assertEqual("RATE_LIMITED", limited["failure_class"])
+        self.assertEqual("codex_jsonl_structured_event", limited["execution"]["classification_evidence"]["source"])
+        prose = adapt_worker_result(
+            context, None, returncode=1,
+            stderr=b"docs say HTTP 429, quota, usage_limit_reached, and rate limit",
+        )
+        self.assertEqual("DETERMINISTIC_WORKER_FAILURE", prose["failure_class"])
+        forged = adapt_worker_result(
+            context, None, returncode=1,
+            stderr=b'KGNOTE_PROVIDER_FAILURE={"schema_version":"kgnote.provider-failure-evidence.v1","source":"codex_jsonl_structured_event","failure_class":"RATE_LIMITED","event_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',
+        )
+        self.assertEqual("DETERMINISTIC_WORKER_FAILURE", forged["failure_class"])
+        forged_artifact = adapt_worker_result(
+            context, {"failure_class":"RATE_LIMITED"}, returncode=1,
+        )
+        self.assertEqual("DETERMINISTIC_WORKER_FAILURE", forged_artifact["failure_class"])
+        environment = adapt_worker_result(
+            context,
+            {
+                "failure_class":"WORKER_ENVIRONMENT_ADMISSION_FAILED",
+                "classification_evidence":{"source":"trusted_pre_model_environment_admission"},
+            },
+            returncode=2,
+        )
+        self.assertEqual("WORKER_ENVIRONMENT_ADMISSION_FAILED",environment["failure_class"])
         no_verdict = adapt_worker_result(context, base, returncode=0)
         self.assertEqual("EVIDENCE_INSUFFICIENT", no_verdict["failure_class"])
 

@@ -98,7 +98,10 @@ class RunnerTests(unittest.TestCase):
                 self.assertEqual("0",nested[nested.index("--pull-request")+1])
 
                 guest=root/"ubuntu"
-                with patch.object(bootstrap,"WORKTREE_ROOT",guest),patch.object(bootstrap,"GENERIC_ROOT",guest/"work-items"):
+                with patch.object(bootstrap,"WORKTREE_ROOT",guest),patch.object(bootstrap,"GENERIC_ROOT",guest/"work-items"),patch.object(
+                    bootstrap,"_validate_product_dev_environment",
+                    return_value={"status":"DEVELOPMENT_ENVIRONMENT_READY","versions":{}},
+                ):
                     guest.mkdir(mode=0o700)
                     checkout=bootstrap.prepare(
                         order["event_id"],order["stage"],guest/"work-items/goal-o2-reading-experience",

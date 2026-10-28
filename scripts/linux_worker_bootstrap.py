@@ -12,19 +12,37 @@ import hashlib
 import subprocess
 from pathlib import Path
 
-from product_goal_worker_identity import (
-    PRODUCT_IDENTITY_SCHEMA,
-    PRODUCT_BRANCH,
-    PRODUCT_REPOSITORY_URL,
-    ProductGoalIdentityError,
-    validate_product_goal_identity,
-)
+try:
+    from product_goal_worker_identity import (
+        PRODUCT_IDENTITY_SCHEMA,
+        PRODUCT_BRANCH,
+        PRODUCT_REPOSITORY_URL,
+        ProductGoalIdentityError,
+        validate_product_goal_identity,
+    )
+except ModuleNotFoundError:  # Direct file loading in repository unit tests.
+    from scripts.product_goal_worker_identity import (
+        PRODUCT_IDENTITY_SCHEMA,
+        PRODUCT_BRANCH,
+        PRODUCT_REPOSITORY_URL,
+        ProductGoalIdentityError,
+        validate_product_goal_identity,
+    )
 
 
 SUCCESSOR_EVENT_RE = re.compile(r"source-library-successor-codex-20261019(?:-cycle-(?:0[2-9]|1[0-2]))?")
 AUTHORIZED_WORKTREE = Path("/home/kgnote/.local/share/kgnote/source-library-successor-20261019")
 WORKTREE_ROOT = Path("/home/kgnote/.local/share/kgnote")
 GENERIC_ROOT = WORKTREE_ROOT / "work-items"
+GUEST_NODE = Path("/home/kgnote/.local/lib/node-v24.12.0/bin/node")
+GUEST_NPM = Path("/home/kgnote/.local/lib/node-v24.12.0/bin/npm")
+GUEST_GH = Path("/home/kgnote/.local/bin/gh")
+GUEST_CODEX_JS = Path("/home/kgnote/.local/lib/node-v24.12.0/lib/node_modules/@openai/codex/bin/codex.js")
+PINNED_GH_VERSION = "2.103.2"
+PINNED_PYTHON_VERSION = "Python 3.12.3"
+PINNED_NODE_VERSION = "v24.12.0"
+PINNED_NPM_VERSION = "11.6.2"
+PINNED_CODEX_VERSION = "codex-cli 0.146.0"
 
 
 class BootstrapError(RuntimeError):
@@ -133,6 +151,56 @@ def _prepare_product_checkout(
     }
 
 
+def _validate_product_dev_environment(
+    working_directory: Path, *, runner: object = subprocess.run,
+) -> dict[str, object]:
+    """Fail before model launch when the deployed Ubuntu toolchain is incomplete."""
+    python = working_directory / ".venv/bin/python"
+    required = {
+        "python": python, "node": GUEST_NODE, "npm": GUEST_NPM,
+        "gh": GUEST_GH, "codex_js": GUEST_CODEX_JS,
+    }
+    missing = [
+        name for name, path in required.items()
+        if not path.is_file() or not os.access(path, os.X_OK)
+    ]
+    if missing:
+        raise BootstrapError("Product Goal development environment is incomplete: " + ", ".join(sorted(missing)))
+
+    def probe(command: list[str]) -> str:
+        environment = dict(os.environ)
+        environment["PATH"] = f"{GUEST_NODE.parent}:/home/kgnote/.local/bin:/usr/bin:/bin"
+        completed = runner(
+            command, cwd=working_directory, env=environment,
+            text=True, capture_output=True,
+            timeout=30, check=False,
+        )
+        if completed.returncode:
+            raise BootstrapError(f"Product Goal development tool failed: {Path(command[0]).name}")
+        return completed.stdout.strip() or completed.stderr.strip()
+
+    versions = {
+        "python": probe([str(python), "--version"]),
+        "node": probe([str(GUEST_NODE), "--version"]),
+        "npm": probe([str(GUEST_NPM), "--version"]),
+        "gh": probe([str(GUEST_GH), "--version"]).splitlines()[0],
+        "codex": probe([str(GUEST_NODE), str(GUEST_CODEX_JS), "--version"]),
+        "dependencies": probe([
+            str(python), "-c",
+            "import jsonschema,yaml; print(jsonschema.__version__ + ':' + yaml.__version__)",
+        ]),
+    }
+    if (
+        versions["python"] != PINNED_PYTHON_VERSION
+        or versions["node"] != PINNED_NODE_VERSION
+        or versions["npm"] != PINNED_NPM_VERSION
+        or versions["codex"] != PINNED_CODEX_VERSION
+        or not str(versions["gh"]).startswith(f"gh version {PINNED_GH_VERSION}")
+    ):
+        raise BootstrapError("Product Goal development tool version differs from the pinned runtime")
+    return {"status": "DEVELOPMENT_ENVIRONMENT_READY", "versions": versions}
+
+
 def _require_real_directory(
     path: Path, *, owner_uid: int, owner_gid: int, require_private: bool = True
 ) -> os.stat_result:
@@ -226,11 +294,14 @@ def prepare(event_id: str, stage: str, working_directory: Path, identity: object
         created = True
     metadata = _require_real_directory(working_directory, owner_uid=uid, owner_gid=gid)
     checkout = None
+    development_environment = None
     if (
         isinstance(identity, dict)
         and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
     ):
         checkout = _prepare_product_checkout(working_directory, identity)
+        if stage == "codex":
+            development_environment = _validate_product_dev_environment(working_directory)
         metadata = _require_real_directory(working_directory, owner_uid=uid, owner_gid=gid)
     return {
         "schema_version": "kgnote.worker-bootstrap.v1",
@@ -252,6 +323,7 @@ def prepare(event_id: str, stage: str, working_directory: Path, identity: object
             json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest() if identity is not None else None,
         "checkout": checkout,
+        "development_environment": development_environment,
     }
 
 

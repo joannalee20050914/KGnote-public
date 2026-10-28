@@ -474,6 +474,7 @@ def reduce_ledger(events: Iterable[dict[str, Any]]) -> dict[str, Any]:
         "publications": {},
         "obligations": {},
         "notifications": {},
+        "classification_corrections": {},
         "lifecycle": None,
         "authority": None,
         "authority_history": [],
@@ -529,6 +530,8 @@ def reduce_ledger(events: Iterable[dict[str, Any]]) -> dict[str, Any]:
             result["authority_history"].append(deepcopy(payload))
             if payload.get("accepted") is not False:
                 result["authority"] = deepcopy(payload)
+        if payload.get("operation") == "ATTEMPT_FAILURE_CLASSIFICATION_CORRECTED" and attempt_id:
+            result["classification_corrections"][attempt_id] = deepcopy(payload)
     result["event_cursor"] = {
         "sequence": len(rows),
         "event_sha256": rows[-1]["event_sha256"] if rows else None,

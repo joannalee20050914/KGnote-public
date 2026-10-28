@@ -7,59 +7,51 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 {
   "schema_version": "kgnote.review-request.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "review_id": "review-o2-prelaunch-hotfix-20261027-001",
-  "goal_id": "CODEX-APP-GOAL-O2-PRELAUNCH-HOTFIX-20261027",
-  "milestone_id": "H1-THREE-BLOCKER-REPAIR",
+  "review_id": "review-o2-runtime-context-recovery-20261028-001",
+  "goal_id": "CODEX-APP-GOAL-O2-RUNTIME-CONTEXT-RECOVERY-20261028",
+  "milestone_id": "R3-INDEPENDENT-REVIEW",
   "status": "IMPLEMENTING",
   "author_role": "CODEX_IMPLEMENTER",
-  "base_revision": "483f9e64066821d5d647d411e6da8ddb50ad88e5",
+  "base_revision": "9271bf8645858eed49effa8eca3df8ea491bfc17",
   "candidate_revision": null,
   "candidate_fingerprint": null,
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
-    "docs/control-plane/O2_PRELAUNCH_HOTFIX_DIRECTION_20261027.md",
+    "docs/control-plane/O2_RUNTIME_CONTEXT_RECOVERY_DIRECTION_20261028.md",
     "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.2.json",
     "docs/control-plane/O2_BOUNDED_TRIAL_AUTHORIZATION_PACKAGE_20261023.md",
     "docs/control-plane/B_SCHEME_OPERATIONS.md",
-    "docs/control-plane/CLAUDE_REVIEWER_ROLE_DECISION_20261020.md",
     "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
     ".ai/REVIEW_PROTOCOL.md",
     "docs/requirements/requirements.json",
     "docs/requirements/scenarios.json",
-    "docs/requirements/FEATURE_DISPOSITION_LEDGER.md",
     "DEVELOPMENT_PLAIN.md",
     "AGENTS.md"
   ],
   "changed_areas": [
-    "PLAN.md",
-    "CODEX_STATUS.md",
-    ".ai/",
-    "docs/control-plane/",
-    "requirements-runtime.lock",
-    "scripts/goal_runner_adapter.py",
-    "scripts/product_goal_worker_identity.py",
-    "scripts/linux_worker_bootstrap.py",
-    "scripts/linux_worker_router.py",
-    "scripts/local_autonomy_runner.py",
-    "scripts/product_goal_worker_lane.py",
-    "scripts/install_runner_python_runtime.py",
-    "tests/control_plane/"
+    "PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/", "requirements-runtime.lock",
+    "scripts/codex_jsonl_evidence.py", "scripts/goal_continuity.py", "scripts/goal_runner_adapter.py",
+    "scripts/product_goal_worker_result.py", "scripts/product_goal_worker_lane.py",
+    "scripts/product_goal_worker_identity.py", "scripts/linux_worker_bootstrap.py", "scripts/linux_worker_router.py",
+    "scripts/local_autonomy_runner.py", "scripts/successor_codex_entrypoint.py",
+    "scripts/install_ubuntu_worker_runtime.py", "scripts/reconcile_o2_attempt_classification.py",
+    "schemas/", "tests/control_plane/"
   ],
   "acceptance_criteria": [
-    "detached Runner 只對固定 O2 version/digest 從遠端 product seed branch 讀回真實 commit/tree 並計算 fingerprint，首次 pull_request=null 合法",
-    "首次 candidate/order binding 以 append-only ledger state_patch 持久化且 restart 可重放，錯 branch/commit/common-dir/digest/remote fail closed",
-    "Ubuntu bootstrap 在模型前建立或重用 exact clean branch checkout，驗證 repository、HEAD、tree、owner/mode、非 symlink 與 Git common directory，非空或 dirty 不覆寫",
-    "O2 Reviewer WorkOrder 從正式 projection 取得三項 Schema Admission，真實 WorkOrder 與 command/schema preflight 在模型前驗證",
-    "pinned Python runtime 安裝與驗證程序記錄 interpreter、dependencies、sources、imports、sys.executable/sys.path、commit/tree、owner/mode 與 rollback，不依賴舊 dirty worktree"
+    "Ubuntu Codex receives sealed Runner-verified Goal, Owner-authority, lifecycle, work, candidate and ledger context without deriving execution authority from stale PLAN/STATUS",
+    "Exact checkout, Python, Node/npm, gh and repository tooling are admitted before provider/model invocation while conservative reservation accounting remains unchanged",
+    "RATE_LIMITED requires structured provider/error evidence and is not triggered by incidental quota/429/rate-limit prose",
+    "Two historical corrections are append-only and integrity-bound to original raw logs/checkpoints without resetting attempt or launch accounting",
+    "Exact candidate passes deterministic verification and the existing independent Ubuntu Claude review before deployment",
+    "Formal deployment read-back remains BLOCKED/PAUSED/go_live_authorized=false with exactly two attempts and no RESUME"
   ],
   "negative_requirements": [
-    "修改 O2 Goal WHAT、Requirement、Work Item DAG、模型額度、試行開始或硬截止",
-    "直接手改正式 state／ledger、預填未來 SHA 或以 Legacy PR／candidate 冒充首次 O2 候選",
-    "空目錄冒充 Ubuntu Git checkout，或覆寫非空、dirty、symlink、錯 owner／mode／common-dir 的工作目錄",
-    "mock 掉正式 WorkOrder admission 後宣稱 Claude schema path 通過，或恢復 Legacy final-smoke schema",
-    "複製舊 dirty worktree .venv 冒充 immutable Python runtime，或讓 sys.path 回讀舊工作樹",
-    "force push、管理員繞過、直接寫 main、重用 stale PASS、增加 reviewer agent／排程／transport",
-    "啟動 O2 Work Item A、產品模型 attempt、合併產品 PR、重發 Owner APPROVE 或提升任何 human/release gate"
+    "Publish or synthesize RESUME, reissue APPROVE, or start a third O2 model dispatch",
+    "Overwrite the formal ledger, checkpoint or raw logs, or reset resource/launch/attempt accounting",
+    "Trust stale repository PLAN/STATUS as runtime Owner authority",
+    "Treat arbitrary transcript prose containing quota, 429 or rate limit as provider evidence",
+    "Force push, bypass GitHub rules, write main directly, reuse stale PASS or deploy unreviewed bytes",
+    "Promote product, learning, physical-device, human-acceptance or release gates"
   ],
   "validation_performed": [],
   "validation_results": [],
@@ -67,15 +59,13 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
   "known_uncertainties": [],
   "reviewer_focus": [],
   "preserved_human_gates": [
+    "O2-AUTHORITY-LEASE",
     "D2-T14-FINAL-HUMAN-ACCEPTANCE",
     "PA-HUMAN-1",
-    "NS-HUMAN-SMOKE",
-    "O2-PRODUCT-MODEL-DISPATCH"
+    "NS-HUMAN-SMOKE"
   ],
   "requested_at": null,
-  "authorized_human_decision_identities": [
-    "product owner"
-  ],
+  "authorized_human_decision_identities": ["product owner"],
   "candidate_manifest": null,
   "completion_evidence": {
     "schema_version": "kgnote.review-completion-summary.v1",
@@ -92,6 +82,6 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 
 ## Human-readable status
 
-Review `review-o2-prelaunch-hotfix-20261027-001` is `IMPLEMENTING`.
+Review `review-o2-runtime-context-recovery-20261028-001` is `IMPLEMENTING`.
 It has no active candidate binding and cannot be interpreted as a review request or PASS.
 Codex must complete deterministic verification before issuing this request.

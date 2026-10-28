@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 import sys
+import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -65,12 +66,72 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
             self.repo, self.context, evidence,
             ["/home/kgnote/.local/bin/kgnote-successor-codex"],
             runner=worker, verifier=lambda _repo: (verification, 0),
+            admitter=lambda _repo, _context, _evidence: ({
+                "status":"PASS", "context_sha256":"a"*64,
+                "runner_context_sha256":"b"*64, "versions":{},
+            }, {}),
         )
         artifact = json.loads(evidence.read_text())
         self.assertEqual(0, code)
         self.assertEqual(self.context["candidate_commit"], artifact["candidate_parent"])
         self.assertNotEqual(self.context["candidate_commit"], artifact["candidate_commit"])
         self.assertEqual("PASS", artifact["verification"]["status"])
+
+    def test_codex_environment_admission_seals_context_and_pinned_tools(self):
+        evidence = self.evidence_root / "evidence" / "attempt.json"
+        tools = self.evidence_root / "tools"; tools.mkdir()
+        node=tools/"node"; npm=tools/"npm"; gh=tools/"gh"; codex_js=tools/"codex.js"
+        python=self.repo/".venv/bin/python"; python.parent.mkdir(parents=True)
+        for path in (node,npm,gh,codex_js,python):
+            path.write_text("#!/bin/sh\nexit 0\n"); path.chmod(0o755)
+        identity = codex_control.repository_fingerprint(self.repo)
+        self.context.update({
+            "candidate_commit": identity["head"],
+            "candidate_fingerprint": identity["value"],
+        })
+        sealed_context = {
+            **self.context,
+            "schema_version": LANE.CONTEXT_SCHEMA,
+            "runner_context": {"source": "test-runner-projection"},
+        }
+        def probe(command, *, repo):
+            if command[0] == str(python) and command[1] == "--version": return "Python 3.12.3"
+            if command[0] == str(node) and command[1] == "--version": return "v24.12.0"
+            if command[0] == str(node): return "codex-cli 0.146.0"
+            if command[0] == str(npm): return "11.6.2"
+            if command[0] == str(gh): return "gh version 2.103.2 (test)"
+            if command[0] == "/usr/bin/git": return "git version 2.43.0"
+            if command[0] == str(python): return "4.26.0:6.0.3"
+            self.fail(command)
+        with patch.object(LANE,"GUEST_NODE",str(node)), patch.object(LANE,"GUEST_NPM",str(npm)), patch.object(LANE,"GUEST_GH",str(gh)), patch.object(LANE,"GUEST_CODEX_JS",str(codex_js)), patch.object(LANE,"_probe",side_effect=probe), patch.object(LANE,"validate_context",return_value=sealed_context):
+            receipt,env=LANE.admit_codex_development_environment(self.repo,sealed_context,evidence)
+        self.assertEqual("PASS",receipt["status"])
+        self.assertEqual("v24.12.0",receipt["versions"]["node"])
+        self.assertEqual(receipt["context_sha256"],env["KGNOTE_PRODUCT_GOAL_CONTEXT_SHA256"])
+        self.assertTrue(Path(env["KGNOTE_PRODUCT_GOAL_CONTEXT"]).is_file())
+        self.assertEqual(str(python),env["KGNOTE_TEST_PYTHON"])
+
+    def test_codex_environment_admission_rejects_legacy_context(self):
+        with self.assertRaisesRegex(LANE.LaneError, "context v2"):
+            LANE.admit_codex_development_environment(
+                self.repo, self.context, self.evidence_root / "legacy.json",
+            )
+
+    def test_codex_environment_failure_never_invokes_nested_model(self):
+        calls=[]
+        with self.assertRaisesRegex(LANE.LaneError,"environment denied"):
+            evidence=self.evidence_root/"never.json"
+            LANE.run_codex(
+                self.repo,self.context,evidence,
+                ["/home/kgnote/.local/bin/kgnote-successor-codex"],
+                runner=lambda *args,**kwargs:calls.append(args),
+                admitter=lambda *_args: (_ for _ in ()).throw(LANE.LaneError("environment denied")),
+            )
+        self.assertEqual([],calls)
+        self.assertEqual(
+            "WORKER_ENVIRONMENT_ADMISSION_FAILED",
+            json.loads(evidence.read_text())["failure_class"],
+        )
 
     def test_verify_and_publish_require_exact_candidate_and_github_readback(self):
         evidence = self.evidence_root / "evidence.json"
