@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import tarfile
@@ -31,6 +32,7 @@ CODEX_VERSION = "codex-cli 0.146.0"
 NODE_RELATIVE = Path("lib/node-v24.12.0/bin/node")
 NPM_RELATIVE = Path("lib/node-v24.12.0/bin/npm")
 CODEX_JS_RELATIVE = Path("lib/node-v24.12.0/lib/node_modules/@openai/codex/bin/codex.js")
+VENV_BOOTSTRAP_DISTRIBUTIONS = {"pip"}
 
 
 class UbuntuRuntimeError(RuntimeError):
@@ -131,7 +133,7 @@ def _install_gh(archive: Path, runtime_root: Path) -> Path:
     return link
 
 
-def _install_venv(checkout: Path, lock: Path) -> tuple[Path, str]:
+def _install_venv(checkout: Path, lock: Path) -> tuple[Path, dict[str, Any]]:
     if not lock.is_file():
         raise UbuntuRuntimeError("requirements-runtime.lock is missing")
     target = checkout / ".venv"
@@ -152,10 +154,6 @@ def _install_venv(checkout: Path, lock: Path) -> tuple[Path, str]:
     python = target / "bin/python"
     if not python.is_file() or not os.access(python, os.X_OK):
         raise UbuntuRuntimeError("Ubuntu repository venv is not executable")
-    dependencies = _run([
-        str(python), "-c",
-        "import jsonschema,yaml; print(jsonschema.__version__ + ':' + yaml.__version__)",
-    ], cwd=checkout)
     expected: dict[str, str] = {}
     for line in lock.read_text(encoding="utf-8").splitlines():
         value = line.strip()
@@ -163,17 +161,43 @@ def _install_venv(checkout: Path, lock: Path) -> tuple[Path, str]:
             continue
         if value.count("==") != 1:
             raise UbuntuRuntimeError("requirements-runtime.lock contains a non-exact pin")
-        name, version = value.split("==", 1)
-        expected[name] = version
+        raw_name, version = value.split("==", 1)
+        name = re.sub(r"[-_.]+", "-", raw_name.strip()).lower()
+        if not name or not version.strip() or name in expected:
+            raise UbuntuRuntimeError("requirements-runtime.lock contains an invalid or duplicate pin")
+        expected[name] = version.strip()
+    if not expected:
+        raise UbuntuRuntimeError("requirements-runtime.lock contains no pinned dependencies")
     observed = json.loads(_run([
         str(python), "-c",
-        "import importlib.metadata,json,sys; "
-        "print(json.dumps({name:importlib.metadata.version(name) for name in sys.argv[1:]}))",
-        *expected,
+        "import importlib.metadata,json,re; "
+        "normalize=lambda value:re.sub(r'[-_.]+','-',value).lower(); "
+        "print(json.dumps({normalize(dist.metadata['Name']):dist.version "
+        "for dist in importlib.metadata.distributions() if dist.metadata['Name']}))",
     ], cwd=checkout))
-    if observed != expected:
+    if not isinstance(observed, dict) or any(
+        not isinstance(name, str) or not isinstance(version, str)
+        for name, version in observed.items()
+    ):
+        raise UbuntuRuntimeError("Ubuntu repository venv inventory is malformed")
+    missing = sorted(set(expected) - set(observed))
+    mismatched = sorted(
+        name for name in set(expected) & set(observed)
+        if observed[name] != expected[name]
+    )
+    unexpected = sorted(set(observed) - set(expected) - VENV_BOOTSTRAP_DISTRIBUTIONS)
+    if missing or mismatched or unexpected:
         raise UbuntuRuntimeError("Ubuntu repository venv differs from requirements-runtime.lock")
-    return python, dependencies
+    pip_check = _run([str(python), "-m", "pip", "check"], cwd=checkout)
+    return python, {
+        "requirements_lock_sha256": _sha256(lock),
+        "expected": expected,
+        "observed": {name: observed[name] for name in sorted(expected)},
+        "allowed_bootstrap_distributions": sorted(
+            set(observed) & VENV_BOOTSTRAP_DISTRIBUTIONS
+        ),
+        "pip_check": pip_check,
+    }
 
 
 def install(

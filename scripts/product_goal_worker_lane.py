@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -43,6 +44,8 @@ GUEST_PYTHON_VERSION = "Python 3.12.3"
 GUEST_NODE_VERSION = "v24.12.0"
 GUEST_NPM_VERSION = "11.6.2"
 GUEST_CODEX_VERSION = "codex-cli 0.146.0"
+REQUIREMENTS_LOCK = "requirements-runtime.lock"
+VENV_BOOTSTRAP_DISTRIBUTIONS = {"pip"}
 
 
 class LaneError(RuntimeError):
@@ -118,6 +121,76 @@ def _probe(command: list[str], *, repo: Path) -> str:
     return completed.stdout.strip() or completed.stderr.strip()
 
 
+def _normalized_distribution_name(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _locked_dependencies(lock: Path) -> dict[str, str]:
+    if not lock.is_file() or lock.is_symlink():
+        raise LaneError("requirements-runtime.lock is absent or not a regular file")
+    expected: dict[str, str] = {}
+    for line in lock.read_text(encoding="utf-8").splitlines():
+        value = line.strip()
+        if not value or value.startswith("#"):
+            continue
+        if value.count("==") != 1:
+            raise LaneError("requirements-runtime.lock contains a non-exact pin")
+        raw_name, version = value.split("==", 1)
+        name = _normalized_distribution_name(raw_name.strip())
+        if not name or not version.strip() or name in expected:
+            raise LaneError("requirements-runtime.lock contains an invalid or duplicate pin")
+        expected[name] = version.strip()
+    if not expected:
+        raise LaneError("requirements-runtime.lock contains no pinned dependencies")
+    return expected
+
+
+def _admit_locked_dependencies(python: Path, repo: Path) -> dict[str, Any]:
+    """Compare the complete venv distribution set with the candidate lock."""
+    lock = repo / REQUIREMENTS_LOCK
+    expected = _locked_dependencies(lock)
+    raw = _probe(
+        [
+            str(python), "-c",
+            "import importlib.metadata,json,re; "
+            "normalize=lambda value:re.sub(r'[-_.]+','-',value).lower(); "
+            "print(json.dumps({normalize(dist.metadata['Name']):dist.version "
+            "for dist in importlib.metadata.distributions() if dist.metadata['Name']}))",
+        ],
+        repo=repo,
+    )
+    try:
+        observed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise LaneError("Python dependency inventory is not valid JSON") from exc
+    if not isinstance(observed, dict) or any(
+        not isinstance(name, str) or not isinstance(version, str)
+        for name, version in observed.items()
+    ):
+        raise LaneError("Python dependency inventory is malformed")
+    missing = sorted(set(expected) - set(observed))
+    mismatched = sorted(
+        name for name in set(expected) & set(observed)
+        if observed[name] != expected[name]
+    )
+    unexpected = sorted(set(observed) - set(expected) - VENV_BOOTSTRAP_DISTRIBUTIONS)
+    if missing or mismatched or unexpected:
+        raise LaneError(
+            "repository venv differs from requirements-runtime.lock: "
+            f"missing={missing}, mismatched={mismatched}, unexpected={unexpected}"
+        )
+    pip_check = _probe([str(python), "-m", "pip", "check"], repo=repo)
+    return {
+        "requirements_lock_sha256": hashlib.sha256(lock.read_bytes()).hexdigest(),
+        "expected": expected,
+        "observed": {name: observed[name] for name in sorted(expected)},
+        "allowed_bootstrap_distributions": sorted(
+            set(observed) & VENV_BOOTSTRAP_DISTRIBUTIONS
+        ),
+        "pip_check": pip_check,
+    }
+
+
 def admit_codex_development_environment(
     repo: Path, context: dict[str, Any], evidence_path: Path,
 ) -> tuple[dict[str, Any], dict[str, str]]:
@@ -159,13 +232,7 @@ def admit_codex_development_environment(
         or not versions["gh"].startswith(f"gh version {GUEST_GH_VERSION}")
     ):
         raise LaneError("development environment version differs from the pinned runtime")
-    dependency_probe = _probe(
-        [
-            str(python), "-c",
-            "import jsonschema,yaml; print(jsonschema.__version__ + ':' + yaml.__version__)",
-        ],
-        repo=repo,
-    )
+    dependency_probe = _admit_locked_dependencies(python, repo)
     context_path = evidence_path.parent.parent / "contexts" / f"{context['order_event_id']}.json"
     admission_path = evidence_path.parent.parent / "admissions" / f"{context['order_event_id']}.json"
     _atomic_json(context_path, context)

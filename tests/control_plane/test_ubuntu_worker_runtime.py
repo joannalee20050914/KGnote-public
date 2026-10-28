@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -46,6 +47,17 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
             root=Path(directory); archive=root/RUNTIME.GH_ARCHIVE; archive.write_bytes(b"wrong")
             with self.assertRaisesRegex(RUNTIME.UbuntuRuntimeError,"SHA-256"):
                 RUNTIME._install_gh(archive,root/"runtime")
+
+    def test_existing_venv_with_unexpected_distribution_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); checkout=root/"checkout"; checkout.mkdir()
+            python=checkout/".venv/bin/python"; python.parent.mkdir(parents=True)
+            python.write_text("python\n"); python.chmod(0o755)
+            lock=root/"requirements-runtime.lock"; lock.write_text("jsonschema==4.26.0\n")
+            inventory=json.dumps({"jsonschema":"4.26.0","unexpected":"1.0","pip":"24.0"})
+            with patch.object(RUNTIME,"_run",return_value=inventory):
+                with self.assertRaisesRegex(RUNTIME.UbuntuRuntimeError,"differs"):
+                    RUNTIME._install_venv(checkout,lock)
 
 
 if __name__ == "__main__":

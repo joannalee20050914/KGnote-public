@@ -19,18 +19,28 @@ from pathlib import Path
 from typing import Any, Callable
 
 import goal_continuity
+from github_product_review_consumer import CandidateIdentity, ConsumerInputError, consume_records
 
 
 BASELINE_STATE_SHA256 = "b2f2e37c3e15ba9733f07ea31f4b27276da7f69aa1434f07a7ee658d72cf446d"
 BASELINE_LEDGER_SHA256 = "19515c795f59e10cdcfacdb3dad47f06c9c526548c2ba7aa13a04de1b0c21415"
 REMOTE_RAW_ROOT = Path("/home/kgnote/.local/share/kgnote/runtime-state/product-goal/raw")
 WORK_ITEM_ID = "WI-O2-A-IMPLEMENT"
-REVIEW_RESULT_BEGIN = "<!-- BEGIN KGNOTE REVIEW RESULT JSON -->"
-REVIEW_RESULT_END = "<!-- END KGNOTE REVIEW RESULT JSON -->"
-REQUIRED_HUMAN_GATES = {
-    "O2-AUTHORITY-LEASE", "D2-T14-FINAL-HUMAN-ACCEPTANCE",
-    "PA-HUMAN-1", "NS-HUMAN-SMOKE",
-}
+REVIEW_REPOSITORY = "joannalee20050914/KGnote-public"
+REVIEW_PULL_REQUEST = 36
+REVIEW_GOAL_ID = "CODEX-APP-GOAL-O2-RUNTIME-CONTEXT-RECOVERY-20261028"
+REVIEW_PROGRAM_ID = "program-kgnote-o2-runtime-context-recovery-20261028"
+REVIEWER_IDENTITY = "claude-code:ubuntu-review-only"
+TRUSTED_GITHUB_AUTHOR = "joannalee20050914"
+REVIEW_RESULT_MARKER = "kgnote-ai-product-review:v1"
+REVIEW_SCHEMA = Path("schemas/product-review/v1/review-result.schema.json")
+REVIEW_SCOPE = (
+    "Bounded O2 runtime-context recovery: sealed Runner-verified authority/work/candidate/ledger "
+    "context; pre-model exact Ubuntu checkout and pinned Python/Node/npm/gh/Codex/dependencies; "
+    "structured Codex JSONL-only provider-failure classification; append-only exact-evidence "
+    "reconciliation of two historical attempts; preserve PAUSE/BLOCKED/go_live_authorized=false, "
+    "attempts/model launches=2, no RESUME or third dispatch, and all human/release gates."
+)
 
 ATTEMPTS = (
     {
@@ -74,55 +84,196 @@ def _state_patch(state: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _validated_review_pass(path: Path) -> dict[str, Any]:
-    if not path.is_file():
-        raise ClassificationReconciliationError("exact independent review receipt is absent")
-    text = path.read_text(encoding="utf-8")
-    if REVIEW_RESULT_BEGIN not in text or REVIEW_RESULT_END not in text:
-        raise ClassificationReconciliationError("independent review receipt marker is absent")
-    body = text.split(REVIEW_RESULT_BEGIN, 1)[1].split(REVIEW_RESULT_END, 1)[0].strip()
-    if body.startswith("```json") and body.endswith("```"):
-        body = body[len("```json"): -len("```")].strip()
+def _github_record(repository: str, record_id: int) -> dict[str, Any]:
+    completed = subprocess.run(
+        ["gh", "api", f"repos/{repository}/issues/comments/{record_id}"],
+        text=True, capture_output=True, timeout=30, check=False,
+    )
+    if completed.returncode:
+        raise ClassificationReconciliationError("canonical GitHub review read-back failed")
     try:
-        result = json.loads(body)
+        record = json.loads(completed.stdout)
     except json.JSONDecodeError as exc:
-        raise ClassificationReconciliationError("independent review receipt JSON is invalid") from exc
-    if not isinstance(result, dict):
-        raise ClassificationReconciliationError("independent review receipt is not an exact PASS")
-    revision = result.get("reviewed_revision")
-    fingerprint = result.get("reviewed_fingerprint")
-    findings = result.get("findings")
+        raise ClassificationReconciliationError("canonical GitHub review is not valid JSON") from exc
+    if not isinstance(record, dict):
+        raise ClassificationReconciliationError("canonical GitHub review is not an object")
+    return record
+
+
+def _git_text(checkout: Path, *arguments: str) -> str:
+    completed = subprocess.run(
+        ["/usr/bin/git", "-C", str(checkout), *arguments],
+        text=True, capture_output=True, timeout=30, check=False,
+    )
+    if completed.returncode:
+        raise ClassificationReconciliationError("deployed checkout identity read-back failed")
+    return completed.stdout.strip()
+
+
+def _validated_deployment_identity(
+    checkout: Path, *, reviewed_commit: str, reviewed_tree: str,
+) -> dict[str, str]:
+    deployed_commit = _git_text(checkout, "rev-parse", "HEAD")
+    deployed_tree = _git_text(checkout, "rev-parse", "HEAD^{tree}")
+    candidate_tree = _git_text(checkout, "rev-parse", f"{reviewed_commit}^{{tree}}")
     if (
-        result.get("schema_version") != "kgnote.review-result.v1"
-        or result.get("protocol_version") != "kgnote.review-protocol.v1"
-        or result.get("artifact_state") != "SUBMITTED"
-        or result.get("author_role") != "UBUNTU_CLAUDE_REVIEWER"
-        or not isinstance(result.get("review_id"), str)
-        or not result["review_id"]
-        or not isinstance(result.get("reviewer_identity"), str)
-        or not result["reviewer_identity"]
-        or not isinstance(result.get("reviewed_at"), str)
-        or not result["reviewed_at"]
-        or result.get("verdict") != "PASS"
-        or not isinstance(revision, str)
-        or not isinstance(fingerprint, str)
-        or revision != f"{revision[:40]}+worktree:{fingerprint}"
-        or len(revision[:40]) != 40
-        or any(character not in "0123456789abcdef" for character in revision[:40])
-        or len(fingerprint) != 64
-        or any(character not in "0123456789abcdef" for character in fingerprint)
-        or not isinstance(findings, list)
-        or any(
-            not isinstance(finding, dict)
-            or finding.get("status") not in {"VERIFIED", "SUPERSEDED_BY_HUMAN_DECISION"}
-            for finding in findings
-        )
-        or result.get("unverified_requirements") != []
-        or result.get("human_decisions_required") != []
-        or not REQUIRED_HUMAN_GATES.issubset(set(result.get("human_gates_preserved") or []))
+        len(deployed_commit) != 40
+        or any(character not in "0123456789abcdef" for character in deployed_commit)
+        or candidate_tree != reviewed_tree
+        or deployed_tree != reviewed_tree
     ):
-        raise ClassificationReconciliationError("independent review receipt is not an exact PASS")
-    return result
+        raise ClassificationReconciliationError(
+            "deployed Runner tree differs from the exact reviewed candidate tree"
+        )
+    return {
+        "deployed_commit": deployed_commit,
+        "deployed_tree": deployed_tree,
+        "reviewed_commit": reviewed_commit,
+        "reviewed_tree": reviewed_tree,
+    }
+
+
+def _validated_review_pass(
+    *, consumer_checkpoint: Path, work_order_path: Path, deployed_checkout: Path,
+    github_record_reader: Callable[[str, int], dict[str, Any]] = _github_record,
+    deployment_identity_reader: Callable[..., dict[str, str]] = _validated_deployment_identity,
+) -> dict[str, Any]:
+    if not consumer_checkpoint.is_file() or not work_order_path.is_file():
+        raise ClassificationReconciliationError("exact canonical review evidence is absent")
+    checkpoint = goal_continuity.load_json(consumer_checkpoint)
+    work_order = goal_continuity.load_json(work_order_path)
+    candidate_commit = work_order.get("candidate_commit")
+    candidate_fingerprint = work_order.get("candidate_fingerprint")
+    candidate_tree = work_order.get("candidate_tree")
+    review_id = work_order.get("review_id")
+    round_used = work_order.get("review_round_used")
+    round_limit = work_order.get("review_round_limit")
+    if (
+        work_order.get("goal_id") != REVIEW_GOAL_ID
+        or work_order.get("repository") != REVIEW_REPOSITORY
+        or work_order.get("pull_request") != REVIEW_PULL_REQUEST
+        or work_order.get("program_id") != REVIEW_PROGRAM_ID
+        or not isinstance(review_id, str)
+        or not review_id.startswith("review-o2-runtime-context-recovery-20261028-")
+        or not isinstance(candidate_commit, str)
+        or len(candidate_commit) != 40
+        or any(character not in "0123456789abcdef" for character in candidate_commit)
+        or not isinstance(candidate_fingerprint, str)
+        or len(candidate_fingerprint) != 64
+        or any(character not in "0123456789abcdef" for character in candidate_fingerprint)
+        or not isinstance(candidate_tree, str)
+        or len(candidate_tree) != 40
+        or any(character not in "0123456789abcdef" for character in candidate_tree)
+        or isinstance(round_used, bool)
+        or not isinstance(round_used, int)
+        or isinstance(round_limit, bool)
+        or not isinstance(round_limit, int)
+        or not 0 <= round_used < round_limit
+        or work_order.get("review_scope") != REVIEW_SCOPE
+    ):
+        raise ClassificationReconciliationError("review work order identity is not exact")
+    review_round = round_used + 1
+    identity_key = hashlib.sha256(
+        (
+            f"{REVIEW_REPOSITORY}\0{REVIEW_PULL_REQUEST}\0{candidate_commit}\0"
+            f"{candidate_fingerprint}\0{review_round}"
+        ).encode()
+    ).hexdigest()
+    canonical = checkpoint.get("canonical_record")
+    if (
+        checkpoint.get("schema_version") != "kgnote.claude-review-ingestion.v1"
+        or checkpoint.get("status") != "PASS"
+        or checkpoint.get("validated_verdict") != "PASS"
+        or checkpoint.get("product_review_accepted") is not True
+        or checkpoint.get("event_id") != f"claude-reviewer-{identity_key}"
+        or checkpoint.get("candidate_commit") != candidate_commit
+        or checkpoint.get("candidate_fingerprint") != candidate_fingerprint
+        or checkpoint.get("review_round") != review_round
+        or checkpoint.get("reviewer_identity") != REVIEWER_IDENTITY
+        or checkpoint.get("review_scope") != work_order["review_scope"]
+        or not isinstance(canonical, dict)
+        or canonical.get("repository") != REVIEW_REPOSITORY
+        or canonical.get("pull_request") != REVIEW_PULL_REQUEST
+        or canonical.get("candidate_commit") != candidate_commit
+        or canonical.get("candidate_fingerprint") != candidate_fingerprint
+        or canonical.get("reviewer_identity") != REVIEWER_IDENTITY
+        or canonical.get("publisher_identity") != TRUSTED_GITHUB_AUTHOR
+        or canonical.get("source") != "issue_comment"
+        or isinstance(canonical.get("record_id"), bool)
+        or not isinstance(canonical.get("record_id"), int)
+        or canonical["record_id"] <= 0
+    ):
+        raise ClassificationReconciliationError("canonical review checkpoint is not an exact PASS")
+    record = github_record_reader(REVIEW_REPOSITORY, canonical["record_id"])
+    body = record.get("body")
+    if (
+        not isinstance(body, str)
+        or (record.get("user") or {}).get("login") != TRUSTED_GITHUB_AUTHOR
+        or record.get("html_url") != canonical.get("artifact_url")
+        or record.get("created_at") != canonical.get("submitted_at")
+        or hashlib.sha256(body.encode()).hexdigest() != canonical.get("original_body_sha256")
+    ):
+        raise ClassificationReconciliationError("canonical GitHub review metadata differs")
+    schema = goal_continuity.load_json(deployed_checkout / REVIEW_SCHEMA)
+    identity = CandidateIdentity(
+        REVIEW_REPOSITORY, REVIEW_PULL_REQUEST, REVIEW_PROGRAM_ID, REVIEW_GOAL_ID,
+        candidate_fingerprint, candidate_commit, review_round,
+    )
+    try:
+        decision = consume_records(
+            config={
+                "enabled": True,
+                "result_marker": REVIEW_RESULT_MARKER,
+                "trusted_reviewer_author_login": TRUSTED_GITHUB_AUTHOR,
+                "last_reviewed_candidate_fingerprint": None,
+            },
+            schema=schema,
+            identity=identity,
+            records=[{
+                "source": "issue_comment",
+                "author_login": TRUSTED_GITHUB_AUTHOR,
+                "record_id": canonical["record_id"],
+                "body": body,
+            }],
+        )
+    except ConsumerInputError as exc:
+        raise ClassificationReconciliationError("canonical Consumer review is invalid") from exc
+    if (
+        decision.get("accepted") is not True
+        or decision.get("verdict") != "PASS"
+        or decision.get("record_id") != canonical["record_id"]
+        or decision.get("human_decisions") != []
+    ):
+        raise ClassificationReconciliationError("canonical GitHub review is not an exact PASS")
+    deployment = deployment_identity_reader(
+        deployed_checkout,
+        reviewed_commit=candidate_commit,
+        reviewed_tree=candidate_tree,
+    )
+    if (
+        not isinstance(deployment, dict)
+        or deployment.get("reviewed_commit") != candidate_commit
+        or deployment.get("reviewed_tree") != candidate_tree
+        or deployment.get("deployed_tree") != candidate_tree
+        or not isinstance(deployment.get("deployed_commit"), str)
+        or len(deployment["deployed_commit"]) != 40
+        or any(character not in "0123456789abcdef" for character in deployment["deployed_commit"])
+    ):
+        raise ClassificationReconciliationError(
+            "deployed Runner tree differs from the exact reviewed candidate tree"
+        )
+    return {
+        "review_id": review_id,
+        "reviewed_revision": f"{candidate_commit}+worktree:{candidate_fingerprint}",
+        "reviewed_fingerprint": candidate_fingerprint,
+        "reviewed_commit": candidate_commit,
+        "reviewed_tree": candidate_tree,
+        "review_round": review_round,
+        "consumer_checkpoint_sha256": _sha256(consumer_checkpoint),
+        "review_work_order_sha256": _sha256(work_order_path),
+        "canonical_record": canonical,
+        "deployment": deployment,
+    }
 
 
 def _remote_hashes(host: str, paths: list[Path]) -> dict[str, str]:
@@ -191,9 +342,12 @@ def _validate_evidence(
 
 def reconcile(
     *, spec_path: Path, state_path: Path, ledger_path: Path,
-    checkpoint_root: Path, remote_host: str, reviewed_deployment_commit: str,
-    review_receipt: Path, receipt_path: Path, occurred_at: str,
+    checkpoint_root: Path, remote_host: str, deployed_checkout: Path,
+    review_consumer_checkpoint: Path, review_work_order: Path,
+    receipt_path: Path, occurred_at: str,
     remote_hash_reader: Callable[[str, list[Path]], dict[str, str]] = _remote_hashes,
+    github_record_reader: Callable[[str, int], dict[str, Any]] = _github_record,
+    deployment_identity_reader: Callable[..., dict[str, str]] = _validated_deployment_identity,
 ) -> dict[str, Any]:
     try:
         observed = datetime.fromisoformat(occurred_at)
@@ -201,10 +355,13 @@ def reconcile(
         raise ClassificationReconciliationError("occurred_at is invalid") from exc
     if observed.tzinfo is None:
         raise ClassificationReconciliationError("occurred_at must be timezone-aware")
-    if len(reviewed_deployment_commit) != 40 or any(c not in "0123456789abcdef" for c in reviewed_deployment_commit):
-        raise ClassificationReconciliationError("reviewed deployment commit is invalid")
-    review_result = _validated_review_pass(review_receipt)
-    review_sha256 = _sha256(review_receipt)
+    review_result = _validated_review_pass(
+        consumer_checkpoint=review_consumer_checkpoint,
+        work_order_path=review_work_order,
+        deployed_checkout=deployed_checkout,
+        github_record_reader=github_record_reader,
+        deployment_identity_reader=deployment_identity_reader,
+    )
     spec = goal_continuity.load_json(spec_path)
     state = goal_continuity.load_json(state_path)
     ledger = goal_continuity.read_ledger(ledger_path)
@@ -268,10 +425,16 @@ def reconcile(
                 "stdout_sha256": item["stdout_sha256"],
                 "stderr_sha256": item["stderr_sha256"],
             },
-            "reviewed_deployment_commit": reviewed_deployment_commit,
+            "review_id": review_result["review_id"],
+            "review_round": review_result["review_round"],
+            "reviewed_deployment_commit": review_result["deployment"]["deployed_commit"],
+            "reviewed_candidate_commit": review_result["reviewed_commit"],
+            "reviewed_candidate_tree": review_result["reviewed_tree"],
             "reviewed_candidate_revision": review_result["reviewed_revision"],
             "reviewed_candidate_fingerprint": review_result["reviewed_fingerprint"],
-            "review_receipt_sha256": review_sha256,
+            "review_consumer_checkpoint_sha256": review_result["consumer_checkpoint_sha256"],
+            "review_work_order_sha256": review_result["review_work_order_sha256"],
+            "canonical_review_record": deepcopy(review_result["canonical_record"]),
         }
         if index == len(ATTEMPTS) - 1:
             payload["state_patch"] = _state_patch(updated)
@@ -307,10 +470,17 @@ def reconcile(
     receipt = {
         "schema_version": "kgnote.o2-classification-reconciliation-receipt.v1",
         "status": "PASS",
-        "reviewed_deployment_commit": reviewed_deployment_commit,
+        "review_id": review_result["review_id"],
+        "review_round": review_result["review_round"],
+        "reviewed_deployment_commit": review_result["deployment"]["deployed_commit"],
+        "reviewed_deployment_tree": review_result["deployment"]["deployed_tree"],
+        "reviewed_candidate_commit": review_result["reviewed_commit"],
+        "reviewed_candidate_tree": review_result["reviewed_tree"],
         "reviewed_candidate_revision": review_result["reviewed_revision"],
         "reviewed_candidate_fingerprint": review_result["reviewed_fingerprint"],
-        "review_receipt_sha256": review_sha256,
+        "review_consumer_checkpoint_sha256": review_result["consumer_checkpoint_sha256"],
+        "review_work_order_sha256": review_result["review_work_order_sha256"],
+        "canonical_review_record": review_result["canonical_record"],
         "appended_event_ids": [row["event_id"] for row in appended_events],
         "event_cursor": state["event_cursor"],
         "state_sha256": _sha256(state_path),
@@ -335,8 +505,9 @@ def main() -> int:
     parser.add_argument("--ledger", type=Path, required=True)
     parser.add_argument("--checkpoint-root", type=Path, required=True)
     parser.add_argument("--remote-host", default="kgnote-ubuntu")
-    parser.add_argument("--reviewed-deployment-commit", required=True)
-    parser.add_argument("--review-receipt", type=Path, required=True)
+    parser.add_argument("--deployed-checkout", type=Path, required=True)
+    parser.add_argument("--review-consumer-checkpoint", type=Path, required=True)
+    parser.add_argument("--review-work-order", type=Path, required=True)
     parser.add_argument("--receipt", type=Path, required=True)
     parser.add_argument("--occurred-at", required=True)
     args = parser.parse_args()
@@ -344,8 +515,9 @@ def main() -> int:
         receipt = reconcile(
             spec_path=args.spec, state_path=args.state, ledger_path=args.ledger,
             checkpoint_root=args.checkpoint_root, remote_host=args.remote_host,
-            reviewed_deployment_commit=args.reviewed_deployment_commit,
-            review_receipt=args.review_receipt, receipt_path=args.receipt,
+            deployed_checkout=args.deployed_checkout,
+            review_consumer_checkpoint=args.review_consumer_checkpoint,
+            review_work_order=args.review_work_order, receipt_path=args.receipt,
             occurred_at=args.occurred_at,
         )
     except (OSError, json.JSONDecodeError, goal_continuity.GoalContractError, ClassificationReconciliationError) as exc:

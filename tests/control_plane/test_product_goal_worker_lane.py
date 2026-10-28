@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import tempfile
@@ -84,6 +85,9 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
         python=self.repo/".venv/bin/python"; python.parent.mkdir(parents=True)
         for path in (node,npm,gh,codex_js,python):
             path.write_text("#!/bin/sh\nexit 0\n"); path.chmod(0o755)
+        lock = self.repo / LANE.REQUIREMENTS_LOCK
+        lock.write_text((ROOT / "requirements-runtime.lock").read_text())
+        locked = LANE._locked_dependencies(lock)
         identity = codex_control.repository_fingerprint(self.repo)
         self.context.update({
             "candidate_commit": identity["head"],
@@ -101,7 +105,10 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
             if command[0] == str(npm): return "11.6.2"
             if command[0] == str(gh): return "gh version 2.103.2 (test)"
             if command[0] == "/usr/bin/git": return "git version 2.43.0"
-            if command[0] == str(python): return "4.26.0:6.0.3"
+            if command[:4] == [str(python), "-m", "pip", "check"]:
+                return "No broken requirements found."
+            if command[0] == str(python):
+                return json.dumps({**locked, "pip": "24.0"})
             self.fail(command)
         with patch.object(LANE,"GUEST_NODE",str(node)), patch.object(LANE,"GUEST_NPM",str(npm)), patch.object(LANE,"GUEST_GH",str(gh)), patch.object(LANE,"GUEST_CODEX_JS",str(codex_js)), patch.object(LANE,"_probe",side_effect=probe), patch.object(LANE,"validate_context",return_value=sealed_context):
             receipt,env=LANE.admit_codex_development_environment(self.repo,sealed_context,evidence)
@@ -110,6 +117,26 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
         self.assertEqual(receipt["context_sha256"],env["KGNOTE_PRODUCT_GOAL_CONTEXT_SHA256"])
         self.assertTrue(Path(env["KGNOTE_PRODUCT_GOAL_CONTEXT"]).is_file())
         self.assertEqual(str(python),env["KGNOTE_TEST_PYTHON"])
+        self.assertEqual(locked, receipt["dependency_probe"]["observed"])
+        self.assertEqual(
+            hashlib.sha256(lock.read_bytes()).hexdigest(),
+            receipt["dependency_probe"]["requirements_lock_sha256"],
+        )
+
+    def test_codex_environment_admission_rejects_dependency_lock_drift(self):
+        python = self.repo / ".venv/bin/python"
+        python.parent.mkdir(parents=True)
+        python.write_text("#!/bin/sh\nexit 0\n"); python.chmod(0o755)
+        (self.repo / LANE.REQUIREMENTS_LOCK).write_text("jsonschema==4.26.0\n")
+        with patch.object(
+            LANE, "_probe",
+            return_value=json.dumps({"jsonschema": "4.25.0", "unexpected": "1.0", "pip": "24.0"}),
+        ):
+            with self.assertRaisesRegex(
+                LANE.LaneError,
+                "mismatched=\\['jsonschema'\\].*unexpected=\\['unexpected'\\]",
+            ):
+                LANE._admit_locked_dependencies(python, self.repo)
 
     def test_codex_environment_admission_rejects_legacy_context(self):
         with self.assertRaisesRegex(LANE.LaneError, "context v2"):
