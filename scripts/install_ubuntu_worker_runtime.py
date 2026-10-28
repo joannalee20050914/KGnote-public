@@ -39,6 +39,8 @@ VENV_BOOTSTRAP_DISTRIBUTIONS = {"pip"}
 WORKER_RUNTIME_MANIFEST_SCHEMA = "kgnote.ubuntu-worker-runtime-manifest.v1"
 WORKER_RUNTIME_RECEIPT_SCHEMA = "kgnote.ubuntu-worker-runtime-receipt.v2"
 WORKER_RUNTIME_RELATIVE = Path("share/kgnote/runtime")
+WORKER_RUNTIME_RELEASES = ".worker-runtime-releases"
+WORKER_RUNTIME_CURRENT = ".worker-runtime-current"
 WORKER_RUNTIME_MANIFEST_RELATIVE = Path("config/ubuntu-worker-runtime-manifest.json")
 WORKER_RUNTIME_SOURCES = {
     "requirements-runtime.lock": Path("requirements-runtime.lock"),
@@ -121,6 +123,28 @@ def _atomic_copy(source: Path, target: Path) -> None:
             os.unlink(temporary)
 
 
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _atomic_symlink(target: str, link: Path) -> None:
+    link.parent.mkdir(parents=True, exist_ok=True)
+    temporary = link.parent / f".{link.name}.{os.getpid()}.tmp"
+    if temporary.exists() or temporary.is_symlink():
+        raise UbuntuRuntimeError(f"stale worker runtime symlink exists: {temporary.name}")
+    try:
+        os.symlink(target, temporary)
+        os.replace(temporary, link)
+        _fsync_directory(link.parent)
+    finally:
+        if temporary.exists() or temporary.is_symlink():
+            temporary.unlink()
+
+
 def _load_worker_runtime_manifest(path: Path) -> dict[str, Any]:
     if not path.is_file() or path.is_symlink():
         raise UbuntuRuntimeError("worker runtime manifest is absent or not a regular file")
@@ -139,6 +163,178 @@ def _load_worker_runtime_manifest(path: Path) -> dict[str, Any]:
     ):
         raise UbuntuRuntimeError("worker runtime manifest contains an invalid SHA-256")
     return manifest
+
+
+def _git_blob_sha256(repository: Path, revision: str, relative: Path) -> str:
+    completed = subprocess.run(
+        ["/usr/bin/git", "show", f"{revision}:{relative.as_posix()}"],
+        cwd=repository, capture_output=True, timeout=30, check=False,
+    )
+    if completed.returncode:
+        raise UbuntuRuntimeError(
+            f"reviewed release commit lacks worker runtime source: {relative}"
+        )
+    return hashlib.sha256(completed.stdout).hexdigest()
+
+
+def _validate_reviewed_release(
+    release_root: Path, manifest_path: Path, reviewed_revision: str,
+) -> tuple[dict[str, Any], dict[str, Path], dict[str, str]]:
+    if not re.fullmatch(r"[0-9a-f]{40}", reviewed_revision):
+        raise UbuntuRuntimeError("reviewed release revision is not a full Git commit")
+    if not release_root.is_dir() or release_root.is_symlink():
+        raise UbuntuRuntimeError("reviewed release root is absent or is a symlink")
+    expected_manifest = release_root.resolve() / WORKER_RUNTIME_MANIFEST_RELATIVE
+    if manifest_path.resolve() != expected_manifest:
+        raise UbuntuRuntimeError("worker runtime manifest is outside the reviewed release")
+    try:
+        repository_root = Path(
+            _run(["/usr/bin/git", "rev-parse", "--show-toplevel"], cwd=release_root)
+        ).resolve()
+        head = _run(["/usr/bin/git", "rev-parse", "HEAD"], cwd=release_root)
+        tree = _run(["/usr/bin/git", "rev-parse", "HEAD^{tree}"], cwd=release_root)
+        status = _run(
+            ["/usr/bin/git", "status", "--porcelain=v1", "--untracked-files=all"],
+            cwd=release_root,
+        )
+    except UbuntuRuntimeError as exc:
+        raise UbuntuRuntimeError("reviewed release root is not a readable Git checkout") from exc
+    if repository_root != release_root.resolve() or head != reviewed_revision:
+        raise UbuntuRuntimeError(
+            "reviewed release checkout root or HEAD differs"
+        )
+
+    manifest = _load_worker_runtime_manifest(manifest_path)
+    if _git_blob_sha256(
+        release_root, reviewed_revision, WORKER_RUNTIME_MANIFEST_RELATIVE
+    ) != _sha256(manifest_path):
+        raise UbuntuRuntimeError("worker runtime manifest differs from the reviewed Git commit")
+    source_files: dict[str, Path] = {}
+    for name, relative in WORKER_RUNTIME_SOURCES.items():
+        source = release_root / relative
+        if not source.is_file() or source.is_symlink():
+            raise UbuntuRuntimeError(f"reviewed worker runtime source is absent: {relative}")
+        observed = _sha256(source)
+        if observed != manifest["files"][name]:
+            raise UbuntuRuntimeError(f"reviewed worker runtime source SHA-256 differs: {relative}")
+        if _git_blob_sha256(release_root, reviewed_revision, relative) != observed:
+            raise UbuntuRuntimeError(
+                f"reviewed worker runtime source differs from the Git commit: {relative}"
+            )
+        source_files[name] = source
+    if status:
+        raise UbuntuRuntimeError("reviewed release checkout is not clean")
+    return manifest, source_files, {
+        "head": head,
+        "tree": tree,
+        "manifest_sha256": _sha256(manifest_path),
+    }
+
+
+def _worker_generation_hashes(directory: Path) -> dict[str, str]:
+    if directory.is_symlink() or not directory.is_dir():
+        raise UbuntuRuntimeError("worker runtime generation is not a real directory")
+    observed: dict[str, str] = {}
+    for name in WORKER_RUNTIME_SOURCES:
+        path = directory / name
+        if not path.is_file() or path.is_symlink():
+            raise UbuntuRuntimeError(
+                f"worker runtime generation file is absent or not regular: {name}"
+            )
+        observed[name] = _sha256(path)
+    return observed
+
+
+def _generation_from_link(releases: Path, link: Path) -> Path:
+    if not link.is_symlink():
+        raise UbuntuRuntimeError("worker runtime current pointer is not a symlink")
+    generation = (link.parent / os.readlink(link)).resolve()
+    try:
+        generation.relative_to(releases.resolve())
+    except ValueError as exc:
+        raise UbuntuRuntimeError("worker runtime current pointer leaves releases") from exc
+    if generation.parent != releases.resolve() or not generation.is_dir():
+        raise UbuntuRuntimeError("worker runtime current pointer is invalid")
+    return generation
+
+
+def _prepare_legacy_generation(target: Path, releases: Path) -> Path | None:
+    existing = [
+        (target / name).exists() or (target / name).is_symlink()
+        for name in WORKER_RUNTIME_SOURCES
+    ]
+    if not any(existing):
+        return None
+    if not all(existing):
+        raise UbuntuRuntimeError("existing flat worker runtime is incomplete")
+    sources: dict[str, Path] = {}
+    digests: dict[str, str] = {}
+    for name in WORKER_RUNTIME_SOURCES:
+        path = target / name
+        if not path.is_file() or path.is_symlink():
+            raise UbuntuRuntimeError(
+                f"existing flat worker runtime is not a regular file: {name}"
+            )
+        sources[name] = path
+        digests[name] = _sha256(path)
+    identity = hashlib.sha256(
+        json.dumps(digests, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    legacy = releases / f"legacy-{identity}"
+    if legacy.exists() or legacy.is_symlink():
+        if _worker_generation_hashes(legacy) != digests:
+            raise UbuntuRuntimeError("existing legacy worker runtime generation differs")
+        return legacy
+    with tempfile.TemporaryDirectory(prefix=".legacy-", dir=releases) as temporary:
+        staging = Path(temporary)
+        for name, source in sources.items():
+            _atomic_copy(source, staging / name)
+        _fsync_directory(staging)
+        os.replace(staging, legacy)
+        _fsync_directory(releases)
+    return legacy
+
+
+def _promote_worker_generation(
+    *, target: Path, generation: Path, manifest: dict[str, Any], python: Path,
+) -> None:
+    releases = target / WORKER_RUNTIME_RELEASES
+    current = target / WORKER_RUNTIME_CURRENT
+    releases.mkdir(parents=True, exist_ok=True)
+    if current.exists() and not current.is_symlink():
+        raise UbuntuRuntimeError("worker runtime current pointer is not a symlink")
+    if current.is_symlink():
+        visible_generation = _generation_from_link(releases, current)
+    else:
+        visible_generation = _prepare_legacy_generation(target, releases)
+        if visible_generation is None:
+            visible_generation = generation
+        relative = os.path.relpath(visible_generation, target)
+        _atomic_symlink(relative, current)
+
+    visible_hashes = _worker_generation_hashes(visible_generation)
+    for name in WORKER_RUNTIME_SOURCES:
+        path = target / name
+        expected_link = f"{WORKER_RUNTIME_CURRENT}/{name}"
+        if path.is_symlink():
+            if os.readlink(path) != expected_link:
+                raise UbuntuRuntimeError(f"worker runtime shim differs: {name}")
+            continue
+        if path.exists():
+            if not path.is_file() or _sha256(path) != visible_hashes[name]:
+                raise UbuntuRuntimeError(f"existing worker runtime file differs: {name}")
+        elif visible_generation != generation:
+            raise UbuntuRuntimeError(f"existing worker runtime file is absent: {name}")
+        _atomic_symlink(expected_link, path)
+
+    if visible_generation != generation:
+        _atomic_symlink(os.path.relpath(generation, target), current)
+    if _worker_generation_hashes(generation) != manifest["files"]:
+        raise UbuntuRuntimeError("promoted worker runtime generation differs")
+    installed = {name: _sha256(target / name) for name in WORKER_RUNTIME_SOURCES}
+    if installed != manifest["files"]:
+        raise UbuntuRuntimeError("installed worker runtime differs from the reviewed manifest")
+    _cold_start_worker_runtime(target, python)
 
 
 def _cold_start_worker_runtime(directory: Path, python: Path) -> dict[str, Any]:
@@ -174,48 +370,50 @@ def _install_worker_runtime(
     *, release_root: Path, runtime_root: Path, manifest_path: Path,
     reviewed_revision: str, python: Path = Path("/usr/bin/python3"),
 ) -> dict[str, Any]:
-    if not re.fullmatch(r"[0-9a-f]{40}", reviewed_revision):
-        raise UbuntuRuntimeError("reviewed release revision is not a full Git commit")
-    if not release_root.is_dir() or release_root.is_symlink():
-        raise UbuntuRuntimeError("reviewed release root is absent or is a symlink")
-    expected_manifest = release_root.resolve() / WORKER_RUNTIME_MANIFEST_RELATIVE
-    if manifest_path.resolve() != expected_manifest:
-        raise UbuntuRuntimeError("worker runtime manifest is outside the reviewed release")
     if not python.is_file() or not os.access(python, os.X_OK):
         raise UbuntuRuntimeError("formal Ubuntu Python is absent or not executable")
-    manifest = _load_worker_runtime_manifest(manifest_path)
-    source_files: dict[str, Path] = {}
-    for name, relative in WORKER_RUNTIME_SOURCES.items():
-        source = release_root / relative
-        if not source.is_file() or source.is_symlink():
-            raise UbuntuRuntimeError(f"reviewed worker runtime source is absent: {relative}")
-        observed = _sha256(source)
-        if observed != manifest["files"][name]:
-            raise UbuntuRuntimeError(f"reviewed worker runtime source SHA-256 differs: {relative}")
-        source_files[name] = source
+    manifest, source_files, source_identity = _validate_reviewed_release(
+        release_root, manifest_path, reviewed_revision,
+    )
 
     target = runtime_root / WORKER_RUNTIME_RELATIVE
     if target.is_symlink() or (target.exists() and not target.is_dir()):
         raise UbuntuRuntimeError("worker runtime target directory is invalid")
-    target.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix=".worker-runtime-staging-", dir=target.parent) as temporary:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix=".worker-runtime-staging-", dir=target.parent,
+    ) as temporary:
         staging = Path(temporary)
         for name, source in source_files.items():
             _atomic_copy(source, staging / name)
         staged_cold_start = _cold_start_worker_runtime(staging, python)
-        for name in WORKER_RUNTIME_SOURCES:
-            _atomic_copy(staging / name, target / name)
-
+        _fsync_directory(staging)
+        target.mkdir(parents=True, exist_ok=True)
+        releases = target / WORKER_RUNTIME_RELEASES
+        releases.mkdir(parents=True, exist_ok=True)
+        generation = releases / reviewed_revision
+        if generation.exists() or generation.is_symlink():
+            if _worker_generation_hashes(generation) != manifest["files"]:
+                raise UbuntuRuntimeError("existing reviewed worker runtime generation differs")
+        else:
+            os.replace(staging, generation)
+            _fsync_directory(releases)
+    _promote_worker_generation(
+        target=target, generation=generation, manifest=manifest, python=python,
+    )
     installed = {name: _sha256(target / name) for name in WORKER_RUNTIME_SOURCES}
     if installed != manifest["files"]:
         raise UbuntuRuntimeError("installed worker runtime differs from the reviewed manifest")
     installed_cold_start = _cold_start_worker_runtime(target, python)
     return {
         "reviewed_revision": reviewed_revision,
+        "reviewed_source": source_identity,
         "release_root": str(release_root),
         "manifest_path": str(manifest_path),
         "manifest_sha256": _sha256(manifest_path),
         "target": str(target),
+        "generation": str(generation),
+        "current_pointer": str(target / WORKER_RUNTIME_CURRENT),
         "files": installed,
         "staged_cold_start": staged_cold_start,
         "installed_cold_start": installed_cold_start,

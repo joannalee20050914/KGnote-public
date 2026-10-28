@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -14,7 +16,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class UbuntuWorkerRuntimeTest(unittest.TestCase):
-    def _worker_release(self, root: Path):
+    def _worker_release(
+        self, root: Path, *, import_failure: bool = False,
+        help_failure: bool = False,
+    ):
         release = root / "release"
         (release / "scripts").mkdir(parents=True)
         files = {}
@@ -23,6 +28,14 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
             source.parent.mkdir(parents=True, exist_ok=True)
             if name == "requirements-runtime.lock":
                 source.write_text("jsonschema==4.26.0\n")
+            elif import_failure and name == "codex_control.py":
+                source.write_text("raise RuntimeError('forced import failure')\n")
+            elif help_failure and name == "product_goal_worker_result.py":
+                source.write_text(
+                    "import argparse,sys\n"
+                    "if __name__ == '__main__' and '--help' in sys.argv: raise SystemExit(17)\n"
+                    "argparse.ArgumentParser().parse_args()\n"
+                )
             elif name in RUNTIME.WORKER_RUNTIME_ENTRYPOINTS:
                 source.write_text(
                     "import argparse\n"
@@ -38,7 +51,28 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
             "schema_version": RUNTIME.WORKER_RUNTIME_MANIFEST_SCHEMA,
             "files": files,
         }))
-        return release, manifest, files
+        subprocess.run(["git", "init", "-q"], cwd=release, check=True)
+        subprocess.run(["git", "config", "user.name", "KGnote Test"], cwd=release, check=True)
+        subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=release, check=True)
+        subprocess.run(["git", "add", "."], cwd=release, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "fixture release"],
+            cwd=release, check=True,
+        )
+        revision = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=release, check=True,
+            text=True, capture_output=True,
+        ).stdout.strip()
+        return release, manifest, files, revision
+
+    def _seed_flat_runtime(self, runtime: Path) -> tuple[Path, dict[str, bytes]]:
+        target = runtime / RUNTIME.WORKER_RUNTIME_RELATIVE
+        target.mkdir(parents=True)
+        old = {}
+        for name in RUNTIME.WORKER_RUNTIME_SOURCES:
+            old[name] = f"OLD:{name}\n".encode()
+            (target / name).write_bytes(old[name])
+        return target, old
 
     def test_repository_worker_runtime_manifest_matches_sources(self):
         manifest = RUNTIME._load_worker_runtime_manifest(
@@ -60,7 +94,7 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
             for path in (node,npm,codex_js): path.write_text("tool\n"); path.chmod(0o755)
             archive=root/RUNTIME.GH_ARCHIVE; archive.write_bytes(b"pinned archive")
             lock=root/"requirements-runtime.lock"; lock.write_text("jsonschema==4.26.0\n")
-            release,manifest,runtime_files=self._worker_release(root)
+            release,manifest,runtime_files,revision=self._worker_release(root)
             gh=runtime/"bin/gh"; gh.parent.mkdir(parents=True); gh.write_text("gh\n"); gh.chmod(0o755)
             uv=runtime/RUNTIME.UV_RELATIVE; uv.write_text("uv\n"); uv.chmod(0o755)
             python=checkout/".venv/bin/python"; python.parent.mkdir(parents=True); python.write_text("python\n"); python.chmod(0o755)
@@ -78,7 +112,7 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
                 receipt=RUNTIME.install(
                     archive=archive,checkout=checkout,expected_head="a"*40,
                     runtime_root=runtime,release_root=release,
-                    runtime_manifest=manifest,reviewed_revision="c"*40,
+                    runtime_manifest=manifest,reviewed_revision=revision,
                     receipt_path=receipt_path,
                 )
             self.assertEqual("PASS",receipt["status"])
@@ -92,11 +126,11 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
 
     def test_worker_runtime_install_attests_files_and_cold_starts_entrypoints(self):
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory); release,manifest,files=self._worker_release(root)
+            root=Path(directory); release,manifest,files,revision=self._worker_release(root)
             runtime=root/"runtime-root"
             receipt=RUNTIME._install_worker_runtime(
                 release_root=release,runtime_root=runtime,
-                manifest_path=manifest,reviewed_revision="a"*40,
+                manifest_path=manifest,reviewed_revision=revision,
                 python=Path(sys.executable),
             )
             self.assertEqual(files,receipt["files"])
@@ -109,29 +143,138 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
 
     def test_worker_runtime_missing_module_fails_before_target_mutation(self):
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory); release,manifest,_files=self._worker_release(root)
+            root=Path(directory); release,manifest,_files,revision=self._worker_release(root)
             (release/RUNTIME.WORKER_RUNTIME_SOURCES["codex_jsonl_evidence.py"]).unlink()
             runtime=root/"runtime-root"
             with self.assertRaisesRegex(RUNTIME.UbuntuRuntimeError,"source is absent"):
                 RUNTIME._install_worker_runtime(
                     release_root=release,runtime_root=runtime,
-                    manifest_path=manifest,reviewed_revision="a"*40,
+                    manifest_path=manifest,reviewed_revision=revision,
                     python=Path(sys.executable),
                 )
             self.assertFalse((runtime/RUNTIME.WORKER_RUNTIME_RELATIVE).exists())
 
     def test_worker_runtime_source_hash_drift_fails_before_target_mutation(self):
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory); release,manifest,_files=self._worker_release(root)
+            root=Path(directory); release,manifest,_files,revision=self._worker_release(root)
             (release/RUNTIME.WORKER_RUNTIME_SOURCES["codex_jsonl_evidence.py"]).write_text("TAMPERED=True\n")
             runtime=root/"runtime-root"
             with self.assertRaisesRegex(RUNTIME.UbuntuRuntimeError,"SHA-256 differs"):
                 RUNTIME._install_worker_runtime(
                     release_root=release,runtime_root=runtime,
-                    manifest_path=manifest,reviewed_revision="a"*40,
+                    manifest_path=manifest,reviewed_revision=revision,
                     python=Path(sys.executable),
                 )
             self.assertFalse((runtime/RUNTIME.WORKER_RUNTIME_RELATIVE).exists())
+
+    def test_matching_hash_import_failure_preserves_active_runtime(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release, manifest, _files, revision = self._worker_release(
+                root, import_failure=True,
+            )
+            runtime = root / "runtime-root"
+            target, old = self._seed_flat_runtime(runtime)
+            with self.assertRaisesRegex(RUNTIME.UbuntuRuntimeError, "forced import failure"):
+                RUNTIME._install_worker_runtime(
+                    release_root=release, runtime_root=runtime,
+                    manifest_path=manifest, reviewed_revision=revision,
+                    python=Path(sys.executable),
+                )
+            self.assertEqual(
+                old,
+                {name: (target / name).read_bytes() for name in RUNTIME.WORKER_RUNTIME_SOURCES},
+            )
+            self.assertFalse((target / RUNTIME.WORKER_RUNTIME_CURRENT).exists())
+
+    def test_entrypoint_help_failure_preserves_active_runtime(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release, manifest, _files, revision = self._worker_release(
+                root, help_failure=True,
+            )
+            runtime = root / "runtime-root"
+            target, old = self._seed_flat_runtime(runtime)
+            with self.assertRaisesRegex(RUNTIME.UbuntuRuntimeError, "runtime command failed"):
+                RUNTIME._install_worker_runtime(
+                    release_root=release, runtime_root=runtime,
+                    manifest_path=manifest, reviewed_revision=revision,
+                    python=Path(sys.executable),
+                )
+            self.assertEqual(
+                old,
+                {name: (target / name).read_bytes() for name in RUNTIME.WORKER_RUNTIME_SOURCES},
+            )
+            self.assertFalse((target / RUNTIME.WORKER_RUNTIME_CURRENT).exists())
+
+    def test_third_flat_shim_interruption_keeps_complete_old_generation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release, manifest, files, revision = self._worker_release(root)
+            runtime = root / "runtime-root"
+            target, old = self._seed_flat_runtime(runtime)
+            original = RUNTIME._atomic_symlink
+            promoted = []
+
+            def interrupt_third(source, destination):
+                if destination.name in RUNTIME.WORKER_RUNTIME_SOURCES:
+                    promoted.append(destination.name)
+                    if len(promoted) == 3:
+                        raise RUNTIME.UbuntuRuntimeError("forced third-file interruption")
+                return original(source, destination)
+
+            with patch.object(RUNTIME, "_atomic_symlink", side_effect=interrupt_third):
+                with self.assertRaisesRegex(
+                    RUNTIME.UbuntuRuntimeError, "forced third-file interruption",
+                ):
+                    RUNTIME._install_worker_runtime(
+                        release_root=release, runtime_root=runtime,
+                        manifest_path=manifest, reviewed_revision=revision,
+                        python=Path(sys.executable),
+                    )
+            self.assertEqual(3, len(promoted))
+            self.assertEqual(
+                old,
+                {name: (target / name).read_bytes() for name in RUNTIME.WORKER_RUNTIME_SOURCES},
+            )
+            self.assertFalse(any(
+                hashlib.sha256((target / name).read_bytes()).hexdigest() == files[name]
+                for name in RUNTIME.WORKER_RUNTIME_SOURCES
+            ))
+            receipt = RUNTIME._install_worker_runtime(
+                release_root=release, runtime_root=runtime,
+                manifest_path=manifest, reviewed_revision=revision,
+                python=Path(sys.executable),
+            )
+            self.assertEqual(files, receipt["files"])
+            self.assertTrue(all((target / name).is_symlink() for name in files))
+
+    def test_reviewed_revision_must_equal_clean_release_git_head(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release, manifest, _files, _revision = self._worker_release(root)
+            runtime = root / "runtime-root"
+            with self.assertRaisesRegex(RUNTIME.UbuntuRuntimeError, "HEAD differs"):
+                RUNTIME._install_worker_runtime(
+                    release_root=release, runtime_root=runtime,
+                    manifest_path=manifest, reviewed_revision="f" * 40,
+                    python=Path(sys.executable),
+                )
+            self.assertFalse((runtime / RUNTIME.WORKER_RUNTIME_RELATIVE).exists())
+
+    def test_non_git_release_root_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release, manifest, _files, revision = self._worker_release(root)
+            shutil.rmtree(release / ".git")
+            runtime = root / "runtime-root"
+            with self.assertRaisesRegex(RUNTIME.UbuntuRuntimeError, "Git checkout"):
+                RUNTIME._install_worker_runtime(
+                    release_root=release, runtime_root=runtime,
+                    manifest_path=manifest, reviewed_revision=revision,
+                    python=Path(sys.executable),
+                )
+            self.assertFalse((runtime / RUNTIME.WORKER_RUNTIME_RELATIVE).exists())
 
     def test_gh_archive_digest_mismatch_fails_before_install(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -62,7 +62,7 @@ This file contains one bounded Ubuntu Worker deployment-repair Goal. It does not
     "base_revision": "8fc5a7f99cf5d01afa9bb544ba3774ee7cdf11ba",
     "branch": "codex/o2-worker-runtime-import-repair-20261028",
     "base_branch": "main",
-    "draft_pull_request": null,
+    "draft_pull_request": 38,
     "automatic_merge": false,
     "merge_authority": "exact Ubuntu Claude PASS plus satisfied GitHub rules under this bounded repair direction"
   },
@@ -76,6 +76,15 @@ This file contains one bounded Ubuntu Worker deployment-repair Goal. It does not
     "trial_start": "2026-10-28T09:00:00+08:00",
     "hard_stop": "2026-11-10T18:00:00+08:00"
   },
+  "unresolved_permanent_admission_issues": [
+    {
+      "id": "O2-RUNTIME-RECEIPT-PRE-RESERVATION",
+      "status": "NOT_IMPLEMENTED",
+      "requirement": "在任何正式 Product Goal reservation 前，必須讀回最新 Ubuntu runtime receipt，驗證 exact reviewed revision、manifest、installed module hashes、import closure、兩個 Worker entrypoint --help 與 model_launches=0。",
+      "evidence": "scripts/goal_runner_adapter.py 的 reserve_dispatch 目前只重驗 state、ledger、authority、schedule、resource policy 與 sealed order，沒有讀取 ubuntu-worker-runtime-receipt.json。",
+      "boundary": "這是永久准入缺口；在另有明示 authority 將 receipt gate 接入 reservation 前，不得以 installer PASS 或 W4 部署讀回冒充已完成。"
+    }
+  ],
   "auto_advance": {
     "enabled": true,
     "requires_current_milestone_green": true,
@@ -115,7 +124,9 @@ This file contains one bounded Ubuntu Worker deployment-repair Goal. It does not
         "Worker 從 reviewed deployed runtime 取得 dependency lock 而不修改 sealed product checkout",
         "installer 將固定 runtime module manifest 與 lock 綁定 exact reviewed source SHA-256",
         "缺檔、hash drift、import failure 或 entrypoint cold-start failure 在 model 前 fail closed",
-        "正向、缺檔、tamper 與 compatibility tests 通過"
+        "正向、缺檔、tamper、import failure、entrypoint non-zero 與 compatibility tests 通過",
+        "八個 Worker runtime 檔案以 immutable generation 加單一 current pointer 整組切換；第三檔中斷仍完整保留舊 generation",
+        "reviewed_revision 必須等於 clean release Git checkout HEAD，manifest 與每個 source blob 必須與該 commit 完全一致"
       ]
     },
     {
@@ -133,7 +144,7 @@ This file contains one bounded Ubuntu Worker deployment-repair Goal. It does not
       "status": "active",
       "dependencies": ["W2-EXACT-VERIFICATION"],
       "human_gate": "none",
-      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "GitHub repair PR metadata", "existing Ubuntu Claude review runtime"],
+      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "scripts/install_ubuntu_worker_runtime.py", "tests/control_plane/test_ubuntu_worker_runtime.py", "GitHub repair PR metadata", "existing Ubuntu Claude review runtime"],
       "acceptance": ["reviewer 檢查 exact candidate、部署 fail-closed gate 與 no-RESUME boundary", "只有 exact PASS 且 GitHub rules satisfied 才能正常合併"]
     },
     {
@@ -145,6 +156,7 @@ This file contains one bounded Ubuntu Worker deployment-repair Goal. It does not
       "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "GitHub main/PR metadata", "Ubuntu runtime", "formal read-only state/ledger evidence"],
       "acceptance": [
         "正式 runtime 的 module/lock hashes、import closure、兩個 entrypoint --help 與 full no-model admission 全綠",
+        "正式部署 receipt 已產生並讀回；但 O2-RUNTIME-RECEIPT-PRE-RESERVATION 在另有授權修復前仍維持 NOT_IMPLEMENTED，不得發布任何新 reservation",
         "正式狀態仍為 BLOCKED/PAUSED，attempts=3，沒有第四次派工",
         "未發布 RESUME，release_verified 與 human gates 不變"
       ]
@@ -156,4 +168,4 @@ This file contains one bounded Ubuntu Worker deployment-repair Goal. It does not
 
 ## Current recovery note
 
-Formal PAUSE comment `6461719798` is applied at ledger cursor `26`. The third launch reservation is preserved and no fourth dispatch exists. The active slice repairs only the reviewed Ubuntu Worker runtime import/dependency closure; `RESUME` remains forbidden until a later explicit Owner action after all completion criteria pass.
+Formal PAUSE comment `6461719798` is applied at ledger cursor `26`. The third launch reservation is preserved and no fourth dispatch exists. Final no-model audit invalidated review `review-o2-worker-runtime-import-repair-20261028-001` after reproducing non-atomic flat-runtime promotion and unbound `reviewed_revision`; W3 remains active and owns only the bounded generation-pointer/release-Git repair plus exact re-verification and replacement review input. `O2-RUNTIME-RECEIPT-PRE-RESERVATION` remains a durable `NOT_IMPLEMENTED` admission issue outside this milestone's owned reservation paths. `RESUME` remains forbidden.
