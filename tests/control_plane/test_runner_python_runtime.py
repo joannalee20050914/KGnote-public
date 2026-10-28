@@ -20,10 +20,11 @@ class RunnerPythonRuntimeTest(unittest.TestCase):
             if line and not line.startswith("#")
         }
         self.assertEqual(
-            {"attrs","jsonschema","jsonschema-specifications","pyyaml","referencing","rfc3339-validator","rpds-py","six"},
+            {"attrs","jsonschema","jsonschema-specifications","pyyaml","referencing","rfc3339-validator","rpds-py","six","typing-extensions"},
             rows,
         )
         self.assertEqual("6.0.3",INSTALLER.locked_packages(ROOT/"requirements-runtime.lock")["pyyaml"])
+        self.assertEqual("4.16.0",INSTALLER.locked_packages(ROOT/"requirements-runtime.lock")["typing-extensions"])
 
     def test_runtime_lock_rejects_unpinned_and_probe_rejects_version_drift(self):
         with tempfile.TemporaryDirectory() as directory:

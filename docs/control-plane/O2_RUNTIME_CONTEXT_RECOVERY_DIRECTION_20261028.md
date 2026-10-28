@@ -12,6 +12,7 @@ Immutable Product Goal: `GOAL-KGNOTE-O2-READING-EXPERIENCE` / `2026-10-23.2-s0-s
 - Work Item A has exactly two launch reservations/attempts. There is no third reservation, attempt, or Ubuntu checkpoint.
 - The two Ubuntu Codex executions were real, but their raw stdout/stderr show repository-control and development-environment failures rather than an HTTP 429 or provider subscription/quota response.
 - The former `RATE_LIMITED` projection was produced by scanning arbitrary transcript prose for words such as `quota` or `429`; it is not provider evidence and supplied no provider recovery time.
+- Formal deployment admission after the first reviewed candidate proved that the Ubuntu host lacks the distro `python3-venv` package and that Python 3.12 requires the separately pinned `typing-extensions` dependency for `referencing==0.37.0`. The candidate must therefore use the already pinned Ubuntu `uv` bootstrap and close that exact lock dependency before deployment; bypassing `pip check` is forbidden.
 
 ## 2. Authorized bounded repair
 
