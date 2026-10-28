@@ -29,9 +29,12 @@ NODE_VERSION = "v24.12.0"
 NPM_VERSION = "11.6.2"
 PYTHON_VERSION = "Python 3.12.3"
 CODEX_VERSION = "codex-cli 0.146.0"
+UV_VERSION = "uv 0.13.1 (aarch64-unknown-linux-gnu)"
+UV_SHA256 = "43c648f0632c625bf5c70ae844cdd69a44c2d4461ef2d4acf08e0720ccdfdf22"
 NODE_RELATIVE = Path("lib/node-v24.12.0/bin/node")
 NPM_RELATIVE = Path("lib/node-v24.12.0/bin/npm")
 CODEX_JS_RELATIVE = Path("lib/node-v24.12.0/lib/node_modules/@openai/codex/bin/codex.js")
+UV_RELATIVE = Path("bin/uv")
 VENV_BOOTSTRAP_DISTRIBUTIONS = {"pip"}
 
 
@@ -57,7 +60,8 @@ def _run(
     )
     if completed.returncode:
         raise UbuntuRuntimeError(
-            f"runtime command failed: {Path(command[0]).name}: {completed.stderr.strip()}"
+            f"runtime command failed: {Path(command[0]).name}: "
+            f"{(completed.stderr or completed.stdout).strip()}"
         )
     return completed.stdout.strip() or completed.stderr.strip()
 
@@ -133,20 +137,42 @@ def _install_gh(archive: Path, runtime_root: Path) -> Path:
     return link
 
 
-def _install_venv(checkout: Path, lock: Path) -> tuple[Path, dict[str, Any]]:
+def _validate_uv(runtime_root: Path) -> dict[str, str]:
+    uv = runtime_root / UV_RELATIVE
+    if not uv.is_file() or not os.access(uv, os.X_OK):
+        raise UbuntuRuntimeError("pinned uv runtime is absent or not executable")
+    digest = _sha256(uv)
+    version = _run([str(uv), "--version"])
+    if digest != UV_SHA256 or version != UV_VERSION:
+        raise UbuntuRuntimeError("uv version or SHA-256 differs from the pinned runtime")
+    return {"version": version, "path": str(uv), "sha256": digest}
+
+
+def _install_venv(
+    checkout: Path, lock: Path, uv: Path | None = None,
+) -> tuple[Path, dict[str, Any]]:
     if not lock.is_file():
         raise UbuntuRuntimeError("requirements-runtime.lock is missing")
     target = checkout / ".venv"
     if not target.exists():
+        if uv is None:
+            raise UbuntuRuntimeError("pinned uv is required to create the Ubuntu repository venv")
         temporary = checkout / f".venv.installing-{os.getpid()}"
         if temporary.exists():
             raise UbuntuRuntimeError("stale Ubuntu venv installation directory exists")
         try:
-            _run(["/usr/bin/python3", "-m", "venv", str(temporary)], cwd=checkout)
             _run(
-                [str(temporary / "bin/python"), "-m", "pip", "install", "--no-deps", "-r", str(lock)],
+                [str(uv), "venv", "--python", "/usr/bin/python3", "--seed", str(temporary)],
                 cwd=checkout,
             )
+            _run(
+                [
+                    str(uv), "pip", "install", "--python",
+                    str(temporary / "bin/python"), "--no-deps", "--requirement", str(lock),
+                ],
+                cwd=checkout,
+            )
+            _run([str(temporary / "bin/python"), "-m", "pip", "check"], cwd=checkout)
             os.replace(temporary, target)
         finally:
             if temporary.exists():
@@ -224,7 +250,10 @@ def install(
     ):
         raise UbuntuRuntimeError("Node/npm/Codex version differs from the pinned runtime")
     gh = _install_gh(archive, runtime_root)
-    python, dependencies = _install_venv(checkout, requirements_lock)
+    uv = _validate_uv(runtime_root)
+    python, dependencies = _install_venv(
+        checkout, requirements_lock, Path(uv["path"]),
+    )
     python_version = _run([str(python), "--version"])
     if python_version != PYTHON_VERSION:
         raise UbuntuRuntimeError("Python version differs from the pinned runtime")
@@ -247,6 +276,7 @@ def install(
         "node": {"version": node_version, "path": str(node)},
         "npm": {"version": npm_version, "path": str(npm)},
         "codex": {"version": codex_version, "path": str(codex_js)},
+        "uv": uv,
         "python": {
             "version": python_version,
             "path": str(python),
