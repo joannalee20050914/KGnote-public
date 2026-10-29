@@ -17,8 +17,13 @@ import github_product_goal_control as CONTROL
 import goal_continuity as GOAL
 import goal_runner_adapter as ADAPTER
 import linux_worker_router as ROUTER
+import product_goal_runtime_admission as RUNTIME_ADMISSION
 from product_goal_worker_result import adapt_worker_result
 from tests.control_plane.test_github_product_goal_control import comment
+from tests.control_plane.runtime_admission_fixtures import (
+    runtime_identity,
+    write_reservation_receipt,
+)
 
 
 NOW=datetime(2026,10,28,10,0,tzinfo=ZoneInfo("Asia/Taipei"))
@@ -62,6 +67,110 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
         GOAL.atomic_write_json(state_path,state)
         return spec,state,authority,state_path,ledger_path
 
+    def test_pre_reservation_receipt_failures_preserve_formal_state_and_ledger(self):
+        for failure in (
+            "missing", "stale", "identity", "order_hash", "formal_authority",
+            "checkpoint_missing", "checkpoint_hash", "bootstrap_evidence",
+            "worker_evidence",
+        ):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
+                repo=Path(directory)
+                spec,state,authority,state_path,ledger_path=self.setup_goal(repo)
+                action=ADAPTER.next_action(
+                    spec,state,GOAL.read_ledger(ledger_path),authority,
+                    now=NOW,trial=False,
+                )
+                bound,order_path,_,_=ADAPTER.ensure_bound_order(
+                    spec,state,action,repo=repo,state_path=state_path,
+                    occurred_at=NOW.isoformat(),runtime_identity=runtime_identity(),
+                    persist_binding=False,
+                )
+                receipt_path=write_reservation_receipt(
+                    repo,order_path,observed_at=NOW,
+                )
+                if failure == "missing":
+                    receipt_path.unlink()
+                elif failure == "stale":
+                    receipt=json.loads(receipt_path.read_text())
+                    receipt["issued_at"]="2026-10-28T09:00:00+08:00"
+                    receipt["expires_at"]="2026-10-28T09:02:00+08:00"
+                    receipt_path.write_text(json.dumps(receipt))
+                elif failure == "identity":
+                    receipt=json.loads(receipt_path.read_text())
+                    receipt["work_item_id"]="WI-O2-WRONG"
+                    receipt_path.write_text(json.dumps(receipt))
+                elif failure == "order_hash":
+                    order=json.loads(order_path.read_text())
+                    order["memory_max"]="3G"
+                    order_path.write_text(json.dumps(order))
+                elif failure == "formal_authority":
+                    order=json.loads(order_path.read_text())
+                    order["execution_context"]["runner_context"][
+                        "state_projection_sha256"
+                    ]="0"*64
+                    order_path.write_text(json.dumps(order))
+                    receipt=json.loads(receipt_path.read_text())
+                    receipt["work_order_sha256"]=hashlib.sha256(
+                        order_path.read_bytes()
+                    ).hexdigest()
+                    receipt["authority"]["state_projection_sha256"]="0"*64
+                    receipt_path.write_text(json.dumps(receipt))
+                else:
+                    receipt=json.loads(receipt_path.read_text())
+                    checkpoint_path=Path(receipt["router_checkpoint_path"])
+                    if failure == "checkpoint_missing":
+                        checkpoint_path.unlink()
+                    elif failure == "checkpoint_hash":
+                        checkpoint_path.write_text(
+                            checkpoint_path.read_text()+"\n",
+                        )
+                    elif failure == "bootstrap_evidence":
+                        checkpoint=json.loads(checkpoint_path.read_text())
+                        checkpoint["bootstrap_receipt_sha256"]="7"*64
+                        checkpoint_path.write_text(json.dumps(checkpoint))
+                        receipt["router_checkpoint_sha256"]=hashlib.sha256(
+                            checkpoint_path.read_bytes()
+                        ).hexdigest()
+                        receipt_path.write_text(json.dumps(receipt))
+                    else:
+                        checkpoint=json.loads(checkpoint_path.read_text())
+                        checkpoint["execution_evidence"]["challenge"]="6"*64
+                        checkpoint_path.write_text(json.dumps(checkpoint))
+                        receipt["router_checkpoint_sha256"]=hashlib.sha256(
+                            checkpoint_path.read_bytes()
+                        ).hexdigest()
+                        receipt["worker_receipt_sha256"]=hashlib.sha256(
+                            RUNTIME_ADMISSION.canonical_json_bytes(
+                                checkpoint["execution_evidence"]
+                            )
+                        ).hexdigest()
+                        receipt_path.write_text(json.dumps(receipt))
+                before_state=hashlib.sha256(state_path.read_bytes()).hexdigest()
+                before_ledger=hashlib.sha256(ledger_path.read_bytes()).hexdigest()
+                with self.assertRaises(ADAPTER.GoalRunnerError):
+                    ADAPTER.reserve_dispatch(
+                        spec,bound,action,state_path=state_path,
+                        ledger_path=ledger_path,repo=repo,
+                        occurred_at=NOW.isoformat(),prepared_order_path=order_path,
+                        admission_receipt_path=receipt_path,
+                    )
+                self.assertEqual(
+                    before_state,hashlib.sha256(state_path.read_bytes()).hexdigest(),
+                )
+                self.assertEqual(
+                    before_ledger,hashlib.sha256(ledger_path.read_bytes()).hexdigest(),
+                )
+                projection=GOAL.reduce_ledger(GOAL.read_ledger(ledger_path))
+                self.assertEqual({},projection["dispatch_reservations"])
+                self.assertEqual({},projection["model_attempts"])
+                durable=GOAL.load_json(state_path)
+                self.assertEqual(0,durable["work_items"][0]["attempts"])
+                self.assertEqual(
+                    0,durable.get("resource_accounting",{}).get(
+                        "codex",{},
+                    ).get("total_launches",0),
+                )
+
     def test_dynamic_order_to_real_router_checkpoint_result_state_and_next_work(self):
         with tempfile.TemporaryDirectory() as directory:
             repo=Path(directory)
@@ -70,10 +179,14 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
             self.assertEqual("DISPATCH_IMPLEMENTATION",decision["action"])
             state,order_path,order,attempt=ADAPTER.ensure_bound_order(
                 spec,state,decision,repo=repo,state_path=state_path,occurred_at=NOW.isoformat(),
+                runtime_identity=runtime_identity(),
+                persist_binding=False,
             )
+            receipt_path=write_reservation_receipt(repo,order_path,observed_at=NOW)
             reserved,_,attempt=ADAPTER.reserve_dispatch(
                 spec,state,decision,state_path=state_path,ledger_path=ledger_path,
-                repo=repo,occurred_at=NOW.isoformat(),
+                repo=repo,occurred_at=NOW.isoformat(),prepared_order_path=order_path,
+                admission_receipt_path=receipt_path,
             )
             context=order["execution_context"]
             artifact={
@@ -167,10 +280,13 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
                 ADAPTER.ensure_bound_order(
                     spec,state,action,repo=repo,state_path=state_path,
                     occurred_at=before.isoformat(),
+                    runtime_identity=runtime_identity(),
                 )
-            bound,_,_,_=ADAPTER.ensure_bound_order(
+            bound,order_path,_,_=ADAPTER.ensure_bound_order(
                 spec,state,action,repo=repo,state_path=state_path,
                 occurred_at=start.isoformat(),
+                runtime_identity=runtime_identity(),
+                persist_binding=False,
             )
             with self.assertRaisesRegex(ADAPTER.GoalRunnerError,"GOAL_HARD_STOP"):
                 ADAPTER.reserve_dispatch(
@@ -188,13 +304,19 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
                 spec,state,GOAL.read_ledger(ledger_path),authority,
                 now=before_stop,trial=False,
             )
-            bound,_,_,attempt=ADAPTER.ensure_bound_order(
+            bound,order_path,_,attempt=ADAPTER.ensure_bound_order(
                 spec,state,action,repo=repo,state_path=state_path,
                 occurred_at=before_stop.isoformat(),
+                runtime_identity=runtime_identity(),
+                persist_binding=False,
+            )
+            receipt_path=write_reservation_receipt(
+                repo,order_path,observed_at=before_stop,
             )
             reserved,_,reserved_attempt=ADAPTER.reserve_dispatch(
                 spec,bound,action,state_path=state_path,ledger_path=ledger_path,
                 repo=repo,occurred_at=before_stop.isoformat(),
+                prepared_order_path=order_path,admission_receipt_path=receipt_path,
             )
             self.assertEqual(attempt,reserved_attempt)
             decision=ADAPTER.next_action(

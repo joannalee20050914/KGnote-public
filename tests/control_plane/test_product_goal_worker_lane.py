@@ -14,8 +14,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import codex_control
 import product_goal_worker_lane as LANE
+import linux_worker_router as ROUTER
+import product_goal_runtime_admission as RUNTIME_ADMISSION
 import claude_reviewer_adapter as CLAUDE
 from product_goal_worker_result import adapt_worker_result
+from tests.control_plane.runtime_admission_fixtures import runtime_identity
 
 
 class ProductGoalWorkerLaneTest(unittest.TestCase):
@@ -97,6 +100,7 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
             **self.context,
             "schema_version": LANE.CONTEXT_SCHEMA,
             "runner_context": {"source": "test-runner-projection"},
+            "runtime_identity": runtime_identity(),
         }
         def probe(command, *, repo):
             if command[0] == str(python) and command[1] == "--version": return "Python 3.12.3"
@@ -110,7 +114,12 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
             if command[0] == str(python):
                 return json.dumps({**locked, "pip": "24.0"})
             self.fail(command)
-        with patch.object(LANE,"GUEST_NODE",str(node)), patch.object(LANE,"GUEST_NPM",str(npm)), patch.object(LANE,"GUEST_GH",str(gh)), patch.object(LANE,"GUEST_CODEX_JS",str(codex_js)), patch.object(LANE,"_probe",side_effect=probe), patch.object(LANE,"validate_context",return_value=sealed_context):
+        generation=Path(sealed_context["runtime_identity"]["generation"])
+        observed_checkout={
+            **identity,"commit":identity["head"],"fingerprint":identity["value"],
+            "pull_request":33,
+        }
+        with patch.object(LANE,"GUEST_NODE",str(node)), patch.object(LANE,"GUEST_NPM",str(npm)), patch.object(LANE,"GUEST_GH",str(gh)), patch.object(LANE,"GUEST_CODEX_JS",str(codex_js)), patch.object(LANE,"_probe",side_effect=probe), patch.object(LANE,"validate_context",return_value=sealed_context), patch.object(LANE,"require_live_runtime_identity",return_value=sealed_context["runtime_identity"]), patch.object(LANE,"_observed_checkout",return_value=observed_checkout), patch.object(LANE,"__file__",str(generation/"product_goal_worker_lane.py")):
             receipt,env=LANE.admit_codex_development_environment(self.repo,sealed_context,evidence)
         self.assertEqual("PASS",receipt["status"])
         self.assertEqual("v24.12.0",receipt["versions"]["node"])
@@ -157,6 +166,74 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
                 "mismatched=\\['jsonschema'\\].*unexpected=\\['unexpected'\\]",
             ):
                 LANE._admit_locked_dependencies(python, self.repo)
+
+    def test_exact_environment_rejects_wrong_checkout_before_tool_probe(self):
+        observed = {
+            "commit": "f" * 40,
+            "fingerprint": self.context["candidate_fingerprint"],
+            "branch": self.context["branch"],
+            "pull_request": self.context["pull_request"],
+            "tree": "e" * 40,
+        }
+        with patch.object(LANE, "_observed_checkout", return_value=observed), patch.object(
+            LANE, "_probe",
+        ) as probe:
+            with self.assertRaisesRegex(LANE.LaneError, "admitted candidate"):
+                LANE._admit_exact_environment(self.repo, {
+                    "commit": self.context["candidate_commit"],
+                    "fingerprint": self.context["candidate_fingerprint"],
+                    "branch": self.context["branch"],
+                    "pull_request": self.context["pull_request"],
+                })
+        probe.assert_not_called()
+
+    def test_admission_landlock_probe_failure_never_writes_pass_or_starts_model(self):
+        runtime = runtime_identity()
+        request = {
+            "schema_version": RUNTIME_ADMISSION.DEPLOYMENT_REQUEST_SCHEMA,
+            "admission_kind": RUNTIME_ADMISSION.DEPLOYMENT_ACCEPTANCE,
+            "execution_direction_id": RUNTIME_ADMISSION.EXECUTION_DIRECTION_ID,
+            "product_goal_id": RUNTIME_ADMISSION.PRODUCT_GOAL_ID,
+            "product_goal_version": RUNTIME_ADMISSION.PRODUCT_GOAL_VERSION,
+            "authority_lease": "PAUSED",
+            "go_live_authorized": False,
+            "formal_dispatch_authorized": False,
+            "working_directory": str(RUNTIME_ADMISSION.PRODUCT_WORKING_DIRECTORY),
+            "challenge": "5" * 64,
+            "candidate": {
+                "commit": self.context["candidate_commit"],
+                "fingerprint": self.context["candidate_fingerprint"],
+                "branch": self.context["branch"],
+            },
+            "runtime_identity": runtime,
+        }
+        order = ROUTER.admission_order_for_deployment(
+            request, receipt_path=self.evidence_root / "mac-receipt.json",
+        )
+        evidence = self.evidence_root / "worker-receipt.json"
+        visible_ssh = self.evidence_root / "visible-ssh"
+        visible_ssh.mkdir()
+        generation = Path(runtime["generation"])
+        with patch.object(
+            LANE, "require_live_runtime_identity", return_value=runtime,
+        ), patch.object(
+            LANE, "validate_admission_identity", return_value=order.bootstrap_identity,
+        ), patch.object(
+            LANE, "_admit_exact_environment",
+            return_value=(request["candidate"], {"status": "READY"}),
+        ), patch.object(
+            LANE, "_probe", return_value="ok",
+        ), patch.object(
+            LANE, "__file__", str(generation / "product_goal_worker_lane.py"),
+        ):
+            with self.assertRaisesRegex(LANE.LaneError, "exposed the excluded SSH"):
+                LANE.run_admission(
+                    self.repo, order.execution_context, evidence,
+                    process_reader=lambda: [],
+                    cgroup_reader=lambda: "0::/user.slice/kgnote-test.service\n",
+                    denied_path=visible_ssh,
+                )
+        self.assertFalse(evidence.exists())
 
     def test_codex_environment_admission_rejects_legacy_context(self):
         with self.assertRaisesRegex(LANE.LaneError, "context v2"):
@@ -230,7 +307,8 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
 
     def test_real_claude_schema_gets_deterministic_review_identity(self):
         evidence = self.evidence_root / "review.json"
-        context = {**self.context, "work_item_id": "WI-O2-A-REVIEW", "stage": "claude", "provider": "claude", "action": "DISPATCH_REVIEW"}
+        runtime_identity_value = runtime_identity()
+        context = {**self.context, "work_item_id": "WI-O2-A-REVIEW", "stage": "claude", "provider": "claude", "action": "DISPATCH_REVIEW", "runtime_identity": runtime_identity_value}
         structured = {
             "protocol": "kgnote.product-review.v1", "repository": "owner/repo",
             "pull_request": 33, "program_id": context["goal_version"],
@@ -262,10 +340,15 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
             self.assertEqual(order.claude_facing_schema_sha256,metadata["claude_facing_schema_sha256"])
             return checkpoint
 
-        code = LANE.run_review(
-            self.repo, context, evidence,
-            executor=preflight, runtime_paths=paths,
-        )
+        with patch.object(
+            LANE, "require_live_runtime_identity", return_value=runtime_identity_value,
+        ), patch.object(
+            LANE, "__file__", str(Path(runtime_identity_value["generation"]) / "product_goal_worker_lane.py"),
+        ):
+            code = LANE.run_review(
+                self.repo, context, evidence,
+                executor=preflight, runtime_paths=paths,
+            )
         self.assertEqual(0, code)
         self.assertEqual(CLAUDE.FORMAL_REVIEW_SCHEMA_SHA256,captured[0].formal_consumer_schema_sha256)
         self.assertEqual(CLAUDE.CLAUDE_SCHEMA_PROJECTION_VERSION,captured[0].schema_projection_version)
@@ -276,17 +359,43 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
 
     def test_review_schema_projection_mismatch_fails_before_executor(self):
         evidence=self.evidence_root/"review-mismatch.json"
-        context={**self.context,"work_item_id":"WI-O2-A-REVIEW","stage":"claude","provider":"claude","action":"DISPATCH_REVIEW"}
+        runtime=runtime_identity()
+        context={**self.context,"work_item_id":"WI-O2-A-REVIEW","stage":"claude","provider":"claude","action":"DISPATCH_REVIEW","runtime_identity":runtime}
         called=[]
         bad={
             "formal_schema_sha256":"0"*64,
             "claude_facing_schema_sha256":"1"*64,
             "projection_version":CLAUDE.CLAUDE_SCHEMA_PROJECTION_VERSION,
         }
-        with patch.object(LANE,"build_claude_schema_projection",return_value=({},bad)):
+        with patch.object(LANE,"require_live_runtime_identity",return_value=runtime), patch.object(LANE,"__file__",str(Path(runtime["generation"])/"product_goal_worker_lane.py")), patch.object(LANE,"build_claude_schema_projection",return_value=({},bad)):
             with self.assertRaisesRegex(LANE.LaneError,"metadata is inconsistent"):
                 LANE.run_review(self.repo,context,evidence,executor=lambda order:called.append(order))
         self.assertEqual([],called)
+
+    def test_review_runtime_drift_fails_before_claude_executor(self):
+        evidence=self.evidence_root/"review-runtime-drift.json"
+        runtime=runtime_identity()
+        context={
+            **self.context,"work_item_id":"WI-O2-A-REVIEW","stage":"claude",
+            "provider":"claude","action":"DISPATCH_REVIEW",
+            "runtime_identity":runtime,
+        }
+        called=[]
+        with patch.object(
+            LANE,"require_live_runtime_identity",
+            side_effect=RUNTIME_ADMISSION.RuntimeAdmissionError(
+                "live runtime generation differs from the admitted identity"
+            ),
+        ):
+            with self.assertRaisesRegex(
+                LANE.LaneError,"runtime differs from pre-reservation admission",
+            ):
+                LANE.run_review(
+                    self.repo,context,evidence,
+                    executor=lambda order:called.append(order),
+                )
+        self.assertEqual([],called)
+        self.assertFalse(evidence.exists())
 
 
 if __name__ == "__main__":

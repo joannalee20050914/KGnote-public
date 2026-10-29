@@ -1,89 +1,77 @@
 # KGnote Codex status
 
-This handoff describes the bounded O2 Ubuntu Worker runtime import repair. It does not authorize `RESUME` or another O2 product-model attempt.
+This handoff describes the bounded O2 runtime-receipt pre-reservation repair. It
+does not authorize `RESUME` or another O2 product-model attempt.
 
 <!-- BEGIN CODEX STATUS JSON -->
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-28T14:36:57+08:00",
-  "goal_id": "CODEX-APP-GOAL-O2-WORKER-RUNTIME-IMPORT-REPAIR-20261028",
-  "active_goal": "CODEX-APP-GOAL-O2-WORKER-RUNTIME-IMPORT-REPAIR-20261028",
+  "updated_at": "2026-10-29T11:52:16+08:00",
+  "goal_id": "CODEX-APP-GOAL-O2-RUNTIME-RECEIPT-PRE-RESERVATION-20261029",
+  "active_goal": "CODEX-APP-GOAL-O2-RUNTIME-RECEIPT-PRE-RESERVATION-20261029",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
   "authority_kind": "CURRENT_USER_EXECUTION_INSTRUCTION",
   "lifecycle_owner": "CODEX_APP",
   "product_goal_authorized": false,
   "goal_status": "active",
-  "active_milestone_id": "W3-INDEPENDENT-REVIEW",
-  "milestone_id": "W3-INDEPENDENT-REVIEW",
+  "active_milestone_id": "A2-EXACT-VERIFICATION-AND-REVIEW",
+  "milestone_id": "A2-EXACT-VERIFICATION-AND-REVIEW",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
-    "branch": "codex/o2-worker-runtime-import-repair-20261028",
-    "head": "4cfca5851b7ae5cac7aa20cc73c8bea9dff4a087",
-    "base_commit": "8fc5a7f99cf5d01afa9bb544ba3774ee7cdf11ba",
-    "checkpoint_commit": "4cfca5851b7ae5cac7aa20cc73c8bea9dff4a087",
-    "draft_pull_request": 38
+    "branch": "codex/o2-runtime-receipt-pre-reservation-20261029",
+    "head": "f706a71e61a3c41370166d6feff388397eee3e4f",
+    "base_commit": "44f36b40791d375d74b9b161c81c92e9f8e65ea7",
+    "checkpoint_commit": "f706a71e61a3c41370166d6feff388397eee3e4f",
+    "draft_pull_request": 39
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "a4345b9455acd41bc6edb2140a08658c9cc40b6330d7161db57b305061da4b37",
-    "starting_fingerprint": "dbec3a25268467b6c4d7c56b50e1e34bfe96b0d1746232b5a0235a75378429b1",
-    "expected_dirty_policy": "Only the bounded Ubuntu Worker runtime module/lock deployment repair, tests, PLAN/STATUS/review artifacts and exact verification receipts may change. Formal O2 state/ledger are read-only; RESUME and a fourth product attempt are forbidden.",
+    "fingerprint": "dd1439a24579eb70b11c323c152430835c0885b605d9401de82b554862191f27",
+    "starting_fingerprint": "af9a7eed01de8afd7e3a74e169b65d09f6b24ea7f56669522d30d32fdeab7a96",
+    "expected_dirty_policy": "Only the bounded pre-reservation no-model admission/receipt gate, exact tests, operations documentation, PLAN/STATUS/review artifacts and verification evidence may change. Formal O2 state/ledger/checkpoints are read-only; RESUME and a fourth product attempt are forbidden.",
     "preserved_preexisting_dirty_paths": [],
     "unexpected_dirty_paths": []
   },
-  "readiness_outcome": "RUNTIME_DEPLOYMENT_REPAIR_IMPLEMENTING",
+  "readiness_outcome": "EXTERNAL_CHANGES_REQUIRED_REPAIRED_PENDING_EXACT_VERIFICATION",
+  "reused_read_only_audit": {
+    "codex_task_title": "審核部署後模型派工關卡",
+    "audit_baseline": "8fc5a7f99cf5d01afa9bb544ba3774ee7cdf11ba",
+    "status": "REUSED",
+    "key_finding": "Ubuntu runtime/bootstrap/systemd/Landlock checks occur after MODEL_ATTEMPT_STARTED/DISPATCH_RESERVED; reserve_dispatch does not validate a live receipt."
+  },
   "formal_o2_readback": {
-    "deployed_commit": "8fc5a7f99cf5d01afa9bb544ba3774ee7cdf11ba",
-    "pause_comment_id": "6461719798",
-    "ledger_cursor": 26,
+    "deployed_commit": "44f36b40791d375d74b9b161c81c92e9f8e65ea7",
+    "runtime_generation": "44f36b40791d375d74b9b161c81c92e9f8e65ea7",
+    "runtime_manifest_sha256": "b86d9e4ee94dfa2ad9b058ce784bb712aa242ec13aa9311afcf5b3c248863a42",
+    "runtime_receipt_sha256": "484da34d3da35432f861e6b4cbf9a83d6fcd25b847778a2b66ea71346ca9fd95",
     "state_sha256": "5786046a481f412b945dc58664758dbe3d7202040ba275fa77ced617acbb3765",
     "ledger_sha256": "a88d1f1c563a3845ae3e75ec6fb302352fe9648978e444c28c5b8f8b559afbdb",
-    "ledger_tail_event_sha256": "b63490ea283cc",
+    "ledger_cursor": 26,
     "lifecycle": "BLOCKED",
     "authority_lease": "PAUSED",
     "go_live_authorized": false,
     "work_item_attempts": 3,
     "goal_launches_used": 3,
     "model_attempts": 2,
-    "fourth_reservation_or_attempt": false,
-    "runner_status": "WAIT_AUTHORITY"
+    "fourth_reservation_or_attempt": false
   },
-  "third_attempt_evidence": {
-    "attempt_id": "o2-wi-o2-a-implement-codex-33383dc5b9d42939",
-    "started_at": "2026-10-28T12:48:14+08:00",
-    "status": "FAILED_CLOSED",
-    "codex_event_count": 0,
-    "turn_completed": false,
-    "observed_cause": "DEPLOYED_PYTHON_MODULE_IMPORT_FAILURE",
-    "reservation_preserved": true
-  },
-  "production_runtime_discovery": {
-    "ubuntu_host": "kgnote-ubuntu",
-    "flat_runtime": "/home/kgnote/.local/share/kgnote/runtime",
-    "reviewed_release": "/home/kgnote/.local/share/kgnote/runtime/releases/o2-8fc5a7f",
-    "product_checkout": "/home/kgnote/.local/share/kgnote/work-items/goal-o2-reading-experience",
-    "product_checkout_revision": "483f9e64066821d5d647d411e6da8ddb50ad88e5",
-    "missing_module_observed": "codex_jsonl_evidence.py",
-    "reviewed_module_sha256": "e6eebee348f4be6b532d234566669b3f889134b7dd7499183f2b5c4a016ca844",
-    "module_synced_atomically": true,
-    "direct_import_closure": "PASS_AFTER_SYNC",
-    "worker_result_help": "PASS_AFTER_SYNC",
-    "worker_lane_help": "PASS_AFTER_SYNC",
-    "full_no_model_admission": "FAIL_CLOSED_REQUIREMENTS_RUNTIME_LOCK_ABSENT_FROM_PRODUCT_CHECKOUT",
-    "model_started_during_validation": false
-  },
-  "permanent_admission_issues": [
-    {
-      "id": "O2-RUNTIME-RECEIPT-PRE-RESERVATION",
-      "status": "NOT_IMPLEMENTED",
-      "evidence": "reserve_dispatch does not read or validate the latest ubuntu-worker-runtime-receipt.json before appending DISPATCH_RESERVED",
-      "release_effect": "No future formal reservation may be claimed runtime-receipt-gated until a separately authorized repair and exact review add this admission boundary."
-    }
-  ],
   "implementation_state": "IMPLEMENTING",
+  "external_review_round_1": {
+    "status": "CHANGES_REQUIRED",
+    "reviewed_commit": "f706a71e61a3c41370166d6feff388397eee3e4f",
+    "reviewed_fingerprint": "903ae5460e607d20ace28aab441d0c8400f8edb31fa01d35c56704887e91d379",
+    "canonical_artifact": "https://github.com/joannalee20050914/KGnote-public/pull/39#issuecomment-6487367930",
+    "consumer_checkpoint": "output/control-plane/o2-runtime-receipt-claude-consumer-checkpoint-r2.json",
+    "findings": [
+      "finding-review-lane-no-runtime-revalidation",
+      "finding-receipt-not-authenticated-in-reserve",
+      "finding-review-request-not-sealed-to-candidate"
+    ],
+    "repair_disposition": "FIXED_PENDING_EXTERNAL_REREVIEW"
+  },
   "review": {
     "state": "IMPLEMENTING",
     "current_review_id": null,
@@ -92,40 +80,19 @@ This handoff describes the bounded O2 Ubuntu Worker runtime import repair. It do
     "unresolved_findings": [],
     "human_decision_blockers": []
   },
-  "external_review_runtime": {
-    "status": "STALE_CANDIDATE_NO_VERDICT",
-    "transport": "existing Ubuntu Claude reviewer path",
-    "review_round": 0,
-    "consumer_status": null,
-    "repair_review_is_not_o2_product_attempt": true,
-    "review_launch_attempts": 1,
-    "valid_verdict_rounds": 0,
-    "last_attempt": {
-      "status": "FAILED_CLOSED",
-      "reason": "quota_exhausted",
-      "provider_error_status": 429,
-      "provider_error": "usage_limit_reached",
-      "model_invocation_started": true,
-      "model_inference_occurred": false,
-      "input_tokens": 0,
-      "output_tokens": 0,
-      "retry_not_before": "2026-10-28T15:10:00+08:00",
-      "route_checkpoint": "output/control-plane/o2-worker-runtime-import-repair-claude-route-checkpoint-r1.json"
-    },
-    "retry_prepared": false,
-    "stale_retry_work_order": "output/control-plane/o2-worker-runtime-import-repair-claude-work-order-r2.json",
-    "stale_retry_route_order": "output/control-plane/o2-worker-runtime-import-repair-claude-route-order-r2.json",
-    "retry_dispatched": false
-  },
   "verification": {
     "candidate_verified": false,
     "release_verified": false,
     "control_plane_ready": false,
-    "last_candidate_evidence": "output/control-plane/verification-20261028T140704+0800.json",
-    "last_verified_fingerprint": "b1b505dc95ee3d6b5b3495d1c86949514d607f357463932a74caf2c7ed4eb582",
-    "last_result": "Keep W3 active for the bounded review repair without changing stopped orchestrator state."
+    "last_candidate_evidence": "output/control-plane/verification-20261029T114055+0800.json",
+    "last_verified_fingerprint": "903ae5460e607d20ace28aab441d0c8400f8edb31fa01d35c56704887e91d379",
+    "last_result": "Canonical Ubuntu Claude round 1 returned CHANGES_REQUIRED. All three findings have bounded repairs and remain pending exact external rereview; no reviewer PASS is claimed."
   },
-  "next_action": "Run targeted and full deterministic verification, checkpoint a new commit, then generate review-o2-worker-runtime-import-repair-20261028-002 input without dispatching it.",
+  "claim_boundary": {
+    "no_model_admission": "NOT_VERIFIED",
+    "real_product_model_development": "NOT_VERIFIED_REQUIRES_LATER_AUTHORIZED_TRIAL"
+  },
+  "next_action": "Run exact deterministic verification for the bounded repair, commit and push the new PR #39 candidate, then issue review-o2-runtime-receipt-pre-reservation-20261029-002 with the live review bus.",
   "external_or_human_gates": [
     {
       "id": "REPAIR-EXACT-CLAUDE-PASS",
@@ -133,7 +100,7 @@ This handoff describes the bounded O2 Ubuntu Worker runtime import repair. It do
     },
     {
       "id": "O2-RUNTIME-RECEIPT-PRE-RESERVATION",
-      "status": "NOT_IMPLEMENTED"
+      "status": "CANDIDATE_VERIFIED"
     },
     {
       "id": "O2-AUTHORITY-LEASE",
@@ -154,9 +121,10 @@ This handoff describes the bounded O2 Ubuntu Worker runtime import repair. It do
   ],
   "forbidden_during_goal": [
     "publish RESUME or reissue Owner APPROVE",
-    "start a fourth O2 reservation, model attempt, dispatch or Ubuntu checkpoint",
-    "modify the sealed product checkout to supply runtime-only dependencies",
-    "overwrite formal ledger/checkpoints/raw logs or reset attempt/launch accounting",
+    "start a fourth O2 reservation, model attempt, dispatch or formal checkpoint",
+    "delete, reclassify or reset the three historical reservations/launch accounting",
+    "increase formal quota or change the Product Goal schedule",
+    "reuse PAUSED Product Goal ACTIVE/RESUME identity for admission acceptance",
     "deploy code before exact Ubuntu Claude PASS and GitHub rule read-back",
     "force push, administrator bypass, direct main writes or stale PASS reuse",
     "promote D2-T14-FINAL-HUMAN-ACCEPTANCE, PA-HUMAN-1, NS-HUMAN-SMOKE or release_verified"
@@ -167,9 +135,9 @@ This handoff describes the bounded O2 Ubuntu Worker runtime import repair. It do
 
 ## Human-readable handoff
 
-Goal `CODEX-APP-GOAL-O2-WORKER-RUNTIME-IMPORT-REPAIR-20261028` remains active at milestone `W3-INDEPENDENT-REVIEW`.
+Goal `CODEX-APP-GOAL-O2-RUNTIME-RECEIPT-PRE-RESERVATION-20261029` remains active at milestone `A2-EXACT-VERIFICATION-AND-REVIEW`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Run targeted and full deterministic verification, checkpoint a new commit, then generate review-o2-worker-runtime-import-repair-20261028-002 input without dispatching it.
+Exact next action: Run exact deterministic verification for the bounded repair, commit and push the new PR #39 candidate, then issue review-o2-runtime-receipt-pre-reservation-20261029-002 with the live review bus.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

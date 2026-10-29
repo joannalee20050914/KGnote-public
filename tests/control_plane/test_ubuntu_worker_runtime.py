@@ -72,7 +72,7 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
         target.mkdir(parents=True)
         old = {}
         missing = missing or set()
-        for name in RUNTIME.WORKER_RUNTIME_SOURCES:
+        for name in RUNTIME.WORKER_RUNTIME_COMPATIBILITY:
             if name in missing:
                 continue
             old[name] = f"OLD:{name}\n".encode()
@@ -188,7 +188,7 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
                 )
             self.assertEqual(
                 old,
-                {name: (target / name).read_bytes() for name in RUNTIME.WORKER_RUNTIME_SOURCES},
+                {name: (target / name).read_bytes() for name in old},
             )
             self.assertFalse((target / RUNTIME.WORKER_RUNTIME_CURRENT).exists())
 
@@ -208,7 +208,7 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
                 )
             self.assertEqual(
                 old,
-                {name: (target / name).read_bytes() for name in RUNTIME.WORKER_RUNTIME_SOURCES},
+                {name: (target / name).read_bytes() for name in old},
             )
             self.assertFalse((target / RUNTIME.WORKER_RUNTIME_CURRENT).exists())
 
@@ -240,11 +240,11 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
             self.assertEqual(3, len(promoted))
             self.assertEqual(
                 old,
-                {name: (target / name).read_bytes() for name in RUNTIME.WORKER_RUNTIME_SOURCES},
+                {name: (target / name).read_bytes() for name in old},
             )
             self.assertFalse(any(
                 hashlib.sha256((target / name).read_bytes()).hexdigest() == files[name]
-                for name in RUNTIME.WORKER_RUNTIME_SOURCES
+                for name in old
             ))
             receipt = RUNTIME._install_worker_runtime(
                 release_root=release, runtime_root=runtime,
@@ -252,7 +252,14 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
                 python=Path(sys.executable),
             )
             self.assertEqual(files, receipt["files"])
-            self.assertTrue(all((target / name).is_symlink() for name in files))
+            self.assertTrue(all(
+                (target / name).is_symlink()
+                for name in RUNTIME.WORKER_RUNTIME_COMPATIBILITY
+            ))
+            self.assertTrue(all(
+                not (target / name).exists()
+                for name in RUNTIME.WORKER_RUNTIME_GENERATION_ONLY
+            ))
 
     def test_formal_partial_flat_runtime_interruption_keeps_safe_bridge(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -300,7 +307,14 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
                 python=Path(sys.executable),
             )
             self.assertEqual(files, receipt["files"])
-            self.assertTrue(all((target / name).is_symlink() for name in files))
+            self.assertTrue(all(
+                (target / name).is_symlink()
+                for name in RUNTIME.WORKER_RUNTIME_COMPATIBILITY
+            ))
+            self.assertTrue(all(
+                not (target / name).exists()
+                for name in RUNTIME.WORKER_RUNTIME_GENERATION_ONLY
+            ))
 
     def test_post_switch_cold_start_failure_rolls_back_current_pointer(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -329,7 +343,7 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
                     )
             self.assertEqual(
                 old,
-                {name: (target / name).read_bytes() for name in RUNTIME.WORKER_RUNTIME_SOURCES},
+                {name: (target / name).read_bytes() for name in old},
             )
             current = target / RUNTIME.WORKER_RUNTIME_CURRENT
             self.assertTrue(current.is_symlink())

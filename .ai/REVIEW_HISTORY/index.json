@@ -1,8 +1,8 @@
 {
   "schema_version": "kgnote.review-history-index.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "event_count": 34,
-  "last_event_id": "evt-0034",
+  "event_count": 37,
+  "last_event_id": "evt-0037",
   "reviews": {
     "review-mainline-integration-20261020-001": {
       "snapshots": [
@@ -212,6 +212,28 @@
       ],
       "last_event_type": "STALE_CANDIDATE_INVALIDATED",
       "candidate_fingerprint": "b1b505dc95ee3d6b5b3495d1c86949514d607f357463932a74caf2c7ed4eb582"
+    },
+    "review-o2-worker-runtime-import-repair-20261028-002": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-o2-worker-runtime-import-repair-20261028-002/request-8b60932c49d99a0afdfb0c3a271ada694534e57e24da424c4680e782d23005c7.md",
+          "sha256": "8b60932c49d99a0afdfb0c3a271ada694534e57e24da424c4680e782d23005c7",
+          "event_id": "evt-0035"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": null
+    },
+    "review-o2-runtime-receipt-pre-reservation-20261029-001": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-o2-runtime-receipt-pre-reservation-20261029-001/request-29660b69f534960ffcd22c8adf76b9247dc20568c39bcb35435b14fa4e722c5f.md",
+          "sha256": "29660b69f534960ffcd22c8adf76b9247dc20568c39bcb35435b14fa4e722c5f",
+          "event_id": "evt-0036"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "903ae5460e607d20ace28aab441d0c8400f8edb31fa01d35c56704887e91d379"
     }
   },
   "findings": {}

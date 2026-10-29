@@ -18,7 +18,39 @@ Supplying only some paths fails closed. Supplying all paths still does not grant
 
 New Product Goal worktrees use the host path policy at `${HOME}/Library/Application Support/KGnote/tooling/path-policy.json` and the existing `kgnote_worktree_guard.py`. The worktree path is derived from the sealed slug as a direct child of the configured concentrated root; the guard rejects symlink escape, a root inside a non-bare Git working tree, and a mismatched Git common directory. Already-sealed Legacy work items retain their exact original paths for read/replay, but an absent Legacy Home worktree is not automatically recreated and no new formal admission may choose `${HOME}/KGnote-*`.
 
-After those gates pass, the exact O2 proposal can derive one Runner-owned `dispatch_binding` from the immutable Work Item, current state/ledger, exact authority, current candidate and a fixed worker profile. The order is written atomically under the repository evidence root, digest-bound into state, re-read by admission, and reused for the same attempt after restart. Other Product Goals and Legacy work continue to require their existing `dispatch_binding` or action-keyed `dispatch_bindings`; the O2 builder is deliberately not a generic shell-command generator. The existing Writer Lock, Stop Marker, epoch/scope admission and Linux router remain on the dispatch path. Runner appends and fsyncs an exact dispatch reservation before calling the router; a restart that sees a reservation without a reconciled checkpoint consumes that checkpoint before any redispatch. Missing/running checkpoints remain pending, identity/digest mismatches fail closed, and terminal failures become bounded recovery facts.
+After those gates pass, the exact O2 proposal can derive one provisional Runner-owned WorkOrder from the immutable Work Item, current state/ledger, exact authority, current candidate, current Ubuntu runtime generation and a fixed worker profile. For a model-bearing action this provisional order is written only under the repository evidence root; it is not bound into formal state and does not increment an attempt. Other Product Goals and Legacy work continue to require their existing `dispatch_binding` or action-keyed `dispatch_bindings`; the O2 builder is deliberately not a generic shell-command generator. The existing Writer Lock, Stop Marker, epoch/scope admission and Linux router remain on the dispatch path.
+
+Before `MODEL_ATTEMPT_STARTED` / `DISPATCH_RESERVED`, Runner asks the existing Router to discover the live immutable Ubuntu generation and route an `admission` stage through SSH, bootstrap, transient systemd unit, guard, Landlock and the deployed Worker lane. That stage uses the exact product checkout and tool/dependency probes but contains no Codex/Claude command. Its fresh receipt binds the WorkOrder SHA-256, candidate, durable state/authority projection, reviewed revision/tree, runtime manifest and installed file hashes. `reserve_dispatch()` independently validates that receipt, its two-minute lifetime and single use before its first ledger append. It also opens the referenced Router checkpoint only from the repository evidence root, verifies its file hash, event and command identity, and recomputes the canonical Worker receipt hash before comparing the exact candidate, authority, runtime, no-model and Landlock facts. A free-standing or hand-written receipt without those Router, Bootstrap and Worker evidence bytes fails closed. Runner then persists the exact binding/reservation and calls the ordinary model route. Both the Codex and Claude model lanes execute from the pinned generation and re-read the current generation, receipt, lock and installed file hashes immediately before any provider process; pointer or byte drift fails closed. A restart that sees a reservation without a reconciled checkpoint consumes that checkpoint before any redispatch. Missing/running checkpoints remain pending, identity/digest mismatches fail closed, and terminal failures become bounded recovery facts.
+
+Exact independent review uses the repository's two-phase candidate seal. The tracked `.ai/REVIEW_REQUEST.md` and `CODEX_STATUS.md` inside a candidate commit are historical checkpoints because a commit cannot contain its own SHA. After the candidate commit, deterministic verification and `review-request` produce the fingerprint-excluded live seal. The production review handoff must copy that live request, live status and exact verifier receipt into an ignored evidence directory in the clean review checkout, record each copy's SHA-256 in the WorkOrder, and name those copies in reviewer authority/scope. The reviewer must compare them with the recomputed checkout HEAD/tree/fingerprint and the canonical GitHub marker; the tracked historical copies alone are insufficient review authority. These copies do not change candidate bytes or make a failed/stale seal valid.
+
+### PAUSED deployment admission-only acceptance
+
+Deployment acceptance has its own `DEPLOYMENT_ACCEPTANCE` identity, challenge and evidence directory. Its fixed fields are `authority_lease=PAUSED`, `go_live_authorized=false` and `formal_dispatch_authorized=false`; Product Goal identity/context and WorkOrder SHA are null. It therefore cannot act as `APPROVE`, `RESUME`, a product reservation or launch accounting.
+
+After installing an exact reviewed generation, create and route the request against the existing clean Product Goal checkout. `ADMISSION_CHECKOUT_*` identifies that checkout; the separately discovered runtime identity already binds the deployed repair HEAD/tree, manifest and file hashes. The example paths are evidence paths, not formal Product Goal state/checkpoint paths:
+
+```bash
+mkdir -p output/control-plane/runtime-admission-acceptance
+
+python3 scripts/linux_worker_router.py --discover-runtime \
+  > output/control-plane/runtime-admission-acceptance/runtime-identity.json
+
+python3 scripts/product_goal_runtime_admission.py --make-deployment-request \
+  --runtime-identity output/control-plane/runtime-admission-acceptance/runtime-identity.json \
+  --challenge "${ADMISSION_CHALLENGE}" \
+  --candidate-commit "${ADMISSION_CHECKOUT_HEAD}" \
+  --candidate-tree "${ADMISSION_CHECKOUT_TREE}" \
+  --candidate-fingerprint "${ADMISSION_CHECKOUT_FINGERPRINT}" \
+  --candidate-branch "${ADMISSION_CHECKOUT_BRANCH}" \
+  > output/control-plane/runtime-admission-acceptance/request.json
+
+python3 scripts/linux_worker_router.py \
+  --deployment-admission output/control-plane/runtime-admission-acceptance/request.json \
+  --admission-receipt output/control-plane/runtime-admission-acceptance/receipt.json
+```
+
+`ADMISSION_CHALLENGE` must be a newly generated 64-character lowercase hexadecimal value. Read back the request, receipt, Router checkpoint and Worker receipt digests; require `status=PASS`, all five isolation fields `PASS`, `model_process_started=false`, `model_launches=0` and `model_processes=[]`. Snapshot the formal Product Goal state, ledger and formal checkpoint-set hashes before and after both positive and negative cases. A positive result proves only the deployed no-model admission path. It does not verify a real product-model development result and does not authorize `RESUME`.
 
 A successful router return records only `DISPATCHED`. Product state changes only after the checkpoint contains an exact `kgnote.product-goal-worker-result.v1` envelope. Runner then records attempt completion, observed-or-unknown usage, review verdict, publication and obligation evaluation independently. A valid `CHANGES_REQUIRED` activates the already-authorized repair lane; repair completion reopens the evidence pipeline without requiring another Owner approval. Once every Work Item is terminal and every stable obligation was independently verified, Runner enters `ACCEPTANCE_REQUIRED`, queues one deduplicated notification, and still waits for an exact Owner `ACCEPT` before `CLOSED`.
 

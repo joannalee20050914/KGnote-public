@@ -45,6 +45,10 @@ WORKER_RUNTIME_MANIFEST_RELATIVE = Path("config/ubuntu-worker-runtime-manifest.j
 WORKER_RUNTIME_SOURCES = {
     "requirements-runtime.lock": Path("requirements-runtime.lock"),
     "codex_jsonl_evidence.py": Path("scripts/codex_jsonl_evidence.py"),
+    "linux_landlock_exec.py": Path("scripts/linux_landlock_exec.py"),
+    "linux_worker_bootstrap.py": Path("scripts/linux_worker_bootstrap.py"),
+    "linux_worker_guard.py": Path("scripts/linux_worker_guard.py"),
+    "product_goal_runtime_admission.py": Path("scripts/product_goal_runtime_admission.py"),
     "product_goal_worker_identity.py": Path("scripts/product_goal_worker_identity.py"),
     "product_goal_worker_result.py": Path("scripts/product_goal_worker_result.py"),
     "codex_control.py": Path("scripts/codex_control.py"),
@@ -52,8 +56,20 @@ WORKER_RUNTIME_SOURCES = {
     "claude_reviewer_adapter.py": Path("scripts/claude_reviewer_adapter.py"),
     "product_goal_worker_lane.py": Path("scripts/product_goal_worker_lane.py"),
 }
+WORKER_RUNTIME_COMPATIBILITY = {
+    "requirements-runtime.lock",
+    "codex_jsonl_evidence.py",
+    "product_goal_worker_identity.py",
+    "product_goal_worker_result.py",
+    "codex_control.py",
+    "claude_billing_preflight.py",
+    "claude_reviewer_adapter.py",
+    "product_goal_worker_lane.py",
+}
+WORKER_RUNTIME_GENERATION_ONLY = set(WORKER_RUNTIME_SOURCES) - WORKER_RUNTIME_COMPATIBILITY
 WORKER_RUNTIME_IMPORTS = (
-    "codex_jsonl_evidence", "product_goal_worker_identity",
+    "codex_jsonl_evidence", "linux_landlock_exec", "linux_worker_bootstrap",
+    "linux_worker_guard", "product_goal_runtime_admission", "product_goal_worker_identity",
     "product_goal_worker_result", "codex_control",
     "claude_billing_preflight", "claude_reviewer_adapter",
     "product_goal_worker_lane",
@@ -231,11 +247,13 @@ def _validate_reviewed_release(
     }
 
 
-def _worker_generation_hashes(directory: Path) -> dict[str, str]:
+def _worker_generation_hashes(
+    directory: Path, names: set[str] | None = None,
+) -> dict[str, str]:
     if directory.is_symlink() or not directory.is_dir():
         raise UbuntuRuntimeError("worker runtime generation is not a real directory")
     observed: dict[str, str] = {}
-    for name in WORKER_RUNTIME_SOURCES:
+    for name in sorted(names or set(WORKER_RUNTIME_SOURCES)):
         path = directory / name
         if not path.is_file() or path.is_symlink():
             raise UbuntuRuntimeError(
@@ -271,12 +289,12 @@ def _prepare_legacy_generation(
         name for name, present in zip(WORKER_RUNTIME_SOURCES, existing)
         if not present
     }
-    # The formal 8fc5a7f runtime is known to contain every legacy Python file
-    # while lacking only the newly deployed dependency lock.  Bridging that
-    # non-code file from the already validated candidate generation keeps the
-    # old worker lane fail-closed while making the first pointer migration
-    # recoverable.  Any missing executable/module remains an unsupported drift.
-    if missing and missing != {"requirements-runtime.lock"}:
+    # The formal legacy runtime may lack the dependency lock and files first
+    # introduced as generation-pinned admission components.  Only those exact
+    # reviewed candidate bytes may bridge the first pointer migration; an
+    # absent historical Worker module remains unsupported drift.
+    allowed_missing = {"requirements-runtime.lock"} | WORKER_RUNTIME_GENERATION_ONLY
+    if missing - allowed_missing:
         raise UbuntuRuntimeError("existing flat worker runtime is incomplete")
     sources: dict[str, Path] = {}
     digests: dict[str, str] = {}
@@ -329,8 +347,20 @@ def _promote_worker_generation(
         relative = os.path.relpath(visible_generation, target)
         _atomic_symlink(relative, current)
 
-    visible_hashes = _worker_generation_hashes(visible_generation)
-    for name in WORKER_RUNTIME_SOURCES:
+    visible_hashes = _worker_generation_hashes(
+        visible_generation, WORKER_RUNTIME_COMPATIBILITY,
+    )
+    # Add any missing compatibility bridge (notably the historical lock) first.
+    # An interrupted first migration therefore remains fail-closed but complete
+    # enough for the still-visible legacy entrypoint to validate its environment.
+    compatibility_order = sorted(
+        WORKER_RUNTIME_COMPATIBILITY,
+        key=lambda name: (
+            (target / name).exists() or (target / name).is_symlink(),
+            name,
+        ),
+    )
+    for name in compatibility_order:
         path = target / name
         expected_link = f"{WORKER_RUNTIME_CURRENT}/{name}"
         if path.is_symlink():
@@ -349,10 +379,10 @@ def _promote_worker_generation(
     try:
         if _worker_generation_hashes(generation) != manifest["files"]:
             raise UbuntuRuntimeError("promoted worker runtime generation differs")
-        installed = {name: _sha256(target / name) for name in WORKER_RUNTIME_SOURCES}
+        installed = _worker_generation_hashes(generation)
         if installed != manifest["files"]:
             raise UbuntuRuntimeError("installed worker runtime differs from the reviewed manifest")
-        _cold_start_worker_runtime(target, python)
+        _cold_start_worker_runtime(generation, python)
     except Exception:
         if switched:
             _atomic_symlink(previous_pointer, current)
@@ -423,10 +453,10 @@ def _install_worker_runtime(
     _promote_worker_generation(
         target=target, generation=generation, manifest=manifest, python=python,
     )
-    installed = {name: _sha256(target / name) for name in WORKER_RUNTIME_SOURCES}
+    installed = _worker_generation_hashes(generation)
     if installed != manifest["files"]:
         raise UbuntuRuntimeError("installed worker runtime differs from the reviewed manifest")
-    installed_cold_start = _cold_start_worker_runtime(target, python)
+    installed_cold_start = _cold_start_worker_runtime(generation, python)
     return {
         "reviewed_revision": reviewed_revision,
         "reviewed_source": source_identity,
