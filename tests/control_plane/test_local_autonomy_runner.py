@@ -68,7 +68,7 @@ class RunnerTests(unittest.TestCase):
             goal.atomic_write_json(
                 state_path,
                 goal.initial_runner_state(
-                    spec,now="2026-10-29T14:00:00+08:00",
+                    spec,now="2026-10-29T16:00:00+08:00",
                     dependency_receipts=activation_dependency_receipts(spec),
                 ),
             )
@@ -89,7 +89,7 @@ class RunnerTests(unittest.TestCase):
                     order=Path(command[command.index("--admit-order")+1])
                     receipt=write_reservation_receipt(
                         deploy,order,
-                        observed_at=datetime(2026,11,2,9,0,tzinfo=ZoneInfo("Asia/Taipei")),
+                        observed_at=datetime(2026,10,29,17,0,tzinfo=ZoneInfo("Asia/Taipei")),
                     )
                     expected=Path(command[command.index("--admission-receipt")+1])
                     expected.parent.mkdir(parents=True,exist_ok=True)
@@ -107,7 +107,7 @@ class RunnerTests(unittest.TestCase):
                     deploy,spec_path=spec_path,state_path=state_path,ledger_path=ledger_path,
                     comments_path=comments_path,backlog_path=None,trial=False,router=router,
                     epoch_record=epoch,admission=admission,runner_identity={"sha256":"fixture"},
-                    current=datetime(2026,11,1,10,0,tzinfo=ZoneInfo("Asia/Taipei")),command_runner=no_model,
+                    current=datetime(2026,10,29,16,59,tzinfo=ZoneInfo("Asia/Taipei")),command_runner=no_model,
                 )
                 self.assertEqual("WAIT_TRIAL_START",before["status"])
                 self.assertEqual(0,len(goal.reduce_ledger(goal.read_ledger(ledger_path))["dispatch_reservations"]))
@@ -117,7 +117,7 @@ class RunnerTests(unittest.TestCase):
                     deploy,spec_path=spec_path,state_path=state_path,ledger_path=ledger_path,
                     comments_path=comments_path,backlog_path=None,trial=False,router=router,
                     epoch_record=epoch,admission=admission,runner_identity={"sha256":"fixture"},
-                    current=datetime(2026,11,2,9,0,tzinfo=ZoneInfo("Asia/Taipei")),command_runner=no_model,
+                    current=datetime(2026,10,29,17,0,tzinfo=ZoneInfo("Asia/Taipei")),command_runner=no_model,
                 )
                 self.assertEqual("DISPATCHED",first["status"])
                 saved=goal.load_json(state_path)

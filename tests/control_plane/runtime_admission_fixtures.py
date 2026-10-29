@@ -11,7 +11,7 @@ from scripts import product_goal_runtime_admission as ADMISSION
 
 ROOT = Path(__file__).resolve().parents[2]
 PRODUCT_SPEC_PATH = (
-    ROOT / "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.3.json"
+    ROOT / "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.4.json"
 )
 
 
@@ -20,7 +20,7 @@ def product_goal_spec() -> dict[str, Any]:
 
 
 def activation_dependency_receipts(
-    spec: dict[str, Any], *, verified_at: str = "2026-10-29T14:00:00+08:00",
+    spec: dict[str, Any], *, verified_at: str = "2026-10-29T16:00:00+08:00",
 ) -> list[dict[str, Any]]:
     carryover = spec["history_carryover"]
     source = carryover["source_goal"]

@@ -13,8 +13,8 @@ from typing import Any
 PRODUCT_IDENTITY_SCHEMA = "kgnote.authorized-product-goal-work-identity.v1"
 PRODUCT_RUNTIME_CONTEXT_SCHEMA = "kgnote.product-goal-worker-context.v2"
 PRODUCT_GOAL_ID = "GOAL-KGNOTE-O2-READING-EXPERIENCE"
-PRODUCT_GOAL_VERSION = "2026-10-29.3-bounded-trial-reauthorization-proposal"
-PRODUCT_GOAL_SPEC_SHA256 = "83ddf1cf95c27ec2646e143d4ade88eaedec8f38d5149d3621be090ff6c41e3f"
+PRODUCT_GOAL_VERSION = "2026-10-29.4-bounded-trial-day0-proposal"
+PRODUCT_GOAL_SPEC_SHA256 = "7e9a31e87d36a2cb23789602f3bafb4fe29469d0fa57dcda33b9e8ba1295e08f"
 PRODUCT_REPOSITORY = "joannalee20050914/KGnote-public"
 PRODUCT_ISSUE = 9
 PRODUCT_WORKTREE_SLUG = "goal-o2-reading-experience"

@@ -249,11 +249,11 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
             spec,state,authority,_state_path,ledger_path=self.setup_goal(repo)
             ledger=GOAL.read_ledger(ledger_path)
             cases=(
-                (datetime(2026,11,1,10,0,tzinfo=ZoneInfo("Asia/Taipei")),"WAIT_TRIAL_START"),
-                (datetime(2026,11,2,9,0,tzinfo=ZoneInfo("Asia/Taipei")),"ACTION_READY"),
-                (datetime(2026,11,13,17,59,59,tzinfo=ZoneInfo("Asia/Taipei")),"ACTION_READY"),
-                (datetime(2026,11,13,18,0,tzinfo=ZoneInfo("Asia/Taipei")),"GOAL_HARD_STOP"),
-                (datetime(2026,11,14,10,0,tzinfo=ZoneInfo("Asia/Taipei")),"GOAL_HARD_STOP"),
+                (datetime(2026,10,29,16,59,59,tzinfo=ZoneInfo("Asia/Taipei")),"WAIT_TRIAL_START"),
+                (datetime(2026,10,29,17,0,tzinfo=ZoneInfo("Asia/Taipei")),"ACTION_READY"),
+                (datetime(2026,11,11,17,59,59,tzinfo=ZoneInfo("Asia/Taipei")),"ACTION_READY"),
+                (datetime(2026,11,11,18,0,tzinfo=ZoneInfo("Asia/Taipei")),"GOAL_HARD_STOP"),
+                (datetime(2026,11,12,10,0,tzinfo=ZoneInfo("Asia/Taipei")),"GOAL_HARD_STOP"),
             )
             for observed,expected in cases:
                 with self.subTest(observed=observed.isoformat()):
@@ -275,9 +275,9 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             repo=Path(directory)
             spec,state,authority,state_path,ledger_path=self.setup_goal(repo)
-            start=datetime(2026,11,2,9,0,tzinfo=ZoneInfo("Asia/Taipei"))
-            before=datetime(2026,11,1,10,0,tzinfo=ZoneInfo("Asia/Taipei"))
-            hard_stop=datetime(2026,11,13,18,0,tzinfo=ZoneInfo("Asia/Taipei"))
+            start=datetime(2026,10,29,17,0,tzinfo=ZoneInfo("Asia/Taipei"))
+            before=datetime(2026,10,29,16,59,59,tzinfo=ZoneInfo("Asia/Taipei"))
+            hard_stop=datetime(2026,11,11,18,0,tzinfo=ZoneInfo("Asia/Taipei"))
             action=ADAPTER.next_action(
                 spec,state,GOAL.read_ledger(ledger_path),authority,
                 now=start,trial=False,
@@ -304,8 +304,8 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             repo=Path(directory)
             spec,state,authority,state_path,ledger_path=self.setup_goal(repo)
-            before_stop=datetime(2026,11,10,17,59,tzinfo=ZoneInfo("Asia/Taipei"))
-            hard_stop=datetime(2026,11,10,18,0,tzinfo=ZoneInfo("Asia/Taipei"))
+            before_stop=datetime(2026,11,11,17,59,tzinfo=ZoneInfo("Asia/Taipei"))
+            hard_stop=datetime(2026,11,11,18,0,tzinfo=ZoneInfo("Asia/Taipei"))
             action=ADAPTER.next_action(
                 spec,state,GOAL.read_ledger(ledger_path),authority,
                 now=before_stop,trial=False,

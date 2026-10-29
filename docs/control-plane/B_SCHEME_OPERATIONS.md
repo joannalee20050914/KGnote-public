@@ -119,6 +119,29 @@ current immutable runtime generation. Deployment admission-only acceptance
 remains no-model evidence and cannot create or substitute for Owner approval,
 a reservation, an attempt, a product checkpoint or product acceptance.
 
+### O2 v4 Day 0 acceleration boundary
+
+The immutable v3 identity and its receipts remain unchanged. The minimum
+successor candidate keeps Goal ID `GOAL-KGNOTE-O2-READING-EXPERIENCE` and uses
+version `2026-10-29.4-bounded-trial-day0-proposal`, canonical digest
+`7e9a31e87d36a2cb23789602f3bafb4fe29469d0fa57dcda33b9e8ba1295e08f`.
+Its proposed start is 2026-10-29 17:00 Asia/Taipei. Day 0 is the remaining
+authorized work window on 2026-10-29; it is not a full observation day.
+Every Day 0 reservation and attempt nevertheless counts normally against the
+cross-version ceilings.
+
+The five full observation work dates are 2026-10-30, 2026-11-02,
+2026-11-03, 2026-11-04 and 2026-11-05. The ten Goal work dates begin with
+Day 0 and end at the hard stop on the tenth Goal workday,
+2026-11-11 18:00 Asia/Taipei. Codex remains capped at five total charges with
+three carried and two remaining; Claude remains capped at eight.
+
+The exact v4 Owner `APPROVE`, all three activation dependency receipts and
+the Runner's first accepted authority observation must occur strictly before
+17:00. Missing that boundary keeps v4 `APPROVAL_REQUIRED` / `PAUSED` and
+requires another immutable version. No v3 state, ledger, checkpoint or receipt
+may be edited to accelerate v4.
+
 ## Deterministic trial
 
 Run from a clean implementation checkout:

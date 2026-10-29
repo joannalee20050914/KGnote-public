@@ -26,10 +26,10 @@ from tests.control_plane.runtime_admission_fixtures import (
 from tests.control_plane.test_github_product_goal_control import comment
 
 
-NOW = datetime(2026, 11, 2, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+NOW = datetime(2026, 10, 30, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
 
 
-class O2V3ReauthorizationReadinessTest(unittest.TestCase):
+class O2V4Day0ReadinessTest(unittest.TestCase):
     def setUp(self):
         self.spec = product_goal_spec()
 
@@ -38,7 +38,7 @@ class O2V3ReauthorizationReadinessTest(unittest.TestCase):
         ledger_path = root / "ledger.jsonl"
         state = GOAL.initial_runner_state(
             self.spec,
-            now="2026-10-29T14:00:00+08:00",
+            now="2026-10-29T16:00:00+08:00",
             dependency_receipts=activation_dependency_receipts(self.spec),
         )
         GOAL.atomic_write_json(state_path, state)
@@ -55,7 +55,7 @@ class O2V3ReauthorizationReadinessTest(unittest.TestCase):
         state = ADAPTER.reconcile_owner_authority(
             self.spec, state, authority,
             state_path=state_path, ledger_path=ledger_path,
-            observed_at=datetime(2026, 10, 29, 14, 0, tzinfo=ZoneInfo("Asia/Taipei")),
+            observed_at=datetime(2026, 10, 29, 16, 0, tzinfo=ZoneInfo("Asia/Taipei")),
         )["state"]
         state["candidate_identity"] = deepcopy(
             self.spec["history_carryover"]["candidate_identity"]
@@ -98,6 +98,20 @@ class O2V3ReauthorizationReadinessTest(unittest.TestCase):
         self.assertEqual(3, GOAL.carried_provider_charges(self.spec, "codex"))
         self.assertEqual(2, carryover["actual_model_processes"]["codex"])
         self.assertEqual(5, self.spec["resource_policy"]["providers"]["codex"]["fallback"]["max_total_launches"])
+        schedule = self.spec["trial_schedule"]
+        self.assertEqual("2026-10-29", schedule["day_zero_date"])
+        self.assertFalse(schedule["day_zero_counts_as_full_observation_day"])
+        self.assertEqual(
+            "COUNTS_AGAINST_PROVIDER_CEILINGS",
+            schedule["day_zero_model_usage_accounting"],
+        )
+        self.assertEqual(
+            ["2026-10-30", "2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05"],
+            schedule["observation_work_dates"],
+        )
+        self.assertEqual(10, len(schedule["goal_work_dates"]))
+        self.assertEqual("2026-11-11", schedule["goal_work_dates"][-1])
+        self.assertEqual(10, schedule["hard_stop_goal_workday_ordinal"])
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (
@@ -129,7 +143,7 @@ class O2V3ReauthorizationReadinessTest(unittest.TestCase):
             ))
         action = {"requires_model": True, "provider": "claude"}
         wrong_version = deepcopy(self.spec)
-        wrong_version["goal_version"] = "2026-10-29.3-wrong"
+        wrong_version["goal_version"] = "2026-10-29.4-wrong"
         with self.assertRaisesRegex(ADAPTER.GoalRunnerError, "exact supported version and digest"):
             ADAPTER.requires_runtime_admission(wrong_version, action)
 
@@ -155,8 +169,8 @@ class O2V3ReauthorizationReadinessTest(unittest.TestCase):
                 elif failure == "wrong_runtime":
                     receipt["runtime_identity"]["generation_id"] = "f" * 40
                 else:
-                    receipt["issued_at"] = "2026-11-02T09:00:00+08:00"
-                    receipt["expires_at"] = "2026-11-02T09:02:00+08:00"
+                    receipt["issued_at"] = "2026-10-30T09:00:00+08:00"
+                    receipt["expires_at"] = "2026-10-30T09:02:00+08:00"
                 receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
                 before_state = hashlib.sha256(state_path.read_bytes()).hexdigest()
                 before_ledger = hashlib.sha256(ledger_path.read_bytes()).hexdigest()
@@ -181,12 +195,12 @@ class O2V3ReauthorizationReadinessTest(unittest.TestCase):
             with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 verified_at = (
-                    "2026-11-02T09:00:00+08:00"
+                    "2026-10-29T17:00:00+08:00"
                     if case == "late_dependency"
-                    else "2026-10-29T14:00:00+08:00"
+                    else "2026-10-29T16:00:00+08:00"
                 )
                 state = GOAL.initial_runner_state(
-                    self.spec, now="2026-10-29T14:00:00+08:00",
+                    self.spec, now="2026-10-29T16:00:00+08:00",
                     dependency_receipts=activation_dependency_receipts(
                         self.spec, verified_at=verified_at,
                     ),
@@ -195,7 +209,7 @@ class O2V3ReauthorizationReadinessTest(unittest.TestCase):
                 GOAL.atomic_write_json(state_path, state)
                 approval = comment(self.spec, login="joannalee20050914")
                 if case == "late_approval":
-                    approval["created_at"] = "2026-11-02T01:00:00Z"
+                    approval["created_at"] = "2026-10-29T09:00:00Z"
                 approval["html_url"] = (
                     "https://github.com/joannalee20050914/KGnote-public/"
                     "issues/9#issuecomment-100"
@@ -209,9 +223,9 @@ class O2V3ReauthorizationReadinessTest(unittest.TestCase):
                     self.spec, state, authority,
                     state_path=state_path, ledger_path=ledger_path,
                     observed_at=(
-                        datetime(2026, 11, 2, 9, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+                        datetime(2026, 10, 29, 17, 0, tzinfo=ZoneInfo("Asia/Taipei"))
                         if case == "late_reconciliation"
-                        else datetime(2026, 10, 29, 14, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+                        else datetime(2026, 10, 29, 16, 0, tzinfo=ZoneInfo("Asia/Taipei"))
                     ),
                 )
                 self.assertEqual("APPROVAL_REQUIRED", result["state"]["lifecycle"]["state"])
@@ -222,12 +236,12 @@ class O2V3ReauthorizationReadinessTest(unittest.TestCase):
                 self.assertEqual({}, projection["dispatch_reservations"])
                 self.assertEqual({}, projection["model_attempts"])
 
-    def test_two_new_codex_attempts_exhaust_ceiling_after_three_carried_charges(self):
+    def test_day_zero_codex_attempts_count_and_exhaust_cross_version_ceiling(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             state, authority, _state_path, ledger_path = self.activated_fixture(root)
             for index, occurred_at in enumerate(
-                ("2026-11-02T09:10:00+08:00", "2026-11-02T09:20:00+08:00"),
+                ("2026-10-29T17:10:00+08:00", "2026-10-29T17:20:00+08:00"),
                 start=1,
             ):
                 GOAL.append_ledger_event(

@@ -1,9 +1,9 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "orch-196e83598408",
-  "active_goal": "CODEX-APP-GOAL-O2-V3-REAUTHORIZATION-READINESS-20261029",
-  "work_package": "A2-EXACT-VERIFICATION-AND-REVIEW",
-  "state": "IMPLEMENTING",
+  "run_id": "orch-a18e813f2a3a",
+  "active_goal": "CODEX-APP-GOAL-O2-DAY0-ACCELERATION-20261029",
+  "work_package": "D1-EXACT-VERIFICATION-AND-REVIEW",
+  "state": "STOPPED",
   "current_agent": null,
   "candidate_fingerprint": null,
   "review_id": null,
@@ -13,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Commit the exact locally verified candidate, rerun commit-bound verification, publish one Draft PR and request independent Ubuntu Claude review.",
+  "next_action": "Operator requested a safe stop; run resume to continue.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -27,6 +27,6 @@
     "description": null
   },
   "last_agent_run": null,
-  "created_at": "2026-10-29T13:43:43+08:00",
-  "updated_at": "2026-10-29T13:43:43+08:00"
+  "created_at": "2026-10-29T14:47:19+08:00",
+  "updated_at": "2026-10-29T14:47:19+08:00"
 }
