@@ -1,7 +1,7 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "orch-e8c94a57c58a",
-  "active_goal": "CODEX-APP-GOAL-O2-RUNTIME-RECEIPT-PRE-RESERVATION-20261029",
+  "run_id": "orch-196e83598408",
+  "active_goal": "CODEX-APP-GOAL-O2-V3-REAUTHORIZATION-READINESS-20261029",
   "work_package": "A2-EXACT-VERIFICATION-AND-REVIEW",
   "state": "IMPLEMENTING",
   "current_agent": null,
@@ -13,7 +13,7 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-o2-runtime-receipt-pre-reservation-20261029-002.",
+  "next_action": "Commit the exact locally verified candidate, rerun commit-bound verification, publish one Draft PR and request independent Ubuntu Claude review.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -27,6 +27,6 @@
     "description": null
   },
   "last_agent_run": null,
-  "created_at": "2026-10-29T11:32:21+08:00",
-  "updated_at": "2026-10-29T11:52:16+08:00"
+  "created_at": "2026-10-29T13:43:43+08:00",
+  "updated_at": "2026-10-29T13:43:43+08:00"
 }

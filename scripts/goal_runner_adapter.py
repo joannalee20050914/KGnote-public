@@ -137,9 +137,105 @@ def _completion_ready(state: dict[str, Any]) -> bool:
     )
 
 
+def _trial_start(spec: dict[str, Any]) -> datetime | None:
+    schedule = spec.get("trial_schedule")
+    if schedule is None:
+        return None
+    if not isinstance(schedule, dict) or schedule.get("timezone") != "Asia/Taipei":
+        raise GoalRunnerError("trial schedule must use the trusted Asia/Taipei timezone")
+    try:
+        value = datetime.fromisoformat(str(schedule["proposed_start"]))
+    except (KeyError, ValueError) as exc:
+        raise GoalRunnerError("trial schedule start is invalid") from exc
+    if value.tzinfo is None:
+        raise GoalRunnerError("trial schedule start must be timezone-aware")
+    return value.astimezone(ZONE)
+
+
+def _activation_prerequisites_before_start(
+    spec: dict[str, Any], state: dict[str, Any], approval_record: dict[str, Any],
+    *, observed_at: datetime | None = None,
+) -> tuple[bool, str]:
+    start = _trial_start(spec)
+    if start is None:
+        return True, ""
+    try:
+        approved_at = datetime.fromisoformat(str(approval_record["created_at"]))
+    except (KeyError, ValueError) as exc:
+        raise GoalRunnerError("Owner approval time is invalid") from exc
+    if approved_at.tzinfo is None:
+        raise GoalRunnerError("Owner approval time must be timezone-aware")
+    if approved_at.astimezone(ZONE) >= start:
+        return False, "TRIAL_ACTIVATION_MISSED: Owner APPROVE was not created before the immutable trial start"
+    activation_dependencies = spec.get("trial_schedule", {}).get(
+        "activation_dependency_ids", []
+    )
+    if activation_dependencies:
+        if observed_at is None:
+            return False, "TRIAL_ACTIVATION_MISSED: Runner activation observation time is unavailable"
+        if observed_at.tzinfo is None or observed_at.astimezone(ZONE) >= start:
+            return False, "TRIAL_ACTIVATION_MISSED: Runner did not admit activation before the immutable trial start"
+    receipt_by_id = {
+        row.get("dependency_id"): row for row in state.get("dependency_receipts", [])
+        if isinstance(row, dict)
+    }
+    for dependency_id in activation_dependencies:
+        receipt = receipt_by_id.get(dependency_id)
+        if receipt is None:
+            return False, f"TRIAL_ACTIVATION_MISSED: missing activation dependency {dependency_id}"
+        try:
+            verified_at = datetime.fromisoformat(str(receipt.get("verified_at")))
+        except ValueError:
+            return False, f"TRIAL_ACTIVATION_MISSED: activation dependency {dependency_id} lacks a valid verification time"
+        if verified_at.tzinfo is None or verified_at.astimezone(ZONE) >= start:
+            return False, f"TRIAL_ACTIVATION_MISSED: activation dependency {dependency_id} was not verified before the immutable trial start"
+    return True, ""
+
+
+def _has_timely_approval_event(
+    spec: dict[str, Any], ledger: list[dict[str, Any]],
+) -> bool:
+    start = _trial_start(spec)
+    if start is None:
+        return True
+    expected_digest = goal_continuity.goal_spec_sha256(spec)
+    for event in ledger:
+        payload = event.get("payload")
+        if (
+            event.get("event_type") != "GOAL_AUTHORITY_VERIFIED"
+            or not isinstance(payload, dict)
+            or payload.get("accepted") is not True
+            or payload.get("action") != "APPROVE"
+            or payload.get("go_live_authorized") is not True
+            or payload.get("goal_spec_sha256") != expected_digest
+        ):
+            continue
+        try:
+            occurred_at = datetime.fromisoformat(str(event["occurred_at"]))
+        except (KeyError, ValueError):
+            continue
+        if occurred_at.tzinfo is None or occurred_at.astimezone(ZONE) >= start:
+            continue
+        activation_dependencies = spec.get("trial_schedule", {}).get(
+            "activation_dependency_ids", []
+        )
+        if activation_dependencies:
+            try:
+                observed_at = datetime.fromisoformat(
+                    str(payload["activation_observed_at"])
+                )
+            except (KeyError, ValueError):
+                continue
+            if observed_at.tzinfo is None or observed_at.astimezone(ZONE) >= start:
+                continue
+        return True
+    return False
+
+
 def reconcile_owner_authority(
     spec: dict[str, Any], state: dict[str, Any], authority: dict[str, Any],
     *, state_path: Path, ledger_path: Path,
+    observed_at: datetime | None = None,
 ) -> dict[str, Any]:
     """Durably apply exact Owner commands; parsing alone never changes authority."""
     goal_continuity.validate_goal_spec(spec)
@@ -177,6 +273,10 @@ def reconcile_owner_authority(
                 accepted, reason = False, "APPROVE requires exact receipts for every Goal dependency"
             elif current not in {"PLANNED", "APPROVAL_REQUIRED"} or lease == "REVOKED":
                 accepted, reason = False, "APPROVE requires an unapproved, non-revoked Goal version"
+            else:
+                accepted, reason = _activation_prerequisites_before_start(
+                    spec, state, record, observed_at=observed_at,
+                )
         elif action == "PAUSE":
             if lease != "ACTIVE" or current in {"CLOSED", "ACCEPTANCE_REQUIRED"}:
                 accepted, reason = False, "PAUSE requires an active, non-terminal Goal"
@@ -200,6 +300,10 @@ def reconcile_owner_authority(
             "goal_spec_sha256": goal_continuity.goal_spec_sha256(spec),
             "go_live_authorized": accepted and action in {"APPROVE", "RESUME"},
         }
+        if action == "APPROVE" and observed_at is not None:
+            if observed_at.tzinfo is None:
+                raise GoalRunnerError("Runner activation observation time must be timezone-aware")
+            authority_payload["activation_observed_at"] = observed_at.isoformat()
         if not accepted:
             authority_payload["rejection_reason"] = reason
             goal_continuity.append_ledger_event(
@@ -318,7 +422,7 @@ def in_work_window(spec: dict[str, Any], now: datetime) -> bool:
 
 
 def trial_schedule_admission(
-    spec: dict[str, Any], now: datetime,
+    spec: dict[str, Any], now: datetime, *, authority_record: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Apply an immutable Goal schedule to every new dispatch decision.
 
@@ -358,6 +462,19 @@ def trial_schedule_admission(
             "goal_hard_stop": stop.isoformat(),
             "reason": "the immutable Product Goal hard stop forbids new dispatch",
         }
+    if isinstance(authority_record, dict) and authority_record.get("action") == "APPROVE":
+        try:
+            approved_at = datetime.fromisoformat(str(authority_record["created_at"]))
+        except (KeyError, ValueError) as exc:
+            raise GoalRunnerError("Owner approval time is invalid") from exc
+        if approved_at.tzinfo is None:
+            raise GoalRunnerError("Owner approval time must be timezone-aware")
+        if approved_at.astimezone(ZONE) >= start:
+            return {
+                "status": "TRIAL_ACTIVATION_MISSED", "requires_model": False,
+                "proposed_start": start.isoformat(),
+                "reason": "Owner approval did not precede the immutable trial start; a new Goal version is required",
+            }
     return {"status": "OPEN"}
 
 
@@ -379,6 +496,15 @@ def _provider_attempts(
         row for row in projection.get("model_attempts", {}).values()
         if row.get("provider") == provider and row.get("started") is True
     ]
+
+
+def _total_provider_charges(
+    spec: dict[str, Any], projection: dict[str, Any], provider: str,
+) -> int:
+    return (
+        goal_continuity.carried_provider_charges(spec, provider)
+        + len(_provider_attempts(projection, provider))
+    )
 
 
 def classify_recovery(failure: dict[str, Any]) -> dict[str, Any]:
@@ -418,12 +544,26 @@ def _go_live_receipt(
     }
     for payload in reversed(projection.get("authority_history", [])):
         identity = (payload.get("authority_comment_id"), payload.get("authority_body_sha256"))
+        observed_at = None
+        if payload.get("activation_observed_at") is not None:
+            try:
+                observed_at = datetime.fromisoformat(
+                    str(payload["activation_observed_at"])
+                )
+            except ValueError:
+                continue
+        approval = approvals.get(identity)
+        timely = False
+        if approval is not None:
+            timely, _reason = _activation_prerequisites_before_start(
+                spec, state, approval, observed_at=observed_at,
+            )
         if (
             payload.get("accepted", True) is True
             and payload.get("action", "APPROVE") == "APPROVE"
             and payload.get("go_live_authorized") is True
             and payload.get("goal_spec_sha256") == goal_continuity.goal_spec_sha256(spec)
-            and identity in approvals
+            and timely
         ):
             return payload
     return None
@@ -493,13 +633,17 @@ def next_action(
         }
     if authority["status"] == "CLOSED" or state["lifecycle"]["state"] == "CLOSED":
         return {"status": "GOAL_CLOSED"}
+    schedule_admission = trial_schedule_admission(
+        spec, now, authority_record=state.get("authority_record"),
+    )
+    if schedule_admission["status"] == "TRIAL_ACTIVATION_MISSED":
+        return schedule_admission
     receipt = _go_live_receipt(projection, authority, state, spec)
     if not state["go_live_authorized"] or receipt is None:
         return {
             "status": "TRIAL_ONLY" if trial else "GO_LIVE_NOT_AUTHORIZED",
             "reason": "state flag and exact ledger-bound Owner go-live receipt are both required",
         }
-    schedule_admission = trial_schedule_admission(spec, now)
     if schedule_admission["status"] != "OPEN":
         return schedule_admission
     if not in_work_window(spec, now):
@@ -609,7 +753,7 @@ def next_action(
         capacity = goal_continuity.capacity_decision(
             spec["resource_policy"]["providers"][provider], now=now,
             last_launch_at=last_launch, launches_in_window=launches,
-            total_launches=len(attempts),
+            total_launches=_total_provider_charges(spec, projection, provider),
             quota_retry_at=quota_retry,
         )
         if capacity["status"] != "DISPATCH":
@@ -618,7 +762,9 @@ def next_action(
         plan["capacity_basis"] = capacity["basis"]
         plan["resource_window_id"] = current_window
         plan["launches_in_window_before"] = launches
-        plan["total_launches_before"] = len(attempts)
+        plan["total_launches_before"] = _total_provider_charges(
+            spec, projection, provider,
+        )
     return {
         "status": "TRIAL_ACTION_READY" if trial else "ACTION_READY",
         "goal_id": spec["goal_id"],
@@ -1048,7 +1194,15 @@ def requires_runtime_admission(
     spec: dict[str, Any], action: dict[str, Any],
 ) -> bool:
     """Return whether this dispatch is governed by the exact O2 live receipt gate."""
-    return bool(action.get("requires_model")) and _is_exact_o2_goal(spec)
+    if not bool(action.get("requires_model")):
+        return False
+    if spec.get("goal_id") != product_goal_worker_identity.PRODUCT_GOAL_ID:
+        return False
+    if not _is_exact_o2_goal(spec):
+        raise GoalRunnerError(
+            "model dispatch for the O2 Goal ID requires the exact supported version and digest"
+        )
+    return True
 
 
 def _dynamic_worker_command(
@@ -1124,6 +1278,13 @@ def ensure_bound_order(
     """Atomically create/reuse one Runner-owned order for the next exact attempt."""
     if action.get("status") != "ACTION_READY":
         raise GoalRunnerError("only an ACTION_READY decision can create an order")
+    if (
+        spec.get("goal_id") == product_goal_worker_identity.PRODUCT_GOAL_ID
+        and not _is_exact_o2_goal(spec)
+    ):
+        raise GoalRunnerError(
+            "O2 dynamic order requires the exact supported version and digest"
+        )
     if not _is_exact_o2_goal(spec):
         path, order, attempt_id = validated_bound_order(
             spec, state, action, repo=repo,
@@ -1133,7 +1294,9 @@ def ensure_bound_order(
         occurred = datetime.fromisoformat(occurred_at)
     except ValueError as exc:
         raise GoalRunnerError("dynamic order creation time is invalid") from exc
-    schedule_admission = trial_schedule_admission(spec, occurred)
+    schedule_admission = trial_schedule_admission(
+        spec, occurred, authority_record=state.get("authority_record"),
+    )
     if schedule_admission["status"] != "OPEN":
         raise GoalRunnerError(
             f"dynamic order creation blocked by {schedule_admission['status']}"
@@ -1513,6 +1676,10 @@ def reserve_dispatch(
         raise GoalRunnerError(
             "an existing dispatch reservation must be reconciled before another dispatch"
         )
+    if not _has_timely_approval_event(spec, ledger):
+        raise GoalRunnerError(
+            "TRIAL_ACTIVATION_MISSED: no accepted Owner APPROVE predates the immutable trial start"
+        )
     if (
         state["lifecycle"]["state"] != "ACTIVE"
         or state["authority_lease"] != "ACTIVE"
@@ -1520,7 +1687,9 @@ def reserve_dispatch(
         or not isinstance(state.get("authority_record"), dict)
     ):
         raise GoalRunnerError("dispatch requires an active exact Product Goal authority")
-    schedule_admission = trial_schedule_admission(spec, occurred)
+    schedule_admission = trial_schedule_admission(
+        spec, occurred, authority_record=state.get("authority_record"),
+    )
     if schedule_admission["status"] != "OPEN":
         raise GoalRunnerError(
             f"dispatch reservation blocked by {schedule_admission['status']}"
@@ -1594,7 +1763,7 @@ def reserve_dispatch(
             now=occurred,
             last_launch_at=max(started_at, default=None),
             launches_in_window=launches,
-            total_launches=len(attempts),
+            total_launches=_total_provider_charges(spec, projection, live_provider),
             quota_retry_at=quota_retry,
         )
         if capacity["status"] != "DISPATCH":
@@ -1604,7 +1773,8 @@ def reserve_dispatch(
         if (
             action.get("resource_window_id") != current_window
             or action.get("launches_in_window_before") != launches
-            or action.get("total_launches_before") != len(attempts)
+            or action.get("total_launches_before")
+            != _total_provider_charges(spec, projection, live_provider)
             or action.get("capacity_basis") != capacity["basis"]
         ):
             raise GoalRunnerError(
@@ -1678,7 +1848,9 @@ def reserve_dispatch(
             ) == current_window
             for row in attempts
         )
-        accounting["total_launches"] = len(attempts) + 1
+        accounting["total_launches"] = (
+            _total_provider_charges(spec, projection, provider) + 1
+        )
         accounting["last_launch_at"] = occurred_at
     state_patch = _state_patch(updated)
     event, appended = goal_continuity.append_ledger_event(

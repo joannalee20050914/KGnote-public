@@ -1,0 +1,95 @@
+{
+  "schema_version": "kgnote.o2-version-carryover-evidence.v1",
+  "created_at": "2026-10-29T13:25:01+08:00",
+  "source_goal": {
+    "goal_id": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
+    "goal_version": "2026-10-23.2-s0-s2-proposal",
+    "goal_spec_sha256": "82716b31f004f108c935169493f2fa918e5144f12419302ba2c9fdcec91b6604",
+    "spec_file_sha256": "8434386012c09546b5c3dd17a86c78ef05248d5391699398efc8beea526e7fd9",
+    "state_sha256": "5786046a481f412b945dc58664758dbe3d7202040ba275fa77ced617acbb3765",
+    "ledger_sha256": "a88d1f1c563a3845ae3e75ec6fb302352fe9648978e444c28c5b8f8b559afbdb",
+    "ledger_cursor": {
+      "sequence": 26,
+      "event_sha256": "b63490ea2e59ed84da29946675e18c2093d29e58a91570d477332063cac283cc"
+    },
+    "lifecycle": "BLOCKED",
+    "authority_lease": "PAUSED",
+    "go_live_authorized": false
+  },
+  "target_goal": {
+    "goal_id": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
+    "goal_version": "2026-10-29.3-bounded-trial-reauthorization-proposal",
+    "accounting_rule": "COUNT_PRIOR_RESERVATIONS_AGAINST_CANDIDATE_CEILINGS",
+    "candidate_provider_ceilings": {
+      "codex": 5,
+      "claude": 8
+    },
+    "carried_provider_charges": {
+      "codex": 3,
+      "claude": 0
+    },
+    "remaining_before_any_new_version_dispatch": {
+      "codex": 2,
+      "claude": 8
+    }
+  },
+  "historical_reservations": [
+    {
+      "sequence": 5,
+      "attempt_id": "attempt-2026-10-23.2-s0-s2-proposal-WI-O2-A-IMPLEMENT-1",
+      "occurred_at": "2026-10-28T09:00:21+08:00",
+      "provider": "codex",
+      "order_event_id": "o2-wi-o2-a-implement-codex-c7ebf68b7d1eb5a7",
+      "order_sha256": "6aa3e95e887eba846751bdefe1babeae71cfb72a058c768f7feab085c8a335f3",
+      "checkpoint_sha256": "b187de690f7ef21e7b9a4ef3abf0611a8c6d6d356f12767c70d91fe5a2275e69",
+      "provider_process_started": true,
+      "later_classification_correction_sequence": 16,
+      "carryover_charge": 1
+    },
+    {
+      "sequence": 10,
+      "attempt_id": "attempt-2026-10-23.2-s0-s2-proposal-WI-O2-A-IMPLEMENT-2",
+      "occurred_at": "2026-10-28T10:02:23+08:00",
+      "provider": "codex",
+      "order_event_id": "o2-wi-o2-a-implement-codex-34ce7891c1d73523",
+      "order_sha256": "f3875b2f4f9db91cfff209e2eaaf47954031705561022928255c9c53616149bb",
+      "checkpoint_sha256": "bac13415d172a25379373630fd1e7e2a95e6b8b7116d986ef602550d63c2c95b",
+      "provider_process_started": true,
+      "later_classification_correction_sequence": 17,
+      "carryover_charge": 1
+    },
+    {
+      "sequence": 20,
+      "attempt_id": "attempt-2026-10-23.2-s0-s2-proposal-WI-O2-A-IMPLEMENT-3",
+      "occurred_at": "2026-10-28T12:48:14+08:00",
+      "provider": "codex",
+      "order_event_id": "o2-wi-o2-a-implement-codex-33383dc5b9d42939",
+      "order_sha256": "62e44c3ae065065a8de2cf3621d1b615d5aa4cdaaf7f4244fe8398b5c35113fe",
+      "checkpoint_sha256": "3592499088040c8f3f94896f383fde18700454fe85c359cba113a9bb92784e9f",
+      "provider_process_started": false,
+      "codex_jsonl_event_count": 0,
+      "carryover_charge": 1
+    }
+  ],
+  "historical_totals": {
+    "reservations_charged": 3,
+    "actual_provider_processes_started": 2,
+    "codex_jsonl_zero_event_reservations": 1,
+    "new_reservations_or_attempts_created_by_this_evidence": 0
+  },
+  "candidate_checkout": {
+    "branch": "codex/o2-reading-experience",
+    "commit": "483f9e64066821d5d647d411e6da8ddb50ad88e5",
+    "tree": "7caed1289a081cb03dd6a6eed299936afb3a34a2",
+    "fingerprint": "4fc43f5da4dc5af6037546b6c0e67ee22f6081bf8d509cae9a4f839d5dd240b4",
+    "pull_request": null
+  },
+  "immutability_policy": {
+    "source_records_are_read_only": true,
+    "history_recalculation_allowed": false,
+    "history_reclassification_allowed": false,
+    "version_change_resets_usage": false,
+    "new_version_ledger_starts_empty": true,
+    "old_and_new_ledgers_may_not_be_concatenated": true
+  }
+}
