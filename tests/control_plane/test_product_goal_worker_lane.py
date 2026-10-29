@@ -307,7 +307,8 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
 
     def test_real_claude_schema_gets_deterministic_review_identity(self):
         evidence = self.evidence_root / "review.json"
-        context = {**self.context, "work_item_id": "WI-O2-A-REVIEW", "stage": "claude", "provider": "claude", "action": "DISPATCH_REVIEW"}
+        runtime_identity_value = runtime_identity()
+        context = {**self.context, "work_item_id": "WI-O2-A-REVIEW", "stage": "claude", "provider": "claude", "action": "DISPATCH_REVIEW", "runtime_identity": runtime_identity_value}
         structured = {
             "protocol": "kgnote.product-review.v1", "repository": "owner/repo",
             "pull_request": 33, "program_id": context["goal_version"],
@@ -339,10 +340,15 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
             self.assertEqual(order.claude_facing_schema_sha256,metadata["claude_facing_schema_sha256"])
             return checkpoint
 
-        code = LANE.run_review(
-            self.repo, context, evidence,
-            executor=preflight, runtime_paths=paths,
-        )
+        with patch.object(
+            LANE, "require_live_runtime_identity", return_value=runtime_identity_value,
+        ), patch.object(
+            LANE, "__file__", str(Path(runtime_identity_value["generation"]) / "product_goal_worker_lane.py"),
+        ):
+            code = LANE.run_review(
+                self.repo, context, evidence,
+                executor=preflight, runtime_paths=paths,
+            )
         self.assertEqual(0, code)
         self.assertEqual(CLAUDE.FORMAL_REVIEW_SCHEMA_SHA256,captured[0].formal_consumer_schema_sha256)
         self.assertEqual(CLAUDE.CLAUDE_SCHEMA_PROJECTION_VERSION,captured[0].schema_projection_version)
@@ -353,17 +359,43 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
 
     def test_review_schema_projection_mismatch_fails_before_executor(self):
         evidence=self.evidence_root/"review-mismatch.json"
-        context={**self.context,"work_item_id":"WI-O2-A-REVIEW","stage":"claude","provider":"claude","action":"DISPATCH_REVIEW"}
+        runtime=runtime_identity()
+        context={**self.context,"work_item_id":"WI-O2-A-REVIEW","stage":"claude","provider":"claude","action":"DISPATCH_REVIEW","runtime_identity":runtime}
         called=[]
         bad={
             "formal_schema_sha256":"0"*64,
             "claude_facing_schema_sha256":"1"*64,
             "projection_version":CLAUDE.CLAUDE_SCHEMA_PROJECTION_VERSION,
         }
-        with patch.object(LANE,"build_claude_schema_projection",return_value=({},bad)):
+        with patch.object(LANE,"require_live_runtime_identity",return_value=runtime), patch.object(LANE,"__file__",str(Path(runtime["generation"])/"product_goal_worker_lane.py")), patch.object(LANE,"build_claude_schema_projection",return_value=({},bad)):
             with self.assertRaisesRegex(LANE.LaneError,"metadata is inconsistent"):
                 LANE.run_review(self.repo,context,evidence,executor=lambda order:called.append(order))
         self.assertEqual([],called)
+
+    def test_review_runtime_drift_fails_before_claude_executor(self):
+        evidence=self.evidence_root/"review-runtime-drift.json"
+        runtime=runtime_identity()
+        context={
+            **self.context,"work_item_id":"WI-O2-A-REVIEW","stage":"claude",
+            "provider":"claude","action":"DISPATCH_REVIEW",
+            "runtime_identity":runtime,
+        }
+        called=[]
+        with patch.object(
+            LANE,"require_live_runtime_identity",
+            side_effect=RUNTIME_ADMISSION.RuntimeAdmissionError(
+                "live runtime generation differs from the admitted identity"
+            ),
+        ):
+            with self.assertRaisesRegex(
+                LANE.LaneError,"runtime differs from pre-reservation admission",
+            ):
+                LANE.run_review(
+                    self.repo,context,evidence,
+                    executor=lambda order:called.append(order),
+                )
+        self.assertEqual([],called)
+        self.assertFalse(evidence.exists())
 
 
 if __name__ == "__main__":

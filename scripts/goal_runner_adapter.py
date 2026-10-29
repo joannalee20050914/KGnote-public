@@ -1638,6 +1638,7 @@ def reserve_dispatch(
                 order_sha256=hashlib.sha256(order_path.read_bytes()).hexdigest(),
                 context=order["execution_context"],
                 occurred_at=occurred,
+                evidence_root=repo,
             )
         except (json.JSONDecodeError, runtime_admission.RuntimeAdmissionError) as exc:
             raise GoalRunnerError(str(exc)) from exc

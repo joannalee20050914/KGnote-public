@@ -17,6 +17,7 @@ import github_product_goal_control as CONTROL
 import goal_continuity as GOAL
 import goal_runner_adapter as ADAPTER
 import linux_worker_router as ROUTER
+import product_goal_runtime_admission as RUNTIME_ADMISSION
 from product_goal_worker_result import adapt_worker_result
 from tests.control_plane.test_github_product_goal_control import comment
 from tests.control_plane.runtime_admission_fixtures import (
@@ -69,6 +70,8 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
     def test_pre_reservation_receipt_failures_preserve_formal_state_and_ledger(self):
         for failure in (
             "missing", "stale", "identity", "order_hash", "formal_authority",
+            "checkpoint_missing", "checkpoint_hash", "bootstrap_evidence",
+            "worker_evidence",
         ):
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
                 repo=Path(directory)
@@ -100,7 +103,7 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
                     order=json.loads(order_path.read_text())
                     order["memory_max"]="3G"
                     order_path.write_text(json.dumps(order))
-                else:
+                elif failure == "formal_authority":
                     order=json.loads(order_path.read_text())
                     order["execution_context"]["runner_context"][
                         "state_projection_sha256"
@@ -112,6 +115,36 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
                     ).hexdigest()
                     receipt["authority"]["state_projection_sha256"]="0"*64
                     receipt_path.write_text(json.dumps(receipt))
+                else:
+                    receipt=json.loads(receipt_path.read_text())
+                    checkpoint_path=Path(receipt["router_checkpoint_path"])
+                    if failure == "checkpoint_missing":
+                        checkpoint_path.unlink()
+                    elif failure == "checkpoint_hash":
+                        checkpoint_path.write_text(
+                            checkpoint_path.read_text()+"\n",
+                        )
+                    elif failure == "bootstrap_evidence":
+                        checkpoint=json.loads(checkpoint_path.read_text())
+                        checkpoint["bootstrap_receipt_sha256"]="7"*64
+                        checkpoint_path.write_text(json.dumps(checkpoint))
+                        receipt["router_checkpoint_sha256"]=hashlib.sha256(
+                            checkpoint_path.read_bytes()
+                        ).hexdigest()
+                        receipt_path.write_text(json.dumps(receipt))
+                    else:
+                        checkpoint=json.loads(checkpoint_path.read_text())
+                        checkpoint["execution_evidence"]["challenge"]="6"*64
+                        checkpoint_path.write_text(json.dumps(checkpoint))
+                        receipt["router_checkpoint_sha256"]=hashlib.sha256(
+                            checkpoint_path.read_bytes()
+                        ).hexdigest()
+                        receipt["worker_receipt_sha256"]=hashlib.sha256(
+                            RUNTIME_ADMISSION.canonical_json_bytes(
+                                checkpoint["execution_evidence"]
+                            )
+                        ).hexdigest()
+                        receipt_path.write_text(json.dumps(receipt))
                 before_state=hashlib.sha256(state_path.read_bytes()).hexdigest()
                 before_ledger=hashlib.sha256(ledger_path.read_bytes()).hexdigest()
                 with self.assertRaises(ADAPTER.GoalRunnerError):

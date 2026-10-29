@@ -37,6 +37,7 @@ def runtime_identity() -> dict[str, Any]:
 
 def reservation_receipt(
     context: dict[str, Any], *, order_sha256: str, observed_at: datetime,
+    router_checkpoint_path: Path,
 ) -> dict[str, Any]:
     candidate = {
         "commit": context["candidate_commit"],
@@ -45,6 +46,47 @@ def reservation_receipt(
         "pull_request": context.get("pull_request"),
     }
     runner = context["runner_context"]
+    authority = {
+        "state_projection_sha256": runner["state_projection_sha256"],
+        "authority_record_sha256": runner["authority_record_sha256"],
+        "authority_lease": "ACTIVE",
+        "lifecycle": "ACTIVE",
+        "go_live_authorized": True,
+    }
+    worker = {
+        "schema_version": ADMISSION.WORKER_RECEIPT_SCHEMA,
+        "status": "PASS",
+        "challenge": "5" * 64,
+        "work_order_sha256": order_sha256,
+        "goal_id": context["goal_id"],
+        "goal_version": context["goal_version"],
+        "work_item_id": context["work_item_id"],
+        "order_event_id": context["order_event_id"],
+        "attempt_id": context["attempt_id"],
+        "action": context["action"],
+        "provider": context["provider"],
+        "candidate": candidate,
+        "authority": authority,
+        "runtime_identity": context["runtime_identity"],
+        "environment": {"status": "DEVELOPMENT_ENVIRONMENT_READY"},
+        "entrypoints": {},
+        "model_process_started": False,
+        "model_launches": 0,
+        "model_processes": [],
+        "landlock_denial_probe": "PASS",
+    }
+    bootstrap_sha256 = "3" * 64
+    router_checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    router_checkpoint = {
+        "schema_version": "kgnote.linux-worker-route.v1",
+        "status": "COMPLETED",
+        "event_id": context["order_event_id"],
+        "command_digest": "4" * 64,
+        "bootstrap_receipt_sha256": bootstrap_sha256,
+        "host_fallback_used": False,
+        "execution_evidence": worker,
+    }
+    router_checkpoint_path.write_text(json.dumps(router_checkpoint), encoding="utf-8")
     return {
         "schema_version": ADMISSION.ADMISSION_RECEIPT_SCHEMA,
         "status": "PASS",
@@ -63,13 +105,7 @@ def reservation_receipt(
         "action": context["action"],
         "provider": context["provider"],
         "candidate": candidate,
-        "authority": {
-            "state_projection_sha256": runner["state_projection_sha256"],
-            "authority_record_sha256": runner["authority_record_sha256"],
-            "authority_lease": "ACTIVE",
-            "lifecycle": "ACTIVE",
-            "go_live_authorized": True,
-        },
+        "authority": authority,
         "runtime_identity": context["runtime_identity"],
         "environment": {"status": "DEVELOPMENT_ENVIRONMENT_READY"},
         "entrypoints": {},
@@ -80,10 +116,14 @@ def reservation_receipt(
             "guard": "PASS",
             "landlock": "PASS",
         },
-        "router_checkpoint_path": "/fixture/router.json",
-        "router_checkpoint_sha256": "4" * 64,
-        "bootstrap_receipt_sha256": "3" * 64,
-        "worker_receipt_sha256": "2" * 64,
+        "router_checkpoint_path": str(router_checkpoint_path),
+        "router_checkpoint_sha256": hashlib.sha256(
+            router_checkpoint_path.read_bytes()
+        ).hexdigest(),
+        "bootstrap_receipt_sha256": bootstrap_sha256,
+        "worker_receipt_sha256": hashlib.sha256(
+            ADMISSION.canonical_json_bytes(worker)
+        ).hexdigest(),
         "model_process_started": False,
         "model_launches": 0,
         "model_processes": [],
@@ -156,6 +196,9 @@ def prepare_model_reservation(
         context,
         order_sha256=hashlib.sha256(order_path.read_bytes()).hexdigest(),
         observed_at=observed_at,
+        router_checkpoint_path=(
+            repo / "output" / f"{order['event_id']}-router-checkpoint.json"
+        ),
     )
     receipt_path = repo / "output" / f"{order['event_id']}-admission.json"
     receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
@@ -170,6 +213,9 @@ def write_reservation_receipt(
         order["execution_context"],
         order_sha256=hashlib.sha256(order_path.read_bytes()).hexdigest(),
         observed_at=observed_at,
+        router_checkpoint_path=(
+            repo / "output" / f"{order['event_id']}-router-checkpoint.json"
+        ),
     )
     receipt_path = repo / "output" / f"{order['event_id']}-admission.json"
     receipt_path.parent.mkdir(parents=True, exist_ok=True)

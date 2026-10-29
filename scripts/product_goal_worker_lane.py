@@ -299,9 +299,7 @@ def admit_codex_development_environment(
     context = validate_context(context)
     if context.get("schema_version") != CONTEXT_SCHEMA:
         raise LaneError("Codex development admission requires Runner-verified context v2")
-    runtime = require_live_runtime_identity(context.get("runtime_identity"))
-    if Path(__file__).resolve().parent != Path(runtime["generation"]).resolve():
-        raise LaneError("Codex lane is not executing from the pre-reservation runtime generation")
+    _admit_pinned_model_runtime(context, lane="Codex")
     candidate, environment = _admit_exact_environment(repo, {
         "commit": context["candidate_commit"],
         "fingerprint": context["candidate_fingerprint"],
@@ -333,6 +331,21 @@ def admit_codex_development_environment(
         "PATH": f"{python.parent}:/home/kgnote/.local/bin:{GUEST_NODE_BIN}:/usr/bin:/bin",
     })
     return receipt, child_env
+
+
+def _admit_pinned_model_runtime(
+    context: dict[str, Any], *, lane: str,
+) -> dict[str, Any]:
+    """Revalidate the admitted immutable generation immediately before a model lane."""
+    try:
+        runtime = require_live_runtime_identity(context.get("runtime_identity"))
+    except RuntimeAdmissionError as exc:
+        raise LaneError(f"{lane} runtime differs from pre-reservation admission: {exc}") from exc
+    if Path(__file__).resolve().parent != Path(runtime["generation"]).resolve():
+        raise LaneError(
+            f"{lane} lane is not executing from the pre-reservation runtime generation"
+        )
+    return runtime
 
 
 def run_admission(
@@ -618,6 +631,7 @@ def run_review(
     executor: Callable[[WorkOrder], dict[str, Any]] = execute_claude,
     runtime_paths: dict[str, str] | None = None,
 ) -> int:
+    _admit_pinned_model_runtime(context, lane="Claude review")
     candidate = _exact_candidate(repo, context)
     if (
         candidate["commit"] != context["candidate_commit"]

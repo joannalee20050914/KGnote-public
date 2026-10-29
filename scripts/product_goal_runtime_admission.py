@@ -416,7 +416,7 @@ def model_processes(proc_root: Path = Path("/proc")) -> list[dict[str, Any]]:
 
 def validate_reservation_receipt(
     receipt: object, *, order_sha256: str, context: dict[str, Any],
-    occurred_at: datetime,
+    occurred_at: datetime, evidence_root: Path,
 ) -> dict[str, Any]:
     """Validate the final Mac-side live receipt before any ledger append."""
     if not isinstance(receipt, dict) or receipt.get("schema_version") != ADMISSION_RECEIPT_SCHEMA:
@@ -489,6 +489,88 @@ def validate_reservation_receipt(
         raise RuntimeAdmissionError("pre-reservation admission observed a model process")
     if SHA256_RE.fullmatch(str(receipt.get("worker_receipt_sha256") or "")) is None:
         raise RuntimeAdmissionError("pre-reservation admission lacks exact Worker evidence")
+    checkpoint_value = receipt.get("router_checkpoint_path")
+    if not isinstance(checkpoint_value, str) or not checkpoint_value:
+        raise RuntimeAdmissionError("pre-reservation admission lacks a Router checkpoint path")
+    root = evidence_root.resolve()
+    checkpoint_path = Path(checkpoint_value)
+    if not checkpoint_path.is_absolute():
+        checkpoint_path = evidence_root / checkpoint_path
+    try:
+        checkpoint_resolved = checkpoint_path.resolve(strict=True)
+        checkpoint_resolved.relative_to(root)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise RuntimeAdmissionError(
+            "pre-reservation admission Router checkpoint leaves the evidence root or is absent"
+        ) from exc
+    if checkpoint_path.is_symlink() or not checkpoint_resolved.is_file():
+        raise RuntimeAdmissionError(
+            "pre-reservation admission Router checkpoint is not a regular file"
+        )
+    checkpoint_bytes = checkpoint_resolved.read_bytes()
+    checkpoint_sha256 = hashlib.sha256(checkpoint_bytes).hexdigest()
+    if (
+        receipt.get("router_checkpoint_sha256") != checkpoint_sha256
+        or SHA256_RE.fullmatch(checkpoint_sha256) is None
+    ):
+        raise RuntimeAdmissionError(
+            "pre-reservation admission Router checkpoint hash differs from the receipt"
+        )
+    try:
+        checkpoint = json.loads(checkpoint_bytes)
+    except json.JSONDecodeError as exc:
+        raise RuntimeAdmissionError(
+            "pre-reservation admission Router checkpoint is malformed"
+        ) from exc
+    if (
+        not isinstance(checkpoint, dict)
+        or checkpoint.get("schema_version") != "kgnote.linux-worker-route.v1"
+        or checkpoint.get("status") not in {"COMPLETED", "ALREADY_COMPLETED"}
+        or checkpoint.get("event_id") != context.get("order_event_id")
+        or checkpoint.get("host_fallback_used") is not False
+        or SHA256_RE.fullmatch(str(checkpoint.get("command_digest") or "")) is None
+    ):
+        raise RuntimeAdmissionError(
+            "pre-reservation admission Router checkpoint is incomplete or mismatched"
+        )
+    bootstrap_sha256 = receipt.get("bootstrap_receipt_sha256")
+    if (
+        SHA256_RE.fullmatch(str(bootstrap_sha256 or "")) is None
+        or checkpoint.get("bootstrap_receipt_sha256") != bootstrap_sha256
+    ):
+        raise RuntimeAdmissionError(
+            "pre-reservation admission Bootstrap evidence differs from the Router checkpoint"
+        )
+    worker = checkpoint.get("execution_evidence")
+    if (
+        not isinstance(worker, dict)
+        or worker.get("schema_version") != WORKER_RECEIPT_SCHEMA
+        or worker.get("status") != "PASS"
+        or hashlib.sha256(canonical_json_bytes(worker)).hexdigest()
+        != receipt.get("worker_receipt_sha256")
+    ):
+        raise RuntimeAdmissionError(
+            "pre-reservation admission Worker evidence differs from the Router checkpoint"
+        )
+    worker_exact = {
+        "challenge": receipt.get("challenge"),
+        "work_order_sha256": order_sha256,
+        **exact,
+        "candidate": candidate,
+        "authority": authority,
+        "runtime_identity": runtime,
+        "model_process_started": False,
+        "model_launches": 0,
+        "model_processes": [],
+        "landlock_denial_probe": "PASS",
+    }
+    if any(
+        canonical_json_bytes(worker.get(key)) != canonical_json_bytes(expected)
+        for key, expected in worker_exact.items()
+    ):
+        raise RuntimeAdmissionError(
+            "pre-reservation admission Worker evidence identity differs from the receipt"
+        )
     return receipt
 
 
