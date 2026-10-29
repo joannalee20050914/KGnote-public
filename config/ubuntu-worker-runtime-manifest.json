@@ -5,8 +5,12 @@
     "claude_reviewer_adapter.py": "3c37d9bbac047efe60cbd390936a3376c78dda4567d2c72a00ff9c944798eaec",
     "codex_control.py": "e23fdcd3f8e637d9ef4bf565344bf388f9f5ed159661ecd334b936c4039817ea",
     "codex_jsonl_evidence.py": "e6eebee348f4be6b532d234566669b3f889134b7dd7499183f2b5c4a016ca844",
+    "linux_landlock_exec.py": "e65b11443b66a511fe2f6bc0f663f6673aac694cd207e01b66fb4894a07fd843",
+    "linux_worker_bootstrap.py": "d151c2f3837f9bf34966aa6535028870da7281809bf20536754fc40ceca19d05",
+    "linux_worker_guard.py": "ca9b4a3a9da6b35dd68be4300eb929fcce23e47093932abd3a9f6d2495426760",
+    "product_goal_runtime_admission.py": "74fcd269f750a1c6801ba4d6227c87acbb781f6cc97482dbe736b45002bcdf11",
     "product_goal_worker_identity.py": "4966aff84d0fe1922c0f1b3ea4a9563885e3e3cd88084904d34c7b5a606c8f75",
-    "product_goal_worker_lane.py": "fa5314f1f87139e1e8a7ba0cdf8d7f9987fbf16b74c7492f606d73cf3e34c637",
+    "product_goal_worker_lane.py": "6744f1ea3017b4807c725b50b4f76f83e2a3ffdec8bcf8843e1aa13f099f3ec5",
     "product_goal_worker_result.py": "7b1194c39aa8e7c4db06b250666af2cc1ce73a66fc73dac37d96883945d1ba5c",
     "requirements-runtime.lock": "a9db5168a3a79329c2ff51b11c7f546f214bc74e8659a7f7e8366ce3e8bf9791"
   }

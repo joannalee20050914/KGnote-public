@@ -6,6 +6,11 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from unittest.mock import patch
+from tests.control_plane.runtime_admission_fixtures import (
+    prepare_model_reservation,
+    runtime_identity,
+    write_reservation_receipt,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/"scripts"))
@@ -61,6 +66,20 @@ class RunnerTests(unittest.TestCase):
             calls=[]
             def no_model(command,**kwargs):
                 calls.append(command)
+                if "--discover-runtime" in command:
+                    return subprocess.CompletedProcess(
+                        command,0,json.dumps(runtime_identity()),"",
+                    )
+                if "--admit-order" in command:
+                    order=Path(command[command.index("--admit-order")+1])
+                    receipt=write_reservation_receipt(
+                        deploy,order,
+                        observed_at=datetime(2026,10,28,9,0,tzinfo=ZoneInfo("Asia/Taipei")),
+                    )
+                    expected=Path(command[command.index("--admission-receipt")+1])
+                    expected.parent.mkdir(parents=True,exist_ok=True)
+                    expected.write_bytes(receipt.read_bytes())
+                    return subprocess.CompletedProcess(command,0,expected.read_text(),"")
                 return subprocess.CompletedProcess(command,0,"{}\n","")
 
             patches=(
@@ -213,7 +232,7 @@ class RunnerTests(unittest.TestCase):
                 current=datetime(2026, 10, 22, 10, 1, tzinfo=ZoneInfo("Asia/Taipei")),
                 command_runner=fake,
             )
-            self.assertEqual("DISPATCH_BINDING_REQUIRED", result["status"])
+            self.assertEqual("ADMISSION_UNAVAILABLE", result["status"])
             self.assertEqual(3, len([row for row in calls if row[:2] == ["gh", "api"]]))
             self.assertEqual(
                 "SENT",
@@ -227,6 +246,115 @@ class RunnerTests(unittest.TestCase):
             ]
             self.assertEqual(901, sent[0]["payload"]["comment_id"])
             self.assertEqual("NONE", sent[0]["payload"]["authority_effect"])
+
+    def test_pre_reservation_admission_failure_never_reserves_routes_or_mutates_formal_files(self):
+        from tests.control_plane.test_github_product_goal_control import comment
+        import goal_continuity as goal
+
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            (repo / ".ai").mkdir()
+            spec = json.loads(
+                (ROOT / "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.2.json").read_text()
+            )
+            state = goal.initial_runner_state(
+                spec, now="2026-10-28T10:00:00+08:00",
+            )
+            state["candidate_identity"] = {
+                "commit": "1" * 40,
+                "fingerprint": "2" * 64,
+                "branch": "codex/o2-reading-experience",
+                "pull_request": 33,
+            }
+            order_path = repo / "output" / "pre-admission-fail.json"
+            order_path.parent.mkdir(parents=True)
+            order = {
+                "schema_version": "kgnote.linux-worker-order.v1",
+                "event_id": "pre-admission-fail",
+                "stage": "codex",
+                "working_directory": (
+                    "/home/kgnote/.local/share/kgnote/work-items/"
+                    "pre-admission-fail"
+                ),
+                "command": ["/usr/bin/true"],
+                "checkpoint_path": str(repo / "formal-checkpoint.json"),
+            }
+            order_path.write_text(json.dumps(order))
+            state["work_items"][0]["dispatch_binding"] = {
+                "order_path": "output/pre-admission-fail.json",
+                "order_sha256": hashlib.sha256(order_path.read_bytes()).hexdigest(),
+                "order_event_id": order["event_id"],
+            }
+            spec_path, state_path = repo / "spec.json", repo / "state.json"
+            ledger_path, comments_path = repo / "ledger.jsonl", repo / "comments.json"
+            spec_path.write_text(json.dumps(spec))
+            goal.atomic_write_json(state_path, state)
+            authority_comment = comment(spec, login="joannalee20050914")
+            authority_comment["html_url"] = (
+                "https://github.com/joannalee20050914/KGnote-public/"
+                "issues/9#issuecomment-100"
+            )
+            authority_comment["issue_url"] = (
+                "https://api.github.com/repos/joannalee20050914/"
+                "KGnote-public/issues/9"
+            )
+            comments_path.write_text(json.dumps([authority_comment]))
+            now = datetime(2026, 10, 28, 10, tzinfo=ZoneInfo("Asia/Taipei"))
+            unavailable = RUNNER.run_product_goal_mode(
+                repo, spec_path=spec_path, state_path=state_path,
+                ledger_path=ledger_path, comments_path=comments_path,
+                backlog_path=None, trial=False, router=repo / "missing-router.py",
+                epoch_record=repo / "missing-epoch.json",
+                admission=repo / "missing-admission.py",
+                runner_identity={"sha256": "test"}, current=now,
+                command_runner=lambda command, **kwargs: subprocess.CompletedProcess(
+                    command, 0, "{}\n", "",
+                ),
+            )
+            self.assertEqual("ADMISSION_UNAVAILABLE", unavailable["status"])
+            before_state = hashlib.sha256(state_path.read_bytes()).hexdigest()
+            before_ledger = hashlib.sha256(ledger_path.read_bytes()).hexdigest()
+            router, epoch, admission = (
+                repo / "router.py", repo / "epoch.json", repo / "admission.py"
+            )
+            for path in (router, epoch, admission):
+                path.write_text("{}")
+            calls = []
+
+            def fail_admission(command, **kwargs):
+                calls.append(command)
+                if "--discover-runtime" in command:
+                    return subprocess.CompletedProcess(
+                        command, 0, json.dumps(runtime_identity()), "",
+                    )
+                if "--admit-order" in command:
+                    return subprocess.CompletedProcess(
+                        command, 2, "", "Landlock admission failed",
+                    )
+                if (
+                    len(command) > 1 and command[1] == str(router)
+                    and "--order" in command
+                ) or command[0] == "ssh":
+                    self.fail("formal route/model path was reached after admission failure")
+                return subprocess.CompletedProcess(command, 0, "{}\n", "")
+
+            rejected = RUNNER.run_product_goal_mode(
+                repo, spec_path=spec_path, state_path=state_path,
+                ledger_path=ledger_path, comments_path=comments_path,
+                backlog_path=None, trial=False, router=router,
+                epoch_record=epoch, admission=admission,
+                runner_identity={"sha256": "test"}, current=now,
+                command_runner=fail_admission,
+            )
+            self.assertEqual("PRE_RESERVATION_ADMISSION_REJECTED", rejected["status"])
+            self.assertEqual(before_state, hashlib.sha256(state_path.read_bytes()).hexdigest())
+            self.assertEqual(before_ledger, hashlib.sha256(ledger_path.read_bytes()).hexdigest())
+            projection = goal.reduce_ledger(goal.read_ledger(ledger_path))
+            self.assertEqual({}, projection["dispatch_reservations"])
+            self.assertEqual({}, projection["model_attempts"])
+            self.assertEqual(0, goal.load_json(state_path)["work_items"][0]["attempts"])
+            self.assertFalse(Path(order["checkpoint_path"]).exists())
+            self.assertEqual(3, len(calls))
 
     def test_product_goal_live_path_reserves_routes_and_never_blind_redispatches(self):
         from tests.control_plane.test_goal_continuity import product_goal_spec
@@ -263,6 +391,25 @@ class RunnerTests(unittest.TestCase):
             calls = []
             def fake(command, **kwargs):
                 calls.append(command)
+                if "--discover-runtime" in command:
+                    return subprocess.CompletedProcess(
+                        command,0,json.dumps(runtime_identity()),"",
+                    )
+                if "--admit-order" in command:
+                    order=Path(command[command.index("--admit-order")+1])
+                    durable=goal.load_json(state_path)
+                    action={
+                        "work_item_id":durable["work_items"][0]["work_item_id"],
+                        "action":"DISPATCH_IMPLEMENTATION","provider":"codex",
+                    }
+                    prepared,receipt=prepare_model_reservation(
+                        repo,durable,action,observed_at=now,
+                    )
+                    self.assertEqual(order,prepared)
+                    expected=Path(command[command.index("--admission-receipt")+1])
+                    expected.parent.mkdir(parents=True,exist_ok=True)
+                    expected.write_bytes(receipt.read_bytes())
+                    return subprocess.CompletedProcess(command,0,expected.read_text(),"")
                 return subprocess.CompletedProcess(command, 0, "{}\n", "")
             now = datetime(2026, 10, 22, 10, tzinfo=ZoneInfo("Asia/Taipei"))
             first = RUNNER.run_product_goal_mode(
@@ -322,6 +469,29 @@ class RunnerTests(unittest.TestCase):
             calls = []
             def fake(command, **kwargs):
                 calls.append(command)
+                if "--discover-runtime" in command:
+                    return subprocess.CompletedProcess(
+                        command,0,json.dumps(runtime_identity()),"",
+                    )
+                if "--admit-order" in command:
+                    order=Path(command[command.index("--admit-order")+1])
+                    admission_index=sum(
+                        "--admit-order" in row for row in calls
+                    )-1
+                    observed=now+RUNNER.timedelta(minutes=6*admission_index)
+                    durable=goal.load_json(state_path)
+                    action={
+                        "work_item_id":durable["work_items"][0]["work_item_id"],
+                        "action":"DISPATCH_IMPLEMENTATION","provider":"codex",
+                    }
+                    prepared,receipt=prepare_model_reservation(
+                        repo,durable,action,observed_at=observed,
+                    )
+                    self.assertEqual(order,prepared)
+                    expected=Path(command[command.index("--admission-receipt")+1])
+                    expected.parent.mkdir(parents=True,exist_ok=True)
+                    expected.write_bytes(receipt.read_bytes())
+                    return subprocess.CompletedProcess(command,0,expected.read_text(),"")
                 return subprocess.CompletedProcess(command, 0, "{}\n", "")
             now = datetime(2026, 10, 22, 10, tzinfo=ZoneInfo("Asia/Taipei"))
             first = RUNNER.run_product_goal_mode(
@@ -331,12 +501,13 @@ class RunnerTests(unittest.TestCase):
                 runner_identity={"sha256": "test"}, current=now, command_runner=fake,
             )
             self.assertEqual("DISPATCHED", first["status"])
+            routed_order=json.loads(order_path.read_text())
             checkpoint_path.write_text(json.dumps({
                 "schema_version": "kgnote.linux-worker-route.v1",
                 "status": "FAILED_CLOSED", "reason": "guest_worker_failed",
-                "event_id": order["event_id"],
+                "event_id": routed_order["event_id"],
                 "command_digest": router_control.command_digest(
-                    router_control.WorkerOrder.from_dict(order)
+                    router_control.WorkerOrder.from_dict(routed_order)
                 ),
                 "execution_evidence": {"failure_class": "DETERMINISTIC_WORKER_FAILURE"},
             }))
@@ -356,7 +527,7 @@ class RunnerTests(unittest.TestCase):
                 current=datetime(2026, 10, 22, 10, 6, tzinfo=ZoneInfo("Asia/Taipei")),
                 command_runner=fake,
             )
-            self.assertEqual("DISPATCHED", retried["status"])
+            self.assertEqual("DISPATCHED", retried["status"], retried)
             self.assertGreater(len(calls), before_retry)
             operations = [
                 row["payload"].get("operation") for row in goal.read_ledger(ledger_path)

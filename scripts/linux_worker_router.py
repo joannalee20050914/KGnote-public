@@ -14,7 +14,7 @@ import tempfile
 import threading
 from dataclasses import dataclass
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
@@ -25,6 +25,23 @@ from product_goal_worker_identity import (
     validate_product_goal_identity,
     validate_product_goal_runtime_context,
 )
+from product_goal_runtime_admission import (
+    ADMISSION_CONTEXT_SCHEMA,
+    ADMISSION_IDENTITY_SCHEMA,
+    ADMISSION_RECEIPT_SCHEMA,
+    DEPLOYMENT_ACCEPTANCE,
+    MODEL_PRE_RESERVATION,
+    PRODUCT_WORKING_DIRECTORY,
+    RUNTIME_CURRENT,
+    RUNTIME_DISCOVERY_SCHEMA,
+    RUNTIME_ROOT,
+    RuntimeAdmissionError,
+    canonical_json_bytes,
+    validate_admission_context,
+    validate_admission_identity,
+    validate_deployment_request,
+    validate_runtime_identity,
+)
 
 
 GUEST_HOST = "kgnote-ubuntu"
@@ -32,7 +49,7 @@ GUEST_GUARD = "/home/kgnote/.local/share/kgnote/runtime/linux_worker_guard.py"
 GUEST_LANDLOCK = "/home/kgnote/.local/share/kgnote/runtime/linux_landlock_exec.py"
 GUEST_BOOTSTRAP = "/home/kgnote/.local/share/kgnote/runtime/linux_worker_bootstrap.py"
 EVENT_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-STAGES = {"codex", "claude", "publisher", "push", "ingestion"}
+STAGES = {"admission", "codex", "claude", "publisher", "push", "ingestion"}
 WORKTREE_ROOT = Path("/home/kgnote/.local/share/kgnote")
 EVIDENCE_PREFIX = "KGNOTE_EXECUTION_EVIDENCE="
 ORDER_SCHEMA = "kgnote.linux-worker-order.v1"
@@ -58,6 +75,7 @@ class WorkerOrder:
     bootstrap_working_directory: bool
     bootstrap_identity: dict[str, Any] | None
     execution_context: dict[str, Any] | None
+    runtime_generation: Path | None = None
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "WorkerOrder":
@@ -82,6 +100,10 @@ class WorkerOrder:
                 bootstrap_working_directory=raw.get("bootstrap_working_directory", False),
                 bootstrap_identity=raw.get("bootstrap_identity"),
                 execution_context=raw.get("execution_context"),
+                runtime_generation=(
+                    Path(raw["runtime_generation"])
+                    if raw.get("runtime_generation") else None
+                ),
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise RoutingError(f"invalid worker order: {exc}") from exc
@@ -101,7 +123,14 @@ class WorkerOrder:
                 and self.bootstrap_identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
                 and self.handoff_directory == WORKTREE_ROOT / "runtime-state/product-goal"
             )
-            if self.stage not in {"claude", "ingestion"} and not product_goal_handoff:
+            admission_handoff = (
+                self.stage == "admission"
+                and isinstance(self.bootstrap_identity, dict)
+                and self.bootstrap_identity.get("schema_version") == ADMISSION_IDENTITY_SCHEMA
+                and self.handoff_directory
+                == WORKTREE_ROOT / "runtime-state/admission" / str(self.bootstrap_identity.get("challenge"))
+            )
+            if self.stage not in {"claude", "ingestion"} and not product_goal_handoff and not admission_handoff:
                 raise RoutingError("handoff_directory is allowed only for claude or ingestion")
             if not self.handoff_directory.is_absolute() or not self.handoff_directory.is_relative_to(WORKTREE_ROOT):
                 raise RoutingError("handoff_directory must be inside the bounded Guest workspace root")
@@ -148,6 +177,16 @@ class WorkerOrder:
                 )
         if self.execution_context is not None and not isinstance(self.execution_context, dict):
             raise RoutingError("execution_context must be an object")
+        if self.runtime_generation is not None:
+            releases = RUNTIME_ROOT / ".worker-runtime-releases"
+            if (
+                not self.runtime_generation.is_absolute()
+                or self.runtime_generation.parent != releases
+                or re.fullmatch(r"[0-9a-f]{40}", self.runtime_generation.name) is None
+            ):
+                raise RoutingError("runtime_generation is not one immutable reviewed release")
+        if self.stage == "admission" and self.runtime_generation is None:
+            raise RoutingError("admission order must pin an immutable runtime generation")
         if (
             isinstance(self.bootstrap_identity, dict)
             and self.bootstrap_identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
@@ -158,12 +197,33 @@ class WorkerOrder:
                 )
             except ProductGoalIdentityError as exc:
                 raise RoutingError(str(exc)) from exc
+        if (
+            isinstance(self.bootstrap_identity, dict)
+            and self.bootstrap_identity.get("schema_version") == ADMISSION_IDENTITY_SCHEMA
+        ):
+            try:
+                validate_admission_identity(
+                    self.bootstrap_identity, event_id=self.event_id, stage=self.stage,
+                    working_directory=self.working_directory, worktree_root=WORKTREE_ROOT,
+                )
+                validate_admission_context(self.execution_context)
+            except RuntimeAdmissionError as exc:
+                raise RoutingError(str(exc)) from exc
 
 
 def validate_bootstrap_identity(
     identity: object, *, event_id: str, stage: str, working_directory: Path,
 ) -> None:
     """Bind generic bootstrap to one owner-authorized Issue identity."""
+    if isinstance(identity, dict) and identity.get("schema_version") == ADMISSION_IDENTITY_SCHEMA:
+        try:
+            validate_admission_identity(
+                identity, event_id=event_id, stage=stage,
+                working_directory=working_directory, worktree_root=WORKTREE_ROOT,
+            )
+        except RuntimeAdmissionError as exc:
+            raise RoutingError(str(exc)) from exc
+        return
     if isinstance(identity, dict) and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA:
         try:
             validate_product_goal_identity(
@@ -239,6 +299,9 @@ def command_digest(order: WorkerOrder) -> str:
         "working_directory": str(order.working_directory),
         "handoff_directory": str(order.handoff_directory) if order.handoff_directory else None,
         "command": order.command,
+        "runtime_generation": (
+            str(order.runtime_generation) if order.runtime_generation else None
+        ),
     }
     # Preserve command identities for already-issued orders. New evidence is
     # identity-bound only when the work order explicitly carries it.
@@ -264,6 +327,13 @@ def execution_evidence(order: WorkerOrder, stdout: str, stderr: str) -> dict[str
             candidate = None
         if isinstance(candidate, dict) and isinstance(candidate.get("execution_evidence"), dict):
             evidence = candidate["execution_evidence"]
+    if order.stage == "admission":
+        try:
+            candidate = json.loads(stdout)
+        except json.JSONDecodeError:
+            candidate = None
+        if isinstance(candidate, dict):
+            evidence = candidate
     if evidence is None and isinstance(order.execution_context, dict):
         evidence = dict(order.execution_context)
     if evidence is not None and order.stage == "codex":
@@ -279,9 +349,16 @@ def execution_evidence(order: WorkerOrder, stdout: str, stderr: str) -> dict[str
     return evidence
 
 
+def _runtime_program(order: WorkerOrder, name: str, fallback: str) -> str:
+    if order.runtime_generation is None:
+        return fallback
+    return str(order.runtime_generation / name)
+
+
 def sandbox_command(order: WorkerOrder) -> list[str]:
     command = [
-        "/usr/bin/python3", GUEST_LANDLOCK,
+        "/usr/bin/python3",
+        _runtime_program(order, "linux_landlock_exec.py", GUEST_LANDLOCK),
         "--ro", "/usr", "--ro", "/etc", "--ro", "/proc", "--ro", "/sys",
         "--ro", "/run/systemd/resolve", "--ro", "/home/kgnote/.local",
         "--rw", "/dev", "--rw", "/tmp", "--rw", "/run/user/1002",
@@ -294,6 +371,8 @@ def sandbox_command(order: WorkerOrder) -> list[str]:
         command.extend(("--rw", "/home/kgnote/.ssh", "--rw", str(order.working_directory)))
     elif order.stage in {"publisher", "ingestion"}:
         command.extend(("--rw", str(order.working_directory)))
+    elif order.stage == "admission":
+        command.extend(("--ro", str(order.working_directory)))
     if order.handoff_directory is not None:
         command.extend(("--rw", str(order.handoff_directory)))
     return [*command, "--", "/usr/bin/env", "-C", str(order.working_directory), *order.command]
@@ -307,14 +386,17 @@ def remote_command(order: WorkerOrder) -> list[str]:
         "--property=MemorySwapMax=0", f"--property=TasksMax={order.tasks_max}",
         "--property=KillMode=control-group", "--property=TimeoutStopSec=3s",
         "--property=NoNewPrivileges=yes", "--property=PrivateTmp=yes",
-        "/usr/bin/python3", GUEST_GUARD, "--lease", lease,
+        "/usr/bin/python3",
+        _runtime_program(order, "linux_worker_guard.py", GUEST_GUARD),
+        "--lease", lease,
         "--lease-timeout", str(order.lease_timeout_seconds), "--", *sandbox_command(order),
     ]
 
 
 def bootstrap_command(order: WorkerOrder) -> list[str]:
     command = [
-        "/usr/bin/python3", GUEST_BOOTSTRAP,
+        "/usr/bin/python3",
+        _runtime_program(order, "linux_worker_bootstrap.py", GUEST_BOOTSTRAP),
         "--event-id", order.event_id,
         "--stage", order.stage,
         "--working-directory", str(order.working_directory),
@@ -376,11 +458,12 @@ def route(
             and isinstance(order.bootstrap_identity, dict)
             and order.bootstrap_identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
         )
+        environment_admission = product_codex or order.stage == "admission"
         bootstrap_admitted = (
             isinstance(bootstrap_receipt, dict)
             and bootstrap_receipt.get("status") == "READY"
             and (
-                not product_codex
+                not environment_admission
                 or (bootstrap_receipt.get("development_environment") or {}).get("status")
                 == "DEVELOPMENT_ENVIRONMENT_READY"
             )
@@ -404,6 +487,11 @@ def route(
             }
             _atomic_json(order.checkpoint_path, blocked)
             return blocked
+        bootstrap_receipt_sha256 = hashlib.sha256(
+            canonical_json_bytes(bootstrap_receipt)
+        ).hexdigest()
+    else:
+        bootstrap_receipt_sha256 = None
     touch_command = shlex.join(["/usr/bin/touch", lease])
     touch = run([*ssh_base, touch_command], text=True, capture_output=True, timeout=15, check=False)
     if touch.returncode:
@@ -413,6 +501,7 @@ def route(
         "reason": None, "event_id": order.event_id, "command_digest": digest,
         "exit_code": None, "memory_max": order.memory_max, "tasks_max": order.tasks_max,
         "lease_timeout_seconds": order.lease_timeout_seconds, "host_fallback_used": False,
+        "bootstrap_receipt_sha256": bootstrap_receipt_sha256,
     })
     process = popen([*ssh_base, shlex.join(remote_command(order))], text=True, stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE)
@@ -468,6 +557,7 @@ def route(
         "stderr_sha256": hashlib.sha256(stderr.encode()).hexdigest(),
         "memory_max": order.memory_max, "tasks_max": order.tasks_max,
         "lease_timeout_seconds": order.lease_timeout_seconds, "host_fallback_used": False,
+        "bootstrap_receipt_sha256": bootstrap_receipt_sha256,
         "deadline_at": order.deadline_at.isoformat() if order.deadline_at else None,
         "attempt_count": attempt_count,
         "stdout_path": str(stdout_path), "stderr_path": str(stderr_path),
@@ -477,16 +567,271 @@ def route(
     return checkpoint
 
 
+def discover_runtime_via_guest(
+    *, run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> dict[str, Any]:
+    entrypoint = RUNTIME_ROOT / RUNTIME_CURRENT / "product_goal_runtime_admission.py"
+    command = [
+        "ssh", "-o", "BatchMode=yes", "-o", "ClearAllForwardings=yes",
+        "-o", "ConnectTimeout=5", GUEST_HOST,
+        shlex.join([
+            "/usr/bin/python3", str(entrypoint), "--discover-runtime",
+            "--runtime-root", str(RUNTIME_ROOT),
+        ]),
+    ]
+    completed = run(
+        command, text=True, capture_output=True, timeout=20, check=False,
+    )
+    if completed.returncode:
+        raise RoutingError("Ubuntu runtime identity discovery failed")
+    try:
+        identity = json.loads(completed.stdout)
+        return validate_runtime_identity(identity)
+    except (json.JSONDecodeError, RuntimeAdmissionError) as exc:
+        raise RoutingError("Ubuntu runtime identity discovery is malformed") from exc
+
+
+def _admission_event_id(challenge: str, binding: object) -> str:
+    suffix = hashlib.sha256(
+        challenge.encode() + canonical_json_bytes(binding)
+    ).hexdigest()[:16]
+    return f"o2-admission-{suffix}"
+
+
+def _admission_order(
+    *, identity: dict[str, Any], context: dict[str, Any], receipt_path: Path,
+) -> WorkerOrder:
+    runtime = validate_runtime_identity(identity["runtime_identity"])
+    event_id = str(identity["event_id"])
+    handoff = WORKTREE_ROOT / "runtime-state/admission" / str(identity["challenge"])
+    evidence = handoff / "worker-receipt.json"
+    generation = Path(runtime["generation"])
+    raw = {
+        "schema_version": ORDER_SCHEMA,
+        "event_id": event_id,
+        "stage": "admission",
+        "working_directory": str(PRODUCT_WORKING_DIRECTORY),
+        "handoff_directory": str(handoff),
+        "command": [
+            "/usr/bin/python3", str(generation / "product_goal_worker_lane.py"),
+            "--mode", "admission",
+            "--context-json", json.dumps(context, sort_keys=True, separators=(",", ":")),
+            "--evidence", str(evidence),
+        ],
+        "checkpoint_path": str(receipt_path.parent / "router" / f"{event_id}.json"),
+        "memory_max": "512M",
+        "tasks_max": 64,
+        "timeout_seconds": 120,
+        "lease_timeout_seconds": 8,
+        "bootstrap_working_directory": True,
+        "bootstrap_identity": identity,
+        "execution_context": context,
+        "runtime_generation": str(generation),
+    }
+    return WorkerOrder.from_dict(raw)
+
+
+def admission_order_for_model(
+    product_order: WorkerOrder, *, order_sha256: str, challenge: str,
+    runtime_identity: dict[str, Any], receipt_path: Path,
+) -> WorkerOrder:
+    if product_order.stage not in {"codex", "claude"}:
+        raise RoutingError("only a model-bearing Product Goal order can request live admission")
+    if (
+        not isinstance(product_order.bootstrap_identity, dict)
+        or product_order.bootstrap_identity.get("schema_version") != PRODUCT_IDENTITY_SCHEMA
+        or not isinstance(product_order.execution_context, dict)
+    ):
+        raise RoutingError("model admission lacks the exact Product Goal identity")
+    runtime = validate_runtime_identity(runtime_identity)
+    if product_order.runtime_generation != Path(runtime["generation"]):
+        raise RoutingError("model WorkOrder runtime generation differs from live discovery")
+    product = product_order.execution_context
+    candidate = {
+        "commit": product["candidate_commit"],
+        "fingerprint": product["candidate_fingerprint"],
+        "branch": product["branch"],
+        "pull_request": product.get("pull_request"),
+    }
+    event_id = _admission_event_id(challenge, {
+        "work_order_sha256": order_sha256,
+        "runtime_identity": runtime,
+    })
+    identity = {
+        "schema_version": ADMISSION_IDENTITY_SCHEMA,
+        "admission_kind": MODEL_PRE_RESERVATION,
+        "stage": "admission",
+        "event_id": event_id,
+        "challenge": challenge,
+        "work_order_sha256": order_sha256,
+        "candidate": candidate,
+        "runtime_identity": runtime,
+        "authority_lease": "ACTIVE",
+        "go_live_authorized": True,
+        "formal_dispatch_authorized": True,
+        "execution_direction_id": None,
+        "product_goal_id": product["goal_id"],
+        "product_goal_version": product["goal_version"],
+        "product_goal_identity": product_order.bootstrap_identity,
+        "product_goal_context": product,
+    }
+    context = {
+        **identity,
+        "schema_version": ADMISSION_CONTEXT_SCHEMA,
+        "admission_identity": identity,
+    }
+    return _admission_order(identity=identity, context=context, receipt_path=receipt_path)
+
+
+def admission_order_for_deployment(
+    request: dict[str, Any], *, receipt_path: Path,
+) -> WorkerOrder:
+    request = validate_deployment_request(request)
+    event_id = _admission_event_id(request["challenge"], request)
+    identity = {
+        "schema_version": ADMISSION_IDENTITY_SCHEMA,
+        "admission_kind": DEPLOYMENT_ACCEPTANCE,
+        "stage": "admission",
+        "event_id": event_id,
+        "challenge": request["challenge"],
+        "work_order_sha256": None,
+        "candidate": request["candidate"],
+        "runtime_identity": request["runtime_identity"],
+        "authority_lease": "PAUSED",
+        "go_live_authorized": False,
+        "formal_dispatch_authorized": False,
+        "execution_direction_id": request["execution_direction_id"],
+        "product_goal_id": request["product_goal_id"],
+        "product_goal_version": request["product_goal_version"],
+        "product_goal_identity": None,
+        "product_goal_context": None,
+    }
+    context = {
+        **identity,
+        "schema_version": ADMISSION_CONTEXT_SCHEMA,
+        "admission_identity": identity,
+    }
+    return _admission_order(identity=identity, context=context, receipt_path=receipt_path)
+
+
+def route_admission(
+    order: WorkerOrder, *, receipt_path: Path,
+    run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+    popen: Callable[..., subprocess.Popen[str]] = subprocess.Popen,
+    now: Callable[[], datetime] = lambda: datetime.now(ZoneInfo("Asia/Taipei")),
+) -> dict[str, Any]:
+    checkpoint = route(order, run=run, popen=popen, now=now)
+    if checkpoint.get("status") not in {"COMPLETED", "ALREADY_COMPLETED"}:
+        raise RoutingError("runtime admission route did not complete")
+    worker = checkpoint.get("execution_evidence")
+    context = validate_admission_context(order.execution_context)
+    if (
+        not isinstance(worker, dict)
+        or worker.get("schema_version") != "kgnote.runtime-admission-worker-receipt.v1"
+        or worker.get("status") != "PASS"
+        or worker.get("challenge") != context["challenge"]
+        or worker.get("work_order_sha256") != context["work_order_sha256"]
+        or canonical_json_bytes(worker.get("runtime_identity"))
+        != canonical_json_bytes(context["runtime_identity"])
+        or worker.get("model_process_started") is not False
+        or worker.get("model_launches") != 0
+        or worker.get("model_processes") != []
+        or worker.get("landlock_denial_probe") != "PASS"
+    ):
+        raise RoutingError("runtime admission Worker evidence is incomplete or mismatched")
+    issued = now()
+    receipt = {
+        "schema_version": ADMISSION_RECEIPT_SCHEMA,
+        "status": "PASS",
+        "admission_kind": context["admission_kind"],
+        "challenge": context["challenge"],
+        "issued_at": issued.isoformat(timespec="seconds"),
+        "expires_at": (issued + timedelta(seconds=120)).isoformat(timespec="seconds"),
+        "work_order_sha256": context["work_order_sha256"],
+        "goal_id": worker["goal_id"],
+        "goal_version": worker["goal_version"],
+        "work_item_id": worker["work_item_id"],
+        "order_event_id": worker["order_event_id"],
+        "attempt_id": worker["attempt_id"],
+        "action": worker["action"],
+        "provider": worker["provider"],
+        "candidate": worker["candidate"],
+        "authority": worker["authority"],
+        "runtime_identity": worker["runtime_identity"],
+        "environment": worker["environment"],
+        "entrypoints": worker["entrypoints"],
+        "isolation": {
+            "ssh": "PASS",
+            "bootstrap": "PASS",
+            "systemd": "PASS",
+            "guard": "PASS",
+            "landlock": "PASS",
+        },
+        "router_checkpoint_path": str(order.checkpoint_path),
+        "router_checkpoint_sha256": hashlib.sha256(
+            order.checkpoint_path.read_bytes()
+        ).hexdigest(),
+        "bootstrap_receipt_sha256": checkpoint.get("bootstrap_receipt_sha256"),
+        "worker_receipt_sha256": hashlib.sha256(
+            canonical_json_bytes(worker)
+        ).hexdigest(),
+        "model_process_started": False,
+        "model_launches": 0,
+        "model_processes": [],
+    }
+    _atomic_json(receipt_path, receipt)
+    if json.loads(receipt_path.read_text(encoding="utf-8")) != receipt:
+        raise RoutingError("runtime admission receipt read-back differs")
+    return receipt
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--order", type=Path, required=True)
+    operation = parser.add_mutually_exclusive_group(required=True)
+    operation.add_argument("--order", type=Path)
+    operation.add_argument("--discover-runtime", action="store_true")
+    operation.add_argument("--admit-order", type=Path)
+    operation.add_argument("--deployment-admission", type=Path)
+    parser.add_argument("--runtime-identity-json")
+    parser.add_argument("--challenge")
+    parser.add_argument("--admission-receipt", type=Path)
     args = parser.parse_args()
     try:
-        result = route(WorkerOrder.from_dict(json.loads(args.order.read_text())))
-    except (OSError, json.JSONDecodeError, RoutingError) as exc:
+        if args.discover_runtime:
+            result = discover_runtime_via_guest()
+        elif args.admit_order is not None:
+            if not args.runtime_identity_json or not args.challenge or args.admission_receipt is None:
+                raise RoutingError("model admission requires runtime identity, challenge, and receipt path")
+            product_order = WorkerOrder.from_dict(json.loads(args.admit_order.read_text()))
+            runtime = json.loads(args.runtime_identity_json)
+            order = admission_order_for_model(
+                product_order,
+                order_sha256=hashlib.sha256(args.admit_order.read_bytes()).hexdigest(),
+                challenge=args.challenge,
+                runtime_identity=runtime,
+                receipt_path=args.admission_receipt,
+            )
+            result = route_admission(order, receipt_path=args.admission_receipt)
+        elif args.deployment_admission is not None:
+            if args.admission_receipt is None:
+                raise RoutingError("deployment admission requires a dedicated receipt path")
+            request = json.loads(args.deployment_admission.read_text())
+            live = discover_runtime_via_guest()
+            if canonical_json_bytes(live) != canonical_json_bytes(request.get("runtime_identity")):
+                raise RoutingError("deployment admission request runtime identity is stale")
+            order = admission_order_for_deployment(request, receipt_path=args.admission_receipt)
+            result = route_admission(order, receipt_path=args.admission_receipt)
+        else:
+            assert args.order is not None
+            result = route(WorkerOrder.from_dict(json.loads(args.order.read_text())))
+    except (
+        OSError, json.JSONDecodeError, RuntimeAdmissionError, RoutingError,
+    ) as exc:
         parser.error(str(exc))
     print(json.dumps(result, sort_keys=True))
-    return 0 if result["status"] in {"COMPLETED", "ALREADY_COMPLETED"} else 2
+    return 0 if result.get("status") in {
+        "COMPLETED", "ALREADY_COMPLETED", "PASS",
+    } or result.get("schema_version") == RUNTIME_DISCOVERY_SCHEMA else 2
 
 
 if __name__ == "__main__":

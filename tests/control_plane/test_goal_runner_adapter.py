@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 from tests.control_plane.test_goal_continuity import product_goal_spec
 from tests.control_plane.test_github_product_goal_control import comment
+from tests.control_plane.runtime_admission_fixtures import prepare_model_reservation
 
 SPEC = importlib.util.spec_from_file_location(
     "goal_runner_adapter", ROOT / "scripts/goal_runner_adapter.py"
@@ -96,6 +97,33 @@ class GoalRunnerAdapterTests(unittest.TestCase):
                 )},
             )
         return state_path, ledger_path
+
+    def reserve_model(
+        self, repo, state, action, *, state_path, ledger_path,
+        occurred_at=NOW,
+    ):
+        synchronized = ADAPTER.synchronize_state_from_ledger(
+            self.spec, state, GOAL.read_ledger(ledger_path),
+            state_path=state_path,
+        )
+        state.clear()
+        state.update(synchronized)
+        if not ADAPTER.requires_runtime_admission(self.spec, action):
+            return ADAPTER.reserve_dispatch(
+                self.spec, state, action, state_path=state_path,
+                ledger_path=ledger_path, repo=repo,
+                occurred_at=occurred_at.isoformat(),
+            )
+        order_path, receipt_path = prepare_model_reservation(
+            repo, state, action, observed_at=occurred_at,
+        )
+        return ADAPTER.reserve_dispatch(
+            self.spec, state, action, state_path=state_path,
+            ledger_path=ledger_path, repo=repo,
+            occurred_at=occurred_at.isoformat(),
+            prepared_order_path=order_path,
+            admission_receipt_path=receipt_path,
+        )
 
     def test_completed_app_goal_does_not_authorize_product_goal(self):
         result = ADAPTER.next_action(
@@ -387,9 +415,9 @@ class GoalRunnerAdapterTests(unittest.TestCase):
                 self.spec, active, GOAL.read_ledger(ledger_path), self.authority,
                 now=NOW, trial=False,
             )
-            reserved, _, attempt_id = ADAPTER.reserve_dispatch(
-                self.spec, active, action, state_path=state_path,
-                ledger_path=ledger_path, repo=repo, occurred_at=NOW.isoformat(),
+            reserved, _, attempt_id = self.reserve_model(
+                repo, active, action, state_path=state_path,
+                ledger_path=ledger_path,
             )
             order = json.loads((repo / "output" / "product-decision.json").read_text())
             result = {
@@ -522,9 +550,9 @@ class GoalRunnerAdapterTests(unittest.TestCase):
             action = ADAPTER.next_action(
                 self.spec, self.state, ledger, self.authority, now=NOW, trial=False,
             )
-            reserved, selected_order, attempt_id = ADAPTER.reserve_dispatch(
-                self.spec, self.state, action, state_path=state_path,
-                ledger_path=ledger_path, repo=repo, occurred_at=NOW.isoformat(),
+            reserved, selected_order, attempt_id = self.reserve_model(
+                repo, self.state, action, state_path=state_path,
+                ledger_path=ledger_path,
             )
             self.assertEqual(order_path, selected_order)
             self.assertEqual("DISPATCHING", reserved["work_items"][0]["status"])
@@ -580,10 +608,9 @@ class GoalRunnerAdapterTests(unittest.TestCase):
                 side_effect=OSError("injected state replacement crash"),
             ):
                 with self.assertRaisesRegex(OSError, "injected"):
-                    ADAPTER.reserve_dispatch(
-                        self.spec, state, action,
-                        state_path=state_path, ledger_path=ledger_path, repo=repo,
-                        occurred_at=NOW.isoformat(),
+                    self.reserve_model(
+                        repo, state, action,
+                        state_path=state_path, ledger_path=ledger_path,
                     )
 
             rows = GOAL.read_ledger(ledger_path)
@@ -710,9 +737,9 @@ class GoalRunnerAdapterTests(unittest.TestCase):
                 self.spec, active, GOAL.read_ledger(ledger_path), self.authority,
                 now=NOW, trial=False,
             )
-            reserved, _, attempt_id = ADAPTER.reserve_dispatch(
-                self.spec, active, action, state_path=state_path,
-                ledger_path=ledger_path, repo=repo, occurred_at=NOW.isoformat(),
+            reserved, _, attempt_id = self.reserve_model(
+                repo, active, action, state_path=state_path,
+                ledger_path=ledger_path,
             )
             order = json.loads((repo / "output" / "review-result.json").read_text())
             parsed = ROUTER.WorkerOrder.from_dict(order)
@@ -780,9 +807,9 @@ class GoalRunnerAdapterTests(unittest.TestCase):
                 self.spec, active, GOAL.read_ledger(ledger_path), self.authority,
                 now=NOW, trial=False,
             )
-            reserved, _, attempt_id = ADAPTER.reserve_dispatch(
-                self.spec, active, action, state_path=state_path,
-                ledger_path=ledger_path, repo=repo, occurred_at=NOW.isoformat(),
+            reserved, _, attempt_id = self.reserve_model(
+                repo, active, action, state_path=state_path,
+                ledger_path=ledger_path,
             )
             order = json.loads((repo / "output" / "quota-result.json").read_text())
             checkpoint = {
@@ -855,9 +882,9 @@ class GoalRunnerAdapterTests(unittest.TestCase):
                     self.spec, active, GOAL.read_ledger(ledger_path), self.authority,
                     now=NOW, trial=False,
                 )
-                reserved, _, attempt_id = ADAPTER.reserve_dispatch(
-                    self.spec, active, action, state_path=state_path,
-                    ledger_path=ledger_path, repo=repo, occurred_at=NOW.isoformat(),
+                reserved, _, attempt_id = self.reserve_model(
+                    repo, active, action, state_path=state_path,
+                    ledger_path=ledger_path,
                 )
                 order = json.loads((repo / "output" / f"{event_id}.json").read_text())
                 checkpoint = {
@@ -915,9 +942,8 @@ class GoalRunnerAdapterTests(unittest.TestCase):
                 self.spec, active, GOAL.read_ledger(ledger_path), self.authority,
                 now=NOW, trial=False,
             )
-            reserved, _, attempt_id = ADAPTER.reserve_dispatch(
-                self.spec, active, action, state_path=state_path, ledger_path=ledger_path,
-                repo=repo, occurred_at=NOW.isoformat(),
+            reserved, _, attempt_id = self.reserve_model(
+                repo, active, action, state_path=state_path, ledger_path=ledger_path,
             )
             order = json.loads((repo / "output" / "window-deadline.json").read_text())
             checkpoint = {
@@ -971,9 +997,8 @@ class GoalRunnerAdapterTests(unittest.TestCase):
                 self.spec, active, GOAL.read_ledger(ledger_path), self.authority,
                 now=NOW, trial=False,
             )
-            reserved, _, attempt_id = ADAPTER.reserve_dispatch(
-                self.spec, active, action, state_path=state_path, ledger_path=ledger_path,
-                repo=repo, occurred_at=NOW.isoformat(),
+            reserved, _, attempt_id = self.reserve_model(
+                repo, active, action, state_path=state_path, ledger_path=ledger_path,
             )
             order = json.loads((repo / "output" / "unknown-outcome.json").read_text())
             checkpoint = {

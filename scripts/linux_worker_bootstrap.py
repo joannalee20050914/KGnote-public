@@ -20,6 +20,12 @@ try:
         ProductGoalIdentityError,
         validate_product_goal_identity,
     )
+    from product_goal_runtime_admission import (
+        ADMISSION_IDENTITY_SCHEMA,
+        DEPLOYMENT_ACCEPTANCE,
+        RuntimeAdmissionError,
+        validate_admission_identity,
+    )
 except ModuleNotFoundError:  # Direct file loading in repository unit tests.
     from scripts.product_goal_worker_identity import (
         PRODUCT_IDENTITY_SCHEMA,
@@ -27,6 +33,12 @@ except ModuleNotFoundError:  # Direct file loading in repository unit tests.
         PRODUCT_REPOSITORY_URL,
         ProductGoalIdentityError,
         validate_product_goal_identity,
+    )
+    from scripts.product_goal_runtime_admission import (
+        ADMISSION_IDENTITY_SCHEMA,
+        DEPLOYMENT_ACCEPTANCE,
+        RuntimeAdmissionError,
+        validate_admission_identity,
     )
 
 
@@ -67,12 +79,15 @@ def _prepare_product_checkout(
     identity: dict[str, object],
     *,
     runner: object = subprocess.run,
+    allow_clone: bool = True,
 ) -> dict[str, object]:
     """Create once or validate the exact private O2 branch checkout before model launch."""
     candidate_commit = str(identity["candidate_commit"])
     entries = list(working_directory.iterdir())
     cloned = False
     if not entries:
+        if not allow_clone:
+            raise BootstrapError("runtime admission requires an existing exact Product Goal checkout")
         ref = f"refs/heads/{PRODUCT_BRANCH}"
         remote = _git_text(
             ["/usr/bin/git", "ls-remote", "--heads", PRODUCT_REPOSITORY_URL, ref],
@@ -220,6 +235,14 @@ def _require_real_directory(
 def _validate_generic_identity(
     identity: object, *, event_id: str, stage: str, working_directory: Path,
 ) -> dict[str, object]:
+    if isinstance(identity, dict) and identity.get("schema_version") == ADMISSION_IDENTITY_SCHEMA:
+        try:
+            return validate_admission_identity(
+                identity, event_id=event_id, stage=stage,
+                working_directory=working_directory, worktree_root=WORKTREE_ROOT,
+            )
+        except RuntimeAdmissionError as exc:
+            raise BootstrapError(str(exc)) from exc
     if isinstance(identity, dict) and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA:
         try:
             return validate_product_goal_identity(
@@ -276,10 +299,16 @@ def prepare(event_id: str, stage: str, working_directory: Path, identity: object
         _require_real_directory(GENERIC_ROOT, owner_uid=uid, owner_gid=gid)
         if (
             isinstance(identity, dict)
-            and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+            and identity.get("schema_version") in {
+                PRODUCT_IDENTITY_SCHEMA, ADMISSION_IDENTITY_SCHEMA,
+            }
         ):
             runtime_state = WORKTREE_ROOT / "runtime-state"
-            handoff = runtime_state / "product-goal"
+            handoff = (
+                runtime_state / "product-goal"
+                if identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+                else runtime_state / "admission" / str(identity["challenge"])
+            )
             for directory in (runtime_state, handoff):
                 if directory.is_symlink():
                     raise BootstrapError("Product Goal handoff path must not be a symbolic link")
@@ -297,10 +326,23 @@ def prepare(event_id: str, stage: str, working_directory: Path, identity: object
     development_environment = None
     if (
         isinstance(identity, dict)
-        and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+        and identity.get("schema_version") in {
+            PRODUCT_IDENTITY_SCHEMA, ADMISSION_IDENTITY_SCHEMA,
+        }
     ):
-        checkout = _prepare_product_checkout(working_directory, identity)
-        if stage == "codex":
+        checkout_identity = (
+            identity
+            if identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+            else {
+                "candidate_commit": identity["candidate"]["commit"],
+                "repository": "joannalee20050914/KGnote-public",
+            }
+        )
+        checkout = _prepare_product_checkout(
+            working_directory, checkout_identity,
+            allow_clone=identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA,
+        )
+        if stage in {"codex", "admission"}:
             development_environment = _validate_product_dev_environment(working_directory)
         metadata = _require_real_directory(working_directory, owner_uid=uid, owner_gid=gid)
     return {
@@ -315,9 +357,12 @@ def prepare(event_id: str, stage: str, working_directory: Path, identity: object
         "mode": oct(stat.S_IMODE(metadata.st_mode)),
         "handoff_directory": (
             str(WORKTREE_ROOT / "runtime-state/product-goal")
-            if isinstance(identity, dict)
-            and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
-            else None
+            if isinstance(identity, dict) and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+            else (
+                str(WORKTREE_ROOT / "runtime-state/admission" / str(identity["challenge"]))
+                if isinstance(identity, dict) and identity.get("schema_version") == ADMISSION_IDENTITY_SCHEMA
+                else None
+            )
         ),
         "identity_sha256": hashlib.sha256(
             json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()

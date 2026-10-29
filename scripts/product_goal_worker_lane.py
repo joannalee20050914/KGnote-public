@@ -31,9 +31,20 @@ from claude_reviewer_adapter import (
     execute as execute_claude,
 )
 from product_goal_worker_result import CONTEXT_SCHEMA, WorkerResultError, validate_context
+from product_goal_runtime_admission import (
+    ADMISSION_CONTEXT_SCHEMA,
+    MODEL_PRE_RESERVATION,
+    WORKER_RECEIPT_SCHEMA,
+    RuntimeAdmissionError,
+    canonical_json_bytes,
+    model_processes,
+    require_live_runtime_identity,
+    validate_admission_context,
+    validate_admission_identity,
+)
 
 
-MODES = {"codex", "verify", "publish", "review"}
+MODES = {"admission", "codex", "verify", "publish", "review"}
 GUEST_NODE_BIN = "/home/kgnote/.local/lib/node-v24.12.0/bin"
 GUEST_NODE = f"{GUEST_NODE_BIN}/node"
 GUEST_NPM = f"{GUEST_NODE_BIN}/npm"
@@ -106,6 +117,32 @@ def _exact_candidate(repo: Path, context: dict[str, Any]) -> dict[str, Any]:
     return {
         "commit": fingerprint["head"], "fingerprint": fingerprint["value"],
         "branch": branch.stdout.strip(), "pull_request": context.get("pull_request"),
+    }
+
+
+def _observed_checkout(repo: Path, *, pull_request: object = None) -> dict[str, Any]:
+    fingerprint = codex_control.repository_fingerprint(repo)
+    branch = subprocess.run(
+        ["/usr/bin/git", "branch", "--show-current"], cwd=repo,
+        text=True, capture_output=True, check=False,
+    )
+    tree = subprocess.run(
+        ["/usr/bin/git", "rev-parse", "HEAD^{tree}"], cwd=repo,
+        text=True, capture_output=True, check=False,
+    )
+    status = subprocess.run(
+        ["/usr/bin/git", "status", "--porcelain=v1", "--untracked-files=all"], cwd=repo,
+        text=True, capture_output=True, check=False,
+    )
+    if branch.returncode or tree.returncode or status.returncode or status.stdout.strip():
+        raise LaneError("runtime admission checkout is dirty or unreadable")
+    return {
+        "commit": fingerprint["head"],
+        "tree": tree.stdout.strip(),
+        "fingerprint": fingerprint["value"],
+        "branch": branch.stdout.strip(),
+        "pull_request": pull_request,
+        "clean": True,
     }
 
 
@@ -205,19 +242,18 @@ def _admit_locked_dependencies(python: Path, repo: Path) -> dict[str, Any]:
     }
 
 
-def admit_codex_development_environment(
-    repo: Path, context: dict[str, Any], evidence_path: Path,
-) -> tuple[dict[str, Any], dict[str, str]]:
-    """Prove the exact checkout and toolchain before invoking Codex."""
-    context = validate_context(context)
-    if context.get("schema_version") != CONTEXT_SCHEMA:
-        raise LaneError("Codex development admission requires Runner-verified context v2")
-    candidate = _exact_candidate(repo, context)
-    if (
-        candidate["commit"] != context["candidate_commit"]
-        or candidate["fingerprint"] != context["candidate_fingerprint"]
-    ):
-        raise LaneError("pre-model checkout differs from the sealed Runner context")
+def _admit_exact_environment(
+    repo: Path, expected_candidate: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    candidate = _observed_checkout(
+        repo, pull_request=expected_candidate.get("pull_request"),
+    )
+    for key in ("commit", "fingerprint", "branch"):
+        if candidate.get(key) != expected_candidate.get(key):
+            raise LaneError("pre-model checkout differs from the admitted candidate")
+    expected_tree = expected_candidate.get("tree")
+    if expected_tree is not None and candidate["tree"] != expected_tree:
+        raise LaneError("pre-model checkout tree differs from the admitted candidate")
     python = repo / ".venv/bin/python"
     required = {
         "python": python,
@@ -227,7 +263,11 @@ def admit_codex_development_environment(
         "git": Path("/usr/bin/git"),
         "codex_js": Path(GUEST_CODEX_JS),
     }
-    missing = [name for name, path in required.items() if not path.is_file() or not os.access(path, os.X_OK if name != "codex_js" else os.R_OK)]
+    missing = [
+        name for name, path in required.items()
+        if not path.is_file()
+        or not os.access(path, os.X_OK if name != "codex_js" else os.R_OK)
+    ]
     if missing:
         raise LaneError("development environment is incomplete: " + ", ".join(sorted(missing)))
     versions = {
@@ -246,7 +286,29 @@ def admit_codex_development_environment(
         or not versions["gh"].startswith(f"gh version {GUEST_GH_VERSION}")
     ):
         raise LaneError("development environment version differs from the pinned runtime")
-    dependency_probe = _admit_locked_dependencies(python, repo)
+    return candidate, {
+        "versions": versions,
+        "dependency_probe": _admit_locked_dependencies(python, repo),
+    }
+
+
+def admit_codex_development_environment(
+    repo: Path, context: dict[str, Any], evidence_path: Path,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Prove the exact checkout and toolchain before invoking Codex."""
+    context = validate_context(context)
+    if context.get("schema_version") != CONTEXT_SCHEMA:
+        raise LaneError("Codex development admission requires Runner-verified context v2")
+    runtime = require_live_runtime_identity(context.get("runtime_identity"))
+    if Path(__file__).resolve().parent != Path(runtime["generation"]).resolve():
+        raise LaneError("Codex lane is not executing from the pre-reservation runtime generation")
+    candidate, environment = _admit_exact_environment(repo, {
+        "commit": context["candidate_commit"],
+        "fingerprint": context["candidate_fingerprint"],
+        "branch": context["branch"],
+        "pull_request": context.get("pull_request"),
+    })
+    python = repo / ".venv/bin/python"
     context_path = evidence_path.parent.parent / "contexts" / f"{context['order_event_id']}.json"
     admission_path = evidence_path.parent.parent / "admissions" / f"{context['order_event_id']}.json"
     _atomic_json(context_path, context)
@@ -259,8 +321,8 @@ def admit_codex_development_environment(
         "runner_context_sha256": hashlib.sha256(_canonical(context["runner_context"])).hexdigest(),
         "context_path": str(context_path),
         "context_sha256": hashlib.sha256(context_path.read_bytes()).hexdigest(),
-        "versions": versions,
-        "dependency_probe": dependency_probe,
+        "versions": environment["versions"],
+        "dependency_probe": environment["dependency_probe"],
     }
     _atomic_json(admission_path, receipt)
     child_env = dict(os.environ)
@@ -271,6 +333,106 @@ def admit_codex_development_environment(
         "PATH": f"{python.parent}:/home/kgnote/.local/bin:{GUEST_NODE_BIN}:/usr/bin:/bin",
     })
     return receipt, child_env
+
+
+def run_admission(
+    repo: Path, context: dict[str, Any], evidence_path: Path, *,
+    process_reader: Callable[[], list[dict[str, Any]]] = model_processes,
+    cgroup_reader: Callable[[], str] = lambda: Path("/proc/self/cgroup").read_text(encoding="utf-8"),
+    denied_path: Path = Path("/home/kgnote/.ssh"),
+) -> int:
+    """Run the deployed checkout/tool/runtime gate without a model command."""
+    context = validate_admission_context(context)
+    identity = context["admission_identity"]
+    try:
+        validate_admission_identity(
+            identity,
+            event_id=context["event_id"],
+            stage="admission",
+            working_directory=repo,
+            worktree_root=repo.parents[1],
+        )
+    except (IndexError, RuntimeAdmissionError) as exc:
+        raise LaneError(str(exc)) from exc
+    runtime = require_live_runtime_identity(context["runtime_identity"])
+    if Path(__file__).resolve().parent != Path(runtime["generation"]).resolve():
+        raise LaneError("admission Worker is not executing from the pinned runtime generation")
+    candidate, environment = _admit_exact_environment(repo, context["candidate"])
+    generation = Path(runtime["generation"])
+    entrypoints = {}
+    for name in ("product_goal_worker_result.py", "product_goal_worker_lane.py"):
+        _probe(["/usr/bin/python3", str(generation / name), "--help"], repo=repo)
+        entrypoints[name] = {"argument": "--help", "status": "PASS"}
+    cgroup = cgroup_reader()
+    if "kgnote-" not in cgroup or ".service" not in cgroup:
+        raise LaneError("runtime admission is not executing in the expected systemd unit")
+    try:
+        list(denied_path.iterdir())
+    except PermissionError:
+        landlock_denial = "PASS"
+    else:
+        raise LaneError("runtime admission Landlock profile exposed the excluded SSH directory")
+    processes = process_reader()
+    if processes:
+        raise LaneError("runtime admission observed an existing Codex or Claude process")
+    if context["admission_kind"] == MODEL_PRE_RESERVATION:
+        product = context["product_goal_context"]
+        runner = product["runner_context"]
+        authority = {
+            "state_projection_sha256": runner["state_projection_sha256"],
+            "authority_record_sha256": runner["authority_record_sha256"],
+            "authority_lease": runner["authority_lease"],
+            "lifecycle": runner["lifecycle"]["state"],
+            "go_live_authorized": runner["go_live_authorized"],
+        }
+        work = {
+            "goal_id": product["goal_id"],
+            "goal_version": product["goal_version"],
+            "work_item_id": product["work_item_id"],
+            "order_event_id": product["order_event_id"],
+            "attempt_id": product["attempt_id"],
+            "action": product["action"],
+            "provider": product["provider"],
+        }
+    else:
+        authority = {
+            "state_projection_sha256": None,
+            "authority_record_sha256": None,
+            "authority_lease": identity["authority_lease"],
+            "lifecycle": "BLOCKED",
+            "go_live_authorized": identity["go_live_authorized"],
+        }
+        work = {
+            "goal_id": identity["product_goal_id"],
+            "goal_version": identity["product_goal_version"],
+            "work_item_id": None,
+            "order_event_id": None,
+            "attempt_id": None,
+            "action": "DEPLOYMENT_ACCEPTANCE",
+            "provider": "NONE",
+        }
+    receipt = {
+        "schema_version": WORKER_RECEIPT_SCHEMA,
+        "status": "PASS",
+        "admission_kind": context["admission_kind"],
+        "challenge": context["challenge"],
+        "event_id": context["event_id"],
+        "work_order_sha256": context["work_order_sha256"],
+        **work,
+        "candidate": candidate,
+        "authority": authority,
+        "runtime_identity": runtime,
+        "environment": environment,
+        "entrypoints": entrypoints,
+        "systemd_cgroup_sha256": hashlib.sha256(cgroup.encode()).hexdigest(),
+        "landlock_denial_probe": landlock_denial,
+        "model_process_started": False,
+        "model_launches": 0,
+        "model_processes": processes,
+    }
+    _atomic_json(evidence_path, receipt)
+    print(json.dumps(receipt, sort_keys=True))
+    return 0
 
 
 def run_codex(
@@ -530,6 +692,10 @@ def execute_lane(
     mode: str, repo: Path, context: dict[str, Any], evidence_path: Path,
     command: list[str] | None = None,
 ) -> int:
+    if mode == "admission":
+        if command:
+            raise LaneError("admission-only lane never accepts a nested command")
+        return run_admission(repo, context, evidence_path)
     context = validate_context(context)
     expected = {
         "codex": ("codex", {"DISPATCH_IMPLEMENTATION", "DISPATCH_REPAIR"}),
@@ -566,7 +732,10 @@ def main() -> int:
         ):
             raise LaneError("nested command must be a JSON string array")
         return execute_lane(args.mode, Path.cwd(), context, args.evidence, command)
-    except (OSError, json.JSONDecodeError, WorkerResultError, LaneError, AdapterError) as exc:
+    except (
+        OSError, json.JSONDecodeError, WorkerResultError, LaneError,
+        RuntimeAdmissionError, AdapterError,
+    ) as exc:
         print(f"product goal lane rejected: {exc}", file=sys.stderr)
         return 2
 

@@ -17,6 +17,7 @@ import goal_continuity as GOAL
 import goal_runner_adapter as ADAPTER
 import local_autonomy_runner as RUNNER
 from tests.control_plane.test_github_product_goal_control import comment
+from tests.control_plane.runtime_admission_fixtures import runtime_identity
 NOW = "2026-10-28T10:00:00+08:00"
 
 
@@ -45,6 +46,18 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
             "work_item_id":"WI-O2-A-IMPLEMENT", "requires_model":True,
             "provider":"codex", "total_launches_before":0,
         }
+        self.runtime_identity = runtime_identity()
+
+    def ensure_bound_order(self, spec, state, action, **kwargs):
+        return ADAPTER.ensure_bound_order(
+            spec,
+            state,
+            action,
+            runtime_identity=(
+                self.runtime_identity if action.get("requires_model") else None
+            ),
+            **kwargs,
+        )
 
     def write_state(self, repo: Path, state=None):
         path=repo/"state.json"; GOAL.atomic_write_json(path,state or self.state); return path
@@ -52,7 +65,7 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
     def test_runner_creates_seals_and_reuses_same_attempt_order(self):
         with tempfile.TemporaryDirectory() as directory:
             repo=Path(directory); state_path=self.write_state(repo)
-            updated,path,order,attempt=ADAPTER.ensure_bound_order(
+            updated,path,order,attempt=self.ensure_bound_order(
                 self.spec,self.state,self.action,repo=repo,state_path=state_path,occurred_at=NOW,
             )
             self.assertEqual("RUNNER_DYNAMIC_V1",updated["work_items"][0]["dispatch_binding"]["builder"])
@@ -74,7 +87,7 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
                 "/home/kgnote/.local/share/kgnote/runtime-state/product-goal",
                 order["handoff_directory"],
             )
-            replay=ADAPTER.ensure_bound_order(
+            replay=self.ensure_bound_order(
                 self.spec,updated,self.action,repo=repo,state_path=state_path,occurred_at=NOW,
             )
             self.assertEqual(path,replay[1]); self.assertEqual(order["event_id"],replay[2]["event_id"])
@@ -84,7 +97,7 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
             repo=Path(directory); state=deepcopy(self.state)
             state["authority_record"]["action"]="RESUME"
             state_path=self.write_state(repo,state)
-            _,_,order,_=ADAPTER.ensure_bound_order(
+            _,_,order,_=self.ensure_bound_order(
                 self.spec,state,self.action,repo=repo,state_path=state_path,occurred_at=NOW,
             )
             self.assertEqual("RESUME",order["bootstrap_identity"]["authority_action"])
@@ -123,7 +136,7 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
             }
             GOAL.atomic_write_json(state_path,state)
             with patch.object(ADAPTER.product_goal_worker_identity,"PRODUCT_REPOSITORY_URL",str(origin)), patch.object(ADAPTER.product_goal_worker_identity,"PRODUCT_SEED_COMMIT",seed):
-                updated,path,order,attempt=ADAPTER.ensure_bound_order(
+                updated,path,order,attempt=self.ensure_bound_order(
                     self.spec,state,self.action,repo=deploy,state_path=state_path,
                     ledger_path=ledger_path,occurred_at=NOW,
                 )
@@ -145,7 +158,7 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
                 self.assertEqual("INITIAL_CANDIDATE_AND_ORDER_BOUND",events[1]["payload"]["operation"])
                 restarted=ADAPTER.synchronize_state_from_ledger(self.spec,state,events)
                 self.assertEqual(updated["candidate_identity"],restarted["candidate_identity"])
-                replay=ADAPTER.ensure_bound_order(
+                replay=self.ensure_bound_order(
                     self.spec,updated,self.action,repo=deploy,state_path=state_path,
                     ledger_path=ledger_path,occurred_at=NOW,
                 )
@@ -162,7 +175,7 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
                 fresh=deepcopy(state); GOAL.atomic_write_json(state_path,fresh)
                 ledger_path.unlink()
                 with self.assertRaisesRegex(ADAPTER.GoalRunnerError,"no longer points"):
-                    ADAPTER.ensure_bound_order(
+                    self.ensure_bound_order(
                         self.spec,fresh,self.action,repo=deploy2,state_path=state_path,
                         ledger_path=ledger_path,occurred_at=NOW,
                     )
@@ -171,7 +184,7 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
     def test_tampered_order_stale_binding_stop_marker_and_exhausted_budget_fail_closed(self):
         with tempfile.TemporaryDirectory() as directory:
             repo=Path(directory); state_path=self.write_state(repo)
-            updated,path,_,_=ADAPTER.ensure_bound_order(
+            updated,path,_,_=self.ensure_bound_order(
                 self.spec,self.state,self.action,repo=repo,state_path=state_path,occurred_at=NOW,
             )
             path.write_text("{}")
@@ -181,12 +194,12 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
             repo=Path(directory); (repo/".ai").mkdir(); (repo/".ai/ORCHESTRATOR_STOP").write_text("stop")
             state_path=self.write_state(repo)
             with self.assertRaisesRegex(ADAPTER.GoalRunnerError,"Stop Marker"):
-                ADAPTER.ensure_bound_order(self.spec,self.state,self.action,repo=repo,state_path=state_path,occurred_at=NOW)
+                self.ensure_bound_order(self.spec,self.state,self.action,repo=repo,state_path=state_path,occurred_at=NOW)
         with tempfile.TemporaryDirectory() as directory:
             repo=Path(directory); state_path=self.write_state(repo)
             exhausted={**self.action,"total_launches_before":8}
             with self.assertRaisesRegex(ADAPTER.GoalRunnerError,"ceiling"):
-                ADAPTER.ensure_bound_order(self.spec,self.state,exhausted,repo=repo,state_path=state_path,occurred_at=NOW)
+                self.ensure_bound_order(self.spec,self.state,exhausted,repo=repo,state_path=state_path,occurred_at=NOW)
 
     def test_dependency_stage_and_output_path_escape_fail_closed(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -197,12 +210,12 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
             state_path=self.write_state(repo,state)
             wrong={"status":"ACTION_READY","action":"DISPATCH_REVIEW","work_item_id":"WI-O2-A-VERIFY","requires_model":True,"provider":"claude","total_launches_before":0}
             with self.assertRaisesRegex(ADAPTER.GoalRunnerError,"stale"):
-                ADAPTER.ensure_bound_order(self.spec,state,wrong,repo=repo,state_path=state_path,occurred_at=NOW)
+                self.ensure_bound_order(self.spec,state,wrong,repo=repo,state_path=state_path,occurred_at=NOW)
         with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as outside:
             repo=Path(directory); (repo/"output").symlink_to(Path(outside),target_is_directory=True)
             state_path=self.write_state(repo)
             with self.assertRaisesRegex(ADAPTER.GoalRunnerError,"escapes"):
-                ADAPTER.ensure_bound_order(self.spec,self.state,self.action,repo=repo,state_path=state_path,occurred_at=NOW)
+                self.ensure_bound_order(self.spec,self.state,self.action,repo=repo,state_path=state_path,occurred_at=NOW)
 
     def test_a_review_repair_and_b_lanes_are_built_without_prefilled_orders(self):
         cases = [
@@ -227,7 +240,7 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
                 action={"status":"ACTION_READY","action":action_name,"work_item_id":work_item,"requires_model":requires_model}
                 if provider is not None:
                     action.update({"provider":provider,"total_launches_before":0})
-                built=ADAPTER.ensure_bound_order(
+                built=self.ensure_bound_order(
                     self.spec,state,action,repo=repo,state_path=state_path,occurred_at=NOW,
                 )
                 self.assertEqual(stage,built[2]["stage"])

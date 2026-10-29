@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Single Mac production Runner for cgroup-confined Ubuntu worker orders."""
 from __future__ import annotations
-import argparse, fcntl, hashlib, json, os, re, subprocess, sys, tempfile
+import argparse, fcntl, hashlib, json, os, re, secrets, subprocess, sys, tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -1149,6 +1149,72 @@ def route_order(
         error_tail=(completed.stderr or "")[-1000:],
     )
     return completed.returncode
+
+
+def discover_ubuntu_runtime(
+    repo: Path, router: Path, command_runner=subprocess.run,
+) -> dict[str, object]:
+    completed = command_runner(
+        [sys.executable, str(router), "--discover-runtime"],
+        cwd=repo, capture_output=True, text=True,
+    )
+    if completed.returncode:
+        raise goal_runner_adapter.GoalRunnerError(
+            "latest Ubuntu runtime identity discovery failed"
+        )
+    try:
+        identity = json.loads(completed.stdout)
+        return goal_runner_adapter.runtime_admission.validate_runtime_identity(identity)
+    except (
+        json.JSONDecodeError,
+        goal_runner_adapter.runtime_admission.RuntimeAdmissionError,
+    ) as exc:
+        raise goal_runner_adapter.GoalRunnerError(
+            "latest Ubuntu runtime identity discovery is malformed"
+        ) from exc
+
+
+def run_pre_reservation_admission(
+    repo: Path, router: Path, order_path: Path,
+    runtime_identity: dict[str, object], command_runner=subprocess.run,
+) -> Path:
+    challenge = secrets.token_hex(32)
+    receipt_path = (
+        repo / "output/control-plane/product-goal/runtime-admissions"
+        / f"{challenge}.json"
+    )
+    completed = command_runner(
+        [
+            sys.executable, str(router), "--admit-order", str(order_path),
+            "--runtime-identity-json",
+            json.dumps(runtime_identity, sort_keys=True, separators=(",", ":")),
+            "--challenge", challenge,
+            "--admission-receipt", str(receipt_path),
+        ],
+        cwd=repo, capture_output=True, text=True,
+    )
+    if completed.returncode:
+        raise goal_runner_adapter.GoalRunnerError(
+            "live Ubuntu pre-reservation admission failed"
+        )
+    if not receipt_path.is_file() or receipt_path.is_symlink():
+        raise goal_runner_adapter.GoalRunnerError(
+            "live Ubuntu pre-reservation admission did not write its exact receipt"
+        )
+    try:
+        returned = json.loads(completed.stdout)
+        written = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise goal_runner_adapter.GoalRunnerError(
+            "live Ubuntu pre-reservation admission receipt is malformed"
+        ) from exc
+    if goal_runner_adapter.goal_continuity.canonical_json_bytes(returned) != (
+        goal_runner_adapter.goal_continuity.canonical_json_bytes(written)
+    ):
+        raise goal_runner_adapter.GoalRunnerError(
+            "live Ubuntu pre-reservation admission read-back differs"
+        )
+    return receipt_path
 
 
 def _block_work_item(
@@ -2584,11 +2650,38 @@ def run_product_goal_mode(
                     **decision, "status": "CANDIDATE_PR_REQUIRED",
                     "requires_model": False, "reason": str(exc),
                 }
+        if not router.is_file() or not epoch_record.is_file() or not admission.is_file():
+            append("product_goal_admission_unavailable")
+            return {
+                **decision,
+                "status": "ADMISSION_UNAVAILABLE",
+                "requires_model": False,
+                "reason": "router, epoch record, or scope admission helper is unavailable",
+            }
+        runtime_admission_required = goal_runner_adapter.requires_runtime_admission(
+            spec, decision,
+        )
+        runtime_identity = None
+        if runtime_admission_required:
+            try:
+                runtime_identity = discover_ubuntu_runtime(
+                    repo, router, command_runner,
+                )
+            except goal_runner_adapter.GoalRunnerError as exc:
+                append("product_goal_runtime_discovery_rejected", reason=str(exc))
+                return {
+                    **decision,
+                    "status": "PRE_RESERVATION_ADMISSION_REJECTED",
+                    "requires_model": False,
+                    "reason": str(exc),
+                }
         try:
             state, order_path, _, _ = goal_runner_adapter.ensure_bound_order(
                 spec, state, decision, repo=repo, state_path=state_path,
                 ledger_path=ledger_path,
                 occurred_at=(current or datetime.now(ZONE)).isoformat(timespec="seconds"),
+                runtime_identity=runtime_identity,
+                persist_binding=not runtime_admission_required,
             )
         except goal_runner_adapter.GoalRunnerError as exc:
             append("product_goal_dispatch_binding_rejected", reason=str(exc))
@@ -2597,14 +2690,6 @@ def run_product_goal_mode(
                 "status": "DISPATCH_BINDING_REQUIRED",
                 "requires_model": False,
                 "reason": str(exc),
-            }
-        if not router.is_file() or not epoch_record.is_file() or not admission.is_file():
-            append("product_goal_admission_unavailable", order=str(order_path))
-            return {
-                **decision,
-                "status": "ADMISSION_UNAVAILABLE",
-                "requires_model": False,
-                "reason": "router, epoch record, or scope admission helper is unavailable",
             }
         gate = command_runner(
             [sys.executable, str(admission), "--epoch", str(epoch_record), "--order", str(order_path)],
@@ -2621,10 +2706,29 @@ def run_product_goal_mode(
                 "requires_model": False,
                 "reason": "the existing epoch/scope admission gate rejected the sealed order",
             }
+        admission_receipt_path = None
+        if runtime_admission_required:
+            try:
+                admission_receipt_path = run_pre_reservation_admission(
+                    repo, router, order_path, runtime_identity, command_runner,
+                )
+            except goal_runner_adapter.GoalRunnerError as exc:
+                append(
+                    "product_goal_pre_reservation_admission_rejected",
+                    order=str(order_path), reason=str(exc),
+                )
+                return {
+                    **decision,
+                    "status": "PRE_RESERVATION_ADMISSION_REJECTED",
+                    "requires_model": False,
+                    "reason": str(exc),
+                }
         observed_at = (current or datetime.now(ZONE)).isoformat(timespec="seconds")
         reserved, order_path, attempt_id = goal_runner_adapter.reserve_dispatch(
             spec, state, decision, state_path=state_path, ledger_path=ledger_path,
             repo=repo, occurred_at=observed_at,
+            prepared_order_path=(order_path if runtime_admission_required else None),
+            admission_receipt_path=admission_receipt_path,
         )
         append(
             "product_goal_dispatch_reserved", work_item_id=decision["work_item_id"],

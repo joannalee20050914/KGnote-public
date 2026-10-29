@@ -22,6 +22,7 @@ import github_product_goal_control as github_control
 import goal_continuity
 import goal_notifications
 import linux_worker_router
+import product_goal_runtime_admission as runtime_admission
 import product_goal_worker_identity
 from codex_jsonl_evidence import provider_failure_from_output
 
@@ -1034,13 +1035,34 @@ def _dynamic_lane(action: str) -> tuple[str, str]:
         raise GoalRunnerError("selected action has no trusted worker profile") from exc
 
 
+def _is_exact_o2_goal(spec: dict[str, Any]) -> bool:
+    return (
+        spec.get("goal_id") == product_goal_worker_identity.PRODUCT_GOAL_ID
+        and spec.get("goal_version") == product_goal_worker_identity.PRODUCT_GOAL_VERSION
+        and goal_continuity.goal_spec_sha256(spec)
+        == product_goal_worker_identity.PRODUCT_GOAL_SPEC_SHA256
+    )
+
+
+def requires_runtime_admission(
+    spec: dict[str, Any], action: dict[str, Any],
+) -> bool:
+    """Return whether this dispatch is governed by the exact O2 live receipt gate."""
+    return bool(action.get("requires_model")) and _is_exact_o2_goal(spec)
+
+
 def _dynamic_worker_command(
     spec: dict[str, Any], action: dict[str, Any], candidate: dict[str, Any],
     *, context: dict[str, Any], evidence_path: Path, result_path: Path,
     stdout_path: Path, stderr_path: Path,
 ) -> list[str]:
     """Select a fixed executable template; Goal prose never becomes shell."""
-    runtime = Path("/home/kgnote/.local/share/kgnote/runtime")
+    runtime_identity = context.get("runtime_identity")
+    runtime = Path(
+        runtime_identity["generation"]
+        if isinstance(runtime_identity, dict) and runtime_identity.get("generation")
+        else "/home/kgnote/.local/share/kgnote/runtime"
+    )
     stage, _provider = _dynamic_lane(str(action["action"]))
     work_item_id = str(action["work_item_id"])
     nested_command: list[str] | None = None
@@ -1096,16 +1118,13 @@ def ensure_bound_order(
     spec: dict[str, Any], state: dict[str, Any], action: dict[str, Any], *,
     repo: Path, state_path: Path, occurred_at: str,
     ledger_path: Path | None = None,
+    runtime_identity: dict[str, Any] | None = None,
+    persist_binding: bool = True,
 ) -> tuple[dict[str, Any], Path, dict[str, Any], str]:
     """Atomically create/reuse one Runner-owned order for the next exact attempt."""
     if action.get("status") != "ACTION_READY":
         raise GoalRunnerError("only an ACTION_READY decision can create an order")
-    if not (
-        spec.get("goal_id") == product_goal_worker_identity.PRODUCT_GOAL_ID
-        and spec.get("goal_version") == product_goal_worker_identity.PRODUCT_GOAL_VERSION
-        and goal_continuity.goal_spec_sha256(spec)
-        == product_goal_worker_identity.PRODUCT_GOAL_SPEC_SHA256
-    ):
+    if not _is_exact_o2_goal(spec):
         path, order, attempt_id = validated_bound_order(
             spec, state, action, repo=repo,
         )
@@ -1158,10 +1177,16 @@ def ensure_bound_order(
     attempt_number = int(work.get("attempts", 0)) + 1
     attempt_id = f"attempt-{spec['goal_version']}-{action['work_item_id']}-{attempt_number}"
     binding = work.get("dispatch_binding")
+    if action.get("requires_model"):
+        try:
+            runtime_identity = runtime_admission.validate_runtime_identity(runtime_identity)
+        except runtime_admission.RuntimeAdmissionError as exc:
+            raise GoalRunnerError(str(exc)) from exc
     if (
         isinstance(binding, dict) and binding.get("builder") == "RUNNER_DYNAMIC_V1"
         and binding.get("attempt_id") == attempt_id
         and binding.get("action") == action["action"]
+        and persist_binding
     ):
         path, order, validated_attempt = validated_bound_order(
             spec, durable, action, repo=repo,
@@ -1181,6 +1206,7 @@ def ensure_bound_order(
         "work_item_id": action["work_item_id"], "action": action["action"],
         "attempt_id": attempt_id, "candidate": candidate,
         "authority_sha256": durable["authority_record"]["body_sha256"],
+        "runtime_identity": runtime_identity,
     }
     event_suffix = hashlib.sha256(goal_continuity.canonical_json_bytes(identity_seed)).hexdigest()[:16]
     event_id = f"o2-{str(action['work_item_id']).lower()}-{stage}-{event_suffix}"
@@ -1242,6 +1268,7 @@ def ensure_bound_order(
         "pull_request": candidate.get("pull_request"),
         "obligation_ids": deepcopy(work["obligation_ids"]),
         "runner_context": runner_context,
+        "runtime_identity": deepcopy(runtime_identity),
     }
     goal_continuity.atomic_write_json(context_path, context)
     guest_root = Path("/home/kgnote/.local/share/kgnote")
@@ -1283,6 +1310,10 @@ def ensure_bound_order(
         "tasks_max": 192, "timeout_seconds": 3600, "lease_timeout_seconds": 8,
         "bootstrap_working_directory": True, "bootstrap_identity": bootstrap_identity,
         "execution_context": {**context, "branch": candidate["branch"]},
+        "runtime_generation": (
+            runtime_identity["generation"]
+            if isinstance(runtime_identity, dict) else None
+        ),
         "product_goal_admission": {
             **identity_seed, "repository": spec["repository"],
             "issue": spec["github_issue"], "stage": stage, "provider": provider,
@@ -1297,6 +1328,8 @@ def ensure_bound_order(
         },
     }
     goal_continuity.atomic_write_json(order_path, order)
+    if not persist_binding:
+        return durable, order_path, order, attempt_id
     updated = deepcopy(durable)
     updated["candidate_identity"] = candidate
     updated_work = next(row for row in updated["work_items"] if row["work_item_id"] == action["work_item_id"])
@@ -1343,9 +1376,114 @@ def ensure_bound_order(
     return updated, order_path, order, attempt_id
 
 
+def _validated_prepared_model_order(
+    spec: dict[str, Any], state: dict[str, Any], action: dict[str, Any], *,
+    repo: Path, order_path: Path,
+) -> tuple[dict[str, Any], Path, dict[str, Any], str]:
+    try:
+        resolved = order_path.resolve()
+        resolved.relative_to(repo.resolve())
+    except (OSError, ValueError) as exc:
+        raise GoalRunnerError("prepared WorkOrder leaves the repository evidence root") from exc
+    if not resolved.is_file() or resolved.is_symlink():
+        raise GoalRunnerError("prepared WorkOrder is absent or not a regular file")
+    try:
+        order = goal_continuity.load_json(resolved)
+        parsed = linux_worker_router.WorkerOrder.from_dict(order)
+    except (OSError, linux_worker_router.RoutingError) as exc:
+        raise GoalRunnerError(f"prepared WorkOrder is invalid: {exc}") from exc
+    if parsed.stage not in {"codex", "claude"} or not isinstance(parsed.execution_context, dict):
+        raise GoalRunnerError("prepared WorkOrder is not model-bearing")
+    context = parsed.execution_context
+    candidate = {
+        "commit": context.get("candidate_commit"),
+        "fingerprint": context.get("candidate_fingerprint"),
+        "branch": context.get("branch"),
+        "pull_request": context.get("pull_request"),
+    }
+    existing_candidate = state.get("candidate_identity")
+    if existing_candidate is not None and goal_continuity.canonical_json_bytes(existing_candidate) != (
+        goal_continuity.canonical_json_bytes(candidate)
+    ):
+        raise GoalRunnerError("prepared WorkOrder candidate differs from durable Runner state")
+    prepared = deepcopy(state)
+    prepared["candidate_identity"] = candidate
+    work = next(
+        row for row in prepared["work_items"]
+        if row["work_item_id"] == action["work_item_id"]
+    )
+    prior_binding = work.get("dispatch_binding")
+    attempt_id = f"attempt-{spec['goal_version']}-{action['work_item_id']}-{int(work.get('attempts', 0)) + 1}"
+    work["dispatch_binding"] = {
+        "order_path": str(resolved.relative_to(repo.resolve())),
+        "order_sha256": hashlib.sha256(resolved.read_bytes()).hexdigest(),
+        "order_event_id": order.get("event_id"),
+    }
+    if isinstance(prior_binding, dict) and prior_binding.get("builder") == "RUNNER_DYNAMIC_V1":
+        work["dispatch_binding"].update({
+            "attempt_id": attempt_id,
+            "action": action["action"],
+            "builder": "RUNNER_DYNAMIC_V1",
+        })
+    path, validated_order, validated_attempt = validated_bound_order(
+        spec, prepared, action, repo=repo,
+    )
+    return prepared, path, validated_order, validated_attempt
+
+
+def _validate_pre_reservation_formal_context(
+    state: dict[str, Any], action: dict[str, Any], context: dict[str, Any],
+) -> None:
+    runner = context.get("runner_context")
+    authority = state.get("authority_record")
+    work = next(
+        row for row in state["work_items"]
+        if row["work_item_id"] == action["work_item_id"]
+    )
+    expected_attempt = (
+        f"attempt-{state['goal_version']}-{action['work_item_id']}-"
+        f"{int(work.get('attempts', 0)) + 1}"
+    )
+    expected_work = {
+        "work_item_id": work["work_item_id"],
+        "status": work["status"],
+        "attempts_before": int(work.get("attempts", 0)),
+        "active_attempt_id": work.get("active_attempt_id"),
+        "dispatch_attempt_id": expected_attempt,
+        "dependencies": deepcopy(work["dependencies"]),
+        "obligation_ids": deepcopy(work["obligation_ids"]),
+    }
+    if (
+        not isinstance(runner, dict)
+        or not isinstance(authority, dict)
+        or runner.get("state_projection_sha256") != hashlib.sha256(
+            goal_continuity.canonical_json_bytes(state)
+        ).hexdigest()
+        or goal_continuity.canonical_json_bytes(runner.get("event_cursor"))
+        != goal_continuity.canonical_json_bytes(state.get("event_cursor"))
+        or goal_continuity.canonical_json_bytes(runner.get("lifecycle"))
+        != goal_continuity.canonical_json_bytes(state.get("lifecycle"))
+        or runner.get("authority_lease") != state.get("authority_lease")
+        or runner.get("go_live_authorized") is not state.get("go_live_authorized")
+        or runner.get("authority_record_sha256") != hashlib.sha256(
+            goal_continuity.canonical_json_bytes(authority)
+        ).hexdigest()
+        or goal_continuity.canonical_json_bytes(runner.get("authority_record"))
+        != goal_continuity.canonical_json_bytes(authority)
+        or goal_continuity.canonical_json_bytes(runner.get("work_item"))
+        != goal_continuity.canonical_json_bytes(expected_work)
+        or context.get("attempt_id") != expected_attempt
+    ):
+        raise GoalRunnerError(
+            "prepared WorkOrder formal authority/state differs from durable Runner state"
+        )
+
+
 def reserve_dispatch(
     spec: dict[str, Any], state: dict[str, Any], action: dict[str, Any],
     *, state_path: Path, ledger_path: Path, repo: Path, occurred_at: str,
+    prepared_order_path: Path | None = None,
+    admission_receipt_path: Path | None = None,
 ) -> tuple[dict[str, Any], Path, str]:
     """Persist an exact-once reservation before an external worker can start."""
     try:
@@ -1368,7 +1506,7 @@ def reserve_dispatch(
         raise GoalRunnerError("in-memory Runner state is stale relative to durable state")
     ledger = goal_continuity.read_ledger(ledger_path)
     state = synchronize_state_from_ledger(
-        spec, durable_state, ledger, state_path=state_path
+        spec, durable_state, ledger, state_path=None
     )
     projection = goal_continuity.reduce_ledger(ledger)
     if _unreconciled_dispatch(projection) is not None:
@@ -1473,7 +1611,49 @@ def reserve_dispatch(
                 "planned resource evidence is stale; recompute the next action"
             )
 
-    order_path, order, attempt_id = validated_bound_order(spec, state, action, repo=repo)
+    admission_receipt: dict[str, Any] | None = None
+    admission_receipt_sha256: str | None = None
+    runtime_admission_required = requires_runtime_admission(spec, live_plan)
+    if runtime_admission_required:
+        if prepared_order_path is None or admission_receipt_path is None:
+            raise GoalRunnerError("model dispatch requires an exact live Ubuntu admission receipt")
+        formal_state = state
+        state, order_path, order, attempt_id = _validated_prepared_model_order(
+            spec, state, action, repo=repo, order_path=prepared_order_path,
+        )
+        _validate_pre_reservation_formal_context(
+            formal_state, action, order["execution_context"],
+        )
+        try:
+            receipt_resolved = admission_receipt_path.resolve()
+            receipt_resolved.relative_to(repo.resolve())
+        except (OSError, ValueError) as exc:
+            raise GoalRunnerError("runtime admission receipt leaves the repository evidence root") from exc
+        if not receipt_resolved.is_file() or receipt_resolved.is_symlink():
+            raise GoalRunnerError("runtime admission receipt is absent or not a regular file")
+        try:
+            admission_receipt = json.loads(receipt_resolved.read_text(encoding="utf-8"))
+            admission_receipt = runtime_admission.validate_reservation_receipt(
+                admission_receipt,
+                order_sha256=hashlib.sha256(order_path.read_bytes()).hexdigest(),
+                context=order["execution_context"],
+                occurred_at=occurred,
+            )
+        except (json.JSONDecodeError, runtime_admission.RuntimeAdmissionError) as exc:
+            raise GoalRunnerError(str(exc)) from exc
+        admission_receipt_sha256 = hashlib.sha256(receipt_resolved.read_bytes()).hexdigest()
+        if any(
+            isinstance(row.get("payload"), dict)
+            and isinstance(row["payload"].get("runtime_admission"), dict)
+            and row["payload"]["runtime_admission"].get("receipt_sha256")
+            == admission_receipt_sha256
+            for row in ledger
+        ):
+            raise GoalRunnerError("runtime admission receipt was already consumed")
+    else:
+        order_path, order, attempt_id = validated_bound_order(
+            spec, state, action, repo=repo,
+        )
     event_type = "MODEL_ATTEMPT_STARTED" if action.get("requires_model") else "WORK_STATE_TRANSITION"
     updated = deepcopy(state)
     work = next(
@@ -1516,6 +1696,16 @@ def reserve_dispatch(
             "prior_work_status": prior_work_status,
             "order_event_id": order["event_id"],
             "order_sha256": hashlib.sha256(order_path.read_bytes()).hexdigest(),
+            "runtime_admission": (
+                {
+                    "receipt_sha256": admission_receipt_sha256,
+                    "challenge": admission_receipt["challenge"],
+                    "runtime_generation": admission_receipt["runtime_identity"]["generation_id"],
+                    "runtime_manifest_sha256": admission_receipt["runtime_identity"]["manifest_sha256"],
+                    "model_launches": 0,
+                }
+                if admission_receipt is not None else None
+            ),
             "state_patch": state_patch,
         },
     )
