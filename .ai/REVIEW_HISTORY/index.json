@@ -1,8 +1,8 @@
 {
   "schema_version": "kgnote.review-history-index.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "event_count": 39,
-  "last_event_id": "evt-0039",
+  "event_count": 41,
+  "last_event_id": "evt-0041",
   "reviews": {
     "review-mainline-integration-20261020-001": {
       "snapshots": [
@@ -252,6 +252,28 @@
           "path": ".ai/REVIEW_HISTORY/review-o2-v3-reauthorization-readiness-20261029-001/request-ecd3f384a4e3c6ffff5507380470531029dd47b712dea828c0dbccf8f92d1bf4.md",
           "sha256": "ecd3f384a4e3c6ffff5507380470531029dd47b712dea828c0dbccf8f92d1bf4",
           "event_id": "evt-0039"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": null
+    },
+    "review-o2-day0-acceleration-20261029-001": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-o2-day0-acceleration-20261029-001/request-08bb5115cdf4d1b612e8be9c1c8b11baab601b7fd69afa1f148bd03c5367ace9.md",
+          "sha256": "08bb5115cdf4d1b612e8be9c1c8b11baab601b7fd69afa1f148bd03c5367ace9",
+          "event_id": "evt-0040"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": null
+    },
+    "review-o2-admission-event-id-repair-20261029-001": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-o2-admission-event-id-repair-20261029-001/request-17f9f1dd00ebaeb7f5879fca485339f2d993844aa596ff8c0e85052eaf8b099d.md",
+          "sha256": "17f9f1dd00ebaeb7f5879fca485339f2d993844aa596ff8c0e85052eaf8b099d",
+          "event_id": "evt-0041"
         }
       ],
       "last_event_type": "INVALIDATED",

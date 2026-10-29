@@ -1,6 +1,8 @@
 # KGnote active execution plan
 
-This file contains one bounded O2 Day 0 acceleration readiness Goal. It does not authorize `APPROVE`, `RESUME`, `ACCEPT` or a product-model launch.
+This file continues the bounded O2 Day 0 execution Goal only for the admission
+event identity repair. It does not authorize a Product Goal model launch or a
+formal state/ledger mutation.
 
 <!-- BEGIN CODEX PLAN JSON -->
 ```json
@@ -12,22 +14,23 @@ This file contains one bounded O2 Day 0 acceleration readiness Goal. It does not
   "authority_kind": "CURRENT_USER_EXECUTION_INSTRUCTION",
   "lifecycle_owner": "CODEX_APP",
   "product_goal_authorized": false,
-  "objective": "以已合併並部署的 PR #40 / dc7faa2 為基準，建立最小 O2 v4 Day 0 immutable schedule identity，重用既有 v3 工程與安全成果，完成 exact verification、Ubuntu Claude PASS、正常 GitHub 整合、Mac/Ubuntu 同版部署、無模型正反驗收及等待 Product Owner 的 exact APPROVE 包。",
+  "objective": "最小修復 O2 v4 Mac receipt validator 對 admission Router event identity 的錯誤比對，完成 exact verification、Ubuntu Claude PASS、正常 PR 合併、雙主機受控部署及真正無模型正反驗收，同時完整保留正式 v4 authority/state/ledger/receipts/accounting。",
   "status": "active",
   "active_milestone_id": "D1-EXACT-VERIFICATION-AND-REVIEW",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
-  "execution_direction_id": "kgnote-o2-day0-acceleration-2026-10-29",
+  "execution_direction_id": "kgnote-o2-admission-event-id-repair-2026-10-29",
   "explicit_direction": {
     "date": "2026-10-29",
     "speaker": "product owner",
-    "source_path": "docs/control-plane/O2_DAY0_ACCELERATION_DIRECTION_20261029.md",
+    "source_path": "docs/control-plane/O2_ADMISSION_EVENT_ID_REPAIR_DIRECTION_20261029.md",
     "durable_goal_record": "PLAN.md"
   },
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
-    "docs/control-plane/O2_DAY0_ACCELERATION_DIRECTION_20261029.md",
+    "docs/control-plane/O2_ADMISSION_EVENT_ID_REPAIR_DIRECTION_20261029.md",
     "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.4.json",
+    "docs/control-plane/O2_RUNTIME_RECEIPT_PRE_RESERVATION_DIRECTION_20261029.md",
     "docs/control-plane/B_SCHEME_OPERATIONS.md",
     "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
     ".ai/REVIEW_PROTOCOL.md",
@@ -36,100 +39,39 @@ This file contains one bounded O2 Day 0 acceleration readiness Goal. It does not
     "AGENTS.md"
   ],
   "requirement_context": {
-    "requirements": [
-      "KG-GOV-04",
-      "KG-GOV-05",
-      "KG-GOV-07",
-      "KG-PLAT-05",
-      "KG-PLAT-07",
-      "KG-PLAT-08"
-    ],
-    "acceptance_criteria": [
-      "RC-05",
-      "RC-07",
-      "RC-08",
-      "RC-12",
-      "RC-14",
-      "RC-15",
-      "RC-16",
-      "RC-31",
-      "RC-32"
-    ],
-    "feature_dispositions": [
-      "FD-04",
-      "FD-05",
-      "FD-06",
-      "FD-21"
-    ],
-    "scenarios": [
-      "SC-32",
-      "SC-33",
-      "SC-35",
-      "SC-40",
-      "SC-44",
-      "SC-45",
-      "SC-48"
-    ],
-    "reused_v3_baseline": {
-      "pull_request": 40,
-      "reviewed_commit": "531b23826364610f943367161dad3228acf86833",
-      "reviewed_fingerprint": "679dd9e2f84b470ef951d1939524bdc094d51a2b57a40887d91de3e22b55fae7",
-      "merge_commit": "dc7faa2a374fad5b3ec895ef85001f4c32457281",
-      "deployment_status": "PASS",
-      "no_model_acceptance_status": "PASS"
+    "requirements": ["KG-GOV-04", "KG-GOV-05", "KG-GOV-07", "KG-PLAT-05", "KG-PLAT-07", "KG-PLAT-08"],
+    "acceptance_criteria": ["RC-05", "RC-07", "RC-08", "RC-12", "RC-14", "RC-15", "RC-16", "RC-31", "RC-32"],
+    "feature_dispositions": ["FD-04", "FD-05", "FD-06", "FD-21"],
+    "scenarios": ["SC-32", "SC-33", "SC-35", "SC-40", "SC-44", "SC-45", "SC-48"],
+    "formal_baseline": {
+      "main_commit": "8a242fff318af636b937e9f9540d0121fa9c0191",
+      "goal_version": "2026-10-29.4-bounded-trial-day0-proposal",
+      "goal_spec_sha256": "7e9a31e87d36a2cb23789602f3bafb4fe29469d0fa57dcda33b9e8ba1295e08f",
+      "state_sha256": "b033d1ee0b0305d4d1dbf042b31cc6c3d4b985d6b946068d7584afb666a5bfc4",
+      "ledger_sha256": "fb031f16a52f3d22ccc5b197cafd030fa34b299060a165aa339ca025b6202b13",
+      "ledger_cursor": 3,
+      "codex_charges": 3,
+      "codex_ceiling": 5,
+      "v4_attempts": 0,
+      "transition_start_slo": "VIOLATED"
     },
     "forbidden_substitutes": [
-      "修改或覆寫 immutable v3 spec、state、ledger、checkpoints 或 receipts",
-      "建立第二套自治框架或重做 PR #40 已完成的 admission engineering",
-      "把 Day 0 排除在模型 reservation、attempt 或 provider ceiling 計帳之外",
-      "把 Day 0 誤列為五個完整觀察工作日之一",
-      "重置舊版三次 Codex charge、增加 Codex 5 / Claude 8 ceiling 或使用 paid API",
-      "略過 exact verification、Ubuntu Claude review、正常 GitHub merge、雙主機部署或無模型驗收",
-      "發布 APPROVE、RESUME、ACCEPT 或在正式 Owner authority 前啟動產品模型",
-      "提升 PA-HUMAN-1、NS-HUMAN-SMOKE、human acceptance 或 release_verified"
+      "刪除 event-ID 檢查、只驗證前綴或合併產品與 admission 事件身分",
+      "修改正式 v4 state、ledger、checkpoints、三份 activation receipts、Owner APPROVE 或 Goal spec/digest",
+      "手動建立 DISPATCH_RESERVED、虛構模型紀錄、重發 APPROVE/RESUME 或重置額度",
+      "把 2026-10-29 transition-start SLO VIOLATED 改寫為 PASS",
+      "略過 exact verification、Ubuntu Claude review、正常 GitHub merge 或受控雙主機部署",
+      "在正式工作時段外啟動產品模型或建立新的自治框架"
     ]
   },
   "repository_authority": {
     "canonical_repository": "joannalee20050914/KGnote-public",
-    "base_revision": "dc7faa2a374fad5b3ec895ef85001f4c32457281",
-    "branch": "codex/o2-day0-acceleration-20261029",
+    "base_revision": "8a242fff318af636b937e9f9540d0121fa9c0191",
+    "branch": "codex/o2-admission-event-id-repair-20261029",
     "base_branch": "main",
     "pull_request": null,
     "automatic_merge": false,
-    "merge_authority": "exact Ubuntu Claude PASS plus satisfied GitHub rules under this bounded Day 0 direction"
-  },
-  "candidate_product_goal": {
-    "goal_id": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
-    "goal_version": "2026-10-29.4-bounded-trial-day0-proposal",
-    "goal_spec_sha256": "7e9a31e87d36a2cb23789602f3bafb4fe29469d0fa57dcda33b9e8ba1295e08f",
-    "authority_lease": "PAUSED",
-    "lifecycle": "APPROVAL_REQUIRED",
-    "go_live_authorized": false,
-    "proposed_start": "2026-10-29T17:00:00+08:00",
-    "day_zero": "2026-10-29",
-    "day_zero_is_full_observation_day": false,
-    "day_zero_model_usage_counts": true,
-    "observation_work_dates": [
-      "2026-10-30",
-      "2026-11-02",
-      "2026-11-03",
-      "2026-11-04",
-      "2026-11-05"
-    ],
-    "hard_stop": "2026-11-11T18:00:00+08:00",
-    "hard_stop_goal_workday_ordinal": 10,
-    "provider_ceilings": {
-      "codex": 5,
-      "claude": 8
-    },
-    "carried_charges": {
-      "codex": 3,
-      "claude": 0
-    },
-    "remaining": {
-      "codex": 2,
-      "claude": 8
-    }
+    "merge_authority": "exact Ubuntu Claude PASS plus satisfied GitHub rules under this bounded repair direction"
   },
   "auto_advance": {
     "enabled": true,
@@ -140,120 +82,63 @@ This file contains one bounded O2 Day 0 acceleration readiness Goal. It does not
     "max_review_cycles_per_milestone": 5
   },
   "preserved_human_gates": [
-    {
-      "id": "O2-AUTHORITY-LEASE",
-      "status": "PAUSED",
-      "release_verified": false
-    },
-    {
-      "id": "O2-PRODUCT-OWNER-REAUTHORIZATION",
-      "status": "not_issued",
-      "release_verified": false
-    },
-    {
-      "id": "D2-T14-FINAL-HUMAN-ACCEPTANCE",
-      "status": "not_promoted",
-      "release_verified": false
-    },
-    {
-      "id": "PA-HUMAN-1",
-      "status": "not_promoted",
-      "release_verified": false
-    },
-    {
-      "id": "NS-HUMAN-SMOKE",
-      "status": "not_promoted",
-      "release_verified": false
-    }
+    {"id": "O2-V4-OWNER-AUTHORITY", "status": "ACTIVE_UNCHANGED", "release_verified": false},
+    {"id": "D2-T14-FINAL-HUMAN-ACCEPTANCE", "status": "not_promoted", "release_verified": false},
+    {"id": "PA-HUMAN-1", "status": "not_promoted", "release_verified": false},
+    {"id": "NS-HUMAN-SMOKE", "status": "not_promoted", "release_verified": false}
   ],
   "milestones": [
     {
       "id": "D0-MINIMAL-VERSION-SEAL",
-      "title": "封存最小 v4 Day 0 identity 與計數契約",
+      "title": "封存首次派工根因與正式唯讀基線",
       "status": "complete",
       "dependencies": [],
       "human_gate": "none",
-      "owned_paths": [
-        "PLAN.md",
-        "CODEX_STATUS.md",
-        ".ai/",
-        "docs/control-plane/O2_DAY0_ACCELERATION_DIRECTION_20261029.md",
-        "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.4.json",
-        "docs/control-plane/O2_V4_CARRYOVER_EVIDENCE_20261029.json",
-        "docs/control-plane/B_SCHEME_OPERATIONS.md",
-        "schemas/product-goal/v1/goal-spec.schema.json",
-        "scripts/goal_continuity.py",
-        "scripts/product_goal_worker_identity.py",
-        "config/ubuntu-worker-runtime-manifest.json",
-        "tests/control_plane/"
-      ],
-      "acceptance": [
-        "v3 bytes 不變；v4 只改 immutable version/schedule identity、carryover target 與必要 exact admission constants",
-        "Day 0 與五個完整觀察工作日分離，十個 Goal 工作日於 11/11 18:00 結束",
-        "Day 0 模型使用正常計入 Codex 5 / Claude 8；Codex carried 3、remaining 2 不變"
-      ]
+      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", "docs/control-plane/O2_ADMISSION_EVENT_ID_REPAIR_DIRECTION_20261029.md"],
+      "acceptance": ["正式 v4 無 reservation/attempt 且失敗位於計帳前", "根因精確定位為 Router admission ID 與產品 WorkOrder ID 的錯誤等同比對"]
     },
     {
       "id": "D1-EXACT-VERIFICATION-AND-REVIEW",
-      "title": "exact deterministic verification 與 Ubuntu Claude 獨立審查",
+      "title": "最小 validator/fixture 修復與 exact verification",
       "status": "active",
-      "dependencies": [
-        "D0-MINIMAL-VERSION-SEAL"
-      ],
+      "dependencies": ["D0-MINIMAL-VERSION-SEAL"],
       "human_gate": "none",
       "owned_paths": [
-        "PLAN.md",
-        "CODEX_STATUS.md",
-        ".ai/",
-        "output/control-plane/",
-        "GitHub PR metadata"
+        "PLAN.md", "CODEX_STATUS.md", ".ai/",
+        "docs/control-plane/O2_ADMISSION_EVENT_ID_REPAIR_DIRECTION_20261029.md",
+        "scripts/product_goal_runtime_admission.py", "scripts/linux_worker_router.py",
+        "config/ubuntu-worker-runtime-manifest.json", "tests/control_plane/", "output/control-plane/"
       ],
       "acceptance": [
-        "targeted/full tests、requirements guard、strict diff、public safety 與 exact fingerprint/read-back 全綠",
-        "PR 綁定 exact HEAD/fingerprint 且 Ubuntu Claude canonical verdict 為 PASS"
+        "Router 與 validator 共用 challenge + WorkOrder SHA-256 + exact runtime identity 的 canonical admission event ID",
+        "產品 order_event_id 仍與 WorkOrder、receipt、Worker evidence 精確一致",
+        "共用 fixture 不再冒用產品 event ID；真正 Router path 正向驗收通過",
+        "錯 event ID/challenge/WorkOrder hash/runtime identity/checkpoint tamper 全在 ledger append 前 fail closed",
+        "targeted/full verification、requirements guard、strict diff、public safety 與 exact fingerprint 全綠"
       ]
     },
     {
-      "id": "D2-MERGE-DEPLOY-NO-MODEL-ACCEPTANCE",
-      "title": "正常整合、雙主機同版部署與 PAUSED 無模型驗收",
+      "id": "D2-CLAUDE-REVIEW-AND-MERGE",
+      "title": "Ubuntu Claude exact review 與正常 GitHub 整合",
       "status": "pending",
-      "dependencies": [
-        "D1-EXACT-VERIFICATION-AND-REVIEW"
-      ],
+      "dependencies": ["D1-EXACT-VERIFICATION-AND-REVIEW"],
       "human_gate": "none",
-      "owned_paths": [
-        "PLAN.md",
-        "CODEX_STATUS.md",
-        ".ai/",
-        "output/control-plane/",
-        "GitHub PR/main metadata",
-        "Mac immutable Runner runtime",
-        "Ubuntu immutable worker runtime"
-      ],
-      "acceptance": [
-        "normal GitHub merge 後 Mac Runner 與 Ubuntu read back 同一 integrated revision/tree/manifest",
-        "正反 no-model admission 不新增正式 reservation、attempt、checkpoint 或 provider process",
-        "v3 與舊版 state/ledger/checkpoint hashes 完全不變"
-      ]
+      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "output/control-plane/", "GitHub PR metadata"],
+      "acceptance": ["PR 綁定 exact HEAD/fingerprint", "Ubuntu Claude canonical verdict PASS 且無 blocking findings", "依 GitHub 規則正常合併，無 bypass/force push"]
     },
     {
-      "id": "D3-OWNER-APPROVAL-PACKAGE",
-      "title": "封存三份 dependency receipts 與 exact APPROVE 草稿",
+      "id": "D3-DEPLOY-AND-NO-MODEL-ACCEPTANCE",
+      "title": "雙主機受控部署與真正無模型正反驗收",
       "status": "pending",
-      "dependencies": [
-        "D2-MERGE-DEPLOY-NO-MODEL-ACCEPTANCE"
-      ],
-      "human_gate": "O2-PRODUCT-OWNER-REAUTHORIZATION",
-      "owned_paths": [
-        "PLAN.md",
-        "CODEX_STATUS.md",
-        "output/control-plane/",
-        "new version authorization package"
-      ],
+      "dependencies": ["D2-CLAUDE-REVIEW-AND-MERGE"],
+      "human_gate": "none",
+      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", "output/control-plane/", "Mac immutable Runner runtime", "Ubuntu immutable worker runtime"],
       "acceptance": [
-        "包內列出 exact version/digest、Day 0/五完整日/十工作日規則、額度承接與雙主機證據",
-        "只產生 Owner 可發布的 APPROVE 草稿，不代為發布",
-        "若 Owner command 或 Runner observation 未嚴格早於 17:00，保持 PAUSE 並要求新 immutable version"
+        "Mac Runner 與 Ubuntu current generation 讀回同一 merged revision/tree/manifest",
+        "隔離合法 authority/WorkOrder 經真正 Router admission 產生 checkpoint 並由 Mac validator 接受",
+        "錯誤 admission identity 仍在計帳前拒絕，無產品模型啟動",
+        "歷史 activation receipts 不回填且 v4 authority 契約無衝突",
+        "正式 v4 state/ledger/checkpoints/receipts/APPROVE hashes 不變，Codex accounting 仍為 3/5"
       ]
     }
   ]
@@ -263,4 +148,7 @@ This file contains one bounded O2 Day 0 acceleration readiness Goal. It does not
 
 ## Current recovery note
 
-The work starts from normally merged and deployed PR #40 at `dc7faa2`. The v3 identity and all formal historical state remain read-only. Only the minimum v4 schedule/identity delta and its exact review/deployment evidence are in scope.
+Work occurs only in the isolated branch/worktree rooted at merged deployment
+baseline `8a242ff`. Formal O2 v4 runtime data remains read-only. The first
+eligible product continuation is tomorrow's ordinary Runner window and is not
+part of implementation or deployment acceptance.

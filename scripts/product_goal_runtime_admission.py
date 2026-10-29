@@ -79,6 +79,14 @@ def canonical_json_bytes(value: object) -> bytes:
     ).encode()
 
 
+def admission_event_id(challenge: str, binding: object) -> str:
+    """Return the Router's canonical identity for one no-model admission."""
+    suffix = hashlib.sha256(
+        challenge.encode() + canonical_json_bytes(binding)
+    ).hexdigest()[:16]
+    return f"o2-admission-{suffix}"
+
+
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -475,6 +483,13 @@ def validate_reservation_receipt(
     runtime = validate_runtime_identity(receipt.get("runtime_identity"))
     if canonical_json_bytes(runtime) != canonical_json_bytes(context.get("runtime_identity")):
         raise RuntimeAdmissionError("pre-reservation admission runtime differs from the pinned WorkOrder")
+    challenge = receipt.get("challenge")
+    if not isinstance(challenge, str) or CHALLENGE_RE.fullmatch(challenge) is None:
+        raise RuntimeAdmissionError("pre-reservation admission challenge is invalid")
+    expected_admission_event_id = admission_event_id(challenge, {
+        "work_order_sha256": order_sha256,
+        "runtime_identity": runtime,
+    })
     isolation = receipt.get("isolation")
     if not isinstance(isolation, dict) or any(
         isolation.get(key) != "PASS"
@@ -526,7 +541,7 @@ def validate_reservation_receipt(
         not isinstance(checkpoint, dict)
         or checkpoint.get("schema_version") != "kgnote.linux-worker-route.v1"
         or checkpoint.get("status") not in {"COMPLETED", "ALREADY_COMPLETED"}
-        or checkpoint.get("event_id") != context.get("order_event_id")
+        or checkpoint.get("event_id") != expected_admission_event_id
         or checkpoint.get("host_fallback_used") is not False
         or SHA256_RE.fullmatch(str(checkpoint.get("command_digest") or "")) is None
     ):
@@ -553,7 +568,9 @@ def validate_reservation_receipt(
             "pre-reservation admission Worker evidence differs from the Router checkpoint"
         )
     worker_exact = {
-        "challenge": receipt.get("challenge"),
+        "admission_kind": MODEL_PRE_RESERVATION,
+        "challenge": challenge,
+        "event_id": expected_admission_event_id,
         "work_order_sha256": order_sha256,
         **exact,
         "candidate": candidate,

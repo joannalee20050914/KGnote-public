@@ -94,10 +94,17 @@ def reservation_receipt(
         "lifecycle": "ACTIVE",
         "go_live_authorized": True,
     }
+    challenge = "5" * 64
+    admission_event = ADMISSION.admission_event_id(challenge, {
+        "work_order_sha256": order_sha256,
+        "runtime_identity": context["runtime_identity"],
+    })
     worker = {
         "schema_version": ADMISSION.WORKER_RECEIPT_SCHEMA,
         "status": "PASS",
-        "challenge": "5" * 64,
+        "admission_kind": ADMISSION.MODEL_PRE_RESERVATION,
+        "challenge": challenge,
+        "event_id": admission_event,
         "work_order_sha256": order_sha256,
         "goal_id": context["goal_id"],
         "goal_version": context["goal_version"],
@@ -121,7 +128,7 @@ def reservation_receipt(
     router_checkpoint = {
         "schema_version": "kgnote.linux-worker-route.v1",
         "status": "COMPLETED",
-        "event_id": context["order_event_id"],
+        "event_id": admission_event,
         "command_digest": "4" * 64,
         "bootstrap_receipt_sha256": bootstrap_sha256,
         "host_fallback_used": False,
@@ -132,7 +139,7 @@ def reservation_receipt(
         "schema_version": ADMISSION.ADMISSION_RECEIPT_SCHEMA,
         "status": "PASS",
         "admission_kind": ADMISSION.MODEL_PRE_RESERVATION,
-        "challenge": "5" * 64,
+        "challenge": challenge,
         "issued_at": observed_at.isoformat(timespec="seconds"),
         "expires_at": (observed_at + timedelta(seconds=120)).isoformat(
             timespec="seconds"
