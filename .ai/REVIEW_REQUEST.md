@@ -7,18 +7,18 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 {
   "schema_version": "kgnote.review-request.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "review_id": "review-o2-v3-reauthorization-readiness-20261029-001",
-  "goal_id": "CODEX-APP-GOAL-O2-V3-REAUTHORIZATION-READINESS-20261029",
-  "milestone_id": "A0-IDENTITY-CARRYOVER-AND-DESIGN",
+  "review_id": "review-o2-day0-acceleration-20261029-001",
+  "goal_id": "CODEX-APP-GOAL-O2-DAY0-ACCELERATION-20261029",
+  "milestone_id": "D0-MINIMAL-VERSION-SEAL",
   "status": "IMPLEMENTING",
   "author_role": "CODEX_IMPLEMENTER",
-  "base_revision": "93b6b1f641de1ff4516925c877d6bfd03b44b279",
+  "base_revision": "dc7faa2a374fad5b3ec895ef85001f4c32457281",
   "candidate_revision": null,
   "candidate_fingerprint": null,
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
-    "docs/control-plane/O2_V3_REAUTHORIZATION_READINESS_DIRECTION_20261029.md",
-    "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.3.json",
+    "docs/control-plane/O2_DAY0_ACCELERATION_DIRECTION_20261029.md",
+    "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.4.json",
     "docs/control-plane/B_SCHEME_OPERATIONS.md",
     "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
     ".ai/REVIEW_PROTOCOL.md",
@@ -30,25 +30,30 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     "PLAN.md",
     "CODEX_STATUS.md",
     ".ai/",
-    "docs/control-plane/O2_V3_REAUTHORIZATION_READINESS_DIRECTION_20261029.md",
-    "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.3.json",
-    "docs/control-plane/O2_V3_CARRYOVER_EVIDENCE_20261029.json",
-    "schemas/product-goal/v1/goal-spec.schema.json"
+    "docs/control-plane/O2_DAY0_ACCELERATION_DIRECTION_20261029.md",
+    "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.4.json",
+    "docs/control-plane/O2_V4_CARRYOVER_EVIDENCE_20261029.json",
+    "docs/control-plane/B_SCHEME_OPERATIONS.md",
+    "schemas/product-goal/v1/goal-spec.schema.json",
+    "scripts/goal_continuity.py",
+    "scripts/product_goal_worker_identity.py",
+    "config/ubuntu-worker-runtime-manifest.json",
+    "tests/control_plane/"
   ],
   "acceptance_criteria": [
-    "新 spec 只改版本、日期、carryover 與候選 ceiling；原產品方向、Work Items、obligations、完成條件及安全政策逐欄沿用",
-    "canonical digest 從最終 spec 重新計算，carryover evidence 綁定舊 state/ledger/cursor、三次 reservation、兩次模型 process 與候選 checkout",
-    "明確定義三次歷史 Codex charge 計入新版 ceiling 5，版本更新不產生自動重置"
+    "v3 bytes 不變；v4 只改 immutable version/schedule identity、carryover target 與必要 exact admission constants",
+    "Day 0 與五個完整觀察工作日分離，十個 Goal 工作日於 11/11 18:00 結束",
+    "Day 0 模型使用正常計入 Codex 5 / Claude 8；Codex carried 3、remaining 2 不變"
   ],
   "negative_requirements": [
-    "建立或擴建第二套自治框架",
-    "以版本更新重置三次 reservation、重分類兩次實際模型啟動或擴大額度",
-    "修改舊版正式 state、ledger、checkpoint 或重算其歷史",
-    "讓錯 version/digest 的 O2 模型派工退回不需要 live receipt 的舊路徑",
-    "以 repository mock、--help、部署 receipt 或隔離 PASS 冒充正式產品試行",
-    "只更新 GitHub main 而未讀回 Mac Runner 與 Ubuntu 同版部署",
-    "發布 APPROVE、RESUME、ACCEPT 或啟動 O2 產品模型",
-    "提升 Product Owner、Mac Obsidian、mobile、release_verified 或其他 human gate"
+    "修改或覆寫 immutable v3 spec、state、ledger、checkpoints 或 receipts",
+    "建立第二套自治框架或重做 PR #40 已完成的 admission engineering",
+    "把 Day 0 排除在模型 reservation、attempt 或 provider ceiling 計帳之外",
+    "把 Day 0 誤列為五個完整觀察工作日之一",
+    "重置舊版三次 Codex charge、增加 Codex 5 / Claude 8 ceiling 或使用 paid API",
+    "略過 exact verification、Ubuntu Claude review、正常 GitHub merge、雙主機部署或無模型驗收",
+    "發布 APPROVE、RESUME、ACCEPT 或在正式 Owner authority 前啟動產品模型",
+    "提升 PA-HUMAN-1、NS-HUMAN-SMOKE、human acceptance 或 release_verified"
   ],
   "validation_performed": [],
   "validation_results": [],
@@ -82,6 +87,6 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 
 ## Human-readable status
 
-Review `review-o2-v3-reauthorization-readiness-20261029-001` is `IMPLEMENTING`.
+Review `review-o2-day0-acceleration-20261029-001` is `IMPLEMENTING`.
 It has no active candidate binding and cannot be interpreted as a review request or PASS.
 Codex must complete deterministic verification before issuing this request.

@@ -254,6 +254,30 @@ def validate_goal_spec(spec: dict[str, Any]) -> None:
             raise GoalContractError(
                 "trial activation dependencies must be declared Goal dependencies"
             )
+        if spec["goal_version"] == "2026-10-29.4-bounded-trial-day0-proposal":
+            proposed_start = datetime.fromisoformat(schedule["proposed_start"])
+            hard_stop = datetime.fromisoformat(schedule["goal_hard_stop"])
+            day_zero = schedule["day_zero_date"]
+            observation_dates = schedule["observation_work_dates"]
+            goal_work_dates = schedule["goal_work_dates"]
+            if day_zero != proposed_start.date().isoformat():
+                raise GoalContractError("Day 0 must be the local proposed-start date")
+            if day_zero in observation_dates:
+                raise GoalContractError(
+                    "Day 0 is not one of the five full observation work dates"
+                )
+            if (
+                goal_work_dates[0] != day_zero
+                or len(goal_work_dates) != schedule["hard_stop_goal_workday_ordinal"]
+                or goal_work_dates[-1] != hard_stop.date().isoformat()
+            ):
+                raise GoalContractError(
+                    "Goal work dates must bind Day 0 through the tenth-workday hard stop"
+                )
+            if observation_dates != goal_work_dates[1:6]:
+                raise GoalContractError(
+                    "the five full observation work dates must follow Day 0"
+                )
     carryover = spec.get("history_carryover")
     if isinstance(carryover, dict):
         if carryover["dependency_id"] not in spec["dependencies"]:
