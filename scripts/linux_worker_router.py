@@ -36,6 +36,7 @@ from product_goal_runtime_admission import (
     RUNTIME_DISCOVERY_SCHEMA,
     RUNTIME_ROOT,
     RuntimeAdmissionError,
+    admission_event_id,
     canonical_json_bytes,
     validate_admission_context,
     validate_admission_identity,
@@ -592,10 +593,7 @@ def discover_runtime_via_guest(
 
 
 def _admission_event_id(challenge: str, binding: object) -> str:
-    suffix = hashlib.sha256(
-        challenge.encode() + canonical_json_bytes(binding)
-    ).hexdigest()[:16]
-    return f"o2-admission-{suffix}"
+    return admission_event_id(challenge, binding)
 
 
 def _admission_order(

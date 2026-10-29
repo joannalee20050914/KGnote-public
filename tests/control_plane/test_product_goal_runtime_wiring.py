@@ -73,11 +73,49 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
         GOAL.atomic_write_json(state_path,state)
         return spec,state,authority,state_path,ledger_path
 
+    @staticmethod
+    def admission_worker_evidence(order: ROUTER.WorkerOrder):
+        context=order.execution_context
+        assert isinstance(context,dict)
+        product=context["product_goal_context"]
+        runner=product["runner_context"]
+        return {
+            "schema_version":RUNTIME_ADMISSION.WORKER_RECEIPT_SCHEMA,
+            "status":"PASS",
+            "admission_kind":RUNTIME_ADMISSION.MODEL_PRE_RESERVATION,
+            "challenge":context["challenge"],
+            "event_id":context["event_id"],
+            "work_order_sha256":context["work_order_sha256"],
+            "goal_id":product["goal_id"],
+            "goal_version":product["goal_version"],
+            "work_item_id":product["work_item_id"],
+            "order_event_id":product["order_event_id"],
+            "attempt_id":product["attempt_id"],
+            "action":product["action"],
+            "provider":product["provider"],
+            "candidate":context["candidate"],
+            "authority":{
+                "state_projection_sha256":runner["state_projection_sha256"],
+                "authority_record_sha256":runner["authority_record_sha256"],
+                "authority_lease":"ACTIVE",
+                "lifecycle":"ACTIVE",
+                "go_live_authorized":True,
+            },
+            "runtime_identity":context["runtime_identity"],
+            "environment":{"status":"DEVELOPMENT_ENVIRONMENT_READY"},
+            "entrypoints":{},
+            "systemd_cgroup_sha256":"7"*64,
+            "landlock_denial_probe":"PASS",
+            "model_process_started":False,
+            "model_launches":0,
+            "model_processes":[],
+        }
+
     def test_pre_reservation_receipt_failures_preserve_formal_state_and_ledger(self):
         for failure in (
             "missing", "stale", "identity", "order_hash", "formal_authority",
-            "checkpoint_missing", "checkpoint_hash", "bootstrap_evidence",
-            "worker_evidence",
+            "checkpoint_missing", "checkpoint_hash", "checkpoint_event_id",
+            "challenge", "runtime_identity", "bootstrap_evidence", "worker_evidence",
         ):
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
                 repo=Path(directory)
@@ -130,6 +168,50 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
                         checkpoint_path.write_text(
                             checkpoint_path.read_text()+"\n",
                         )
+                    elif failure == "checkpoint_event_id":
+                        checkpoint=json.loads(checkpoint_path.read_text())
+                        checkpoint["event_id"]="o2-admission-"+"0"*16
+                        checkpoint["execution_evidence"]["event_id"]=checkpoint["event_id"]
+                        checkpoint_path.write_text(json.dumps(checkpoint))
+                        receipt["router_checkpoint_sha256"]=hashlib.sha256(
+                            checkpoint_path.read_bytes()
+                        ).hexdigest()
+                        receipt["worker_receipt_sha256"]=hashlib.sha256(
+                            RUNTIME_ADMISSION.canonical_json_bytes(
+                                checkpoint["execution_evidence"]
+                            )
+                        ).hexdigest()
+                        receipt_path.write_text(json.dumps(receipt))
+                    elif failure == "challenge":
+                        checkpoint=json.loads(checkpoint_path.read_text())
+                        receipt["challenge"]="6"*64
+                        checkpoint["execution_evidence"]["challenge"]="6"*64
+                        checkpoint_path.write_text(json.dumps(checkpoint))
+                        receipt["router_checkpoint_sha256"]=hashlib.sha256(
+                            checkpoint_path.read_bytes()
+                        ).hexdigest()
+                        receipt["worker_receipt_sha256"]=hashlib.sha256(
+                            RUNTIME_ADMISSION.canonical_json_bytes(
+                                checkpoint["execution_evidence"]
+                            )
+                        ).hexdigest()
+                        receipt_path.write_text(json.dumps(receipt))
+                    elif failure == "runtime_identity":
+                        checkpoint=json.loads(checkpoint_path.read_text())
+                        receipt["runtime_identity"]["reviewed_tree"]="f"*40
+                        checkpoint["execution_evidence"]["runtime_identity"]=(
+                            receipt["runtime_identity"]
+                        )
+                        checkpoint_path.write_text(json.dumps(checkpoint))
+                        receipt["router_checkpoint_sha256"]=hashlib.sha256(
+                            checkpoint_path.read_bytes()
+                        ).hexdigest()
+                        receipt["worker_receipt_sha256"]=hashlib.sha256(
+                            RUNTIME_ADMISSION.canonical_json_bytes(
+                                checkpoint["execution_evidence"]
+                            )
+                        ).hexdigest()
+                        receipt_path.write_text(json.dumps(receipt))
                     elif failure == "bootstrap_evidence":
                         checkpoint=json.loads(checkpoint_path.read_text())
                         checkpoint["bootstrap_receipt_sha256"]="7"*64
@@ -176,6 +258,64 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
                         "codex",{},
                     ).get("total_launches",0),
                 )
+
+    def test_real_router_model_admission_checkpoint_is_accepted_before_no_model_reservation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo=Path(directory)
+            spec,state,authority,state_path,ledger_path=self.setup_goal(repo)
+            action=ADAPTER.next_action(
+                spec,state,GOAL.read_ledger(ledger_path),authority,
+                now=NOW,trial=False,
+            )
+            bound,order_path,order,attempt=ADAPTER.ensure_bound_order(
+                spec,state,action,repo=repo,state_path=state_path,
+                occurred_at=NOW.isoformat(),runtime_identity=runtime_identity(),
+                persist_binding=False,
+            )
+            receipt_path=repo/"output/real-router-admission.json"
+            product_order=ROUTER.WorkerOrder.from_dict(order)
+            admission_order=ROUTER.admission_order_for_model(
+                product_order,
+                order_sha256=hashlib.sha256(order_path.read_bytes()).hexdigest(),
+                challenge="5"*64,
+                runtime_identity=runtime_identity(),
+                receipt_path=receipt_path,
+            )
+            worker=self.admission_worker_evidence(admission_order)
+
+            def guest_run(command,**kwargs):
+                if "linux_worker_bootstrap.py" in command[-1]:
+                    return subprocess.CompletedProcess(command,0,json.dumps({
+                        "status":"READY",
+                        "development_environment":{
+                            "status":"DEVELOPMENT_ENVIRONMENT_READY",
+                        },
+                    }),"")
+                return subprocess.CompletedProcess(command,0,"","")
+
+            receipt=ROUTER.route_admission(
+                admission_order,receipt_path=receipt_path,
+                run=guest_run,popen=lambda *args,**kwargs:Process(json.dumps(worker)),
+                now=lambda:NOW,
+            )
+            self.assertNotEqual(order["event_id"],admission_order.event_id)
+            self.assertEqual(admission_order.event_id,worker["event_id"])
+            self.assertEqual(admission_order.event_id,json.loads(
+                admission_order.checkpoint_path.read_text()
+            )["event_id"])
+            self.assertFalse(receipt["model_process_started"])
+            self.assertEqual(0,receipt["model_launches"])
+
+            reserved,_,reserved_attempt=ADAPTER.reserve_dispatch(
+                spec,bound,action,state_path=state_path,ledger_path=ledger_path,
+                repo=repo,occurred_at=NOW.isoformat(),
+                prepared_order_path=order_path,admission_receipt_path=receipt_path,
+            )
+            self.assertEqual(attempt,reserved_attempt)
+            projection=GOAL.reduce_ledger(GOAL.read_ledger(ledger_path))
+            self.assertIn(attempt,projection["dispatch_reservations"])
+            self.assertTrue(projection["model_attempts"][attempt]["started"])
+            self.assertEqual(1,reserved["work_items"][0]["attempts"])
 
     def test_dynamic_order_to_real_router_checkpoint_result_state_and_next_work(self):
         with tempfile.TemporaryDirectory() as directory:
