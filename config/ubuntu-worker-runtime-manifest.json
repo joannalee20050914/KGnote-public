@@ -1,0 +1,13 @@
+{
+  "schema_version": "kgnote.ubuntu-worker-runtime-manifest.v1",
+  "files": {
+    "claude_billing_preflight.py": "6a011d6824e39f6f8b315d391d58ead223ffa2b5a35fc151a02ef2804e3b181d",
+    "claude_reviewer_adapter.py": "3c37d9bbac047efe60cbd390936a3376c78dda4567d2c72a00ff9c944798eaec",
+    "codex_control.py": "e23fdcd3f8e637d9ef4bf565344bf388f9f5ed159661ecd334b936c4039817ea",
+    "codex_jsonl_evidence.py": "e6eebee348f4be6b532d234566669b3f889134b7dd7499183f2b5c4a016ca844",
+    "product_goal_worker_identity.py": "4966aff84d0fe1922c0f1b3ea4a9563885e3e3cd88084904d34c7b5a606c8f75",
+    "product_goal_worker_lane.py": "fa5314f1f87139e1e8a7ba0cdf8d7f9987fbf16b74c7492f606d73cf3e34c637",
+    "product_goal_worker_result.py": "7b1194c39aa8e7c4db06b250666af2cc1ce73a66fc73dac37d96883945d1ba5c",
+    "requirements-runtime.lock": "a9db5168a3a79329c2ff51b11c7f546f214bc74e8659a7f7e8366ce3e8bf9791"
+  }
+}

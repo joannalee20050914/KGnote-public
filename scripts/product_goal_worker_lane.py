@@ -145,9 +145,22 @@ def _locked_dependencies(lock: Path) -> dict[str, str]:
     return expected
 
 
+def _runtime_requirements_lock(repo: Path) -> Path:
+    """Resolve the reviewed lock without mutating a sealed product checkout."""
+    repository_lock = repo / REQUIREMENTS_LOCK
+    if repository_lock.exists() or repository_lock.is_symlink():
+        if not repository_lock.is_file() or repository_lock.is_symlink():
+            raise LaneError("repository requirements-runtime.lock is not a regular file")
+        return repository_lock
+    runtime_lock = Path(__file__).resolve().with_name(REQUIREMENTS_LOCK)
+    if not runtime_lock.is_file() or runtime_lock.is_symlink():
+        raise LaneError("deployed requirements-runtime.lock is absent or not a regular file")
+    return runtime_lock
+
+
 def _admit_locked_dependencies(python: Path, repo: Path) -> dict[str, Any]:
-    """Compare the complete venv distribution set with the candidate lock."""
-    lock = repo / REQUIREMENTS_LOCK
+    """Compare the complete venv distribution set with the reviewed runtime lock."""
+    lock = _runtime_requirements_lock(repo)
     expected = _locked_dependencies(lock)
     raw = _probe(
         [
@@ -181,6 +194,7 @@ def _admit_locked_dependencies(python: Path, repo: Path) -> dict[str, Any]:
         )
     pip_check = _probe([str(python), "-m", "pip", "check"], repo=repo)
     return {
+        "requirements_lock_path": str(lock),
         "requirements_lock_sha256": hashlib.sha256(lock.read_bytes()).hexdigest(),
         "expected": expected,
         "observed": {name: observed[name] for name in sorted(expected)},
