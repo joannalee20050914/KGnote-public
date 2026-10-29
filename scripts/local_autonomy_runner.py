@@ -2492,6 +2492,10 @@ def run_product_goal_mode(
                 "reason": "the existing Stop Marker blocks Product Goal dispatch",
             }
         spec = goal_runner_adapter.goal_continuity.load_json(spec_path)
+        goal_runner_adapter.goal_continuity.validate_goal_spec(spec)
+        goal_runner_adapter.goal_continuity.validate_history_carryover_evidence(
+            spec, repository_root=repo,
+        )
         state = goal_runner_adapter.goal_continuity.load_json(state_path)
         comments = (
             json.loads(comments_path.read_text(encoding="utf-8"))
@@ -2500,9 +2504,11 @@ def run_product_goal_mode(
         if not isinstance(comments, list):
             raise goal_runner_adapter.GoalRunnerError("comments input must be a JSON list")
         authority = goal_runner_adapter.github_control.resolve_authority(comments, spec)
+        observed_now = current or datetime.now(ZONE)
         if not trial:
             reconciled = goal_runner_adapter.reconcile_owner_authority(
                 spec, state, authority, state_path=state_path, ledger_path=ledger_path,
+                observed_at=observed_now,
             )
             state = reconciled["state"]
             if reconciled["rejected_transitions"]:
@@ -2513,7 +2519,6 @@ def run_product_goal_mode(
                 }
                 append("product_goal_scheduler_decision", decision=decision)
                 return decision
-            observed_now = current or datetime.now(ZONE)
             notification_delivery = goal_runner_adapter.goal_notifications.deliver_queued_github_notifications(
                 ledger_path,
                 repository=spec["repository"],

@@ -21,12 +21,14 @@ import product_goal_runtime_admission as RUNTIME_ADMISSION
 from product_goal_worker_result import adapt_worker_result
 from tests.control_plane.test_github_product_goal_control import comment
 from tests.control_plane.runtime_admission_fixtures import (
+    activation_dependency_receipts,
+    product_goal_spec,
     runtime_identity,
     write_reservation_receipt,
 )
 
 
-NOW=datetime(2026,10,28,10,0,tzinfo=ZoneInfo("Asia/Taipei"))
+NOW=datetime(2026,11,2,10,0,tzinfo=ZoneInfo("Asia/Taipei"))
 
 
 class Process:
@@ -38,12 +40,15 @@ class Process:
 
 class ProductGoalRuntimeWiringTest(unittest.TestCase):
     def setup_goal(self,repo:Path):
-        spec=json.loads((ROOT/"docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.2.json").read_text())
+        spec=product_goal_spec()
         authority_comment=comment(spec,login="joannalee20050914")
         authority_comment["html_url"]="https://github.com/joannalee20050914/KGnote-public/issues/9#issuecomment-100"
         authority_comment["issue_url"]="https://api.github.com/repos/joannalee20050914/KGnote-public/issues/9"
         authority=CONTROL.resolve_authority([authority_comment],spec)
-        state=GOAL.initial_runner_state(spec,now=NOW.isoformat())
+        state=GOAL.initial_runner_state(
+            spec,now=NOW.isoformat(),
+            dependency_receipts=activation_dependency_receipts(spec),
+        )
         state.update({
             "authority_record":authority["record"],"authority_lease":"ACTIVE","go_live_authorized":True,
             "lifecycle":{"state":"ACTIVE","revision":1,"changed_at":NOW.isoformat(),"reason":"isolated authority"},
@@ -53,11 +58,12 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
         record=authority["record"]
         authority_event,_=GOAL.append_ledger_event(
             ledger_path,event_id="goal-authority-isolated",event_type="GOAL_AUTHORITY_VERIFIED",
-            occurred_at=NOW.isoformat(),goal_id=spec["goal_id"],goal_version=spec["goal_version"],
+            occurred_at=authority["record"]["created_at"],goal_id=spec["goal_id"],goal_version=spec["goal_version"],
             logical_work_id=None,attempt_id=None,payload={
                 "accepted":True,"action":"APPROVE","go_live_authorized":True,
                 "authority_comment_id":record["comment_id"],"authority_body_sha256":record["body_sha256"],
                 "goal_spec_sha256":GOAL.goal_spec_sha256(spec),
+                "activation_observed_at":"2026-10-29T14:00:00+08:00",
             },
         )
         state["event_cursor"]={
@@ -243,11 +249,11 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
             spec,state,authority,_state_path,ledger_path=self.setup_goal(repo)
             ledger=GOAL.read_ledger(ledger_path)
             cases=(
-                (datetime(2026,10,27,10,0,tzinfo=ZoneInfo("Asia/Taipei")),"WAIT_TRIAL_START"),
-                (datetime(2026,10,28,9,0,tzinfo=ZoneInfo("Asia/Taipei")),"ACTION_READY"),
-                (datetime(2026,11,10,17,59,59,tzinfo=ZoneInfo("Asia/Taipei")),"ACTION_READY"),
-                (datetime(2026,11,10,18,0,tzinfo=ZoneInfo("Asia/Taipei")),"GOAL_HARD_STOP"),
-                (datetime(2026,11,11,10,0,tzinfo=ZoneInfo("Asia/Taipei")),"GOAL_HARD_STOP"),
+                (datetime(2026,11,1,10,0,tzinfo=ZoneInfo("Asia/Taipei")),"WAIT_TRIAL_START"),
+                (datetime(2026,11,2,9,0,tzinfo=ZoneInfo("Asia/Taipei")),"ACTION_READY"),
+                (datetime(2026,11,13,17,59,59,tzinfo=ZoneInfo("Asia/Taipei")),"ACTION_READY"),
+                (datetime(2026,11,13,18,0,tzinfo=ZoneInfo("Asia/Taipei")),"GOAL_HARD_STOP"),
+                (datetime(2026,11,14,10,0,tzinfo=ZoneInfo("Asia/Taipei")),"GOAL_HARD_STOP"),
             )
             for observed,expected in cases:
                 with self.subTest(observed=observed.isoformat()):
@@ -257,7 +263,7 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
                     self.assertEqual(expected,decision["status"])
 
             restarted=json.loads(json.dumps(state))
-            reset_window=datetime(2026,11,11,9,0,tzinfo=ZoneInfo("Asia/Taipei"))
+            reset_window=datetime(2026,11,16,9,0,tzinfo=ZoneInfo("Asia/Taipei"))
             self.assertEqual(
                 "GOAL_HARD_STOP",
                 ADAPTER.next_action(
@@ -269,9 +275,9 @@ class ProductGoalRuntimeWiringTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             repo=Path(directory)
             spec,state,authority,state_path,ledger_path=self.setup_goal(repo)
-            start=datetime(2026,10,28,9,0,tzinfo=ZoneInfo("Asia/Taipei"))
-            before=datetime(2026,10,27,10,0,tzinfo=ZoneInfo("Asia/Taipei"))
-            hard_stop=datetime(2026,11,10,18,0,tzinfo=ZoneInfo("Asia/Taipei"))
+            start=datetime(2026,11,2,9,0,tzinfo=ZoneInfo("Asia/Taipei"))
+            before=datetime(2026,11,1,10,0,tzinfo=ZoneInfo("Asia/Taipei"))
+            hard_stop=datetime(2026,11,13,18,0,tzinfo=ZoneInfo("Asia/Taipei"))
             action=ADAPTER.next_action(
                 spec,state,GOAL.read_ledger(ledger_path),authority,
                 now=start,trial=False,

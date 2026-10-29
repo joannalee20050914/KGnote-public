@@ -65,6 +65,20 @@ def goal_spec_sha256(spec: dict[str, Any]) -> str:
     return sha256_value(spec)
 
 
+def carried_provider_charges(spec: dict[str, Any], provider: str) -> int:
+    """Return reservations inherited from a prior immutable Goal version."""
+    carryover = spec.get("history_carryover")
+    if carryover is None:
+        return 0
+    charges = carryover.get("provider_charges")
+    if not isinstance(charges, dict) or provider not in charges:
+        raise GoalContractError(f"history carryover lacks {provider} provider charges")
+    value = charges[provider]
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise GoalContractError(f"history carryover has invalid {provider} provider charges")
+    return value
+
+
 def load_json(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
@@ -227,6 +241,113 @@ def validate_goal_spec(spec: dict[str, Any]) -> None:
                 f"{name}: TRUSTED capacity requires percentage/source/time; "
                 "unobservable capacity requires all three to be null"
             )
+        carried = carried_provider_charges(spec, name)
+        if carried > policy["fallback"]["max_total_launches"]:
+            raise GoalContractError(
+                f"{name}: carried charges exceed the immutable provider ceiling"
+            )
+
+    schedule = spec.get("trial_schedule")
+    if isinstance(schedule, dict):
+        activation_dependencies = schedule.get("activation_dependency_ids", [])
+        if set(activation_dependencies) - set(spec["dependencies"]):
+            raise GoalContractError(
+                "trial activation dependencies must be declared Goal dependencies"
+            )
+    carryover = spec.get("history_carryover")
+    if isinstance(carryover, dict):
+        if carryover["dependency_id"] not in spec["dependencies"]:
+            raise GoalContractError("history carryover dependency is not declared by the Goal")
+        source = carryover["source_goal"]
+        if source["goal_id"] != spec["goal_id"]:
+            raise GoalContractError("history carryover belongs to a different Goal ID")
+        if source["goal_version"] == spec["goal_version"]:
+            raise GoalContractError("history carryover must name a prior Goal version")
+        for provider in spec["resource_policy"]["providers"]:
+            if carryover["actual_model_processes"][provider] > carryover["provider_charges"][provider]:
+                raise GoalContractError(
+                    f"{provider}: actual model processes exceed carried reservations"
+                )
+
+
+def validate_history_carryover_evidence(
+    spec: dict[str, Any], *, repository_root: Path,
+) -> dict[str, Any] | None:
+    """Read back the immutable evidence named by a version carryover policy."""
+    carryover = spec.get("history_carryover")
+    if carryover is None:
+        return None
+    root = repository_root.resolve()
+    path = (root / carryover["evidence_path"]).resolve()
+    try:
+        path.relative_to(root)
+    except ValueError as exc:
+        raise GoalContractError("history carryover evidence leaves the repository") from exc
+    if not path.is_file() or path.is_symlink():
+        raise GoalContractError("history carryover evidence is absent or not a regular file")
+    if hashlib.sha256(path.read_bytes()).hexdigest() != carryover["evidence_sha256"]:
+        raise GoalContractError("history carryover evidence digest differs")
+    evidence = load_json(path)
+    if evidence.get("schema_version") != "kgnote.o2-version-carryover-evidence.v1":
+        raise GoalContractError("history carryover evidence schema is unsupported")
+    source = carryover["source_goal"]
+    evidence_source = evidence.get("source_goal")
+    evidence_target = evidence.get("target_goal")
+    expected_source = {
+        "goal_id": source["goal_id"],
+        "goal_version": source["goal_version"],
+        "goal_spec_sha256": source["goal_spec_sha256"],
+        "spec_file_sha256": source["spec_file_sha256"],
+        "state_sha256": source["state_sha256"],
+        "ledger_sha256": source["ledger_sha256"],
+    }
+    if not isinstance(evidence_source, dict) or any(
+        evidence_source.get(key) != value for key, value in expected_source.items()
+    ):
+        raise GoalContractError("history carryover evidence source identity differs")
+    cursor = evidence_source.get("ledger_cursor")
+    if not isinstance(cursor, dict) or (
+        cursor.get("sequence") != source["ledger_cursor_sequence"]
+        or cursor.get("event_sha256") != source["ledger_cursor_event_sha256"]
+    ):
+        raise GoalContractError("history carryover evidence cursor differs")
+    if not isinstance(evidence_target, dict) or (
+        evidence_target.get("goal_id") != spec["goal_id"]
+        or evidence_target.get("goal_version") != spec["goal_version"]
+        or evidence_target.get("accounting_rule") != carryover["accounting_rule"]
+        or evidence_target.get("carried_provider_charges") != carryover["provider_charges"]
+    ):
+        raise GoalContractError("history carryover evidence target identity differs")
+    expected_ceilings = {
+        provider: policy["fallback"]["max_total_launches"]
+        for provider, policy in spec["resource_policy"]["providers"].items()
+    }
+    if evidence_target.get("candidate_provider_ceilings") != expected_ceilings:
+        raise GoalContractError("history carryover evidence provider ceilings differ")
+    candidate = evidence.get("candidate_checkout")
+    if not isinstance(candidate, dict) or any(
+        candidate.get(key) != value
+        for key, value in carryover["candidate_identity"].items()
+    ):
+        raise GoalContractError("history carryover candidate identity differs")
+    if not isinstance(candidate.get("tree"), str) or len(candidate["tree"]) != 40:
+        raise GoalContractError("history carryover candidate tree is invalid")
+    totals = evidence.get("historical_totals")
+    reservations = evidence.get("historical_reservations")
+    if not isinstance(totals, dict) or not isinstance(reservations, list):
+        raise GoalContractError("history carryover reservation evidence is incomplete")
+    if (
+        totals.get("reservations_charged") != sum(
+            int(row.get("carryover_charge", 0)) for row in reservations
+            if isinstance(row, dict)
+        )
+        or totals.get("reservations_charged")
+        != sum(carryover["provider_charges"].values())
+        or totals.get("actual_provider_processes_started")
+        != sum(carryover["actual_model_processes"].values())
+    ):
+        raise GoalContractError("history carryover totals differ")
+    return evidence
 
 
 def validate_backlog(backlog: dict[str, Any]) -> None:
@@ -619,6 +740,42 @@ def validate_runner_state(state: dict[str, Any], spec: dict[str, Any]) -> None:
             raise GoalContractError(
                 f"active runner state lacks dependency closure receipts: {sorted(missing)}"
             )
+        schedule = spec.get("trial_schedule")
+        if isinstance(schedule, dict):
+            try:
+                proposed_start = datetime.fromisoformat(schedule["proposed_start"])
+            except (KeyError, ValueError) as exc:
+                raise GoalContractError("trial activation boundary is invalid") from exc
+            if proposed_start.tzinfo is None:
+                raise GoalContractError("trial activation boundary must be timezone-aware")
+            receipt_by_id = {row["dependency_id"]: row for row in receipts}
+            for dependency_id in schedule.get("activation_dependency_ids", []):
+                verified_at_value = receipt_by_id[dependency_id].get("verified_at")
+                try:
+                    verified_at = datetime.fromisoformat(str(verified_at_value))
+                except ValueError as exc:
+                    raise GoalContractError(
+                        f"activation dependency {dependency_id} lacks a valid verification time"
+                    ) from exc
+                if verified_at.tzinfo is None or verified_at >= proposed_start:
+                    raise GoalContractError(
+                        f"activation dependency {dependency_id} missed the immutable trial start"
+                    )
+    carryover = spec.get("history_carryover")
+    if isinstance(carryover, dict):
+        matching = next(
+            (row for row in receipts if row.get("dependency_id") == carryover["dependency_id"]),
+            None,
+        )
+        if matching is not None:
+            source = carryover["source_goal"]
+            if (
+                matching.get("status") != "CLOSED"
+                or matching.get("goal_version") != source["goal_version"]
+                or matching.get("goal_spec_sha256") != source["goal_spec_sha256"]
+                or matching.get("evidence_sha256") != carryover["evidence_sha256"]
+            ):
+                raise GoalContractError("history carryover receipt differs from immutable evidence")
     spec_work = {row["work_item_id"] for row in spec["work_items"]}
     state_work = {row.get("work_item_id") for row in state["work_items"]}
     if state_work != spec_work:

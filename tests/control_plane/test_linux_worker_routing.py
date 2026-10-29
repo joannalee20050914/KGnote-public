@@ -16,6 +16,7 @@ from linux_worker_router import (
     execution_evidence, remote_command, route, sandbox_command,
     validate_bootstrap_identity,
 )
+import product_goal_worker_identity as PRODUCT_IDENTITY
 
 
 class FakeProcess:
@@ -43,8 +44,8 @@ class LinuxWorkerRoutingTest(unittest.TestCase):
             "identity_kind":"KGNOTE_PRODUCT_GOAL", "authority_kind":"GITHUB_OWNER_APPROVAL",
             "repository":"joannalee20050914/KGnote-public", "issue":9,
             "goal_id":"GOAL-KGNOTE-O2-READING-EXPERIENCE",
-            "goal_version":"2026-10-23.2-s0-s2-proposal",
-            "goal_spec_sha256":"82716b31f004f108c935169493f2fa918e5144f12419302ba2c9fdcec91b6604",
+            "goal_version":PRODUCT_IDENTITY.PRODUCT_GOAL_VERSION,
+            "goal_spec_sha256":PRODUCT_IDENTITY.PRODUCT_GOAL_SPEC_SHA256,
             "work_item_id":"WI-O2-A-IMPLEMENT", "provider":"codex", "stage":"codex",
             "order_event_id":"o2-wi-o2-a-implement-codex-0123456789abcdef",
             "branch":"codex/o2-reading-experience", "worktree_slug":"goal-o2-reading-experience",

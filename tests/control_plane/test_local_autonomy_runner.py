@@ -7,7 +7,9 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 from unittest.mock import patch
 from tests.control_plane.runtime_admission_fixtures import (
+    activation_dependency_receipts,
     prepare_model_reservation,
+    product_goal_spec,
     runtime_identity,
     write_reservation_receipt,
 )
@@ -18,6 +20,12 @@ SPEC = importlib.util.spec_from_file_location("runner", ROOT / "scripts/local_au
 RUNNER = importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(RUNNER)
 
 class RunnerTests(unittest.TestCase):
+    def install_carryover_evidence(self, repo: Path, spec: dict) -> None:
+        relative = Path(spec["history_carryover"]["evidence_path"])
+        target = repo / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((ROOT / relative).read_bytes())
+
     def test_o2_first_window_runner_binds_seed_bootstraps_checkout_and_reserves_once(self):
         """Exercise the real first-dispatch boundary without launching a model."""
         from tests.control_plane.test_github_product_goal_control import comment
@@ -29,7 +37,9 @@ class RunnerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); source=root/"source"; origin=root/"origin.git"
             central=root/"central"; deploy=root/"deploy"; runtime=root/"runtime"
+            spec=product_goal_spec()
             source.mkdir(); runtime.mkdir()
+            self.install_carryover_evidence(source, spec)
             subprocess.run(["git","init","-b",identity.PRODUCT_BRANCH],cwd=source,check=True,capture_output=True)
             subprocess.run(["git","config","user.email","test@example.invalid"],cwd=source,check=True)
             subprocess.run(["git","config","user.name","Test"],cwd=source,check=True)
@@ -52,11 +62,16 @@ class RunnerTests(unittest.TestCase):
             hotfix=subprocess.check_output(["git","rev-parse","HEAD"],cwd=central,text=True).strip()
             subprocess.run(["git","worktree","add","--detach",str(deploy),hotfix],cwd=central,check=True,capture_output=True)
 
-            spec=json.loads((ROOT/"docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.2.json").read_text())
             spec_path=runtime/"spec.json"; state_path=runtime/"state.json"
             ledger_path=runtime/"ledger.jsonl"; comments_path=runtime/"comments.json"
             spec_path.write_text(json.dumps(spec))
-            goal.atomic_write_json(state_path,goal.initial_runner_state(spec,now="2026-10-27T08:00:00+08:00"))
+            goal.atomic_write_json(
+                state_path,
+                goal.initial_runner_state(
+                    spec,now="2026-10-29T14:00:00+08:00",
+                    dependency_receipts=activation_dependency_receipts(spec),
+                ),
+            )
             authority_comment=comment(spec,login="joannalee20050914")
             authority_comment["html_url"]="https://github.com/joannalee20050914/KGnote-public/issues/9#issuecomment-6431195804"
             authority_comment["issue_url"]="https://api.github.com/repos/joannalee20050914/KGnote-public/issues/9"
@@ -74,7 +89,7 @@ class RunnerTests(unittest.TestCase):
                     order=Path(command[command.index("--admit-order")+1])
                     receipt=write_reservation_receipt(
                         deploy,order,
-                        observed_at=datetime(2026,10,28,9,0,tzinfo=ZoneInfo("Asia/Taipei")),
+                        observed_at=datetime(2026,11,2,9,0,tzinfo=ZoneInfo("Asia/Taipei")),
                     )
                     expected=Path(command[command.index("--admission-receipt")+1])
                     expected.parent.mkdir(parents=True,exist_ok=True)
@@ -92,7 +107,7 @@ class RunnerTests(unittest.TestCase):
                     deploy,spec_path=spec_path,state_path=state_path,ledger_path=ledger_path,
                     comments_path=comments_path,backlog_path=None,trial=False,router=router,
                     epoch_record=epoch,admission=admission,runner_identity={"sha256":"fixture"},
-                    current=datetime(2026,10,27,10,0,tzinfo=ZoneInfo("Asia/Taipei")),command_runner=no_model,
+                    current=datetime(2026,11,1,10,0,tzinfo=ZoneInfo("Asia/Taipei")),command_runner=no_model,
                 )
                 self.assertEqual("WAIT_TRIAL_START",before["status"])
                 self.assertEqual(0,len(goal.reduce_ledger(goal.read_ledger(ledger_path))["dispatch_reservations"]))
@@ -102,7 +117,7 @@ class RunnerTests(unittest.TestCase):
                     deploy,spec_path=spec_path,state_path=state_path,ledger_path=ledger_path,
                     comments_path=comments_path,backlog_path=None,trial=False,router=router,
                     epoch_record=epoch,admission=admission,runner_identity={"sha256":"fixture"},
-                    current=datetime(2026,10,28,9,0,tzinfo=ZoneInfo("Asia/Taipei")),command_runner=no_model,
+                    current=datetime(2026,11,2,9,0,tzinfo=ZoneInfo("Asia/Taipei")),command_runner=no_model,
                 )
                 self.assertEqual("DISPATCHED",first["status"])
                 saved=goal.load_json(state_path)
@@ -137,7 +152,7 @@ class RunnerTests(unittest.TestCase):
                     deploy,spec_path=spec_path,state_path=state_path,ledger_path=ledger_path,
                     comments_path=comments_path,backlog_path=None,trial=False,router=router,
                     epoch_record=epoch,admission=admission,runner_identity={"sha256":"fixture"},
-                    current=datetime(2026,10,28,9,0,tzinfo=ZoneInfo("Asia/Taipei")),command_runner=no_model,
+                    current=datetime(2026,11,2,9,0,tzinfo=ZoneInfo("Asia/Taipei")),command_runner=no_model,
                 )
                 self.assertEqual("CHECKPOINT_PENDING",replay["status"])
                 self.assertEqual(call_count,len(calls))
@@ -148,11 +163,11 @@ class RunnerTests(unittest.TestCase):
                 at_close=RUNNER.goal_runner_adapter.next_action(
                     spec,pre_dispatch,goal.read_ledger(ledger_path)[:3],
                     RUNNER.goal_runner_adapter.github_control.resolve_authority([authority_comment],spec),
-                    now=datetime(2026,10,28,18,0,tzinfo=ZoneInfo("Asia/Taipei")),trial=False,
+                    now=datetime(2026,11,2,18,0,tzinfo=ZoneInfo("Asia/Taipei")),trial=False,
                 )
                 self.assertEqual("WAIT_WORK_WINDOW",at_close["status"])
                 hard=RUNNER.goal_runner_adapter.trial_schedule_admission(
-                    spec,datetime(2026,11,10,18,0,tzinfo=ZoneInfo("Asia/Taipei"))
+                    spec,datetime(2026,11,13,18,0,tzinfo=ZoneInfo("Asia/Taipei"))
                 )
                 self.assertEqual("GOAL_HARD_STOP",hard["status"])
 
@@ -254,11 +269,11 @@ class RunnerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
             (repo / ".ai").mkdir()
-            spec = json.loads(
-                (ROOT / "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.2.json").read_text()
-            )
+            spec = product_goal_spec()
+            self.install_carryover_evidence(repo, spec)
             state = goal.initial_runner_state(
-                spec, now="2026-10-28T10:00:00+08:00",
+                spec, now="2026-11-02T10:00:00+08:00",
+                dependency_receipts=activation_dependency_receipts(spec),
             )
             state["candidate_identity"] = {
                 "commit": "1" * 40,
@@ -299,7 +314,17 @@ class RunnerTests(unittest.TestCase):
                 "KGnote-public/issues/9"
             )
             comments_path.write_text(json.dumps([authority_comment]))
-            now = datetime(2026, 10, 28, 10, tzinfo=ZoneInfo("Asia/Taipei"))
+            authority = RUNNER.goal_runner_adapter.github_control.resolve_authority(
+                [authority_comment], spec,
+            )
+            RUNNER.goal_runner_adapter.reconcile_owner_authority(
+                spec, state, authority, state_path=state_path,
+                ledger_path=ledger_path,
+                observed_at=datetime(
+                    2026, 10, 29, 14, tzinfo=ZoneInfo("Asia/Taipei"),
+                ),
+            )
+            now = datetime(2026, 11, 2, 10, tzinfo=ZoneInfo("Asia/Taipei"))
             unavailable = RUNNER.run_product_goal_mode(
                 repo, spec_path=spec_path, state_path=state_path,
                 ledger_path=ledger_path, comments_path=comments_path,

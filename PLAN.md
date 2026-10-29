@@ -1,34 +1,34 @@
 # KGnote active execution plan
 
-This file contains one bounded S2 admission-safety repair Goal. It does not
-authorize `RESUME` or another O2 product-model attempt.
+This file contains one bounded O2 reauthorization-readiness engineering Goal.
+It does not authorize `APPROVE`, `RESUME`, `ACCEPT` or a product-model launch.
 
 <!-- BEGIN CODEX PLAN JSON -->
 ```json
 {
   "schema_version": "kgnote.codex-plan.v1",
-  "goal_id": "CODEX-APP-GOAL-O2-RUNTIME-RECEIPT-PRE-RESERVATION-20261029",
-  "active_goal": "CODEX-APP-GOAL-O2-RUNTIME-RECEIPT-PRE-RESERVATION-20261029",
+  "goal_id": "CODEX-APP-GOAL-O2-V3-REAUTHORIZATION-READINESS-20261029",
+  "active_goal": "CODEX-APP-GOAL-O2-V3-REAUTHORIZATION-READINESS-20261029",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
   "authority_kind": "CURRENT_USER_EXECUTION_INSTRUCTION",
   "lifecycle_owner": "CODEX_APP",
   "product_goal_authorized": false,
-  "objective": "在正式 O2 保持 PAUSED、既有三次 reservation 與額度不變的前提下，讓所有正式 model-bearing dispatch 在 MODEL_ATTEMPT_STARTED/DISPATCH_RESERVED 前通過綁定 exact WorkOrder、candidate、正式授權與 immutable runtime generation 的最新 Ubuntu 無模型實機准入，並由 reserve_dispatch 本身 fail closed 防止繞過。",
+  "objective": "以已部署 main 93b6b1f 為基準，建立 O2 v3 immutable 候選、歷史承接與不可繞過的 exact pre-reservation admission，經獨立 Claude PASS、正常 GitHub 整合、Mac/Ubuntu 同版部署及隔離無模型正反驗收後，產生等待 Product Owner 決策的最小重新授權包。",
   "status": "active",
   "active_milestone_id": "A2-EXACT-VERIFICATION-AND-REVIEW",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
-  "execution_direction_id": "kgnote-o2-runtime-receipt-pre-reservation-2026-10-29",
+  "execution_direction_id": "kgnote-o2-v3-reauthorization-readiness-2026-10-29",
   "explicit_direction": {
     "date": "2026-10-29",
     "speaker": "product owner",
-    "source_path": "docs/control-plane/O2_RUNTIME_RECEIPT_PRE_RESERVATION_DIRECTION_20261029.md",
+    "source_path": "docs/control-plane/O2_V3_REAUTHORIZATION_READINESS_DIRECTION_20261029.md",
     "durable_goal_record": "PLAN.md"
   },
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
-    "docs/control-plane/O2_RUNTIME_RECEIPT_PRE_RESERVATION_DIRECTION_20261029.md",
-    "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.2.json",
+    "docs/control-plane/O2_V3_REAUTHORIZATION_READINESS_DIRECTION_20261029.md",
+    "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.3.json",
     "docs/control-plane/B_SCHEME_OPERATIONS.md",
     "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
     ".ai/REVIEW_PROTOCOL.md",
@@ -38,56 +38,50 @@ authorize `RESUME` or another O2 product-model attempt.
   ],
   "requirement_context": {
     "requirements": ["KG-GOV-04", "KG-GOV-05", "KG-GOV-07", "KG-PLAT-05", "KG-PLAT-07", "KG-PLAT-08"],
-    "acceptance_criteria": ["RC-05", "RC-07", "RC-08", "RC-12", "RC-14", "RC-15", "RC-16", "RC-27", "RC-28", "RC-29", "RC-31", "RC-32", "RC-33", "RC-34"],
-    "feature_dispositions": ["FD-17", "FD-18", "FD-19", "FD-21", "FD-23"],
-    "scenarios": ["SC-32", "SC-33", "SC-35", "SC-48"],
-    "reused_read_only_audit": {
-      "codex_task_title": "審核部署後模型派工關卡",
-      "baseline": "8fc5a7f99cf5d01afa9bb544ba3774ee7cdf11ba",
-      "conclusion": "Existing Ubuntu checks occur after reservation; add a real no-model admission route plus a mandatory fresh receipt gate inside reserve_dispatch."
-    },
-    "formal_runtime_baseline": {
-      "main_commit": "44f36b40791d375d74b9b161c81c92e9f8e65ea7",
-      "runtime_generation": "44f36b40791d375d74b9b161c81c92e9f8e65ea7",
-      "runtime_manifest_sha256": "b86d9e4ee94dfa2ad9b058ce784bb712aa242ec13aa9311afcf5b3c248863a42",
-      "runtime_receipt_sha256": "484da34d3da35432f861e6b4cbf9a83d6fcd25b847778a2b66ea71346ca9fd95",
+    "acceptance_criteria": ["RC-05", "RC-07", "RC-08", "RC-12", "RC-14", "RC-15", "RC-16", "RC-31", "RC-32"],
+    "feature_dispositions": ["FD-04", "FD-05", "FD-06", "FD-21"],
+    "scenarios": ["SC-32", "SC-33", "SC-35", "SC-40", "SC-44", "SC-45", "SC-48"],
+    "formal_history_baseline": {
+      "goal_version": "2026-10-23.2-s0-s2-proposal",
+      "goal_spec_sha256": "82716b31f004f108c935169493f2fa918e5144f12419302ba2c9fdcec91b6604",
       "state_sha256": "5786046a481f412b945dc58664758dbe3d7202040ba275fa77ced617acbb3765",
       "ledger_sha256": "a88d1f1c563a3845ae3e75ec6fb302352fe9648978e444c28c5b8f8b559afbdb",
       "ledger_cursor": 26,
-      "work_item_attempts": 3,
-      "goal_launches_used": 3,
-      "model_attempts": 2,
-      "fourth_attempt_present": false
+      "reservations_charged": 3,
+      "actual_model_processes": 2
     },
     "forbidden_substitutes": [
-      "建立第二套 Runner、Router、Worker、systemd、Landlock 或自治派工框架",
-      "用 repository mock、--help 或部署 receipt 單獨冒充正式 pre-reservation live admission",
-      "重用 PAUSED Product Goal 的歷史 ACTIVE/RESUME order、context 或 authority 作為測試身分",
-      "只在 local_autonomy_runner 呼叫前檢查而允許其他 caller 直接繞過 reserve_dispatch",
-      "接受缺失、stale、已使用或 WorkOrder/candidate/authority/runtime 身分不符的 receipt",
-      "通過 admission 後允許 model execution 改用不同 runtime generation 或 drifted bytes",
-      "刪除、重分類或重置三次歷史 reservation/launch accounting，或增加正式額度",
-      "發布 RESUME、新增 O2 產品派工、修改正式 Goal 時程或提升人工/release gate"
+      "建立或擴建第二套自治框架",
+      "以版本更新重置三次 reservation、重分類兩次實際模型啟動或擴大額度",
+      "修改舊版正式 state、ledger、checkpoint 或重算其歷史",
+      "讓錯 version/digest 的 O2 模型派工退回不需要 live receipt 的舊路徑",
+      "以 repository mock、--help、部署 receipt 或隔離 PASS 冒充正式產品試行",
+      "只更新 GitHub main 而未讀回 Mac Runner 與 Ubuntu 同版部署",
+      "發布 APPROVE、RESUME、ACCEPT 或啟動 O2 產品模型",
+      "提升 Product Owner、Mac Obsidian、mobile、release_verified 或其他 human gate"
     ]
   },
   "repository_authority": {
     "canonical_repository": "joannalee20050914/KGnote-public",
-    "base_revision": "44f36b40791d375d74b9b161c81c92e9f8e65ea7",
-    "branch": "codex/o2-runtime-receipt-pre-reservation-20261029",
+    "base_revision": "93b6b1f641de1ff4516925c877d6bfd03b44b279",
+    "branch": "codex/o2-v3-reauthorization-readiness-20261029",
     "base_branch": "main",
     "draft_pull_request": null,
     "automatic_merge": false,
-    "merge_authority": "exact Ubuntu Claude PASS plus satisfied GitHub rules under this bounded repair direction"
+    "merge_authority": "exact Ubuntu Claude PASS plus satisfied GitHub rules under this bounded readiness direction"
   },
-  "immutable_product_goal": {
+  "candidate_product_goal": {
     "goal_id": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
-    "goal_version": "2026-10-23.2-s0-s2-proposal",
-    "goal_spec_sha256": "82716b31f004f108c935169493f2fa918e5144f12419302ba2c9fdcec91b6604",
+    "goal_version": "2026-10-29.3-bounded-trial-reauthorization-proposal",
+    "goal_spec_sha256": "83ddf1cf95c27ec2646e143d4ade88eaedec8f38d5149d3621be090ff6c41e3f",
     "authority_lease": "PAUSED",
-    "lifecycle": "BLOCKED",
+    "lifecycle": "APPROVAL_REQUIRED",
     "go_live_authorized": false,
-    "trial_start": "2026-10-28T09:00:00+08:00",
-    "hard_stop": "2026-11-10T18:00:00+08:00"
+    "trial_start": "2026-11-02T09:00:00+08:00",
+    "observation_work_dates": ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"],
+    "hard_stop": "2026-11-13T18:00:00+08:00",
+    "candidate_provider_ceilings": {"codex": 5, "claude": 8},
+    "carried_charges": {"codex": 3, "claude": 0}
   },
   "auto_advance": {
     "enabled": true,
@@ -99,63 +93,75 @@ authorize `RESUME` or another O2 product-model attempt.
   },
   "preserved_human_gates": [
     {"id": "O2-AUTHORITY-LEASE", "status": "PAUSED", "release_verified": false},
+    {"id": "O2-PRODUCT-OWNER-REAUTHORIZATION", "status": "not_issued", "release_verified": false},
     {"id": "D2-T14-FINAL-HUMAN-ACCEPTANCE", "status": "not_promoted", "release_verified": false},
     {"id": "PA-HUMAN-1", "status": "not_promoted", "release_verified": false},
     {"id": "NS-HUMAN-SMOKE", "status": "not_promoted", "release_verified": false}
   ],
   "milestones": [
     {
-      "id": "A0-BASELINE-AND-MINIMAL-DESIGN",
-      "title": "重用唯讀審核並固定最小 receipt/admission 契約",
+      "id": "A0-IDENTITY-CARRYOVER-AND-DESIGN",
+      "title": "固定 v3 immutable identity、歷史承接與最小執行設計",
       "status": "complete",
       "dependencies": [],
       "human_gate": "none",
-      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/O2_RUNTIME_RECEIPT_PRE_RESERVATION_DIRECTION_20261029.md", "docs/control-plane/B_SCHEME_OPERATIONS.md"],
+      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/O2_V3_REAUTHORIZATION_READINESS_DIRECTION_20261029.md", "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.3.json", "docs/control-plane/O2_V3_CARRYOVER_EVIDENCE_20261029.json", "schemas/product-goal/v1/goal-spec.schema.json"],
       "acceptance": [
-        "以 44f36b4 為基準，讀回 Codex B 唯讀審核與 PR #38 W4 實機證據，不重新設計自治架構",
-        "最小方案明確區分 deployment admission identity 與正式 PAUSED Product Goal identity",
-        "receipt 契約綁定 exact order/candidate/authority/runtime 並定義 freshness、single-use 與 execution pinning"
+        "新 spec 只改版本、日期、carryover 與候選 ceiling；原產品方向、Work Items、obligations、完成條件及安全政策逐欄沿用",
+        "canonical digest 從最終 spec 重新計算，carryover evidence 綁定舊 state/ledger/cursor、三次 reservation、兩次模型 process 與候選 checkout",
+        "明確定義三次歷史 Codex charge 計入新版 ceiling 5，版本更新不產生自動重置"
       ]
     },
     {
-      "id": "A1-IMPLEMENT-AND-NEGATIVE-TESTS",
-      "title": "實作 no-model admission、reserve gate 與版本 pinning",
+      "id": "A1-ENFORCEMENT-AND-ISOLATED-TESTS",
+      "title": "實作 exact identity、carryover ceiling 與 late-activation fail closed",
       "status": "complete",
-      "dependencies": ["A0-BASELINE-AND-MINIMAL-DESIGN"],
+      "dependencies": ["A0-IDENTITY-CARRYOVER-AND-DESIGN"],
       "human_gate": "none",
-      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "config/", "scripts/goal_runner_adapter.py", "scripts/local_autonomy_runner.py", "scripts/linux_worker_router.py", "scripts/linux_worker_bootstrap.py", "scripts/product_goal_worker_identity.py", "scripts/product_goal_worker_lane.py", "scripts/product_goal_worker_result.py", "scripts/install_ubuntu_worker_runtime.py", "tests/control_plane/", "docs/control-plane/B_SCHEME_OPERATIONS.md"],
+      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/O2_V3_REAUTHORIZATION_READINESS_DIRECTION_20261029.md", "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.3.json", "docs/control-plane/O2_V3_CARRYOVER_EVIDENCE_20261029.json", "docs/control-plane/B_SCHEME_OPERATIONS.md", "schemas/product-goal/v1/", "config/ubuntu-worker-runtime-manifest.json", "scripts/goal_continuity.py", "scripts/goal_runner_adapter.py", "scripts/product_goal_worker_identity.py", "scripts/local_autonomy_runner.py", "scripts/product_goal_runtime_admission.py", "scripts/run_product_goal_isolated_trial.py", "tests/control_plane/", "tests/fixtures/control_plane/product_goal_isolated_trial_spec.json"],
       "acceptance": [
-        "deployment admission-only 使用獨立測試身分與證據目錄，完整走 SSH/bootstrap/systemd/guard/Landlock/Worker 且 model_launches=0",
-        "reserve_dispatch 缺少、過期、已使用或身分不符 receipt 時 fail closed 且不追加 ledger/state",
-        "normal dispatch 綁定同一 immutable generation，model Popen 前重驗 manifest/file hashes",
-        "缺模組、缺 lock、hash drift、錯 checkout、SSH/bootstrap/Landlock 失敗與 stale receipt 負例通過",
-        "任何 admission FAIL 都證明 attempt/dispatch/checkpoint/model 不增加且正式 state/ledger bytes 不變"
+        "Codex 與 Claude model-bearing lane 只接受 exact v3 version/digest 且 reservation 前強制 fresh Ubuntu receipt",
+        "同 Goal ID 的錯 version/digest fail closed，不能走 legacy order",
+        "Owner APPROVE created_at 未早於 11/02 09:00 時維持 PAUSED/APPROVAL_REQUIRED 並回報 TRIAL_ACTIVATION_MISSED",
+        "隔離正向與錯 version、錯 digest、錯 checkout、stale receipt、missed activation 負例均證明零正式副作用"
       ]
     },
     {
       "id": "A2-EXACT-VERIFICATION-AND-REVIEW",
       "title": "exact-candidate verification、Draft PR 與 Ubuntu Claude 獨立審查",
       "status": "active",
-      "dependencies": ["A1-IMPLEMENT-AND-NEGATIVE-TESTS"],
+      "dependencies": ["A1-ENFORCEMENT-AND-ISOLATED-TESTS"],
       "human_gate": "none",
-      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "output/control-plane/", "config/", "scripts/goal_runner_adapter.py", "scripts/local_autonomy_runner.py", "scripts/linux_worker_router.py", "scripts/linux_worker_bootstrap.py", "scripts/product_goal_worker_identity.py", "scripts/product_goal_worker_lane.py", "scripts/product_goal_worker_result.py", "scripts/product_goal_runtime_admission.py", "scripts/install_ubuntu_worker_runtime.py", "tests/control_plane/", "docs/control-plane/B_SCHEME_OPERATIONS.md", "docs/control-plane/O2_RUNTIME_RECEIPT_PRE_RESERVATION_DIRECTION_20261029.md", "GitHub Draft PR metadata", "existing Ubuntu Claude review runtime"],
+      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "output/control-plane/", "GitHub Draft PR metadata", "existing Ubuntu Claude review runtime"],
       "acceptance": [
         "targeted/full tests、requirements guard、strict diff、public safety 與 exact fingerprint/read-back 全綠",
         "Draft PR 綁定 exact HEAD/fingerprint；只有既有 Ubuntu Claude 對同一候選的 canonical PASS 可授權整合"
       ]
     },
     {
-      "id": "A3-MERGE-DEPLOY-PAUSED-ADMISSION",
-      "title": "正常整合、限縮部署與 PAUSE 下實機無模型正反向驗收",
+      "id": "A3-MERGE-DEPLOY-NO-MODEL-ACCEPTANCE",
+      "title": "正常整合、Mac/Ubuntu 同版部署及 PAUSED 無模型正反驗收",
       "status": "pending",
       "dependencies": ["A2-EXACT-VERIFICATION-AND-REVIEW"],
       "human_gate": "none",
-      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "GitHub PR/main metadata", "Ubuntu immutable runtime", "formal read-only state/ledger/checkpoint evidence", "output/control-plane/"],
+      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "GitHub PR/main metadata", "Mac immutable Runner runtime", "Ubuntu immutable worker runtime", "output/control-plane/", "formal old O2 read-only evidence"],
       "acceptance": [
-        "依正常 GitHub rules 整合 exact PASS candidate，未 direct push/force/bypass",
-        "限縮部署到新 immutable generation，於 PAUSE 下執行 admission-only 正向與指定負向驗收且模型啟動為 0",
-        "正式 state/ledger/checkpoints 前後完整 SHA、cursor、attempt 與歷史計帳完全相同",
-        "最終明確區分無模型准入 PASS 與真正產品模型開發 NOT VERIFIED"
+        "依 GitHub rules 整合 exact PASS candidate；Mac LaunchAgent 與 Ubuntu read-back同一 integrated revision/tree/manifest",
+        "隔離 PAUSED identity 正向與負向 no-model admission 均不產生正式 reservation、attempt、checkpoint 或 provider process",
+        "舊版 state/ledger/checkpoint SHA、cursor、三次 reservation 與兩次實際模型啟動完全不變"
+      ]
+    },
+    {
+      "id": "A4-AUTHORIZATION-PACKAGE",
+      "title": "產生等待 Product Owner 決策的 exact 重新授權包",
+      "status": "pending",
+      "dependencies": ["A3-MERGE-DEPLOY-NO-MODEL-ACCEPTANCE"],
+      "human_gate": "O2-PRODUCT-OWNER-REAUTHORIZATION",
+      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", "output/control-plane/", "new version authorization package"],
+      "acceptance": [
+        "包內列出 exact version/digest、工作日期、hard stop、carryover charge/remaining ceiling、候選 checkout 與雙主機部署證據",
+        "只產生可由 Owner 發布的 APPROVE 草稿，不發布任何 authority command",
+        "若 activation prerequisites 未在 11/02 09:00 前滿足，結論保持 PAUSE 並要求新日期與新 immutable version"
       ]
     }
   ]
@@ -165,8 +171,8 @@ authorize `RESUME` or another O2 product-model attempt.
 
 ## Current recovery note
 
-The minimal contract and implementation milestone are complete on the isolated
-repair worktree. Formal O2 remains `PAUSED`/`BLOCKED`; state, ledger and formal
-checkpoints remain read-only. The active milestone is exact-candidate
-verification and the existing Ubuntu Claude independent review. Merge,
-deployment and PAUSED real-host acceptance remain downstream of exact PASS.
+The work starts from clean commit `93b6b1f641de1ff4516925c877d6bfd03b44b279`
+in an isolated worktree. The prior formal O2 version remains byte-for-byte
+read-only and PAUSED. The immutable candidate identity and carryover design are
+fixed; the active milestone verifies exact pre-reservation admission, late
+activation and historical accounting without a product-model launch.

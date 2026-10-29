@@ -127,7 +127,8 @@
           "source_kind": {"enum": ["PRODUCT_GOAL_CLOSED", "EXTERNAL_DECISION_RESOLVED"]},
           "goal_version": {"type": ["string", "null"]},
           "goal_spec_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
-          "evidence_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          "evidence_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "verified_at": {"type": "string", "format": "date-time"}
         }
       }
     },

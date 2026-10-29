@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import tempfile
@@ -165,6 +166,20 @@ def _dispatch_and_reconcile(
 
 def run_trial(spec: dict, backlog: dict, issue9_fixture: dict) -> dict:
     goal_continuity.validate_goal_spec(spec)
+    if spec["repository"] == "example.invalid/kgnote-isolated-trial":
+        # The deterministic fixture must never impersonate a historical or
+        # current production O2 identity.  Bind an in-memory backlog copy to
+        # its isolated Goal while preserving the real backlog bytes.
+        backlog = copy.deepcopy(backlog)
+        production_goal_id = backlog["items"][0]["goal_id"]
+        backlog["items"][0]["goal_id"] = spec["goal_id"]
+        backlog["items"][0]["active_goal"] = spec["goal_id"]
+        backlog["items"][0]["goal_version"] = spec["goal_version"]
+        for item in backlog["items"][1:]:
+            item["dependencies"] = [
+                spec["goal_id"] if dependency == production_goal_id else dependency
+                for dependency in item["dependencies"]
+            ]
     approval = owner_comment(spec)
     authority = github_control.resolve_authority([approval], spec)
     with tempfile.TemporaryDirectory() as directory:

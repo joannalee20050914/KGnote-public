@@ -17,16 +17,21 @@ import goal_continuity as GOAL
 import goal_runner_adapter as ADAPTER
 import local_autonomy_runner as RUNNER
 from tests.control_plane.test_github_product_goal_control import comment
-from tests.control_plane.runtime_admission_fixtures import runtime_identity
-NOW = "2026-10-28T10:00:00+08:00"
+from tests.control_plane.runtime_admission_fixtures import (
+    activation_dependency_receipts,
+    product_goal_spec,
+    runtime_identity,
+)
+NOW = "2026-11-02T10:00:00+08:00"
 
 
 class ProductGoalDynamicOrderTest(unittest.TestCase):
     def setUp(self):
-        self.spec = json.loads(
-            (ROOT / "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-23.2.json").read_text()
+        self.spec = product_goal_spec()
+        self.state = GOAL.initial_runner_state(
+            self.spec, now=NOW,
+            dependency_receipts=activation_dependency_receipts(self.spec),
         )
-        self.state = GOAL.initial_runner_state(self.spec, now=NOW)
         authority_comment = comment(self.spec, login="joannalee20050914")
         authority_comment["html_url"] = "https://github.com/joannalee20050914/KGnote-public/issues/9#issuecomment-100"
         authority_comment["issue_url"] = "https://api.github.com/repos/joannalee20050914/KGnote-public/issues/9"
@@ -44,7 +49,7 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
         self.action = {
             "status":"ACTION_READY", "action":"DISPATCH_IMPLEMENTATION",
             "work_item_id":"WI-O2-A-IMPLEMENT", "requires_model":True,
-            "provider":"codex", "total_launches_before":0,
+            "provider":"codex", "total_launches_before":3,
         }
         self.runtime_identity = runtime_identity()
 

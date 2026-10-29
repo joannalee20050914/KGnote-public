@@ -9,6 +9,47 @@ from typing import Any
 from scripts import product_goal_runtime_admission as ADMISSION
 
 
+ROOT = Path(__file__).resolve().parents[2]
+PRODUCT_SPEC_PATH = (
+    ROOT / "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.3.json"
+)
+
+
+def product_goal_spec() -> dict[str, Any]:
+    return json.loads(PRODUCT_SPEC_PATH.read_text(encoding="utf-8"))
+
+
+def activation_dependency_receipts(
+    spec: dict[str, Any], *, verified_at: str = "2026-10-29T14:00:00+08:00",
+) -> list[dict[str, Any]]:
+    carryover = spec["history_carryover"]
+    source = carryover["source_goal"]
+    rows = [{
+        "dependency_id": carryover["dependency_id"],
+        "status": "CLOSED",
+        "source_kind": "EXTERNAL_DECISION_RESOLVED",
+        "goal_version": source["goal_version"],
+        "goal_spec_sha256": source["goal_spec_sha256"],
+        "evidence_sha256": carryover["evidence_sha256"],
+        "verified_at": verified_at,
+    }]
+    for index, dependency_id in enumerate(
+        spec["trial_schedule"]["activation_dependency_ids"], start=1,
+    ):
+        if dependency_id == carryover["dependency_id"]:
+            continue
+        rows.append({
+            "dependency_id": dependency_id,
+            "status": "CLOSED",
+            "source_kind": "EXTERNAL_DECISION_RESOLVED",
+            "goal_version": None,
+            "goal_spec_sha256": None,
+            "evidence_sha256": f"{index}" * 64,
+            "verified_at": verified_at,
+        })
+    return rows
+
+
 def runtime_identity() -> dict[str, Any]:
     revision = "9" * 40
     files = {

@@ -80,6 +80,45 @@ An exact Product Goal approval may authorize one bounded real-product trial with
 
 Full B-scheme go-live is a later, independent Owner decision based on the completed trial's authority, duplicate-dispatch, accounting, review, rollback and human-acceptance evidence. A successful trial does not automatically make the policy live. This two-stage interpretation avoids both unsafe bypass (`go_live_authorized=false` is never manually flipped) and a circular requirement that full standing delegation exist before its first bounded trial.
 
+### O2 v3 reauthorization boundary
+
+The immutable reauthorization candidate is Goal ID
+`GOAL-KGNOTE-O2-READING-EXPERIENCE`, version
+`2026-10-29.3-bounded-trial-reauthorization-proposal`, canonical digest
+`83ddf1cf95c27ec2646e143d4ade88eaedec8f38d5149d3621be090ff6c41e3f`.
+It preserves the prior product direction, Work Items, obligations, completion
+conditions and safety policy. Its five observation work dates are 2026-11-02
+through 2026-11-06 in `Asia/Taipei`; its hard stop is 2026-11-13 18:00 in
+the same timezone.
+
+The prior version's three Codex reservations remain historical charges against
+the candidate ceiling of five, including the third reservation whose provider
+event count is zero. The prior two actual Codex provider processes remain
+actual process history. Therefore, before any v3 dispatch, Codex has two
+candidate charges remaining and Claude has eight. Neither a new version nor a
+new state file resets these counts. The immutable carryover evidence is
+`docs/control-plane/O2_V3_CARRYOVER_EVIDENCE_20261029.json`; Runner validates
+its file digest, old spec/state/ledger identities, cursor, reservation totals
+and candidate checkout before it reads mutable v3 runtime state.
+
+Activation is timely only when the exact Owner `APPROVE` record and all named
+activation dependency receipts have timestamps earlier than 2026-11-02 09:00
+`Asia/Taipei`. A receipt for carryover sealing, exact Mac/Ubuntu deployment or
+no-model acceptance that is missing or verified at/after that instant makes
+the immutable version `TRIAL_ACTIVATION_MISSED`. The Goal then remains
+`APPROVAL_REQUIRED` / `PAUSED`; the later hard stop cannot revive it. Recovery
+requires a later immutable Goal version with five newly named observation work
+dates and a corresponding tenth-workday hard stop.
+
+Every Codex or Claude model-bearing order for this Goal ID must match the exact
+v3 version and digest and must obtain a fresh Ubuntu pre-reservation receipt.
+The same Goal ID with an old, unknown or mistyped version/digest is not legacy
+work and cannot use a receipt-free dispatch path. The receipt must also bind
+the exact authority projection, WorkOrder SHA-256, candidate checkout and
+current immutable runtime generation. Deployment admission-only acceptance
+remains no-model evidence and cannot create or substitute for Owner approval,
+a reservation, an attempt, a product checkpoint or product acceptance.
+
 ## Deterministic trial
 
 Run from a clean implementation checkout:

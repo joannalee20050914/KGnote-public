@@ -1,6 +1,7 @@
 import importlib.util
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,6 +9,8 @@ from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
+import product_goal_worker_identity as PRODUCT_IDENTITY
 SPEC = importlib.util.spec_from_file_location("bootstrap", ROOT / "scripts/linux_worker_bootstrap.py")
 BOOTSTRAP = importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(BOOTSTRAP)
 
@@ -19,8 +22,8 @@ class LinuxWorkerBootstrapTest(unittest.TestCase):
             "identity_kind":"KGNOTE_PRODUCT_GOAL", "authority_kind":"GITHUB_OWNER_APPROVAL",
             "repository":"joannalee20050914/KGnote-public", "issue":9,
             "goal_id":"GOAL-KGNOTE-O2-READING-EXPERIENCE",
-            "goal_version":"2026-10-23.2-s0-s2-proposal",
-            "goal_spec_sha256":"82716b31f004f108c935169493f2fa918e5144f12419302ba2c9fdcec91b6604",
+            "goal_version":PRODUCT_IDENTITY.PRODUCT_GOAL_VERSION,
+            "goal_spec_sha256":PRODUCT_IDENTITY.PRODUCT_GOAL_SPEC_SHA256,
             "work_item_id":work_item, "provider":provider, "stage":stage,
             "order_event_id":event, "branch":"codex/o2-reading-experience",
             "candidate_commit":commit, "candidate_fingerprint":"2"*64,
