@@ -79,6 +79,18 @@ FINGERPRINT_EXCLUDES = {
 }
 FINGERPRINT_EXCLUDE_PREFIXES = (".ai/REVIEW_HISTORY/", ".ai/WORK_ITEM_REVIEW_HISTORY/", ".ai/ORCHESTRATION_HISTORY/")
 PUBLICATION_RECEIPT_PATH = Path(".ai/PUBLICATION_RECEIPT.md")
+O2_PREPUBLICATION_PROFILE = "kgnote.o2-prepublication-verification.v1"
+O2_PRODUCT_GOAL_ID = "GOAL-KGNOTE-O2-READING-EXPERIENCE"
+O2_PRODUCT_GOAL_VERSION = "2026-10-29.4-bounded-trial-day0-proposal"
+O2_PRODUCT_GOAL_SPEC_SHA256 = "7e9a31e87d36a2cb23789602f3bafb4fe29469d0fa57dcda33b9e8ba1295e08f"
+O2_PRODUCT_REPOSITORY = "joannalee20050914/KGnote-public"
+O2_PRODUCT_BRANCH = "codex/o2-reading-experience"
+O2_DEFERRED_REMOTE_PUBLICATION_TESTS = (
+    "test_codex_control.RepositoryIntegrityTests."
+    "test_current_orchestrator_state_matches_plan_and_review_bus",
+    "test_codex_control.RepositoryIntegrityTests."
+    "test_fresh_agent_can_reconstruct_resume_state_from_repository_only",
+)
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -3479,7 +3491,67 @@ def validate_publication_adapter_identity(
     return errors, snapshot
 
 
-def preflight(repo: Path) -> dict[str, Any]:
+def validate_o2_prepublication_context(
+    repo: Path,
+    context: object,
+    *,
+    fingerprint: dict[str, Any],
+    head: str,
+    dirty_paths: list[str],
+) -> list[str]:
+    """Admit only an exact O2 candidate that has not reached trusted publication.
+
+    This is deliberately separate from the legacy publication adapter.  It does
+    not manufacture a GitHub snapshot or relax the PR #28 contract.  It only
+    permits deterministic local verification before the O2 publisher has pushed
+    the branch and the Mac Runner has created/read back its exact Draft PR.
+    """
+    if not isinstance(context, dict):
+        return ["o2_prepublication: sealed context must be an object"]
+    errors: list[str] = []
+    expected = {
+        "schema_version": O2_PREPUBLICATION_PROFILE,
+        "goal_id": O2_PRODUCT_GOAL_ID,
+        "goal_version": O2_PRODUCT_GOAL_VERSION,
+        "goal_spec_sha256": O2_PRODUCT_GOAL_SPEC_SHA256,
+        "repository": O2_PRODUCT_REPOSITORY,
+        "branch": O2_PRODUCT_BRANCH,
+        "pull_request": None,
+        "repository_plan_status_authoritative": False,
+        "candidate_commit": head,
+        "candidate_fingerprint": fingerprint.get("value"),
+    }
+    for key, value in expected.items():
+        if context.get(key) != value:
+            errors.append(f"o2_prepublication: {key} differs from the exact sealed candidate")
+    if git_text(repo, "branch", "--show-current") != O2_PRODUCT_BRANCH:
+        errors.append("o2_prepublication: checkout branch differs from the exact O2 product branch")
+    if dirty_paths:
+        errors.append("o2_prepublication: candidate checkout must be clean")
+    if not (repo / PUBLICATION_RECEIPT_PATH).is_file():
+        errors.append("o2_prepublication: tracked legacy publication contract is missing")
+    phase = context.get("phase")
+    if phase == "POST_MODEL_SUCCESSOR":
+        parent = context.get("candidate_parent")
+        if not isinstance(parent, str) or not re.fullmatch(r"[0-9a-f]{40}", parent):
+            errors.append("o2_prepublication: successor parent is invalid")
+        else:
+            try:
+                actual_parent = git_text(repo, "rev-parse", "HEAD^")
+            except subprocess.CalledProcessError:
+                actual_parent = ""
+            if actual_parent != parent or parent == head:
+                errors.append("o2_prepublication: successor is not the exact child of the sealed parent")
+    elif phase != "SEALED_CANDIDATE":
+        errors.append("o2_prepublication: unsupported verification phase")
+    return errors
+
+
+def preflight(
+    repo: Path,
+    *,
+    o2_prepublication_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
     required = ("AGENTS.md", "PLAN.md", "CODEX_STATUS.md", "DEVELOPMENT_PLAIN.md")
@@ -3540,16 +3612,46 @@ def preflight(repo: Path) -> dict[str, Any]:
 
     worktrees = [line[9:] for line in git_text(repo, "worktree", "list", "--porcelain").splitlines() if line.startswith("worktree ")]
     fingerprint = repository_fingerprint(repo)
+    verification_profile = "DEFAULT"
+    remote_publication_identity = {"required": False, "verified": False}
     if publication_adapter_checkout:
-        adapter_errors, _ = validate_publication_adapter_identity(
-            repo, fingerprint, head
-        )
-        errors.extend(adapter_errors)
-        if not adapter_errors:
-            warnings.append(
-                "Clean publication-adapter checkout: live canonical PR head and marker fingerprint resolved exactly; "
-                "mutable STATUS/review receipts are historical."
+        if o2_prepublication_context is not None:
+            verification_profile = O2_PREPUBLICATION_PROFILE
+            prepublication_errors = validate_o2_prepublication_context(
+                repo,
+                o2_prepublication_context,
+                fingerprint=fingerprint,
+                head=head,
+                dirty_paths=dirty,
             )
+            errors.extend(prepublication_errors)
+            remote_publication_identity = {
+                "required": True,
+                "verified": False,
+                "reason": "trusted O2 publication and exact Draft PR read-back remain downstream",
+            }
+            if not prepublication_errors:
+                warnings.append(
+                    "Exact O2 pre-publication candidate admitted for local verification only; "
+                    "Legacy PR #28 was not consulted or weakened and O2 remote identity remains required."
+                )
+        else:
+            adapter_errors, _ = validate_publication_adapter_identity(
+                repo, fingerprint, head
+            )
+            errors.extend(adapter_errors)
+            remote_publication_identity = {
+                "required": True,
+                "verified": not adapter_errors,
+                "reason": "legacy publication adapter exact live PR identity",
+            }
+            if not adapter_errors:
+                warnings.append(
+                    "Clean publication-adapter checkout: live canonical PR head and marker fingerprint resolved exactly; "
+                    "mutable STATUS/review receipts are historical."
+                )
+    elif o2_prepublication_context is not None:
+        errors.append("o2_prepublication: exact clean publication-contract checkout is required")
     if not publication_adapter_checkout:
         errors.extend(validate_recorded_fingerprint(status, fingerprint))
     review_errors: list[str] = []
@@ -3583,6 +3685,8 @@ def preflight(repo: Path) -> dict[str, Any]:
         "unexpected_dirty_paths": unexpected,
         "tool_versions": versions,
         "fingerprint": fingerprint,
+        "verification_profile": verification_profile,
+        "remote_publication_identity": remote_publication_identity,
         "review": {
             "state": review_state,
             "artifact_errors": review_errors,
@@ -3696,8 +3800,12 @@ def milestone_after_verification(active_id: str, success: bool) -> str:
     return "candidate_verified" if success else "active"
 
 
-def verify(repo: Path) -> tuple[dict[str, Any], int]:
-    before = preflight(repo)
+def verify(
+    repo: Path,
+    *,
+    o2_prepublication_context: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], int]:
+    before = preflight(repo, o2_prepublication_context=o2_prepublication_context)
     timestamp = datetime.now(ZoneInfo("Asia/Taipei"))
     evidence_dir = repo / "output/control-plane"
     evidence_dir.mkdir(parents=True, exist_ok=True)
@@ -3710,6 +3818,33 @@ def verify(repo: Path) -> tuple[dict[str, Any], int]:
         base_env = os.environ.copy()
         guard_env = base_env | {"PYTHONPATH": str(repo / "docs/requirements")}
         product_env = base_env | {"PYTHONPATH": str(repo / "src")}
+        control_test_command = [
+            str(test_python), "-m", "unittest", "discover", "-s",
+            "tests/control_plane", "-p", "test_*.py", "-v",
+        ]
+        control_test_details: dict[str, Any] | None = None
+        if before.get("verification_profile") == O2_PREPUBLICATION_PROFILE:
+            control_test_command = [
+                str(test_python),
+                str(Path(__file__).resolve().with_name("o2_prepublication_control_tests.py")),
+                "--repo", str(repo),
+            ]
+            control_test_details = {
+                "deferred_gate": "trusted_remote_publication_identity",
+                "deferred_tests": list(O2_DEFERRED_REMOTE_PUBLICATION_TESTS),
+                "reason": (
+                    "the sealed O2 product checkout declares repository PLAN/STATUS "
+                    "non-authoritative before trusted publication"
+                ),
+            }
+        control_test_gate = execute_gate(
+            "control_plane_negative_tests",
+            control_test_command,
+            repo,
+            product_env,
+        )
+        if control_test_details is not None:
+            control_test_gate["details"] = control_test_details
         gates = [
             execute_gate(
                 "requirements_guard",
@@ -3723,12 +3858,7 @@ def verify(repo: Path) -> tuple[dict[str, Any], int]:
                 repo,
                 guard_env,
             ),
-            execute_gate(
-                "control_plane_negative_tests",
-                [str(test_python), "-m", "unittest", "discover", "-s", "tests/control_plane", "-p", "test_*.py", "-v"],
-                repo,
-                product_env,
-            ),
+            control_test_gate,
             execute_gate(
                 "python_product_tests",
                 [str(test_python), "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py", "-v"],
@@ -3738,6 +3868,19 @@ def verify(repo: Path) -> tuple[dict[str, Any], int]:
             execute_gate("node_tests", ["npm", "test"], repo, base_env),
             execute_gate("strict_git_diff_check", ["git", "diff", "--check"], repo, base_env),
         ]
+        if before.get("verification_profile") == O2_PREPUBLICATION_PROFILE:
+            gates.append(
+                execute_gate(
+                    "o2_product_completion_gate",
+                    [
+                        str(test_python), "-m", "unittest", "-v",
+                        "tests.test_personal_alpha_presentation",
+                        "tests.test_personal_alpha_workspace",
+                    ],
+                    repo,
+                    product_env,
+                )
+            )
         verification_plan, _ = load_plan_status(repo)
         completion_receipts, receipt_errors = execute_completion_test_receipts(
             repo,
@@ -3806,6 +3949,8 @@ def verify(repo: Path) -> tuple[dict[str, Any], int]:
         "fingerprint_after": after_fingerprint,
         "fingerprint_stable": stable,
         "preflight": before,
+        "verification_profile": before.get("verification_profile", "DEFAULT"),
+        "remote_publication_identity": before.get("remote_publication_identity"),
         "gates": gates,
         "claims": claims,
         "result": "pass" if success else "fail",

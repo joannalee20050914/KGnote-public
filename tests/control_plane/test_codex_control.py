@@ -709,6 +709,61 @@ class RepositoryIntegrityTests(unittest.TestCase):
                 CONTROL.is_clean_publication_adapter_checkout(repo, ["CODEX_STATUS.md"])
             )
 
+    def test_exact_o2_prepublication_context_does_not_reuse_legacy_pr_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            subprocess.run(
+                ["git", "init", "-b", CONTROL.O2_PRODUCT_BRANCH, str(repo)],
+                check=True,
+                capture_output=True,
+            )
+            subprocess.run(["git", "-C", str(repo), "config", "user.email", "test@example.invalid"], check=True)
+            subprocess.run(["git", "-C", str(repo), "config", "user.name", "KGnote Test"], check=True)
+            (repo / ".ai").mkdir()
+            (repo / CONTROL.PUBLICATION_RECEIPT_PATH).write_text("legacy contract remains tracked\n")
+            (repo / "candidate.txt").write_text("exact candidate\n")
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "candidate"], check=True)
+            identity = CONTROL.repository_fingerprint(repo)
+            context = {
+                "schema_version": CONTROL.O2_PREPUBLICATION_PROFILE,
+                "goal_id": CONTROL.O2_PRODUCT_GOAL_ID,
+                "goal_version": CONTROL.O2_PRODUCT_GOAL_VERSION,
+                "goal_spec_sha256": CONTROL.O2_PRODUCT_GOAL_SPEC_SHA256,
+                "repository": CONTROL.O2_PRODUCT_REPOSITORY,
+                "branch": CONTROL.O2_PRODUCT_BRANCH,
+                "pull_request": None,
+                "repository_plan_status_authoritative": False,
+                "candidate_commit": identity["head"],
+                "candidate_fingerprint": identity["value"],
+                "phase": "SEALED_CANDIDATE",
+            }
+            self.assertEqual(
+                [],
+                CONTROL.validate_o2_prepublication_context(
+                    repo,
+                    context,
+                    fingerprint=identity,
+                    head=identity["head"],
+                    dirty_paths=[],
+                ),
+            )
+            for changed in (
+                {"goal_version": "wrong"},
+                {"pull_request": 28},
+                {"candidate_fingerprint": "0" * 64},
+                {"repository_plan_status_authoritative": True},
+            ):
+                with self.subTest(changed=changed):
+                    errors = CONTROL.validate_o2_prepublication_context(
+                        repo,
+                        {**context, **changed},
+                        fingerprint=identity,
+                        head=identity["head"],
+                        dirty_paths=[],
+                    )
+                    self.assertTrue(errors)
+
     def test_branch_name_is_diagnostic_and_not_part_of_v3_fingerprint(self):
         manifest = {
             "algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",

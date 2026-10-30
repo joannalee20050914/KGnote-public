@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -1955,6 +1956,15 @@ def bind_candidate_pull_request(
     ]
     if not published:
         raise GoalRunnerError("candidate PR cannot be created before publication completes")
+    projection = goal_continuity.reduce_ledger(goal_continuity.read_ledger(ledger_path))
+    publication = projection.get("publications", {}).get(published[-1]["work_item_id"])
+    if (
+        not isinstance(publication, dict)
+        or publication.get("status") not in {"PUBLISHED", "READ_BACK_VERIFIED"}
+        or not isinstance(publication.get("receipt_sha256"), str)
+        or not re.fullmatch(r"[0-9a-f]{64}", publication["receipt_sha256"])
+    ):
+        raise GoalRunnerError("candidate PR binding lacks an exact trusted publication receipt")
     updated = deepcopy(durable)
     updated["candidate_identity"]["pull_request"] = pull_request
     event_id = "candidate-pr-bound-" + hashlib.sha256(
@@ -1970,7 +1980,9 @@ def bind_candidate_pull_request(
         attempt_id=None, payload={
             "operation": "CANDIDATE_PULL_REQUEST_BOUND",
             "pull_request": pull_request, "candidate_commit": head,
+            "candidate_fingerprint": candidate["fingerprint"],
             "branch": branch, "artifact_url": artifact_url,
+            "publication_receipt_sha256": publication["receipt_sha256"],
             "state_patch": _state_patch(updated),
         },
     )

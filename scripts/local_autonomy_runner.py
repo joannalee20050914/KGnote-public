@@ -64,6 +64,7 @@ QUEUE_PROJECTION_STATES = {
 }
 QUEUE_LABEL_RETRY = "queue-label-retry.json"
 QUEUE_LABEL_RETRY_SECONDS = (60, 120, 300, 600, 1200, 1800)
+O2_PRODUCT_CANDIDATE_MARKER = "kgnote-o2-product-candidate:v1"
 
 
 class PendingWriteConflict(RuntimeError):
@@ -2395,6 +2396,11 @@ def ensure_product_goal_pull_request(
     repository = str(spec["repository"])
     branch = str(candidate.get("branch") or "")
     head = str(candidate.get("commit") or "")
+    fingerprint = str(candidate.get("fingerprint") or "")
+    marker = (
+        f"<!-- {O2_PRODUCT_CANDIDATE_MARKER} "
+        f"candidate_commit={head} candidate_fingerprint={fingerprint} -->"
+    )
     query = command_runner(
         [
             "/opt/homebrew/bin/gh", "pr", "list", "--repo", repository,
@@ -2418,7 +2424,8 @@ def ensure_product_goal_pull_request(
             "## 目的\n\n"
             "承載 O2 有界試行的產品候選；此 Draft PR 不代表 Owner 驗收或合併授權。\n\n"
             "## 邊界\n\n"
-            "候選仍須通過 deterministic verification、Ubuntu Claude 獨立審查與最終人工驗收。"
+            "候選仍須通過 deterministic verification、Ubuntu Claude 獨立審查與最終人工驗收。\n\n"
+            + marker
         )
         created = command_runner(
             [
@@ -2434,7 +2441,7 @@ def ensure_product_goal_pull_request(
     readback = command_runner(
         [
             "/opt/homebrew/bin/gh", "pr", "view", branch, "--repo", repository,
-            "--json", "number,headRefOid,headRefName,state,isDraft,url",
+            "--json", "number,headRefOid,headRefName,state,isDraft,url,body",
         ],
         cwd=repo, capture_output=True, text=True, timeout=30, check=False,
     )
@@ -2444,6 +2451,14 @@ def ensure_product_goal_pull_request(
         observed = json.loads(readback.stdout)
     except json.JSONDecodeError as exc:
         raise goal_runner_adapter.GoalRunnerError("GitHub candidate PR read-back is not JSON") from exc
+    marker_pattern = re.compile(
+        rf"<!--\s*{re.escape(O2_PRODUCT_CANDIDATE_MARKER)}\s+"
+        rf"candidate_commit=([0-9a-f]{{40}})\s+"
+        rf"candidate_fingerprint=([0-9a-f]{{64}})\s*-->"
+    )
+    marker_matches = marker_pattern.findall(
+        str(observed.get("body", "")) if isinstance(observed, dict) else ""
+    )
     if (
         not isinstance(observed, dict)
         or observed.get("headRefOid") != head
@@ -2451,8 +2466,11 @@ def ensure_product_goal_pull_request(
         or observed.get("state") != "OPEN"
         or observed.get("isDraft") is not True
         or not isinstance(observed.get("url"), str)
+        or marker_matches != [(head, fingerprint)]
     ):
-        raise goal_runner_adapter.GoalRunnerError("GitHub candidate PR read-back differs from the exact candidate")
+        raise goal_runner_adapter.GoalRunnerError(
+            "GitHub candidate PR HEAD/branch/fingerprint read-back differs from the exact candidate"
+        )
     return goal_runner_adapter.bind_candidate_pull_request(
         spec, state, state_path=state_path, ledger_path=ledger_path,
         pull_request=int(observed["number"]), head=head, branch=branch,

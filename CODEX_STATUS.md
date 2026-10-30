@@ -1,54 +1,75 @@
 # KGnote Codex status
 
-This handoff describes only the bounded O2 v4 admission event identity repair.
-It does not authorize a product model dispatch or formal state mutation.
+This handoff covers only the bounded O2 v4 exact-successor recovery. Product model
+launches remain unauthorized and the formal Runner remains unloaded.
 
 <!-- BEGIN CODEX STATUS JSON -->
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-29T20:59:47+08:00",
-  "goal_id": "CODEX-APP-GOAL-O2-DAY0-ACCELERATION-20261029",
-  "active_goal": "CODEX-APP-GOAL-O2-DAY0-ACCELERATION-20261029",
+  "updated_at": "2026-10-30T11:00:17+08:00",
+  "goal_id": "CODEX-APP-GOAL-O2-SUCCESSOR-RECOVERY-20261030",
+  "active_goal": "CODEX-APP-GOAL-O2-SUCCESSOR-RECOVERY-20261030",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
   "authority_kind": "CURRENT_USER_EXECUTION_INSTRUCTION",
   "lifecycle_owner": "CODEX_APP",
   "product_goal_authorized": false,
   "goal_status": "active",
-  "active_milestone_id": "D1-EXACT-VERIFICATION-AND-REVIEW",
-  "milestone_id": "D1-EXACT-VERIFICATION-AND-REVIEW",
+  "active_milestone_id": "R2-EXACT-VERIFY-REVIEW-MERGE",
+  "milestone_id": "R2-EXACT-VERIFY-REVIEW-MERGE",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
   "git": {
-    "branch": "codex/o2-admission-event-id-repair-20261029",
-    "head": "8a242fff318af636b937e9f9540d0121fa9c0191",
-    "base_commit": "8a242fff318af636b937e9f9540d0121fa9c0191",
+    "branch": "codex/o2-successor-recovery-20261030",
+    "head": "4388aa2a8d7c63cf2b81a7314176f646eec9a276",
+    "base_commit": "4388aa2a8d7c63cf2b81a7314176f646eec9a276",
     "checkpoint_commit": null,
     "draft_pull_request": null
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "6f33db759d7a1de532a35e72364dd3a61383f326b1837d22f6418b58ae132b66",
-    "starting_fingerprint": "6f33db759d7a1de532a35e72364dd3a61383f326b1837d22f6418b58ae132b66",
-    "expected_dirty_policy": "Only the admission event identity validator, Router shared canonical helper, matching Ubuntu runtime manifest digest, shared fixtures, bounded tests, execution direction, PLAN/STATUS/review artifacts and ignored verification evidence may change.",
+    "fingerprint": "336674720df9b102a4edeab926b51d639897ce64c4416c950b28b6e4e0b2d839",
+    "starting_fingerprint": "99cd41a7622dde14a1ed02fba30d7c7ac51339e9179af9f4fb27cc36417412ff",
+    "expected_dirty_policy": "Only the exact successor recovery direction, verifier/worker/publication/recovery control, matching runtime manifest, bounded tests, PLAN/STATUS/review artifacts and ignored verification evidence may change.",
     "preserved_preexisting_dirty_paths": [],
     "unexpected_dirty_paths": []
   },
   "formal_v4_readback": {
     "goal_version": "2026-10-29.4-bounded-trial-day0-proposal",
     "goal_spec_sha256": "7e9a31e87d36a2cb23789602f3bafb4fe29469d0fa57dcda33b9e8ba1295e08f",
-    "state_sha256": "b033d1ee0b0305d4d1dbf042b31cc6c3d4b985d6b946068d7584afb666a5bfc4",
-    "ledger_sha256": "fb031f16a52f3d22ccc5b197cafd030fa34b299060a165aa339ca025b6202b13",
-    "ledger_cursor": 3,
+    "state_sha256": "6c644af8ad65172dd3235e1f01fad429d11ea30864a823465bcfe226ac73f0ec",
+    "ledger_sha256": "849301d3778faded3153101f318792ea390b109d7ff8f169e61c922bd9040328",
+    "ledger_cursor": 8,
     "lifecycle": "ACTIVE",
     "authority_lease": "ACTIVE",
     "go_live_authorized": true,
-    "dispatch_reservations": 0,
-    "v4_model_attempts": 0,
-    "carried_codex_charges": 3,
+    "dispatch_reservations": 1,
+    "active_reservations": 0,
+    "v4_model_attempts": 1,
+    "active_attempts": 0,
+    "carried_codex_charges": 4,
     "codex_ceiling": 5,
+    "attempt_result": "DETERMINISTIC_WORKER_FAILURE",
     "transition_start_slo": "VIOLATED"
+  },
+  "runner_hold": {
+    "label": "com.kgnote.local-autonomy-runner",
+    "status": "UNLOADED",
+    "control": "launchctl bootout gui/501 with the unchanged installed plist",
+    "plist_sha256": "71bc51724fcaf07b6b0dd9c03788e9377dc94a6c9157701f8d14faee74d4813f",
+    "reason": "prevent a second product Codex reservation during recovery engineering and append"
+  },
+  "successor_evidence": {
+    "root": "/Users/joanna/Library/Application Support/KGnote/recovery-evidence/o2-v4-attempt1-20261030T100109+0800",
+    "manifest_sha256": "41c831ff86d9d3bdacdfea13dcd6ea16c1ec12af4b78c1fcba17011f2b6be78c",
+    "bundle_sha256": "08748df291a1038b76fe8afbe2c8264f627ef1ddd2b5091e296f653cf8c24874",
+    "commit": "95d437a20ee31e48a49e2ee9b6f83ca3d4a931a6",
+    "parent": "483f9e64066821d5d647d411e6da8ddb50ad88e5",
+    "tree": "b2a66a296d2a76d8b79ce5343eb8447f6e9421ff",
+    "fingerprint": "a08eccbee8f62560a8c5e279096b5a9befd94755b40e4b40f648e0ffa17a8904",
+    "rehash_status": "PASS",
+    "bundle_readback": "PASS"
   },
   "implementation_state": "IMPLEMENTING",
   "review": {
@@ -60,60 +81,31 @@ It does not authorize a product model dispatch or formal state mutation.
     "human_decision_blockers": []
   },
   "verification": {
-    "candidate_verified": true,
+    "candidate_verified": false,
     "release_verified": false,
     "control_plane_ready": true,
-    "last_candidate_evidence": "output/control-plane/verification-20261029T205824+0800.json",
-    "last_verified_fingerprint": "6f33db759d7a1de532a35e72364dd3a61383f326b1837d22f6418b58ae132b66",
-    "last_result": "PASS: 438 control-plane tests, 348 product Python tests, 60 Node tests, requirements guards, strict diff, public safety, stable fingerprint and evidence read-back. Commit-bound verification remains required after the checkpoint commit."
+    "last_candidate_evidence": "output/control-plane/verification-20261030T110052+0800.json",
+    "last_verified_fingerprint": "e902ac842c96f23e34d2263482bcdc578424aaf12762f27c876813273913145a",
+    "last_result": "PASS at pre-milestone-transition fingerprint e902ac842c96f23e34d2263482bcdc578424aaf12762f27c876813273913145a: 451 control-plane tests, 348 product Python tests, 60 Node tests and all deterministic gates; commit-bound verification remains required after the R2 bookkeeping change."
   },
-  "repair_evidence": {
-    "root_cause": "validator compared admission Router checkpoint.event_id with product WorkOrder order_event_id",
-    "positive_target": "real Router admission path checkpoint accepted by Mac validator without model process",
-    "negative_targets": [
-      "wrong_event_id",
-      "wrong_challenge",
-      "wrong_work_order_hash",
-      "wrong_runtime_identity",
-      "checkpoint_tamper"
-    ],
-    "targeted_tests": 123,
-    "targeted_status": "PASS"
-  },
-  "next_action": "Create the path-explicit checkpoint commit, rerun commit-bound verification, then issue the exact Ubuntu Claude review request.",
+  "next_action": "Create the path-explicit checkpoint commit, rerun commit-bound verification, then seal the exact candidate for independent Ubuntu Claude infrastructure review.",
   "external_or_human_gates": [
-    {
-      "id": "REPAIR-EXACT-CLAUDE-PASS",
-      "status": "not_started"
-    },
-    {
-      "id": "REPAIR-MAC-UBUNTU-DEPLOYMENT",
-      "status": "not_started"
-    },
-    {
-      "id": "REPAIR-DEPLOYED-NO-MODEL-ACCEPTANCE",
-      "status": "not_started"
-    },
-    {
-      "id": "D2-T14-FINAL-HUMAN-ACCEPTANCE",
-      "status": "not_promoted"
-    },
-    {
-      "id": "PA-HUMAN-1",
-      "status": "not_promoted"
-    },
-    {
-      "id": "NS-HUMAN-SMOKE",
-      "status": "not_promoted"
-    }
+    {"id": "RECOVERY-EXACT-VERIFICATION", "status": "precommit_pass"},
+    {"id": "RECOVERY-UBUNTU-CLAUDE-INFRASTRUCTURE-REVIEW", "status": "not_started"},
+    {"id": "RECOVERY-NORMAL-PR-MERGE", "status": "not_started"},
+    {"id": "RECOVERY-MAC-UBUNTU-DEPLOYMENT", "status": "not_started"},
+    {"id": "RECOVERY-ONE-TIME-APPEND", "status": "not_started"},
+    {"id": "O2-PRODUCT-CLAUDE-REVIEW", "status": "not_started"},
+    {"id": "PA-HUMAN-1", "status": "not_promoted"},
+    {"id": "NS-HUMAN-SMOKE", "status": "not_promoted"}
   ],
   "forbidden_during_goal": [
-    "modify formal v4 state, ledger, checkpoints, activation receipts, Owner APPROVE or Goal spec/digest",
-    "publish APPROVE or RESUME, create DISPATCH_RESERVED, reset quota or fabricate model evidence",
-    "remove or prefix-only weaken event identity validation",
-    "rewrite the 2026-10-29 transition-start SLO violation",
-    "deploy before exact Ubuntu Claude PASS and normal GitHub integration",
-    "start an O2 product model outside its ordinary authorized Runner window"
+    "start product Codex/Claude, create a new reservation, increase or reset quota",
+    "manually edit formal state/ledger/checkpoints or overwrite historical events",
+    "modify Owner APPROVE, Goal version/digest, date, SLO or human gates",
+    "weaken Legacy PR #28 or remote PR identity validation",
+    "append before exact verification, independent review, merge, deployment and no-model acceptance",
+    "reload the formal Runner before the recovery state is proven safe"
   ]
 }
 ```
@@ -121,9 +113,9 @@ It does not authorize a product model dispatch or formal state mutation.
 
 ## Human-readable handoff
 
-Goal `CODEX-APP-GOAL-O2-DAY0-ACCELERATION-20261029` remains active at milestone `D1-EXACT-VERIFICATION-AND-REVIEW`.
+Goal `CODEX-APP-GOAL-O2-SUCCESSOR-RECOVERY-20261030` remains active at milestone `R2-EXACT-VERIFY-REVIEW-MERGE`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Create the path-explicit checkpoint commit, rerun commit-bound verification, then issue the exact Ubuntu Claude review request.
+Exact next action: Create the path-explicit checkpoint commit, rerun commit-bound verification, then seal the exact candidate for independent Ubuntu Claude infrastructure review.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.
