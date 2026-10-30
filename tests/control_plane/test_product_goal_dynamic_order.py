@@ -258,7 +258,18 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
             state["candidate_identity"]["pull_request"]=None
             publish=next(row for row in state["work_items"] if row["work_item_id"]=="WI-O2-A-PUBLISH")
             publish["status"]="VERIFIED"
-            state_path=self.write_state(repo,state); ledger_path=repo/"ledger.jsonl"
+            ledger_path=repo/"ledger.jsonl"
+            publication_event,_=GOAL.append_ledger_event(
+                ledger_path,event_id="publication-fixture",event_type="RESULT_PUBLICATION_RECORDED",
+                occurred_at=NOW,goal_id=self.spec["goal_id"],goal_version=self.spec["goal_version"],
+                logical_work_id="WI-O2-A-PUBLISH",attempt_id=None,
+                payload={"status":"PUBLISHED","receipt_sha256":"4"*64},
+            )
+            state["event_cursor"]={
+                "sequence":publication_event["sequence"],
+                "event_sha256":publication_event["event_sha256"],
+            }
+            state_path=self.write_state(repo,state)
             calls=[]
 
             def fake(command,**kwargs):
@@ -271,6 +282,10 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
                     "number":44,"headRefOid":"1"*40,
                     "headRefName":"codex/o2-reading-experience",
                     "state":"OPEN","isDraft":True,"url":"https://example.invalid/pr/44",
+                    "body":(
+                        "<!-- kgnote-o2-product-candidate:v1 candidate_commit="
+                        + "1"*40 + " candidate_fingerprint=" + "2"*64 + " -->"
+                    ),
                 }
                 return subprocess.CompletedProcess(command,0,json.dumps(observed),"")
 
@@ -282,6 +297,57 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
             self.assertEqual(["list","create","view"],[row[2] for row in calls])
             events=GOAL.read_ledger(ledger_path)
             self.assertEqual("CANDIDATE_PULL_REQUEST_BOUND",events[-1]["payload"]["operation"])
+            self.assertEqual("2"*64,events[-1]["payload"]["candidate_fingerprint"])
+            self.assertEqual("4"*64,events[-1]["payload"]["publication_receipt_sha256"])
+
+    def test_candidate_pr_binding_rejects_missing_publication_receipt_and_fingerprint_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo=Path(directory); state=deepcopy(self.state)
+            state["event_cursor"]={"sequence":0,"event_sha256":None}
+            state["candidate_identity"]["pull_request"]=None
+            publish=next(row for row in state["work_items"] if row["work_item_id"]=="WI-O2-A-PUBLISH")
+            publish["status"]="VERIFIED"
+            state_path=self.write_state(repo,state); ledger_path=repo/"ledger.jsonl"
+            with self.assertRaisesRegex(ADAPTER.GoalRunnerError,"publication receipt"):
+                ADAPTER.bind_candidate_pull_request(
+                    self.spec,state,state_path=state_path,ledger_path=ledger_path,
+                    pull_request=44,head="1"*40,branch="codex/o2-reading-experience",
+                    artifact_url="https://example.invalid/pr/44",occurred_at=NOW,
+                )
+            publication_event,_=GOAL.append_ledger_event(
+                ledger_path,event_id="publication-fixture",event_type="RESULT_PUBLICATION_RECORDED",
+                occurred_at=NOW,goal_id=self.spec["goal_id"],goal_version=self.spec["goal_version"],
+                logical_work_id="WI-O2-A-PUBLISH",attempt_id=None,
+                payload={"status":"PUBLISHED","receipt_sha256":"4"*64},
+            )
+            state["event_cursor"]={
+                "sequence":publication_event["sequence"],
+                "event_sha256":publication_event["event_sha256"],
+            }
+            GOAL.atomic_write_json(state_path,state)
+
+            def fake(command,**kwargs):
+                if command[1:3] == ["pr","list"]:
+                    return subprocess.CompletedProcess(command,0,"[]","")
+                if command[1:3] == ["pr","create"]:
+                    return subprocess.CompletedProcess(command,0,"https://example.invalid/pr/44\n","")
+                observed={
+                    "number":44,"headRefOid":"1"*40,
+                    "headRefName":"codex/o2-reading-experience","state":"OPEN",
+                    "isDraft":True,"url":"https://example.invalid/pr/44",
+                    "body":(
+                        "<!-- kgnote-o2-product-candidate:v1 candidate_commit="
+                        + "1"*40 + " candidate_fingerprint=" + "9"*64 + " -->"
+                    ),
+                }
+                return subprocess.CompletedProcess(command,0,json.dumps(observed),"")
+
+            with self.assertRaisesRegex(ADAPTER.GoalRunnerError,"fingerprint"):
+                RUNNER.ensure_product_goal_pull_request(
+                    repo,self.spec,state,state_path=state_path,ledger_path=ledger_path,
+                    occurred_at=NOW,command_runner=fake,
+                )
+            self.assertEqual(1,len(GOAL.read_ledger(ledger_path)))
 
 
 if __name__ == "__main__": unittest.main()

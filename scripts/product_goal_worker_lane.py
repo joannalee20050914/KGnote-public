@@ -120,6 +120,52 @@ def _exact_candidate(repo: Path, context: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _o2_prepublication_verification_context(
+    context: dict[str, Any],
+    candidate: dict[str, Any],
+    *,
+    phase: str,
+) -> dict[str, Any]:
+    runner_context = context.get("runner_context")
+    repository_plan_status_authoritative = (
+        runner_context.get("repository_plan_status_authoritative")
+        if isinstance(runner_context, dict)
+        else None
+    )
+    value = {
+        "schema_version": codex_control.O2_PREPUBLICATION_PROFILE,
+        "goal_id": context.get("goal_id"),
+        "goal_version": context.get("goal_version"),
+        "goal_spec_sha256": context.get("goal_spec_sha256"),
+        "repository": context.get("repository"),
+        "branch": candidate.get("branch"),
+        "pull_request": context.get("pull_request"),
+        "repository_plan_status_authoritative": repository_plan_status_authoritative,
+        "candidate_commit": candidate.get("commit"),
+        "candidate_fingerprint": candidate.get("fingerprint"),
+        "phase": phase,
+    }
+    if phase == "POST_MODEL_SUCCESSOR":
+        value["candidate_parent"] = context.get("candidate_commit")
+    return value
+
+
+def _run_verifier(
+    verifier: Callable[..., tuple[dict[str, Any], int]],
+    repo: Path,
+    prepublication_context: dict[str, Any],
+) -> tuple[dict[str, Any], int]:
+    # Test doubles and older internal callers intentionally retain their simple
+    # one-argument contract.  The deployed verifier receives the sealed O2
+    # profile explicitly and is the only path allowed to bypass legacy PR #28.
+    if verifier is codex_control.verify:
+        return verifier(
+            repo,
+            o2_prepublication_context=prepublication_context,
+        )
+    return verifier(repo)
+
+
 def _observed_checkout(repo: Path, *, pull_request: object = None) -> dict[str, Any]:
     fingerprint = codex_control.repository_fingerprint(repo)
     branch = subprocess.run(
@@ -451,7 +497,7 @@ def run_admission(
 def run_codex(
     repo: Path, context: dict[str, Any], evidence_path: Path, command: list[str],
     *, runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
-    verifier: Callable[[Path], tuple[dict[str, Any], int]] = codex_control.verify,
+    verifier: Callable[..., tuple[dict[str, Any], int]] = codex_control.verify,
     admitter: Callable[[Path, dict[str, Any], Path], tuple[dict[str, Any], dict[str, str]]] = admit_codex_development_environment,
 ) -> int:
     if not command or command[0] != "/home/kgnote/.local/bin/kgnote-successor-codex":
@@ -478,7 +524,16 @@ def run_codex(
     if candidate["commit"] == context["candidate_commit"]:
         raise LaneError("Codex returned without creating a successor commit")
     _prepare_verifier_environment(repo)
-    verification, verify_code = verifier(repo)
+    verification_context = _o2_prepublication_verification_context(
+        context,
+        candidate,
+        phase="POST_MODEL_SUCCESSOR",
+    )
+    verification, verify_code = _run_verifier(
+        verifier,
+        repo,
+        verification_context,
+    )
     artifact = {
         "schema_version": "kgnote.codex-product-goal-result.v1",
         "status": "COMPLETED" if verify_code == 0 else "FAILED_CLOSED",
@@ -491,6 +546,10 @@ def run_codex(
             "verification_id": verification.get("verification_id"),
             "evidence_path": verification.get("evidence_path"),
             "evidence_sha256": hashlib.sha256(_canonical(verification)).hexdigest(),
+            "verification_profile": verification.get("verification_profile"),
+            "remote_publication_identity": verification.get(
+                "remote_publication_identity"
+            ),
         },
         "environment_admission": {
             "status": admission["status"],
@@ -505,7 +564,7 @@ def run_codex(
 
 def run_verify(
     repo: Path, context: dict[str, Any], evidence_path: Path, *,
-    verifier: Callable[[Path], tuple[dict[str, Any], int]] = codex_control.verify,
+    verifier: Callable[..., tuple[dict[str, Any], int]] = codex_control.verify,
 ) -> int:
     candidate = _exact_candidate(repo, context)
     if (
@@ -514,7 +573,12 @@ def run_verify(
     ):
         raise LaneError("verification checkout differs from the sealed candidate")
     _prepare_verifier_environment(repo)
-    evidence, code = verifier(repo)
+    verification_context = _o2_prepublication_verification_context(
+        context,
+        candidate,
+        phase="SEALED_CANDIDATE",
+    )
+    evidence, code = _run_verifier(verifier, repo, verification_context)
     _atomic_json(evidence_path, evidence)
     return code
 

@@ -81,6 +81,33 @@ class ProductGoalWorkerLaneTest(unittest.TestCase):
         self.assertNotEqual(self.context["candidate_commit"], artifact["candidate_commit"])
         self.assertEqual("PASS", artifact["verification"]["status"])
 
+    def test_o2_prepublication_profile_is_exact_and_keeps_remote_gate_downstream(self):
+        identity = codex_control.repository_fingerprint(self.repo)
+        context = {
+            **self.context,
+            "goal_version": codex_control.O2_PRODUCT_GOAL_VERSION,
+            "goal_spec_sha256": codex_control.O2_PRODUCT_GOAL_SPEC_SHA256,
+            "repository": codex_control.O2_PRODUCT_REPOSITORY,
+            "branch": codex_control.O2_PRODUCT_BRANCH,
+            "pull_request": None,
+            "runner_context": {"repository_plan_status_authoritative": False},
+        }
+        candidate = {
+            "commit": identity["head"],
+            "fingerprint": identity["value"],
+            "branch": codex_control.O2_PRODUCT_BRANCH,
+            "pull_request": None,
+        }
+        profile = LANE._o2_prepublication_verification_context(
+            context,
+            candidate,
+            phase="SEALED_CANDIDATE",
+        )
+        self.assertEqual(codex_control.O2_PREPUBLICATION_PROFILE, profile["schema_version"])
+        self.assertEqual(identity["head"], profile["candidate_commit"])
+        self.assertFalse(profile["repository_plan_status_authoritative"])
+        self.assertIsNone(profile["pull_request"])
+
     def test_codex_environment_admission_seals_context_and_pinned_tools(self):
         evidence = self.evidence_root / "evidence" / "attempt.json"
         tools = self.evidence_root / "tools"; tools.mkdir()

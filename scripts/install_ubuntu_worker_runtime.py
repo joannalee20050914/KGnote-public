@@ -51,6 +51,7 @@ WORKER_RUNTIME_SOURCES = {
     "product_goal_runtime_admission.py": Path("scripts/product_goal_runtime_admission.py"),
     "product_goal_worker_identity.py": Path("scripts/product_goal_worker_identity.py"),
     "product_goal_worker_result.py": Path("scripts/product_goal_worker_result.py"),
+    "o2_prepublication_control_tests.py": Path("scripts/o2_prepublication_control_tests.py"),
     "codex_control.py": Path("scripts/codex_control.py"),
     "claude_billing_preflight.py": Path("scripts/claude_billing_preflight.py"),
     "claude_reviewer_adapter.py": Path("scripts/claude_reviewer_adapter.py"),
@@ -61,6 +62,7 @@ WORKER_RUNTIME_COMPATIBILITY = {
     "codex_jsonl_evidence.py",
     "product_goal_worker_identity.py",
     "product_goal_worker_result.py",
+    "o2_prepublication_control_tests.py",
     "codex_control.py",
     "claude_billing_preflight.py",
     "claude_reviewer_adapter.py",
@@ -70,12 +72,13 @@ WORKER_RUNTIME_GENERATION_ONLY = set(WORKER_RUNTIME_SOURCES) - WORKER_RUNTIME_CO
 WORKER_RUNTIME_IMPORTS = (
     "codex_jsonl_evidence", "linux_landlock_exec", "linux_worker_bootstrap",
     "linux_worker_guard", "product_goal_runtime_admission", "product_goal_worker_identity",
-    "product_goal_worker_result", "codex_control",
+    "product_goal_worker_result", "o2_prepublication_control_tests", "codex_control",
     "claude_billing_preflight", "claude_reviewer_adapter",
     "product_goal_worker_lane",
 )
 WORKER_RUNTIME_ENTRYPOINTS = (
     "product_goal_worker_result.py", "product_goal_worker_lane.py",
+    "o2_prepublication_control_tests.py",
 )
 
 
