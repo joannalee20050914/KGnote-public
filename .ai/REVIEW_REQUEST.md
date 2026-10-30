@@ -7,64 +7,80 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 {
   "schema_version": "kgnote.review-request.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "review_id": "review-o2-successor-recovery-20261030-001",
-  "goal_id": "CODEX-APP-GOAL-O2-SUCCESSOR-RECOVERY-20261030",
-  "milestone_id": "R2-EXACT-VERIFY-REVIEW-MERGE",
+  "review_id": "review-issue47-end-to-end-autonomous-collaboration-001",
+  "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
+  "milestone_id": "EG-0-SPEC-SEAL",
   "status": "IMPLEMENTING",
   "author_role": "CODEX_IMPLEMENTER",
-  "base_revision": "4388aa2a8d7c63cf2b81a7314176f646eec9a276",
+  "base_revision": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
   "candidate_revision": null,
   "candidate_fingerprint": null,
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
-    "docs/control-plane/O2_SUCCESSOR_RECOVERY_DIRECTION_20261030.md",
-    "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.4.json",
+    "docs/control-plane/GOAL_SCOPED_CONTINUOUS_DELEGATION_20261022.md",
     "docs/control-plane/B_SCHEME_OPERATIONS.md",
-    "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
+    "docs/control-plane/ISSUE47_ONESHOT_ENGINEERING_DIRECTION_20261030.md",
+    "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-30.1.json",
+    "schemas/codex-app-engineering-goal/v1/goal-spec.schema.json",
     ".ai/REVIEW_PROTOCOL.md",
+    "schemas/product-goal/v1/goal-spec.schema.json",
+    "schemas/product-goal/v1/runner-state.schema.json",
+    "schemas/product-goal/v1/ledger-event.schema.json",
     "docs/requirements/requirements.json",
     "docs/requirements/scenarios.json",
     "AGENTS.md"
   ],
   "changed_areas": [
-    "PLAN.md", "CODEX_STATUS.md", ".ai/",
-    "docs/control-plane/O2_SUCCESSOR_RECOVERY_DIRECTION_20261030.md",
-    "scripts/codex_control.py", "scripts/product_goal_worker_lane.py",
-    "scripts/local_autonomy_runner.py", "scripts/goal_runner_adapter.py",
-    "scripts/o2_successor_recovery.py", "scripts/o2_prepublication_control_tests.py",
-    "scripts/install_ubuntu_worker_runtime.py", "config/ubuntu-worker-runtime-manifest.json",
-    "tests/control_plane/", "output/control-plane/"
+    "PLAN.md",
+    "CODEX_STATUS.md",
+    ".ai/",
+    "docs/control-plane/ISSUE47_ONESHOT_ENGINEERING_DIRECTION_20261030.md",
+    "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-30.1.json",
+    "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_AUTHORIZATION_PACKAGE_20261030.md",
+    "schemas/codex-app-engineering-goal/v1/",
+    "scripts/collaboration_goal_wakeup.py",
+    "tests/control_plane/test_collaboration_goal_wakeup.py",
+    "tests/control_plane/test_issue47_engineering_goal_spec.py",
+    "output/control-plane/"
   ],
   "acceptance_criteria": [
-    "Exact O2 successor can pass all local deterministic gates before a product PR exists while remote publication identity remains explicitly pending",
-    "Legacy PR #28 validation remains unchanged and a published successor still requires exact repository/branch/HEAD/fingerprint read-back",
-    "The one-time writer binds the exact attempt, successor, complete preserved evidence, live authority, state/ledger baseline, verification PASS and 4/5 accounting",
-    "The writer appends only one idempotent WORK_STATE_TRANSITION and preserves the prior DETERMINISTIC_WORKER_FAILURE history",
-    "Wrong identity, missing or tampered evidence, authority/cursor drift, verifier failure and duplicate execution fail closed without model launch"
+    "保留且不重做既有 readiness checker、11 項邊界測試與 verification evidence",
+    "engineering Goal spec 通過 schema、dependency、budget 與 canonical digest validation",
+    "PLAN、STATUS、review bus 與 spec identity 一致且 preflight/review-validate 綠燈",
+    "以 path-explicit checkpoint commit/push 固定 exact branch bytes，GitHub read-back 一致",
+    "Issue #47 發布一份非自批的 Owner authorization request，清楚列出 exact Goal ID/version/SHA、permissions、resource ceilings、O2 coexistence 與 required reply marker",
+    "在 Owner exact approval 前不啟動背景 Codex／Claude、dispatch、scheduler 或 formal deployment"
   ],
   "negative_requirements": [
-    "Do not start product Codex/Claude, create a reservation, or change quota",
-    "Do not manually edit formal state/ledger/checkpoints or rewrite sequences 1-8",
-    "Do not weaken Legacy PR #28 or fabricate GitHub publication evidence",
-    "Do not append before exact verification, independent infrastructure review, normal merge, controlled deployment and no-model acceptance",
-    "Do not change Owner APPROVE, Goal version/digest, date, SLO or human gates",
-    "Do not rebuild v5 or claim Product Goal completion"
+    "把 Codex App 工程 Goal 或 Issue #47 DRAFT 留言當成 Product Goal APPROVE",
+    "把 readiness checker、單元測試、Draft PR、scheduler 安裝或 no-model admission 當成端到端自治完成",
+    "建立第二套 planner、ledger、Router、worker 或 state machine",
+    "修改、合併、重設或搬用 O2 v4 authority、state、ledger cursor 9、Codex 4/5、checkpoint 或封存 evidence",
+    "啟用或共用舊 com.kgnote.local-autonomy-runner",
+    "在 exact Owner approval 前或工作時段外啟動背景 Codex／Claude、正式 deploy 或 dispatch",
+    "使用付費 API、force push、直接 push main、修改 branch protection 或未批准資料外送",
+    "把 Codex-primary／Claude-reviewer 的證據宣稱為 Claude-primary／Codex-reviewer 已完成",
+    "用 restart、日期、Goal version、branch、PR 或 session 重置 launch/accounting history"
   ],
   "validation_performed": [],
   "validation_results": [],
   "known_deviations": [],
   "known_uncertainties": [],
-  "reviewer_focus": [
-    "Confirm the pre-publication profile cannot bypass remote PR identity after publication",
-    "Confirm append idempotence and every exact formal/evidence precondition",
-    "Confirm the recovered transition advances only the successor and next no-model work"
-  ],
+  "reviewer_focus": [],
   "preserved_human_gates": [
-    "O2-V4-OWNER-AUTHORITY", "O2-PRODUCT-CLAUDE-REVIEW",
-    "D2-T14-FINAL-HUMAN-ACCEPTANCE", "PA-HUMAN-1", "NS-HUMAN-SMOKE"
+    "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
+    "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
+    "ISSUE47-FINAL-OWNER-ACCEPTANCE-AND-GO-LIVE",
+    "ISSUE47-CLAUDE-PRIMARY-CODEX-REVIEW-PROOF",
+    "O2-V4-FORMAL-RUNTIME-PROTECTION",
+    "D2-T14-FINAL-HUMAN-ACCEPTANCE",
+    "PA-HUMAN-1",
+    "NS-HUMAN-SMOKE"
   ],
   "requested_at": null,
-  "authorized_human_decision_identities": ["product owner"],
+  "authorized_human_decision_identities": [
+    "product owner"
+  ],
   "candidate_manifest": null,
   "completion_evidence": {
     "schema_version": "kgnote.review-completion-summary.v1",
@@ -81,6 +97,6 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 
 ## Human-readable status
 
-Review `review-o2-successor-recovery-20261030-001` is `IMPLEMENTING`.
+Review `review-issue47-end-to-end-autonomous-collaboration-001` is `IMPLEMENTING`.
 It has no active candidate binding and cannot be interpreted as a review request or PASS.
 Codex must complete deterministic verification before issuing this request.

@@ -1,176 +1,431 @@
 # KGnote active execution plan
 
-This plan covers only the owner-authorized O2 v4 exact-successor recovery. It does
-not authorize another product model attempt or a new Product Goal authority event.
+This file contains one Codex App engineering Goal for Issue #47. It does not
+authorize a KGnote Product Goal. The exact immutable engineering specification
+must receive a separate GitHub Owner approval before background model work,
+formal deployment, or other gated external execution begins.
 
 <!-- BEGIN CODEX PLAN JSON -->
 ```json
 {
   "schema_version": "kgnote.codex-plan.v1",
-  "goal_id": "CODEX-APP-GOAL-O2-SUCCESSOR-RECOVERY-20261030",
-  "active_goal": "CODEX-APP-GOAL-O2-SUCCESSOR-RECOVERY-20261030",
+  "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
+  "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
-  "authority_kind": "CURRENT_USER_EXECUTION_INSTRUCTION",
+  "authority_kind": "CURRENT_USER_EXECUTION_INSTRUCTION_PENDING_GITHUB_OWNER_SEAL",
   "lifecycle_owner": "CODEX_APP",
   "product_goal_authorized": false,
-  "objective": "保全 attempt 1 的 exact successor，修正 pre-publication verification 與 trusted publication/recovery control，經 exact verification、獨立 Ubuntu Claude infrastructure review、正常合併與受控雙主機部署後，只追加一筆去重的正式 successor recovery event，讓既有無模型驗證／發布／產品審查流程承接而不再次消耗 Codex。",
+  "objective": "以單一、有界且可跨工作日恢復的工程 Goal，保存現有 Issue #47 readiness candidate，固定 exact spec／checkpoint／預算，取得 GitHub Owner 授權後，連續完成獨立審查、one-shot dispatch、無模型整合測試、安全部署、受控 canary、跨日接續與 rollback 證據，最後停在真人產品驗收與常設 go-live 的集中決策；不修改或冒充 O2 v4 Product Goal。",
   "status": "active",
-  "active_milestone_id": "R2-EXACT-VERIFY-REVIEW-MERGE",
+  "active_milestone_id": "EG-0-SPEC-SEAL",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
-  "requirements_baseline_id": "kgnote-stage2b-feature-disposition-ledger-2026-10-16",
-  "execution_direction_id": "kgnote-o2-successor-recovery-2026-10-30",
+  "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
+  "execution_direction_id": "kgnote-issue47-end-to-end-engineering-goal-2026-10-30",
+  "goal_spec": {
+    "path": "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-30.1.json",
+    "schema_path": "schemas/codex-app-engineering-goal/v1/goal-spec.schema.json",
+    "version": "2026-10-30.1-owner-approval-proposal",
+    "canonical_sha256": "f78a49397822bf17a89f7477be2efe840c0dddfa58cf767153cf31281bdcdce4",
+    "authority_status": "PENDING_EXACT_GITHUB_OWNER_APPROVAL"
+  },
   "explicit_direction": {
     "date": "2026-10-30",
     "speaker": "product owner",
-    "source_path": "docs/control-plane/O2_SUCCESSOR_RECOVERY_DIRECTION_20261030.md",
+    "source_path": "PLAN.md",
     "durable_goal_record": "PLAN.md"
   },
   "authoritative_specs": [
     "docs/control-plane/AUTHORITY.md",
-    "docs/control-plane/O2_SUCCESSOR_RECOVERY_DIRECTION_20261030.md",
-    "docs/control-plane/O2_BOUNDED_TRIAL_GOAL_SPEC_v2026-10-29.4.json",
+    "docs/control-plane/GOAL_SCOPED_CONTINUOUS_DELEGATION_20261022.md",
     "docs/control-plane/B_SCHEME_OPERATIONS.md",
-    "docs/control-plane/AUTONOMOUS_EXTERNAL_REVIEW_CONTRACT.md",
+    "docs/control-plane/ISSUE47_ONESHOT_ENGINEERING_DIRECTION_20261030.md",
+    "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-30.1.json",
+    "schemas/codex-app-engineering-goal/v1/goal-spec.schema.json",
     ".ai/REVIEW_PROTOCOL.md",
+    "schemas/product-goal/v1/goal-spec.schema.json",
+    "schemas/product-goal/v1/runner-state.schema.json",
+    "schemas/product-goal/v1/ledger-event.schema.json",
     "docs/requirements/requirements.json",
     "docs/requirements/scenarios.json",
     "AGENTS.md"
   ],
   "requirement_context": {
-    "requirements": ["KG-GOV-04", "KG-GOV-05", "KG-GOV-07", "KG-PLAT-05", "KG-PLAT-07", "KG-PLAT-08"],
-    "acceptance_criteria": ["RC-05", "RC-07", "RC-08", "RC-12", "RC-14", "RC-15", "RC-16", "RC-31", "RC-32"],
-    "feature_dispositions": ["FD-04", "FD-05", "FD-06", "FD-21"],
-    "scenarios": ["SC-32", "SC-33", "SC-35", "SC-40", "SC-44", "SC-45", "SC-48"],
-    "formal_baseline": {
-      "infrastructure_main": "4388aa2a8d7c63cf2b81a7314176f646eec9a276",
-      "goal_version": "2026-10-29.4-bounded-trial-day0-proposal",
-      "goal_spec_sha256": "7e9a31e87d36a2cb23789602f3bafb4fe29469d0fa57dcda33b9e8ba1295e08f",
-      "state_sha256": "6c644af8ad65172dd3235e1f01fad429d11ea30864a823465bcfe226ac73f0ec",
-      "ledger_sha256": "849301d3778faded3153101f318792ea390b109d7ff8f169e61c922bd9040328",
-      "ledger_cursor": 8,
-      "attempt_id": "attempt-2026-10-29.4-bounded-trial-day0-proposal-WI-O2-A-IMPLEMENT-1",
-      "successor_commit": "95d437a20ee31e48a49e2ee9b6f83ca3d4a931a6",
-      "successor_tree": "b2a66a296d2a76d8b79ce5343eb8447f6e9421ff",
-      "successor_fingerprint": "a08eccbee8f62560a8c5e279096b5a9befd94755b40e4b40f648e0ffa17a8904",
-      "codex_charges": 4,
-      "codex_ceiling": 5,
-      "transition_start_slo": "VIOLATED"
+    "requirements": [
+      "KG-GOV-04",
+      "KG-GOV-05",
+      "KG-GOV-07",
+      "KG-PLAT-05",
+      "KG-PLAT-07"
+    ],
+    "acceptance_criteria": [
+      "RC-31",
+      "RC-32"
+    ],
+    "feature_dispositions": [],
+    "scenarios": [
+      "SC-32",
+      "SC-33",
+      "SC-35"
+    ],
+    "issue_authority": {
+      "repository": "joannalee20050914/KGnote-public",
+      "issue": 47,
+      "url": "https://github.com/joannalee20050914/KGnote-public/issues/47",
+      "strategy_comment": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6522962957",
+      "strategy_comment_status": "DRAFT_ONLY_NOT_AUTHORIZED"
     },
     "forbidden_substitutes": [
-      "再次啟動產品 Codex/Claude、建立新 reservation 或增加／重置額度",
-      "直接修改正式 state/ledger/checkpoint、覆寫 seq 1–8 或重分類原失敗 attempt",
-      "刪除 Legacy PR #28 契約、偽造 GitHub snapshot 或交付 GitHub 寫入憑證給產品模型",
-      "未經 exact verification、Ubuntu Claude infrastructure PASS、正常 PR merge、雙主機部署與無模型驗收即 append",
-      "修改 Owner APPROVE、Goal version/digest、日期、SLO 或 human gates",
-      "重建 v5、擴張自治框架或把 recovery 視為 Product Goal 完成"
+      "把 Codex App 工程 Goal 或 Issue #47 DRAFT 留言當成 Product Goal APPROVE",
+      "把 readiness checker、單元測試、Draft PR、scheduler 安裝或 no-model admission 當成端到端自治完成",
+      "建立第二套 planner、ledger、Router、worker 或 state machine",
+      "修改、合併、重設或搬用 O2 v4 authority、state、ledger cursor 9、Codex 4/5、checkpoint 或封存 evidence",
+      "啟用或共用舊 com.kgnote.local-autonomy-runner",
+      "在 exact Owner approval 前或工作時段外啟動背景 Codex／Claude、正式 deploy 或 dispatch",
+      "使用付費 API、force push、直接 push main、修改 branch protection 或未批准資料外送",
+      "把 Codex-primary／Claude-reviewer 的證據宣稱為 Claude-primary／Codex-reviewer 已完成",
+      "用 restart、日期、Goal version、branch、PR 或 session 重置 launch/accounting history"
     ]
   },
   "repository_authority": {
     "canonical_repository": "joannalee20050914/KGnote-public",
-    "base_revision": "4388aa2a8d7c63cf2b81a7314176f646eec9a276",
-    "branch": "codex/o2-successor-recovery-20261030",
+    "base_revision": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
+    "branch": "codex/issue-47-collaboration-wiring",
     "base_branch": "main",
     "pull_request": null,
-    "automatic_merge": true,
-    "merge_authority": "exact verification plus independent Ubuntu Claude infrastructure PASS and normal GitHub rules under the owner recovery direction"
+    "automatic_merge": false,
+    "merge_authority": "proposed only for the exact Issue #47 PR after GitHub Owner spec approval, required checks, independent review, branch protection, and remote read-back"
+  },
+  "previous_goal_disposition": {
+    "goal_id": "CODEX-APP-GOAL-ISSUE47-ONESHOT-WIRING-20261030",
+    "milestone_id": "D2-ONESHOT-WIRING",
+    "disposition": "preserved_as_verified_readiness_baseline_inside_successor_goal",
+    "candidate_fingerprint": "025295008f940ba5b55ebef2691556cafe82bd110eadae57cc9fb8e7e281aed6",
+    "evidence": "output/control-plane/verification-20261030T200856+0800.json",
+    "verified_scope": "readiness-only one-shot, 11 boundary tests, no dispatch, no model, no scheduler, no GitHub write",
+    "unverified_scope": "checkpoint commit, independent infrastructure review, PR integration, real dispatch, deployment, canary, schedule continuation and rollback"
+  },
+  "resource_budget": {
+    "work_period": "2026-11-02T09:00:00+08:00 through 2026-11-20T18:00:00+08:00",
+    "work_window": "Monday-Friday Asia/Taipei 09:00-18:00",
+    "model_concurrency": 1,
+    "codex": {
+      "max_total": 18,
+      "max_per_workday": 3,
+      "known_preapproval": 2,
+      "remaining_if_approved": 16
+    },
+    "claude": {
+      "max_total": 12,
+      "max_per_workday": 2,
+      "known_preapproval": 0,
+      "remaining_if_approved": 12
+    },
+    "payment": "existing subscription login only; paid API fallback forbidden",
+    "reset_rule": "all retries, contexts/sessions, reviews, repairs, cross-day work and unknown reserved attempts share the same totals and cannot be reset"
   },
   "auto_advance": {
     "enabled": true,
     "requires_current_milestone_green": true,
     "requires_dependencies_complete": true,
     "stop_on_human_gate": true,
-    "external_review_required_before_merge": true,
-    "max_review_cycles_per_milestone": 5
+    "external_review_required_before_merge_or_deploy": true,
+    "max_review_cycles_per_milestone": 5,
+    "max_same_failure_attempts": 2,
+    "max_strategy_adjustments": 1,
+    "stop_on_review_state": [
+      "PRODUCT_DECISION_REQUIRED",
+      "AUTHORITY_CONFLICT",
+      "AUTOMATION_BLOCKED",
+      "BUDGET_EXHAUSTED",
+      "GOAL_COMPLETE",
+      "STOPPED"
+    ]
+  },
+  "legacy_o2_protection": {
+    "goal_id": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
+    "lifecycle": "ACTIVE",
+    "ledger_cursor": 9,
+    "codex_accounting": "4/5",
+    "formal_runner": "DISABLED_UNLOADED",
+    "runtime_records": "IMMUTABLE_READ_ONLY",
+    "coexistence_rule": "Owner approval of the exact engineering spec may approve only a bounded exclusive trial policy: O2 remains inactive/read-only, a future canary still needs a separate Product Goal approval, state/ledger/worktree/PR/review config stay isolated, and a global writer lock forbids concurrent model dispatch."
   },
   "preserved_human_gates": [
-    {"id": "O2-V4-OWNER-AUTHORITY", "status": "ACTIVE_UNCHANGED", "release_verified": false},
-    {"id": "O2-PRODUCT-CLAUDE-REVIEW", "status": "NOT_STARTED", "release_verified": false},
-    {"id": "D2-T14-FINAL-HUMAN-ACCEPTANCE", "status": "not_promoted", "release_verified": false},
-    {"id": "PA-HUMAN-1", "status": "not_promoted", "release_verified": false},
-    {"id": "NS-HUMAN-SMOKE", "status": "not_promoted", "release_verified": false}
+    {
+      "id": "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
+      "status": "PENDING",
+      "release_verified": false,
+      "rule": "Required before background model launch, formal deployment or gated external execution; must bind exact engineering Goal ID/version/SHA, permissions, resources and O2 coexistence."
+    },
+    {
+      "id": "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
+      "status": "NOT_STARTED",
+      "release_verified": false,
+      "rule": "Engineering Goal approval cannot authorize the live Product Goal canary."
+    },
+    {
+      "id": "ISSUE47-FINAL-OWNER-ACCEPTANCE-AND-GO-LIVE",
+      "status": "NOT_STARTED",
+      "release_verified": false,
+      "rule": "Trial evidence precedes a separate Owner product acceptance and standing B-scheme go-live decision."
+    },
+    {
+      "id": "ISSUE47-CLAUDE-PRIMARY-CODEX-REVIEW-PROOF",
+      "status": "NOT_VERIFIED",
+      "release_verified": false,
+      "rule": "Do not claim bidirectional provider switching without a live exact-candidate proof."
+    },
+    {
+      "id": "O2-V4-FORMAL-RUNTIME-PROTECTION",
+      "status": "ACTIVE_UNCHANGED",
+      "release_verified": false,
+      "rule": "O2 remains ACTIVE but formal Runner is disabled/unloaded and all runtime records stay read-only."
+    },
+    {
+      "id": "D2-T14-FINAL-HUMAN-ACCEPTANCE",
+      "status": "not_promoted",
+      "release_verified": false,
+      "rule": "Engineering evidence cannot promote product acceptance."
+    },
+    {
+      "id": "PA-HUMAN-1",
+      "status": "not_promoted",
+      "release_verified": false,
+      "rule": "Requires native learner evidence."
+    },
+    {
+      "id": "NS-HUMAN-SMOKE",
+      "status": "not_promoted",
+      "release_verified": false,
+      "rule": "Requires native product evidence."
+    }
   ],
   "milestones": [
     {
-      "id": "R0-PRESERVE-AND-HOLD",
-      "title": "保全 exact evidence 並停止自動派工",
-      "status": "complete",
+      "id": "EG-0-SPEC-SEAL",
+      "title": "固定單一工程 Goal spec、checkpoint、資源與 Owner 授權請求",
+      "status": "active",
       "dependencies": [],
       "human_gate": "none",
-      "owned_paths": ["output/control-plane/"],
-      "acceptance": [
-        "28 份保存檔逐一 SHA-256 read-back，Git bundle 可重建 exact successor",
-        "正式 state/ledger 與保存快照 byte-identical，cursor=8、Codex=4/5",
-        "正式 LaunchAgent 以既有 launchctl bootout 安全卸載且 plist 未修改"
-      ]
-    },
-    {
-      "id": "R1-IMPLEMENT-AND-ISOLATED-ACCEPTANCE",
-      "title": "最小 pre-publication verifier、可信 publication binding 與一次性 recovery writer",
-      "status": "complete",
-      "dependencies": ["R0-PRESERVE-AND-HOLD"],
-      "human_gate": "none",
       "owned_paths": [
-        "PLAN.md", "CODEX_STATUS.md", ".ai/", "docs/control-plane/O2_SUCCESSOR_RECOVERY_DIRECTION_20261030.md",
-        "scripts/codex_control.py", "scripts/product_goal_worker_lane.py", "scripts/local_autonomy_runner.py",
-        "scripts/goal_runner_adapter.py", "scripts/o2_successor_recovery.py", "scripts/o2_prepublication_control_tests.py",
-        "scripts/install_ubuntu_worker_runtime.py",
-        "config/ubuntu-worker-runtime-manifest.json", "tests/control_plane/", "output/control-plane/"
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "docs/control-plane/ISSUE47_ONESHOT_ENGINEERING_DIRECTION_20261030.md",
+        "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-30.1.json",
+        "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_AUTHORIZATION_PACKAGE_20261030.md",
+        "schemas/codex-app-engineering-goal/v1/",
+        "scripts/collaboration_goal_wakeup.py",
+        "tests/control_plane/test_collaboration_goal_wakeup.py",
+        "tests/control_plane/test_issue47_engineering_goal_spec.py",
+        "output/control-plane/"
       ],
       "acceptance": [
-        "O2 exact successor 在無產品 PR 時通過完整 local deterministic verification，並明示 remote identity gate 尚待 publication",
-        "Legacy PR #28 路徑保持不變；正式 publication 仍要求 exact PR/branch/HEAD/fingerprint receipt",
-        "writer 綁定 exact attempt/successor/evidence/authority/state/ledger/accounting 並只 append 一個 idempotent transition",
-        "錯 parent/commit/tree/fingerprint、缺 checkpoint、bundle tamper、authority/cursor drift、verification failure 與 duplicate 均 fail closed",
-        "所有測試不啟動模型、不建立正式 reservation、不改正式資料"
+        "保留且不重做既有 readiness checker、11 項邊界測試與 verification evidence",
+        "engineering Goal spec 通過 schema、dependency、budget 與 canonical digest validation",
+        "PLAN、STATUS、review bus 與 spec identity 一致且 preflight/review-validate 綠燈",
+        "以 path-explicit checkpoint commit/push 固定 exact branch bytes，GitHub read-back 一致",
+        "Issue #47 發布一份非自批的 Owner authorization request，清楚列出 exact Goal ID/version/SHA、permissions、resource ceilings、O2 coexistence 與 required reply marker",
+        "在 Owner exact approval 前不啟動背景 Codex／Claude、dispatch、scheduler 或 formal deployment"
       ]
     },
     {
-      "id": "R2-EXACT-VERIFY-REVIEW-MERGE",
-      "title": "deployment migration blocker 修復、exact verification、Ubuntu Claude infrastructure review 與正常合併",
-      "status": "active",
-      "dependencies": ["R1-IMPLEMENT-AND-ISOLATED-ACCEPTANCE"],
-      "human_gate": "none",
+      "id": "EG-0-OWNER-AUTHORITY",
+      "title": "等待並讀回 exact GitHub Owner 工程 Goal 授權",
+      "status": "pending",
+      "dependencies": [
+        "EG-0-SPEC-SEAL"
+      ],
+      "human_gate": "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
       "owned_paths": [
-        "PLAN.md", "CODEX_STATUS.md", ".ai/", "output/control-plane/", "GitHub PR metadata",
-        "docs/control-plane/O2_SUCCESSOR_RECOVERY_DIRECTION_20261030.md",
-        "scripts/install_ubuntu_worker_runtime.py", "tests/control_plane/test_ubuntu_worker_runtime.py",
-        "scripts/o2_successor_recovery.py", "tests/control_plane/test_o2_successor_recovery.py"
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-30.1.json",
+        "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_AUTHORIZATION_PACKAGE_20261030.md",
+        "output/control-plane/",
+        "GitHub Issue #47 exact Owner reply"
       ],
       "acceptance": [
-        "舊 active generation 缺少新引入且無舊 shim 的 reviewed compatibility entrypoint 時可原子升級；既有／dangling shim、hash drift 與 cold-start failure 仍 fail closed 或 rollback",
-        "trusted writer 的 live Ubuntu snapshot 從 atomic `.worker-runtime-current` generation 載入 admission module，並由 discover_runtime 綁定 exact receipt",
-        "candidate fingerprint stable 且 evidence read-back PASS",
-        "independent Ubuntu Claude infrastructure verdict PASS and no blocking findings",
-        "PR exact HEAD/fingerprint read-back 後依 GitHub 規則合併，不 bypass/force push"
+        "Owner-authored Issue #47 comment 綁定 exact Goal ID、version、canonical SHA-256、完整 permissions、resource acknowledgement 與 bounded coexistence",
+        "comment author login 與 author_association=OWNER 讀回一致，body digest 與 comment identity 有 durable receipt",
+        "任何舊 DRAFT、agent-authored、自動生成、stale digest、縮減或擴張 permissions 的留言均拒絕",
+        "授權仍明示 product_goal_authorized=false 與 standing_b_scheme_go_live_authorized=false"
       ]
     },
     {
-      "id": "R3-CONTROLLED-DEPLOYMENT",
-      "title": "Mac/Ubuntu immutable runtime 受控部署與無模型驗收",
+      "id": "EG-1-INDEPENDENT-REVIEW-AND-PR",
+      "title": "readiness exact candidate 的獨立審查、修復與 PR 整合",
       "status": "pending",
-      "dependencies": ["R2-EXACT-VERIFY-REVIEW-MERGE"],
+      "dependencies": [
+        "EG-0-OWNER-AUTHORITY"
+      ],
       "human_gate": "none",
-      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", "output/control-plane/", "Mac immutable Runner runtime", "Ubuntu immutable worker runtime"],
+      "owned_paths": [
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "docs/control-plane/",
+        "schemas/codex-app-engineering-goal/",
+        "scripts/collaboration_goal_wakeup.py",
+        "tests/control_plane/",
+        "output/control-plane/",
+        "GitHub Issue #47 and the exact Issue #47 PR"
+      ],
       "acceptance": [
-        "兩端 current runtime generation 綁定同一 merged revision/tree/manifest",
-        "真正無模型 Router/publication path 接受有效 exact evidence，錯誤 evidence fail closed",
-        "既有 activation receipts 與 Owner authority 不回填、不失效",
-        "Runner 仍保持卸載且無新增 model attempt/accounting"
+        "checkpoint candidate 經 deterministic verifier 與獨立 Ubuntu Claude infrastructure review",
+        "CHANGES_REQUIRED 自動回 Codex repair、重驗與復審，所有 launch 計入同一 budget",
+        "Draft PR、remote HEAD、fingerprint、review round 與 Consumer read-back identity 一致",
+        "只在 branch protection、required checks、independent PASS 與 allowed operation 全部成立後整合 PR"
       ]
     },
     {
-      "id": "R4-ONE-TIME-RECOVERY-APPEND",
-      "title": "驗證 exact successor 後執行一次正式 append 與 read-back",
+      "id": "EG-2-ONESHOT-DISPATCH",
+      "title": "沿用既有 planner／ledger／Router／worker 的真正 one-shot dispatch",
       "status": "pending",
-      "dependencies": ["R3-CONTROLLED-DEPLOYMENT"],
+      "dependencies": [
+        "EG-1-INDEPENDENT-REVIEW-AND-PR"
+      ],
       "human_gate": "none",
-      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", "output/control-plane/", "formal O2 state and ledger through trusted recovery writer only"],
+      "owned_paths": [
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "docs/control-plane/",
+        "schemas/",
+        "scripts/",
+        "tests/control_plane/",
+        "config/",
+        "output/control-plane/"
+      ],
       "acceptance": [
-        "Ubuntu exact successor 完整 pre-publication verification PASS",
-        "check-only 與 apply 前正式 hashes/cursor/authority/accounting 完全相符",
-        "只追加一筆去重 WORK_STATE_TRANSITION；seq 1–8 與 failed attempt 保留",
-        "candidate 前進到 95d437a；WI-O2-A-VERIFY 為下一個無模型步驟，非 DISPATCH_IMPLEMENTATION",
-        "Codex 仍為 4/5，沒有新增產品 Codex/Claude attempt 或 paid API"
+        "只有 exact Product Goal Owner authority 才會 durable reserve 與 route，未授權維持 WAITING_AUTHORIZATION",
+        "重用 goal_continuity、github_product_goal_control、goal_runner_adapter、linux_worker_router 與 worker lane，不建立第二套 state machine",
+        "WorkOrder 與結果綁定 Goal、Work Item、authority、candidate、checkpoint、review、usage 與 next action",
+        "舊 O2 Runner、O2 state/ledger、舊 singleton review config 均未使用或修改"
+      ]
+    },
+    {
+      "id": "EG-3-ZERO-MODEL-E2E",
+      "title": "無模型整合、失敗安全、停止與 rollback 證據",
+      "status": "pending",
+      "dependencies": [
+        "EG-2-ONESHOT-DISPATCH"
+      ],
+      "human_gate": "none",
+      "owned_paths": [
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "docs/control-plane/",
+        "schemas/",
+        "scripts/",
+        "tests/control_plane/",
+        "config/",
+        "output/control-plane/"
+      ],
+      "acceptance": [
+        "未授權、wrong repository/identity、old O2、single writer、duplicate、restart、stale version/commit/review 全部 fail closed",
+        "可信 GitHub write/read-back、CHANGES_REQUIRED→repair/re-review、Stop Marker、rollback 經真實非模型路徑驗證",
+        "restart 先 reconcile 未決 reservation/checkpoint/side effect，絕不 blind redispatch"
+      ]
+    },
+    {
+      "id": "EG-4-TRUSTED-DEPLOYMENT",
+      "title": "安全部署 exact reviewed generation 與唯一 disabled-by-default 入口",
+      "status": "pending",
+      "dependencies": [
+        "EG-3-ZERO-MODEL-E2E"
+      ],
+      "human_gate": "none",
+      "owned_paths": [
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "docs/control-plane/",
+        "scripts/",
+        "tests/control_plane/",
+        "config/",
+        "output/control-plane/",
+        "trusted Mac and Ubuntu deployment paths explicitly named by the approved spec"
+      ],
+      "acceptance": [
+        "Mac/Ubuntu runtime identity、manifest、installed hashes 與 no-model admission receipt 綁定 exact reviewed commit",
+        "新 scheduler/launcher 唯一、預設 disabled、可逆且不共用 O2 state/ledger",
+        "old O2 Runner 維持 disabled/unloaded；duplicate service、unexpected process、stop 與 rollback negative tests 通過"
+      ]
+    },
+    {
+      "id": "EG-5-LIVE-CANARY",
+      "title": "受控真實 Product Goal canary 與 Codex→Claude repair/review",
+      "status": "pending",
+      "dependencies": [
+        "EG-4-TRUSTED-DEPLOYMENT"
+      ],
+      "human_gate": "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
+      "owned_paths": [
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "docs/control-plane/",
+        "scripts/",
+        "tests/control_plane/",
+        "config/",
+        "output/control-plane/",
+        "separately approved canary repository/Issue/branch/PR/runtime records"
+      ],
+      "acceptance": [
+        "另有 immutable Product Goal spec、exact Owner approval、privacy boundary 與剩餘 budget admission",
+        "真實 Codex implementation→verification→PR→Claude review→GitHub read-back→必要 repair/re-review→READY_FOR_ACCEPTANCE",
+        "#46 或私人 Pikambler 資料沒有被工程 Goal 自動授權或公開外送",
+        "Claude-primary/Codex-reviewer 未實測時保持 NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "EG-6-SCHEDULE-RESUME-ROLLBACK",
+      "title": "跨工作日恢復、唯一排程、停止不復活與 rollback",
+      "status": "pending",
+      "dependencies": [
+        "EG-5-LIVE-CANARY"
+      ],
+      "human_gate": "none",
+      "owned_paths": [
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "docs/control-plane/",
+        "scripts/",
+        "tests/control_plane/",
+        "config/",
+        "output/control-plane/",
+        "approved scheduler and runtime configuration"
+      ],
+      "acceptance": [
+        "至少一次跨工作日恢復與安全 restart，不需人工重貼 Prompt 或 finding",
+        "重啟不重複 model dispatch 或 GitHub write，手動停止後不自行復活",
+        "rollback 回到新入口 STOPPED、保留 evidence 且舊 O2 Runner 仍 disabled/unloaded"
+      ]
+    },
+    {
+      "id": "EG-7-FINAL-OWNER-GATE",
+      "title": "集中真人產品驗收與 standing B-scheme go-live 決策",
+      "status": "pending",
+      "dependencies": [
+        "EG-6-SCHEDULE-RESUME-ROLLBACK"
+      ],
+      "human_gate": "ISSUE47-FINAL-OWNER-ACCEPTANCE-AND-GO-LIVE",
+      "owned_paths": [
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "docs/control-plane/",
+        "output/control-plane/",
+        "GitHub Issue #47 and exact canary PR/review evidence"
+      ],
+      "acceptance": [
+        "GitHub 可讀 evidence 區分 confirmed、not verified、blocked、resource usage 與 rollback",
+        "Owner 可分別接受 trial product outcome 與決定 standing go-live；trial PASS 不自動授權常設政策",
+        "未經真人產品驗收、standing go-live 或未驗證 provider 方向不得標示完成"
       ]
     }
   ]
@@ -178,8 +433,11 @@ not authorize another product model attempt or a new Product Goal authority even
 ```
 <!-- END CODEX PLAN JSON -->
 
-## Current recovery note
+## Current execution note
 
-The formal Runner remains unloaded under the existing trusted LaunchAgent control.
-Only the isolated infrastructure worktree may change before merge and deployment.
-The formal append is authorized only after milestones R1 through R3 are green.
+Only `EG-0-SPEC-SEAL` is active. The current session may preserve
+the readiness candidate, validate and checkpoint the exact engineering Goal,
+publish its approval request, and read it back. It must not self-author the
+Owner approval, launch background Codex or Claude work, dispatch a Product Goal,
+enable a scheduler, or deploy a live generation before the exact GitHub Owner
+authority exists and the approved work window opens.
