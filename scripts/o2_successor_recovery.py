@@ -277,7 +277,8 @@ def fetch_ubuntu_runtime_snapshot() -> dict[str, Any]:
     """Read the live immutable Ubuntu generation and its zero-model receipt."""
     source = (
         "import json,sys;"
-        "sys.path.insert(0,'/home/kgnote/.local/share/kgnote/runtime');"
+        "sys.path.insert(0,'/home/kgnote/.local/share/kgnote/runtime/"
+        ".worker-runtime-current');"
         "import product_goal_runtime_admission as admission;"
         "identity=admission.discover_runtime();"
         "receipt=json.load(open(identity['deployment_receipt_path'],encoding='utf-8'));"

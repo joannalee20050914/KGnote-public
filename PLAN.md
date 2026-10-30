@@ -133,10 +133,12 @@ not authorize another product model attempt or a new Product Goal authority even
       "owned_paths": [
         "PLAN.md", "CODEX_STATUS.md", ".ai/", "output/control-plane/", "GitHub PR metadata",
         "docs/control-plane/O2_SUCCESSOR_RECOVERY_DIRECTION_20261030.md",
-        "scripts/install_ubuntu_worker_runtime.py", "tests/control_plane/test_ubuntu_worker_runtime.py"
+        "scripts/install_ubuntu_worker_runtime.py", "tests/control_plane/test_ubuntu_worker_runtime.py",
+        "scripts/o2_successor_recovery.py", "tests/control_plane/test_o2_successor_recovery.py"
       ],
       "acceptance": [
         "舊 active generation 缺少新引入且無舊 shim 的 reviewed compatibility entrypoint 時可原子升級；既有／dangling shim、hash drift 與 cold-start failure 仍 fail closed 或 rollback",
+        "trusted writer 的 live Ubuntu snapshot 從 atomic `.worker-runtime-current` generation 載入 admission module，並由 discover_runtime 綁定 exact receipt",
         "candidate fingerprint stable 且 evidence read-back PASS",
         "independent Ubuntu Claude infrastructure verdict PASS and no blocking findings",
         "PR exact HEAD/fingerprint read-back 後依 GitHub 規則合併，不 bypass/force push"

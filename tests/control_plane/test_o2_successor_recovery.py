@@ -31,6 +31,27 @@ class O2SuccessorRecoveryTest(unittest.TestCase):
             PREPUBLICATION_TESTS.DEFERRED_REMOTE_PUBLICATION_TESTS,
         )
 
+    def test_live_ubuntu_snapshot_imports_from_current_immutable_generation(self):
+        payload = {"identity": {"generation_id": "exact"}, "receipt": {}}
+        completed = subprocess.CompletedProcess(
+            [], 0, stdout=json.dumps(payload), stderr="",
+        )
+        with patch.object(
+            RECOVERY.subprocess, "run", return_value=completed,
+        ) as runner:
+            self.assertEqual(payload, RECOVERY.fetch_ubuntu_runtime_snapshot())
+
+        command = runner.call_args.args[0]
+        self.assertEqual(["ssh", "kgnote-ubuntu"], command[:2])
+        self.assertIn(
+            "/home/kgnote/.local/share/kgnote/runtime/.worker-runtime-current",
+            command[2],
+        )
+        self.assertNotIn(
+            "sys.path.insert(0,'/home/kgnote/.local/share/kgnote/runtime');",
+            command[2],
+        )
+
     def make_bundle(self, root: Path) -> tuple[Path, dict[str, str]]:
         repo = root / "repo"
         subprocess.run(
