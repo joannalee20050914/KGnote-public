@@ -432,6 +432,79 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
             ).resolve())
             self.assertTrue((target / introduced).is_symlink())
 
+    def test_post_shim_cold_start_failure_rolls_back_pointer_and_new_shim(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release, manifest, _files, revision = self._worker_release(root)
+            runtime = root / "runtime-root"
+            introduced = "o2_prepublication_control_tests.py"
+            target, previous, _old = self._seed_generation_runtime(
+                runtime, missing={introduced},
+            )
+            cold_start_pass = {
+                "python": str(sys.executable), "imports": [],
+                "import_stdout": "", "entrypoints": {}, "model_launches": 0,
+            }
+
+            with patch.object(
+                RUNTIME, "_cold_start_worker_runtime",
+                side_effect=[
+                    cold_start_pass,
+                    cold_start_pass,
+                    RUNTIME.UbuntuRuntimeError("forced post-shim cold-start failure"),
+                ],
+            ):
+                with self.assertRaisesRegex(
+                    RUNTIME.UbuntuRuntimeError, "post-shim cold-start failure",
+                ):
+                    RUNTIME._install_worker_runtime(
+                        release_root=release, runtime_root=runtime,
+                        manifest_path=manifest, reviewed_revision=revision,
+                        python=Path(sys.executable),
+                    )
+
+            self.assertEqual(previous.resolve(), (
+                target / RUNTIME.WORKER_RUNTIME_CURRENT
+            ).resolve())
+            self.assertFalse((target / introduced).exists())
+            self.assertFalse((target / introduced).is_symlink())
+
+    def test_post_replace_shim_fsync_failure_rolls_back_and_removes_shim(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release, manifest, _files, revision = self._worker_release(root)
+            runtime = root / "runtime-root"
+            introduced = "o2_prepublication_control_tests.py"
+            target, previous, _old = self._seed_generation_runtime(
+                runtime, missing={introduced},
+            )
+            original = RUNTIME._atomic_symlink
+
+            def fail_after_introduced_replace(source, destination):
+                original(source, destination)
+                if destination.name == introduced:
+                    raise RUNTIME.UbuntuRuntimeError(
+                        "forced post-replace shim fsync failure"
+                    )
+
+            with patch.object(
+                RUNTIME, "_atomic_symlink", side_effect=fail_after_introduced_replace,
+            ):
+                with self.assertRaisesRegex(
+                    RUNTIME.UbuntuRuntimeError, "post-replace shim fsync failure",
+                ):
+                    RUNTIME._install_worker_runtime(
+                        release_root=release, runtime_root=runtime,
+                        manifest_path=manifest, reviewed_revision=revision,
+                        python=Path(sys.executable),
+                    )
+
+            self.assertEqual(previous.resolve(), (
+                target / RUNTIME.WORKER_RUNTIME_CURRENT
+            ).resolve())
+            self.assertFalse((target / introduced).exists())
+            self.assertFalse((target / introduced).is_symlink())
+
     def test_reviewed_revision_must_equal_clean_release_git_head(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
