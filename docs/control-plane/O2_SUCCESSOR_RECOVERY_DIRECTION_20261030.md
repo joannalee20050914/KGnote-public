@@ -43,6 +43,11 @@ second product Codex launch.
    not create a reservation, attempt, product review verdict or completion claim.
 6. Keep the formal Runner unloaded throughout engineering, deployment validation and
    the recovery append so it cannot spend the remaining Codex attempt.
+7. A controlled runtime upgrade may add a reviewed compatibility entrypoint that is
+   absent from the prior immutable generation only when no prior shim exists for that
+   name. All prior present files, the complete new manifest, cold start, atomic current
+   pointer and rollback remain exact and fail closed; an existing or dangling shim for
+   an absent old-generation file is drift, not an upgrade signal.
 
 ## Ordered gates
 

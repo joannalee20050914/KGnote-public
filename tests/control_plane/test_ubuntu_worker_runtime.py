@@ -79,6 +79,29 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
             (target / name).write_bytes(old[name])
         return target, old
 
+    def _seed_generation_runtime(
+        self, runtime: Path, *, missing: set[str] | None = None,
+    ) -> tuple[Path, Path, dict[str, bytes]]:
+        target = runtime / RUNTIME.WORKER_RUNTIME_RELATIVE
+        releases = target / RUNTIME.WORKER_RUNTIME_RELEASES
+        generation = releases / "previous-reviewed-generation"
+        generation.mkdir(parents=True)
+        missing = missing or set()
+        old = {}
+        for name in RUNTIME.WORKER_RUNTIME_SOURCES:
+            if name in missing:
+                continue
+            old[name] = f"OLD:{name}\n".encode()
+            (generation / name).write_bytes(old[name])
+        (target / RUNTIME.WORKER_RUNTIME_CURRENT).symlink_to(
+            Path(RUNTIME.WORKER_RUNTIME_RELEASES) / generation.name
+        )
+        for name in RUNTIME.WORKER_RUNTIME_COMPATIBILITY - missing:
+            (target / name).symlink_to(
+                f"{RUNTIME.WORKER_RUNTIME_CURRENT}/{name}"
+            )
+        return target, generation, old
+
     def test_repository_worker_runtime_manifest_matches_sources(self):
         manifest = RUNTIME._load_worker_runtime_manifest(
             ROOT / RUNTIME.WORKER_RUNTIME_MANIFEST_RELATIVE,
@@ -348,6 +371,139 @@ class UbuntuWorkerRuntimeTest(unittest.TestCase):
             current = target / RUNTIME.WORKER_RUNTIME_CURRENT
             self.assertTrue(current.is_symlink())
             self.assertTrue(Path(current.resolve()).name.startswith("legacy-"))
+
+    def test_new_compatibility_entrypoint_promotes_from_older_generation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release, manifest, files, revision = self._worker_release(root)
+            runtime = root / "runtime-root"
+            introduced = "o2_prepublication_control_tests.py"
+            target, previous, old = self._seed_generation_runtime(
+                runtime, missing={introduced},
+            )
+
+            receipt = RUNTIME._install_worker_runtime(
+                release_root=release, runtime_root=runtime,
+                manifest_path=manifest, reviewed_revision=revision,
+                python=Path(sys.executable),
+            )
+
+            current = target / RUNTIME.WORKER_RUNTIME_CURRENT
+            self.assertEqual(revision, current.resolve().name)
+            self.assertEqual(files, receipt["files"])
+            self.assertEqual(old, {
+                name: (previous / name).read_bytes() for name in old
+            })
+            self.assertTrue((target / introduced).is_symlink())
+            self.assertEqual(
+                f"{RUNTIME.WORKER_RUNTIME_CURRENT}/{introduced}",
+                (target / introduced).readlink().as_posix(),
+            )
+            self.assertTrue(all(
+                (target / name).is_symlink()
+                for name in RUNTIME.WORKER_RUNTIME_COMPATIBILITY
+            ))
+
+    def test_missing_generation_file_with_existing_shim_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release, manifest, _files, revision = self._worker_release(root)
+            runtime = root / "runtime-root"
+            introduced = "o2_prepublication_control_tests.py"
+            target, previous, _old = self._seed_generation_runtime(
+                runtime, missing={introduced},
+            )
+            (target / introduced).symlink_to(
+                f"{RUNTIME.WORKER_RUNTIME_CURRENT}/{introduced}"
+            )
+
+            with self.assertRaisesRegex(
+                RUNTIME.UbuntuRuntimeError,
+                "compatibility shim exists for an absent generation file",
+            ):
+                RUNTIME._install_worker_runtime(
+                    release_root=release, runtime_root=runtime,
+                    manifest_path=manifest, reviewed_revision=revision,
+                    python=Path(sys.executable),
+                )
+
+            self.assertEqual(previous.resolve(), (
+                target / RUNTIME.WORKER_RUNTIME_CURRENT
+            ).resolve())
+            self.assertTrue((target / introduced).is_symlink())
+
+    def test_post_shim_cold_start_failure_rolls_back_pointer_and_new_shim(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release, manifest, _files, revision = self._worker_release(root)
+            runtime = root / "runtime-root"
+            introduced = "o2_prepublication_control_tests.py"
+            target, previous, _old = self._seed_generation_runtime(
+                runtime, missing={introduced},
+            )
+            cold_start_pass = {
+                "python": str(sys.executable), "imports": [],
+                "import_stdout": "", "entrypoints": {}, "model_launches": 0,
+            }
+
+            with patch.object(
+                RUNTIME, "_cold_start_worker_runtime",
+                side_effect=[
+                    cold_start_pass,
+                    cold_start_pass,
+                    RUNTIME.UbuntuRuntimeError("forced post-shim cold-start failure"),
+                ],
+            ):
+                with self.assertRaisesRegex(
+                    RUNTIME.UbuntuRuntimeError, "post-shim cold-start failure",
+                ):
+                    RUNTIME._install_worker_runtime(
+                        release_root=release, runtime_root=runtime,
+                        manifest_path=manifest, reviewed_revision=revision,
+                        python=Path(sys.executable),
+                    )
+
+            self.assertEqual(previous.resolve(), (
+                target / RUNTIME.WORKER_RUNTIME_CURRENT
+            ).resolve())
+            self.assertFalse((target / introduced).exists())
+            self.assertFalse((target / introduced).is_symlink())
+
+    def test_post_replace_shim_fsync_failure_rolls_back_and_removes_shim(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release, manifest, _files, revision = self._worker_release(root)
+            runtime = root / "runtime-root"
+            introduced = "o2_prepublication_control_tests.py"
+            target, previous, _old = self._seed_generation_runtime(
+                runtime, missing={introduced},
+            )
+            original = RUNTIME._atomic_symlink
+
+            def fail_after_introduced_replace(source, destination):
+                original(source, destination)
+                if destination.name == introduced:
+                    raise RUNTIME.UbuntuRuntimeError(
+                        "forced post-replace shim fsync failure"
+                    )
+
+            with patch.object(
+                RUNTIME, "_atomic_symlink", side_effect=fail_after_introduced_replace,
+            ):
+                with self.assertRaisesRegex(
+                    RUNTIME.UbuntuRuntimeError, "post-replace shim fsync failure",
+                ):
+                    RUNTIME._install_worker_runtime(
+                        release_root=release, runtime_root=runtime,
+                        manifest_path=manifest, reviewed_revision=revision,
+                        python=Path(sys.executable),
+                    )
+
+            self.assertEqual(previous.resolve(), (
+                target / RUNTIME.WORKER_RUNTIME_CURRENT
+            ).resolve())
+            self.assertFalse((target / introduced).exists())
+            self.assertFalse((target / introduced).is_symlink())
 
     def test_reviewed_revision_must_equal_clean_release_git_head(self):
         with tempfile.TemporaryDirectory() as directory:

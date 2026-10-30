@@ -126,12 +126,17 @@ not authorize another product model attempt or a new Product Goal authority even
     },
     {
       "id": "R2-EXACT-VERIFY-REVIEW-MERGE",
-      "title": "exact verification、Ubuntu Claude infrastructure review 與正常合併",
+      "title": "deployment migration blocker 修復、exact verification、Ubuntu Claude infrastructure review 與正常合併",
       "status": "active",
       "dependencies": ["R1-IMPLEMENT-AND-ISOLATED-ACCEPTANCE"],
       "human_gate": "none",
-      "owned_paths": ["PLAN.md", "CODEX_STATUS.md", ".ai/", "output/control-plane/", "GitHub PR metadata"],
+      "owned_paths": [
+        "PLAN.md", "CODEX_STATUS.md", ".ai/", "output/control-plane/", "GitHub PR metadata",
+        "docs/control-plane/O2_SUCCESSOR_RECOVERY_DIRECTION_20261030.md",
+        "scripts/install_ubuntu_worker_runtime.py", "tests/control_plane/test_ubuntu_worker_runtime.py"
+      ],
       "acceptance": [
+        "舊 active generation 缺少新引入且無舊 shim 的 reviewed compatibility entrypoint 時可原子升級；既有／dangling shim、hash drift 與 cold-start failure 仍 fail closed 或 rollback",
         "candidate fingerprint stable 且 evidence read-back PASS",
         "independent Ubuntu Claude infrastructure verdict PASS and no blocking findings",
         "PR exact HEAD/fingerprint read-back 後依 GitHub 規則合併，不 bypass/force push"
