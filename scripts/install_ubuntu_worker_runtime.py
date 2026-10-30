@@ -350,14 +350,37 @@ def _promote_worker_generation(
         relative = os.path.relpath(visible_generation, target)
         _atomic_symlink(relative, current)
 
-    visible_hashes = _worker_generation_hashes(
-        visible_generation, WORKER_RUNTIME_COMPATIBILITY,
-    )
+    visible_hashes: dict[str, str] = {}
+    introduced_compatibility: set[str] = set()
+    for name in sorted(WORKER_RUNTIME_COMPATIBILITY):
+        generation_path = visible_generation / name
+        shim_path = target / name
+        if generation_path.is_symlink():
+            raise UbuntuRuntimeError(
+                f"worker runtime generation file is not regular: {name}"
+            )
+        if generation_path.is_file():
+            visible_hashes[name] = _sha256(generation_path)
+            continue
+        if generation_path.exists():
+            raise UbuntuRuntimeError(
+                f"worker runtime generation file is not regular: {name}"
+            )
+        # A compatibility entrypoint may be introduced by the reviewed next
+        # generation.  It is distinguishable from deletion/drift in the active
+        # generation only when no legacy shim exists for that name.  Existing
+        # (including dangling) shims remain fail-closed.
+        if shim_path.exists() or shim_path.is_symlink():
+            raise UbuntuRuntimeError(
+                "worker runtime compatibility shim exists for an absent "
+                f"generation file: {name}"
+            )
+        introduced_compatibility.add(name)
     # Add any missing compatibility bridge (notably the historical lock) first.
     # An interrupted first migration therefore remains fail-closed but complete
     # enough for the still-visible legacy entrypoint to validate its environment.
     compatibility_order = sorted(
-        WORKER_RUNTIME_COMPATIBILITY,
+        set(visible_hashes),
         key=lambda name: (
             (target / name).exists() or (target / name).is_symlink(),
             name,
@@ -377,6 +400,7 @@ def _promote_worker_generation(
 
     previous_pointer = os.readlink(current)
     switched = visible_generation != generation
+    created_compatibility: list[str] = []
     if visible_generation != generation:
         _atomic_symlink(os.path.relpath(generation, target), current)
     try:
@@ -386,9 +410,29 @@ def _promote_worker_generation(
         if installed != manifest["files"]:
             raise UbuntuRuntimeError("installed worker runtime differs from the reviewed manifest")
         _cold_start_worker_runtime(generation, python)
+        for name in sorted(introduced_compatibility):
+            path = target / name
+            if path.exists() or path.is_symlink():
+                raise UbuntuRuntimeError(
+                    f"new worker runtime compatibility path appeared during promotion: {name}"
+                )
+            _atomic_symlink(f"{WORKER_RUNTIME_CURRENT}/{name}", path)
+            created_compatibility.append(name)
     except Exception:
         if switched:
             _atomic_symlink(previous_pointer, current)
+        removed_compatibility = False
+        for name in reversed(created_compatibility):
+            path = target / name
+            expected_link = f"{WORKER_RUNTIME_CURRENT}/{name}"
+            if not path.is_symlink() or os.readlink(path) != expected_link:
+                raise UbuntuRuntimeError(
+                    f"new worker runtime compatibility shim changed during rollback: {name}"
+                )
+            path.unlink()
+            removed_compatibility = True
+        if removed_compatibility:
+            _fsync_directory(target)
         raise
 
 
