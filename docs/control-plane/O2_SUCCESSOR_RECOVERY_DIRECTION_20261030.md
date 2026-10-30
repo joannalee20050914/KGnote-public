@@ -60,6 +60,15 @@ clean immutable Mac Runner checkout and Python receipt, the unloaded LaunchAgent
 plist, and the live Ubuntu generation/deployment receipt. It must bind the exact
 infrastructure verification, Ubuntu Claude infrastructure verdict and deployed
 no-model acceptance hashes before either check-only readiness or apply can pass.
+The new exact-successor verification must run after the controlled deployment, and
+the acceptance receipt must bind its SHA-256 and creation time to the live merged
+infrastructure revision, Ubuntu generation ID and runtime-manifest SHA-256. A
+pre-merge or archived verification cannot satisfy that gate.
+
+Idempotent replay is valid only for the single sequence-9 recovery event whose full
+payload matches the authorized successor, original state/ledger hashes and cursor,
+all evidence hashes, deployment identity, accounting and state patch. Matching only
+an event-ID prefix or a subset of payload fields is forbidden.
 
 Any failure stops closed. The writer must not append until every earlier gate is
 complete, and deployment alone does not authorize append.

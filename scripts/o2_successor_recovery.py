@@ -97,6 +97,16 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _aware_timestamp(value: Any, description: str) -> datetime:
+    try:
+        parsed = datetime.fromisoformat(str(value))
+    except ValueError as exc:
+        raise RecoveryError(f"{description} is not a valid timestamp") from exc
+    if parsed.tzinfo is None:
+        raise RecoveryError(f"{description} must be timezone-aware")
+    return parsed
+
+
 def _load_json(path: Path, description: str) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -477,6 +487,11 @@ def validate_recovery_deployment_evidence(
             "infrastructure_verification_sha256",
         ),
         ("Claude verdict", "claude_verdict_path", "claude_verdict_sha256"),
+        (
+            "successor verification",
+            "successor_verification_path",
+            "successor_verification_sha256",
+        ),
         ("no-model acceptance", "no_model_acceptance_path", "no_model_acceptance_sha256"),
     ):
         referenced = Path(str(value.get(path_field) or ""))
@@ -519,9 +534,19 @@ def validate_recovery_deployment_evidence(
         or claude.get("product_goal_review") is not False
     ):
         raise RecoveryError("Ubuntu Claude verdict does not bind the exact infrastructure candidate")
+    successor_verification, successor_verification_sha256 = validate_verification_evidence(
+        referenced_paths["successor verification"]
+    )
+    if successor_verification_sha256 != value["successor_verification_sha256"]:
+        raise RecoveryError("deployed successor verification SHA-256 binding drift")
     acceptance = _load_json(
         referenced_paths["no-model acceptance"], "deployed no-model acceptance"
     )
+    deployed_at = _aware_timestamp(value.get("deployed_at"), "deployment evidence deployed_at")
+    verification_created_at = _aware_timestamp(
+        successor_verification.get("created_at"), "successor verification created_at"
+    )
+    accepted_at = _aware_timestamp(acceptance.get("accepted_at"), "no-model acceptance accepted_at")
     if (
         acceptance.get("schema_version")
         != "kgnote.o2-successor-recovery-no-model-acceptance.v1"
@@ -532,6 +557,14 @@ def validate_recovery_deployment_evidence(
         or acceptance.get("candidate_commit") != SUCCESSOR_COMMIT
         or acceptance.get("candidate_fingerprint") != SUCCESSOR_FINGERPRINT
         or acceptance.get("infrastructure_merged_revision") != merged
+        or acceptance.get("runtime_generation_id") != identity.get("generation_id")
+        or acceptance.get("runtime_manifest_sha256") != identity.get("manifest_sha256")
+        or acceptance.get("successor_verification_sha256")
+        != successor_verification_sha256
+        or acceptance.get("successor_verification_created_at")
+        != successor_verification.get("created_at")
+        or verification_created_at < deployed_at
+        or accepted_at < verification_created_at
     ):
         raise RecoveryError("deployed no-model acceptance is incomplete or stale")
     return value, sha256_file(path)
@@ -641,6 +674,48 @@ def _validate_recovered_state(state: dict[str, Any]) -> None:
         raise RecoveryError("recovered Work Item/accounting state is not exact")
 
 
+def _recovery_payload(
+    *,
+    bundle_identity: dict[str, Any],
+    evidence_hashes: dict[str, str],
+    verification_sha256: str,
+    deployment_evidence_sha256: str,
+    infrastructure_merged_revision: str,
+    state_patch: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "operation": "VERIFIED_SUCCESSOR_RECOVERED",
+        "original_attempt_outcome": "DETERMINISTIC_WORKER_FAILURE",
+        "original_candidate": {
+            "commit": ORIGINAL_COMMIT,
+            "fingerprint": ORIGINAL_FINGERPRINT,
+        },
+        "successor": bundle_identity,
+        "bundle_sha256": BUNDLE_SHA256,
+        "checkpoint_sha256": CHECKPOINT_SHA256,
+        "verification_evidence_sha256": verification_sha256,
+        "deployment_evidence_sha256": deployment_evidence_sha256,
+        "infrastructure_merged_revision": infrastructure_merged_revision,
+        "pre_recovery_state_sha256": FORMAL_STATE_SHA256,
+        "pre_recovery_ledger_sha256": FORMAL_LEDGER_SHA256,
+        "pre_recovery_ledger_cursor": FORMAL_LEDGER_CURSOR,
+        "authority_comment_id": OWNER_COMMENT_ID,
+        "authority_body_sha256": OWNER_BODY_SHA256,
+        "codex_total_launches": 4,
+        "codex_ceiling": 5,
+        "next_work_item_id": NEXT_WORK_ITEM_ID,
+        "evidence_manifest": evidence_hashes,
+        "state_patch": state_patch,
+    }
+
+
+def _ledger_prefix_sha256(ledger: list[dict[str, Any]], count: int) -> str:
+    content = b"".join(
+        goal_continuity.canonical_json_bytes(event) + b"\n" for event in ledger[:count]
+    )
+    return hashlib.sha256(content).hexdigest()
+
+
 def runner_is_stopped(label: str = "com.kgnote.local-autonomy-runner") -> bool:
     completed = subprocess.run(
         ["launchctl", "print", f"gui/{os.getuid()}/{label}"],
@@ -680,27 +755,61 @@ def recover_successor(
         evidence_root / "ubuntu/git/o2-v4-attempt1-successor-95d437a.bundle"
     )
     _verification, verification_sha256 = validate_verification_evidence(verification_path)
+    if (
+        Path(str(deployment.get("successor_verification_path") or "")).resolve()
+        != verification_path.resolve()
+        or deployment.get("successor_verification_sha256") != verification_sha256
+    ):
+        raise RecoveryError("CLI successor verification differs from deployed generation evidence")
     ledger = goal_continuity.read_ledger(ledger_path)
     existing = next((row for row in ledger if row["event_id"] == RECOVERY_EVENT_ID), None)
     if existing is not None:
         if (
-            existing.get("event_type") != "WORK_STATE_TRANSITION"
+            len(ledger) != FORMAL_LEDGER_CURSOR + 1
+            or existing.get("sequence") != FORMAL_LEDGER_CURSOR + 1
+            or ledger[-1].get("event_id") != RECOVERY_EVENT_ID
+            or _ledger_prefix_sha256(ledger, FORMAL_LEDGER_CURSOR) != FORMAL_LEDGER_SHA256
+            or existing.get("event_type") != "WORK_STATE_TRANSITION"
             or existing.get("attempt_id") != ATTEMPT_ID
             or existing.get("logical_work_id") != WORK_ITEM_ID
-            or existing.get("payload", {}).get("operation") != "VERIFIED_SUCCESSOR_RECOVERED"
-            or existing.get("payload", {}).get("verification_evidence_sha256") != verification_sha256
-            or existing.get("payload", {}).get("deployment_evidence_sha256")
-            != deployment_evidence_sha256
-            or existing.get("payload", {}).get("bundle_sha256") != BUNDLE_SHA256
         ):
             raise RecoveryError("existing recovery event conflicts with exact recovery identity")
-        state = goal_runner_adapter.synchronize_state_from_ledger(
-            spec,
-            goal_continuity.load_json(state_path),
-            ledger,
-            state_path=state_path if apply else None,
+        stored_payload = existing.get("payload")
+        stored_patch = stored_payload.get("state_patch") if isinstance(stored_payload, dict) else None
+        expected_payload = _recovery_payload(
+            bundle_identity=bundle_identity,
+            evidence_hashes=evidence_hashes,
+            verification_sha256=verification_sha256,
+            deployment_evidence_sha256=deployment_evidence_sha256,
+            infrastructure_merged_revision=deployment["infrastructure"]["merged_revision"],
+            state_patch=stored_patch,
         )
+        if goal_continuity.canonical_json_bytes(stored_payload) != (
+            goal_continuity.canonical_json_bytes(expected_payload)
+        ):
+            raise RecoveryError("existing recovery event conflicts with exact recovery identity")
+        try:
+            state = goal_runner_adapter.synchronize_state_from_ledger(
+                spec,
+                goal_continuity.load_json(state_path),
+                ledger,
+                state_path=state_path if apply else None,
+            )
+        except (goal_continuity.GoalContractError, goal_runner_adapter.GoalRunnerError) as exc:
+            raise RecoveryError("existing recovery event/state replay is invalid") from exc
         _validate_recovered_state(state)
+        expected_payload = _recovery_payload(
+            bundle_identity=bundle_identity,
+            evidence_hashes=evidence_hashes,
+            verification_sha256=verification_sha256,
+            deployment_evidence_sha256=deployment_evidence_sha256,
+            infrastructure_merged_revision=deployment["infrastructure"]["merged_revision"],
+            state_patch=goal_runner_adapter._state_patch(state),
+        )
+        if goal_continuity.canonical_json_bytes(existing.get("payload")) != (
+            goal_continuity.canonical_json_bytes(expected_payload)
+        ):
+            raise RecoveryError("existing recovery event conflicts with exact recovery identity")
         return {
             "status": "SUCCESSOR_ALREADY_RECOVERED",
             "appended": False,
@@ -739,30 +848,14 @@ def recover_successor(
         "pull_request": None,
     }
     updated.pop("runtime_block", None)
-    payload = {
-        "operation": "VERIFIED_SUCCESSOR_RECOVERED",
-        "original_attempt_outcome": "DETERMINISTIC_WORKER_FAILURE",
-        "original_candidate": {
-            "commit": ORIGINAL_COMMIT,
-            "fingerprint": ORIGINAL_FINGERPRINT,
-        },
-        "successor": bundle_identity,
-        "bundle_sha256": BUNDLE_SHA256,
-        "checkpoint_sha256": CHECKPOINT_SHA256,
-        "verification_evidence_sha256": verification_sha256,
-        "deployment_evidence_sha256": deployment_evidence_sha256,
-        "infrastructure_merged_revision": deployment["infrastructure"]["merged_revision"],
-        "pre_recovery_state_sha256": FORMAL_STATE_SHA256,
-        "pre_recovery_ledger_sha256": FORMAL_LEDGER_SHA256,
-        "pre_recovery_ledger_cursor": FORMAL_LEDGER_CURSOR,
-        "authority_comment_id": OWNER_COMMENT_ID,
-        "authority_body_sha256": OWNER_BODY_SHA256,
-        "codex_total_launches": 4,
-        "codex_ceiling": 5,
-        "next_work_item_id": NEXT_WORK_ITEM_ID,
-        "evidence_manifest": evidence_hashes,
-        "state_patch": goal_runner_adapter._state_patch(updated),
-    }
+    payload = _recovery_payload(
+        bundle_identity=bundle_identity,
+        evidence_hashes=evidence_hashes,
+        verification_sha256=verification_sha256,
+        deployment_evidence_sha256=deployment_evidence_sha256,
+        infrastructure_merged_revision=deployment["infrastructure"]["merged_revision"],
+        state_patch=goal_runner_adapter._state_patch(updated),
+    )
     event, appended = goal_continuity.append_ledger_event(
         ledger_path,
         event_id=RECOVERY_EVENT_ID,
