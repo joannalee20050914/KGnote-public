@@ -17,7 +17,7 @@ formal deployment, or other gated external execution begins.
   "product_goal_authorized": false,
   "objective": "以單一、有界且可跨工作日恢復的工程 Goal，保存現有 Issue #47 readiness candidate，固定 exact spec／checkpoint／預算，取得 GitHub Owner 授權後，連續完成獨立審查、one-shot dispatch、無模型整合測試、安全部署、受控 canary、跨日接續與 rollback 證據，最後停在真人產品驗收與常設 go-live 的集中決策；不修改或冒充 O2 v4 Product Goal。",
   "status": "active",
-  "active_milestone_id": "EG-0-SPEC-SEAL",
+  "active_milestone_id": "EG-0-OWNER-AUTHORITY",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
   "execution_direction_id": "kgnote-issue47-end-to-end-engineering-goal-2026-10-30",
@@ -26,7 +26,8 @@ formal deployment, or other gated external execution begins.
     "schema_path": "schemas/codex-app-engineering-goal/v1/goal-spec.schema.json",
     "version": "2026-10-30.1-owner-approval-proposal",
     "canonical_sha256": "f78a49397822bf17a89f7477be2efe840c0dddfa58cf767153cf31281bdcdce4",
-    "authority_status": "PENDING_EXACT_GITHUB_OWNER_APPROVAL"
+    "authority_status": "AWAITING_EXACT_GITHUB_OWNER_APPROVAL",
+    "authorization_request": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6523223111"
   },
   "explicit_direction": {
     "date": "2026-10-30",
@@ -204,7 +205,7 @@ formal deployment, or other gated external execution begins.
     {
       "id": "EG-0-SPEC-SEAL",
       "title": "固定單一工程 Goal spec、checkpoint、資源與 Owner 授權請求",
-      "status": "active",
+      "status": "complete",
       "dependencies": [],
       "human_gate": "none",
       "owned_paths": [
@@ -232,7 +233,7 @@ formal deployment, or other gated external execution begins.
     {
       "id": "EG-0-OWNER-AUTHORITY",
       "title": "等待並讀回 exact GitHub Owner 工程 Goal 授權",
-      "status": "pending",
+      "status": "active",
       "dependencies": [
         "EG-0-SPEC-SEAL"
       ],
@@ -435,9 +436,12 @@ formal deployment, or other gated external execution begins.
 
 ## Current execution note
 
-Only `EG-0-SPEC-SEAL` is active. The current session may preserve
-the readiness candidate, validate and checkpoint the exact engineering Goal,
-publish its approval request, and read it back. It must not self-author the
-Owner approval, launch background Codex or Claude work, dispatch a Product Goal,
-enable a scheduler, or deploy a live generation before the exact GitHub Owner
-authority exists and the approved work window opens.
+`EG-0-SPEC-SEAL` completed at checkpoint `2b60fbc399e41b016f695b82644ca0dbe106b358`
+and fingerprint `5aea9a8015f1ca926d1444fcd8373ce02aef7cf289b71baaf21461a9f51a3a4b`.
+The exact authorization request was published and read back at
+`https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6523223111`;
+it deliberately contains no authority marker. `EG-0-OWNER-AUTHORITY` is the
+only active milestone and is an explicit human gate. Codex must not self-author
+the Owner approval, launch background Codex or Claude work, dispatch a Product
+Goal, enable a scheduler, or deploy a live generation before the exact GitHub
+Owner authority exists and the approved work window opens.

@@ -9,7 +9,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
   "protocol_version": "kgnote.review-protocol.v1",
   "review_id": "review-issue47-end-to-end-autonomous-collaboration-001",
   "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
-  "milestone_id": "EG-0-SPEC-SEAL",
+  "milestone_id": "EG-0-OWNER-AUTHORITY",
   "status": "IMPLEMENTING",
   "author_role": "CODEX_IMPLEMENTER",
   "base_revision": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
@@ -44,12 +44,10 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     "output/control-plane/"
   ],
   "acceptance_criteria": [
-    "保留且不重做既有 readiness checker、11 項邊界測試與 verification evidence",
-    "engineering Goal spec 通過 schema、dependency、budget 與 canonical digest validation",
-    "PLAN、STATUS、review bus 與 spec identity 一致且 preflight/review-validate 綠燈",
-    "以 path-explicit checkpoint commit/push 固定 exact branch bytes，GitHub read-back 一致",
-    "Issue #47 發布一份非自批的 Owner authorization request，清楚列出 exact Goal ID/version/SHA、permissions、resource ceilings、O2 coexistence 與 required reply marker",
-    "在 Owner exact approval 前不啟動背景 Codex／Claude、dispatch、scheduler 或 formal deployment"
+    "Owner-authored Issue #47 comment 綁定 exact Goal ID、version、canonical SHA-256、完整 permissions、resource acknowledgement 與 bounded coexistence",
+    "comment author login 與 author_association=OWNER 讀回一致，body digest 與 comment identity 有 durable receipt",
+    "任何舊 DRAFT、agent-authored、自動生成、stale digest、縮減或擴張 permissions 的留言均拒絕",
+    "授權仍明示 product_goal_authorized=false 與 standing_b_scheme_go_live_authorized=false"
   ],
   "negative_requirements": [
     "把 Codex App 工程 Goal 或 Issue #47 DRAFT 留言當成 Product Goal APPROVE",
