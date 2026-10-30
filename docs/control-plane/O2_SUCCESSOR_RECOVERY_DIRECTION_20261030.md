@@ -48,6 +48,10 @@ second product Codex launch.
    name. All prior present files, the complete new manifest, cold start, atomic current
    pointer and rollback remain exact and fail closed; an existing or dangling shim for
    an absent old-generation file is drift, not an upgrade signal.
+8. The trusted writer's live Ubuntu read-back must import admission code from the
+   immutable `.worker-runtime-current` generation selected by the atomic pointer, then
+   let runtime discovery independently bind that generation to the zero-model receipt.
+   Importing an unrelated flat file or bypassing live discovery is forbidden.
 
 ## Ordered gates
 
