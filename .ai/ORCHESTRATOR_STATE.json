@@ -25,7 +25,7 @@
       "authority_comment_id": 6537070839
     }
   ],
-  "next_action": "Create and push a path-explicit checkpoint for verified fingerprint 77e9600f, seal review-issue47-end-to-end-autonomous-collaboration-001, then start one bounded independent Ubuntu Claude infrastructure review; Product Goal dispatch, canary, scheduler activation, and standing go-live remain forbidden.",
+  "next_action": "Commit the excluded STATUS/state verification receipt, push and read back the exact branch, then seal review-issue47-end-to-end-autonomous-collaboration-001 for one bounded independent Ubuntu Claude infrastructure review.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -40,5 +40,5 @@
   },
   "last_agent_run": null,
   "created_at": "2026-10-30T20:49:30+08:00",
-  "updated_at": "2026-10-31T09:28:22+08:00"
+  "updated_at": "2026-10-31T09:29:53+08:00"
 }

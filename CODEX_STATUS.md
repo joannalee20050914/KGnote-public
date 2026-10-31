@@ -10,7 +10,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-31T09:28:22+08:00",
+  "updated_at": "2026-10-31T09:29:53+08:00",
   "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -55,9 +55,9 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   },
   "git": {
     "branch": "codex/issue-47-collaboration-wiring",
-    "head": "2801b3e932754fcc93fab404daa45aab991e2e4b",
+    "head": "6cabbc7519fe43be16aa9b2d069c06b6165b0850",
     "base_commit": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
-    "checkpoint_commit": "2801b3e932754fcc93fab404daa45aab991e2e4b",
+    "checkpoint_commit": "6cabbc7519fe43be16aa9b2d069c06b6165b0850",
     "draft_pull_request": null,
     "remote_head": "7b4accdbff4869284217dd96fc6857271ec690c3",
     "remote_spec_blob": "284c8ab1de11bdb3d96b3b8491ac6a876e4d7e7b",
@@ -65,7 +65,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "77e9600f9eddccc5d1275fe8050dcbca9c7f78f2e9d424323dfc24191c778fd4",
+    "fingerprint": "99b612ecb3110fc5d14f5f8d0b551f5278ffcabbccedc795056063eb7bbb7f17",
     "starting_fingerprint": "025295008f940ba5b55ebef2691556cafe82bd110eadae57cc9fb8e7e281aed6",
     "expected_dirty_policy": "Only active EG-1 owned paths may change: preserved Issue #47 readiness/control-plane artifacts, exact successor spec/schema/authority, orchestrator weekend gate, bounded tests, PLAN/STATUS/review bus, and ignored deterministic evidence.",
     "preserved_preexisting_dirty_paths": [
@@ -159,11 +159,11 @@ Product Goal, privacy, review, deployment, and go-live conditions.
     "candidate_verified": true,
     "release_verified": false,
     "control_plane_ready": true,
-    "last_candidate_evidence": "output/control-plane/verification-20261031T092822+0800.json",
-    "last_verified_fingerprint": "77e9600f9eddccc5d1275fe8050dcbca9c7f78f2e9d424323dfc24191c778fd4",
-    "last_result": "The exact v2026-10-31.2 successor candidate and weekend time gate passed with stable fingerprint 77e9600f: preflight/review/requirements guards, 476 control-plane tests, 348 product Python tests, 60 Node tests, strict diff, public-safety scan, untracked-whitespace gate, evidence read-back, and host proof that the old O2 Runner remains disabled/unloaded. release_verified and Product Goal execution remain false."
+    "last_candidate_evidence": "output/control-plane/verification-20261031T092953+0800.json",
+    "last_verified_fingerprint": "99b612ecb3110fc5d14f5f8d0b551f5278ffcabbccedc795056063eb7bbb7f17",
+    "last_result": "The exact implementation commit 6cabbc7519fe43be16aa9b2d069c06b6165b0850 / fingerprint 99b612ec passed post-commit stable verification: preflight/review/requirements guards, 476 control-plane tests, 348 product Python tests, 60 Node tests, strict diff, public-safety scan, untracked-whitespace gate and evidence read-back. release_verified and Product Goal execution remain false."
   },
-  "next_action": "Run full deterministic verification for fingerprint 77e9600f, create and push a path-explicit checkpoint, seal review-issue47-end-to-end-autonomous-collaboration-001, and launch at most one bounded independent Ubuntu Claude infrastructure review. Conservative Codex usage is 8/18; Product Goal dispatch, canary, scheduler activation, and standing go-live remain forbidden.",
+  "next_action": "Commit the excluded STATUS/state verification receipt, push and read back the exact branch, seal review-issue47-end-to-end-autonomous-collaboration-001, then launch at most one bounded independent Ubuntu Claude infrastructure review. Conservative Codex usage is 8/18; Product Goal dispatch remains forbidden.",
   "external_or_human_gates": [
     {
       "id": "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
@@ -210,5 +210,5 @@ Goal `CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION` remains active
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Run full deterministic verification for fingerprint 77e9600f, create and push a path-explicit checkpoint, seal review-issue47-end-to-end-autonomous-collaboration-001, and launch at most one bounded independent Ubuntu Claude infrastructure review. Conservative Codex usage is 8/18; Product Goal dispatch, canary, scheduler activation, and standing go-live remain forbidden.
+Exact next action: Commit the excluded STATUS/state verification receipt, push and read back the exact branch, seal review-issue47-end-to-end-autonomous-collaboration-001, then launch at most one bounded independent Ubuntu Claude infrastructure review. Conservative Codex usage is 8/18; Product Goal dispatch remains forbidden.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.
