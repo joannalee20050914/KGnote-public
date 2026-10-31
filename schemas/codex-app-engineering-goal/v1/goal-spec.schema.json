@@ -32,120 +32,50 @@
     "hard_stop_conditions"
   ],
   "properties": {
-    "schema_version": {
-      "const": "kgnote.codex-app-engineering-goal-spec.v1"
-    },
-    "identity_kind": {
-      "const": "CODEX_APP_EXECUTION_GOAL"
-    },
-    "authority_kind": {
-      "const": "GITHUB_OWNER_EXECUTION_APPROVAL_REQUIRED"
-    },
-    "lifecycle_owner": {
-      "const": "CODEX_APP"
-    },
-    "goal_id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "active_goal": {
-      "type": "string",
-      "minLength": 1
-    },
-    "goal_version": {
-      "type": "string",
-      "minLength": 1
-    },
-    "title": {
-      "type": "string",
-      "minLength": 1
-    },
-    "outcome": {
-      "type": "string",
-      "minLength": 1
-    },
-    "repository": {
-      "const": "joannalee20050914/KGnote-public"
-    },
-    "github_issue": {
-      "const": 47
-    },
+    "schema_version": {"const": "kgnote.codex-app-engineering-goal-spec.v1"},
+    "identity_kind": {"const": "CODEX_APP_EXECUTION_GOAL"},
+    "authority_kind": {"const": "GITHUB_OWNER_EXECUTION_APPROVAL_REQUIRED"},
+    "lifecycle_owner": {"const": "CODEX_APP"},
+    "goal_id": {"type": "string", "minLength": 1},
+    "active_goal": {"type": "string", "minLength": 1},
+    "goal_version": {"type": "string", "minLength": 1},
+    "title": {"type": "string", "minLength": 1},
+    "outcome": {"type": "string", "minLength": 1},
+    "repository": {"const": "joannalee20050914/KGnote-public"},
+    "github_issue": {"const": 47},
     "owner_logins": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
+      "items": {"type": "string", "minLength": 1}
     },
-    "product_goal_authorized": {
-      "const": false
-    },
+    "product_goal_authorized": {"const": false},
     "base": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "branch",
-        "base_revision",
-        "preserved_readiness_fingerprint"
-      ],
+      "required": ["branch", "base_revision", "preserved_readiness_fingerprint"],
       "properties": {
-        "branch": {
-          "type": "string",
-          "minLength": 1
-        },
-        "base_revision": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{40}$"
-        },
-        "preserved_readiness_fingerprint": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$"
-        }
+        "branch": {"type": "string", "minLength": 1},
+        "base_revision": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "preserved_readiness_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
       }
     },
     "work_period": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "timezone",
-        "start",
-        "end",
-        "weekdays",
-        "daily_start",
-        "daily_end"
-      ],
+      "required": ["timezone", "start", "end", "weekdays", "daily_start", "daily_end"],
       "properties": {
-        "timezone": {
-          "const": "Asia/Taipei"
-        },
-        "start": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "end": {
-          "type": "string",
-          "format": "date-time"
-        },
+        "timezone": {"const": "Asia/Taipei"},
+        "start": {"type": "string", "format": "date-time"},
+        "end": {"type": "string", "format": "date-time"},
         "weekdays": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 6
-          }
+          "items": {"type": "integer", "minimum": 0, "maximum": 6}
         },
-        "daily_start": {
-          "type": "string",
-          "pattern": "^[0-2][0-9]:[0-5][0-9]$"
-        },
-        "daily_end": {
-          "type": "string",
-          "pattern": "^[0-2][0-9]:[0-5][0-9]$"
-        },
+        "daily_start": {"type": "string", "pattern": "^[0-2][0-9]:[0-5][0-9]$"},
+        "daily_end": {"type": "string", "pattern": "^[0-2][0-9]:[0-5][0-9]$"},
         "exception_work_windows": {
           "type": "array",
           "minItems": 1,
@@ -153,28 +83,12 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "date",
-              "start",
-              "end",
-              "scope"
-            ],
+            "required": ["date", "start", "end", "scope"],
             "properties": {
-              "date": {
-                "type": "string",
-                "pattern": "^2026-(10-31|11-01)$"
-              },
-              "start": {
-                "type": "string",
-                "pattern": "^[0-2][0-9]:[0-5][0-9]$"
-              },
-              "end": {
-                "type": "string",
-                "pattern": "^[0-2][0-9]:[0-5][0-9]$"
-              },
-              "scope": {
-                "const": "ISSUE47_INFRA_ENGINEERING_ONLY"
-              }
+              "date": {"type": "string", "pattern": "^2026-(10-31|11-01)$"},
+              "start": {"type": "string", "pattern": "^[0-2][0-9]:[0-5][0-9]$"},
+              "end": {"type": "string", "pattern": "^[0-2][0-9]:[0-5][0-9]$"},
+              "scope": {"const": "ISSUE47_INFRA_ENGINEERING_ONLY"}
             }
           }
         }
@@ -183,100 +97,41 @@
     "resource_policy": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "max_model_concurrency",
-        "accounting_rule",
-        "providers"
-      ],
+      "required": ["max_model_concurrency", "accounting_rule", "providers"],
       "properties": {
-        "max_model_concurrency": {
-          "const": 1
-        },
-        "accounting_rule": {
-          "type": "string",
-          "minLength": 1
-        },
+        "max_model_concurrency": {"const": 1},
+        "accounting_rule": {"type": "string", "minLength": 1},
         "providers": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "codex",
-            "claude"
-          ],
+          "required": ["codex", "claude"],
           "properties": {
-            "codex": {
-              "$ref": "#/$defs/provider"
-            },
-            "claude": {
-              "$ref": "#/$defs/provider"
-            }
+            "codex": {"$ref": "#/$defs/provider"},
+            "claude": {"$ref": "#/$defs/provider"}
           }
         }
       }
     },
-    "allowed_operations": {
-      "$ref": "#/$defs/stringSet"
-    },
-    "forbidden_operations": {
-      "$ref": "#/$defs/stringSet"
-    },
-    "legacy_o2_protection": {
-      "type": "object",
-      "minProperties": 1
-    },
-    "product_goal_coexistence": {
-      "type": "object",
-      "minProperties": 1
-    },
-    "review_policy": {
-      "type": "object",
-      "minProperties": 1
-    },
-    "recovery_policy": {
-      "type": "object",
-      "minProperties": 1
-    },
+    "allowed_operations": {"$ref": "#/$defs/stringSet"},
+    "forbidden_operations": {"$ref": "#/$defs/stringSet"},
+    "legacy_o2_protection": {"type": "object", "minProperties": 1},
+    "product_goal_coexistence": {"type": "object", "minProperties": 1},
+    "review_policy": {"type": "object", "minProperties": 1},
+    "recovery_policy": {"type": "object", "minProperties": 1},
     "work_items": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "work_item_id",
-          "title",
-          "dependencies",
-          "provider",
-          "human_gate",
-          "acceptance"
-        ],
+        "required": ["work_item_id", "title", "dependencies", "provider", "human_gate", "acceptance"],
         "properties": {
-          "work_item_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "title": {
-            "type": "string",
-            "minLength": 1
-          },
-          "dependencies": {
-            "$ref": "#/$defs/stringList"
-          },
-          "provider": {
-            "enum": [
-              "NONE",
-              "codex",
-              "claude",
-              "MIXED_BOUNDED"
-            ]
-          },
-          "human_gate": {
-            "type": "string",
-            "minLength": 1
-          },
-          "acceptance": {
-            "$ref": "#/$defs/stringSet"
-          }
+          "work_item_id": {"type": "string", "minLength": 1},
+          "title": {"type": "string", "minLength": 1},
+          "dependencies": {"$ref": "#/$defs/stringList"},
+          "provider": {"enum": ["NONE", "codex", "claude", "MIXED_BOUNDED"]},
+          "human_gate": {"type": "string", "minLength": 1},
+          "acceptance": {"$ref": "#/$defs/stringSet"}
         }
       }
     },
@@ -286,51 +141,28 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "status",
-          "rule"
-        ],
+        "required": ["id", "status", "rule"],
         "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "status": {
-            "type": "string",
-            "minLength": 1
-          },
-          "rule": {
-            "type": "string",
-            "minLength": 1
-          }
+          "id": {"type": "string", "minLength": 1},
+          "status": {"type": "string", "minLength": 1},
+          "rule": {"type": "string", "minLength": 1}
         }
       }
     },
-    "completion_conditions": {
-      "$ref": "#/$defs/stringSet"
-    },
-    "hard_stop_conditions": {
-      "$ref": "#/$defs/stringSet"
-    }
+    "completion_conditions": {"$ref": "#/$defs/stringSet"},
+    "hard_stop_conditions": {"$ref": "#/$defs/stringSet"}
   },
   "$defs": {
     "stringSet": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
+      "items": {"type": "string", "minLength": 1}
     },
     "stringList": {
       "type": "array",
       "uniqueItems": true,
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
+      "items": {"type": "string", "minLength": 1}
     },
     "provider": {
       "type": "object",
@@ -346,36 +178,14 @@
         "quota_backoff_seconds"
       ],
       "properties": {
-        "subscription_only": {
-          "const": true
-        },
-        "paid_api_fallback": {
-          "const": false
-        },
-        "max_launches_per_workday": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "max_total_launches": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "known_preapproval_launches": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "remaining_after_known_preapproval": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "minimum_launch_interval_seconds": {
-          "type": "integer",
-          "minimum": 30
-        },
-        "quota_backoff_seconds": {
-          "type": "integer",
-          "minimum": 60
-        }
+        "subscription_only": {"const": true},
+        "paid_api_fallback": {"const": false},
+        "max_launches_per_workday": {"type": "integer", "minimum": 1},
+        "max_total_launches": {"type": "integer", "minimum": 1},
+        "known_preapproval_launches": {"type": "integer", "minimum": 0},
+        "remaining_after_known_preapproval": {"type": "integer", "minimum": 0},
+        "minimum_launch_interval_seconds": {"type": "integer", "minimum": 30},
+        "quota_backoff_seconds": {"type": "integer", "minimum": 60}
       }
     }
   }
