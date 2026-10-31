@@ -1463,6 +1463,68 @@ def request_stop(repo: Path) -> dict[str, Any]:
     return {"status": "stop_requested", "run_id": state.get("run_id"), "human_action_required": False}
 
 
+def validate_engineering_reservation(
+    repo: Path, reservation_path: Path, dispatch_key: str,
+    expected_action: str, expected_provider: str,
+) -> None:
+    """Bind one scheduler continuation to the exact no-model reservation."""
+    try:
+        resolved = reservation_path.resolve()
+        resolved.relative_to(repo.resolve())
+    except ValueError as exc:
+        raise ValueError("engineering reservation leaves the runtime repository") from exc
+    value = json.loads(resolved.read_text(encoding="utf-8"))
+    if value.get("schema_version") != "kgnote.issue47-engineering-wakeup-state.v2":
+        raise ValueError("engineering reservation schema differs")
+    dispatches = value.get("dispatches")
+    events = value.get("events")
+    if not isinstance(dispatches, list) or not isinstance(events, list):
+        raise ValueError("engineering reservation history is malformed")
+    matches = [
+        item for item in dispatches
+        if isinstance(item, dict) and item.get("dispatch_key") == dispatch_key
+    ]
+    dispatch_events = [
+        item for item in events
+        if isinstance(item, dict) and item.get("dispatch_key") == dispatch_key
+    ]
+    if len(matches) != 1 or not dispatch_events or dispatch_events[-1].get("status") != "RUNNING":
+        raise ValueError("engineering reservation is not the exact running dispatch")
+    reservation = matches[0]
+    expected_pairs = {
+        "DISPATCH_IMPLEMENTATION": "codex",
+        "DISPATCH_REVIEW": "claude",
+    }
+    if expected_pairs.get(expected_action) != expected_provider:
+        raise ValueError("engineering expected action/provider pair is invalid")
+    if reservation.get("action") != expected_action or reservation.get("provider") != expected_provider:
+        raise ValueError("engineering continuation differs from the reserved action/provider")
+    fingerprint = control.repository_fingerprint(repo)
+    if (
+        reservation.get("candidate_commit") != fingerprint.get("head")
+        or reservation.get("candidate_fingerprint") != fingerprint.get("value")
+    ):
+        raise ValueError("engineering runtime candidate differs from the reservation")
+    request, _, _ = control.load_review_artifacts(repo)
+    state = read_state(repo)
+    if state is None:
+        raise ValueError("engineering orchestrator state is unavailable")
+    if expected_action == "DISPATCH_REVIEW":
+        if (
+            request.get("status") != "READY_FOR_REVIEW"
+            or request.get("review_id") != reservation.get("review_id")
+            or request.get("candidate_fingerprint") != reservation.get("candidate_fingerprint")
+            or state.get("state") != "READY_FOR_AI_REVIEW"
+        ):
+            raise ValueError("engineering review continuation is not the reserved review")
+    elif (
+        request.get("status") != "IMPLEMENTING"
+        or request.get("review_id") != reservation.get("review_id")
+        or state.get("state") not in {"IMPLEMENTING", "REPAIRING"}
+    ):
+        raise ValueError("engineering implementation continuation is not the reserved repair")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[1])
@@ -1479,6 +1541,13 @@ def main() -> int:
                 choices=sorted(EXPLICIT_RESUME_STATES),
                 help="explicitly authorize recovery from the exact persisted terminal state",
             )
+            command.add_argument("--engineering-reservation", type=Path)
+            command.add_argument("--dispatch-key")
+            command.add_argument(
+                "--expected-action",
+                choices=("DISPATCH_IMPLEMENTATION", "DISPATCH_REVIEW"),
+            )
+            command.add_argument("--expected-provider", choices=("codex", "claude"))
     sub.add_parser("status")
     sub.add_parser("stop")
     args = parser.parse_args()
@@ -1487,6 +1556,19 @@ def main() -> int:
         if args.command in {"start", "resume"}:
             if args.max_review_cycles < 1:
                 raise ValueError("max-review-cycles must be positive")
+            reservation_values = (
+                getattr(args, "engineering_reservation", None),
+                getattr(args, "dispatch_key", None),
+                getattr(args, "expected_action", None),
+                getattr(args, "expected_provider", None),
+            )
+            if any(value is not None for value in reservation_values):
+                if args.command != "resume" or not all(reservation_values):
+                    raise ValueError("engineering reservation binding must be complete and resume-only")
+                validate_engineering_reservation(
+                    repo, reservation_values[0], reservation_values[1],
+                    reservation_values[2], reservation_values[3],
+                )
             result = start(
                 repo,
                 resume=args.command == "resume",

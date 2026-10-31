@@ -34,7 +34,9 @@ OWNER_LOGIN = "joannalee20050914"
 AUTHORITY_MARKER = "<!-- kgnote-codex-app-engineering-goal-authority:v1 -->"
 HEARTBEAT_ID = "kgnote-47-goal"
 SCHEMA_VERSION = "kgnote.issue47-engineering-wakeup.v1"
-STATE_SCHEMA_VERSION = "kgnote.issue47-engineering-wakeup-state.v1"
+STATE_SCHEMA_VERSION = "kgnote.issue47-engineering-wakeup-state.v2"
+LEGACY_STATE_SCHEMA_VERSION = "kgnote.issue47-engineering-wakeup-state.v1"
+DISPATCH_STATUSES = {"RESERVED", "RUNNING", "COMPLETED", "FAILED"}
 
 
 class WakeupError(RuntimeError):
@@ -222,7 +224,7 @@ def load_heartbeat(path: Path) -> dict[str, Any]:
 
 def action_identity(
     status: dict[str, Any], orchestrator: dict[str, Any], request: dict[str, Any]
-) -> tuple[str, str, str | None, str | None]:
+) -> tuple[str, str, str | None]:
     review_state = request.get("status")
     if review_state == "READY_FOR_REVIEW":
         if orchestrator.get("state") != "READY_FOR_AI_REVIEW":
@@ -231,16 +233,17 @@ def action_identity(
             "DISPATCH_REVIEW",
             "claude",
             str(request.get("review_id")),
-            str(request.get("candidate_fingerprint")),
         )
     if review_state in {"IMPLEMENTING", "CHANGES_REQUIRED"}:
         if orchestrator.get("state") not in {"IMPLEMENTING", "REPAIRING"}:
             raise WakeupError("orchestrator is not ready for implementation or repair")
-        return ("DISPATCH_IMPLEMENTATION", "codex", str(request.get("review_id")), None)
+        return ("DISPATCH_IMPLEMENTATION", "codex", str(request.get("review_id")))
     raise WakeupError(f"review state {review_state!r} is not wakeable")
 
 
-def _usage(status: dict[str, Any], provider: str) -> tuple[int, int, int, int]:
+def _usage(
+    status: dict[str, Any], provider: str,
+) -> tuple[int, int, int, int, str]:
     policy = status.get("resource_accounting", {}).get(provider)
     if not isinstance(policy, dict):
         raise WakeupError(f"{provider} accounting is missing")
@@ -252,7 +255,189 @@ def _usage(status: dict[str, Any], provider: str) -> tuple[int, int, int, int]:
     )
     if any(isinstance(value, bool) or not isinstance(value, int) for value in fields):
         raise WakeupError(f"{provider} accounting is not exact")
-    return fields  # type: ignore[return-value]
+    workday = policy.get("current_workday")
+    if not isinstance(workday, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", workday):
+        raise WakeupError(f"{provider} accounting workday is not exact")
+    return (*fields, workday)  # type: ignore[return-value]
+
+
+def _runtime_identity(status: dict[str, Any]) -> tuple[str, str]:
+    git = status.get("git")
+    working = status.get("working_state")
+    if not isinstance(git, dict) or not isinstance(working, dict):
+        raise WakeupError("runtime candidate identity is missing")
+    commit = git.get("head")
+    fingerprint = working.get("fingerprint")
+    if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
+        raise WakeupError("runtime candidate commit is not exact")
+    if not isinstance(fingerprint, str) or not re.fullmatch(r"[0-9a-f]{64}", fingerprint):
+        raise WakeupError("runtime candidate fingerprint is not exact")
+    return commit, fingerprint
+
+
+def _new_history(status: dict[str, Any]) -> dict[str, Any]:
+    baseline: dict[str, Any] = {}
+    for provider in ("codex", "claude"):
+        total, today, total_limit, daily_limit, workday = _usage(status, provider)
+        baseline[provider] = {
+            "consumed_total": total,
+            "workday": workday,
+            "workday_launches": today,
+            "total_limit": total_limit,
+            "daily_limit": daily_limit,
+        }
+    return {
+        "schema_version": STATE_SCHEMA_VERSION,
+        "goal_id": GOAL_ID,
+        "goal_version": GOAL_VERSION,
+        "accounting_baseline": baseline,
+        "dispatches": [],
+        "events": [],
+    }
+
+
+def _migrate_legacy_state(
+    legacy: dict[str, Any], status: dict[str, Any], now: datetime,
+) -> dict[str, Any]:
+    if legacy.get("schema_version") != LEGACY_STATE_SCHEMA_VERSION:
+        raise WakeupError("wakeup state schema differs")
+    old_status = legacy.get("status")
+    if old_status not in DISPATCH_STATUSES:
+        raise WakeupError("legacy wakeup state status is invalid")
+    dispatch_key = legacy.get("dispatch_key")
+    provider = legacy.get("provider")
+    action = legacy.get("action")
+    if not isinstance(dispatch_key, str) or not re.fullmatch(r"[0-9a-f]{64}", dispatch_key):
+        raise WakeupError("legacy wakeup dispatch key is invalid")
+    if provider not in {"codex", "claude"} or action not in {
+        "DISPATCH_IMPLEMENTATION", "DISPATCH_REVIEW",
+    }:
+        raise WakeupError("legacy wakeup dispatch identity is invalid")
+    history = _new_history(status)
+    workday = str(legacy.get("reserved_at", now.isoformat()))[:10]
+    history["migrated_from"] = LEGACY_STATE_SCHEMA_VERSION
+    history["dispatches"].append({
+        "dispatch_key": dispatch_key,
+        "goal_id": legacy.get("goal_id", GOAL_ID),
+        "goal_version": legacy.get("goal_version", GOAL_VERSION),
+        "action": action,
+        "provider": provider,
+        "review_id": legacy.get("review_id"),
+        "candidate_commit": legacy.get("candidate_commit"),
+        "candidate_fingerprint": legacy.get("candidate_fingerprint"),
+        "charged_at": legacy.get("reserved_at", now.isoformat()),
+        "workday": workday,
+        "usage_charge": 1,
+        "accounting_included_in_baseline": True,
+    })
+    history["events"].append({
+        "dispatch_key": dispatch_key,
+        "status": "RESERVED",
+        "observed_at": legacy.get("reserved_at", now.isoformat()),
+        "model_launch_started": False,
+        "continuation_exit_code": None,
+    })
+    if old_status in {"RUNNING", "COMPLETED", "FAILED"} and legacy.get("running_at"):
+        history["events"].append({
+            "dispatch_key": dispatch_key,
+            "status": "RUNNING",
+            "observed_at": legacy["running_at"],
+            "model_launch_started": True,
+            "continuation_exit_code": None,
+        })
+    if old_status in {"COMPLETED", "FAILED"} or (
+        old_status == "RUNNING" and not legacy.get("running_at")
+    ):
+        history["events"].append({
+            "dispatch_key": dispatch_key,
+            "status": old_status,
+            "observed_at": legacy.get(
+                f"{str(old_status).lower()}_at", now.isoformat()
+            ),
+            "model_launch_started": True,
+            "continuation_exit_code": legacy.get("continuation_exit_code"),
+        })
+    return history
+
+
+def _validated_history(
+    existing: dict[str, Any] | None, status: dict[str, Any], now: datetime,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    history = _new_history(status) if existing is None else (
+        _migrate_legacy_state(existing, status, now)
+        if existing.get("schema_version") == LEGACY_STATE_SCHEMA_VERSION
+        else existing
+    )
+    if (
+        history.get("schema_version") != STATE_SCHEMA_VERSION
+        or history.get("goal_id") != GOAL_ID
+        or history.get("goal_version") != GOAL_VERSION
+    ):
+        raise WakeupError("wakeup history identity differs")
+    baseline = history.get("accounting_baseline")
+    dispatches = history.get("dispatches")
+    events = history.get("events")
+    if not isinstance(baseline, dict) or not isinstance(dispatches, list) or not isinstance(events, list):
+        raise WakeupError("wakeup history structure differs")
+    for provider in ("codex", "claude"):
+        total, today, total_limit, daily_limit, workday = _usage(status, provider)
+        expected = {
+            "consumed_total": total,
+            "workday": workday,
+            "workday_launches": today,
+            "total_limit": total_limit,
+            "daily_limit": daily_limit,
+        }
+        if baseline.get(provider) != expected:
+            raise WakeupError(f"{provider} accounting baseline drifted")
+    by_key: dict[str, dict[str, Any]] = {}
+    for item in dispatches:
+        if not isinstance(item, dict):
+            raise WakeupError("dispatch history contains a non-object")
+        key = item.get("dispatch_key")
+        if not isinstance(key, str) or not re.fullmatch(r"[0-9a-f]{64}", key) or key in by_key:
+            raise WakeupError("dispatch history key is invalid or duplicated")
+        if item.get("provider") not in {"codex", "claude"} or item.get("usage_charge") != 1:
+            raise WakeupError("dispatch history charge is invalid")
+        if not isinstance(item.get("workday"), str) or not re.fullmatch(
+            r"[0-9]{4}-[0-9]{2}-[0-9]{2}", item["workday"]
+        ):
+            raise WakeupError("dispatch history workday is invalid")
+        by_key[key] = item
+    latest: dict[str, str] = {}
+    for event in events:
+        if not isinstance(event, dict) or event.get("dispatch_key") not in by_key:
+            raise WakeupError("dispatch event identity is invalid")
+        key = str(event["dispatch_key"])
+        new = event.get("status")
+        if new not in DISPATCH_STATUSES:
+            raise WakeupError("dispatch event status is invalid")
+        old = latest.get(key)
+        allowed = old is None and new == "RESERVED" or (
+            old == "RESERVED" and new in {"RUNNING", "COMPLETED", "FAILED"}
+        ) or (old == "RUNNING" and new in {"COMPLETED", "FAILED"})
+        if not allowed:
+            raise WakeupError("dispatch event transition is invalid")
+        latest[key] = str(new)
+    if set(latest) != set(by_key):
+        raise WakeupError("dispatch history is missing a reservation event")
+    return history, latest
+
+
+def _effective_usage(
+    history: dict[str, Any], provider: str, workday: str,
+) -> tuple[int, int, int, int]:
+    baseline = history["accounting_baseline"][provider]
+    chargeable = [
+        item for item in history["dispatches"]
+        if item["provider"] == provider and item.get("accounting_included_in_baseline") is not True
+    ]
+    total = int(baseline["consumed_total"]) + len(chargeable)
+    today = (
+        int(baseline["workday_launches"])
+        if baseline["workday"] == workday else 0
+    ) + sum(item["workday"] == workday for item in chargeable)
+    return total, today, int(baseline["total_limit"]), int(baseline["daily_limit"])
 
 
 def _active_provider_backoff(
@@ -367,7 +552,14 @@ def inspect(
         repo / ".ai/REVIEW_REQUEST.md", "<!-- BEGIN KGNOTE REVIEW REQUEST JSON -->",
         "<!-- END KGNOTE REVIEW REQUEST JSON -->", "review request",
     )
-    action, provider, review_id, fingerprint = action_identity(status, orchestrator, request)
+    action, provider, review_id = action_identity(status, orchestrator, request)
+    candidate_commit, fingerprint = _runtime_identity(status)
+    if action == "DISPATCH_REVIEW":
+        if request.get("candidate_fingerprint") != fingerprint:
+            raise WakeupError("sealed review fingerprint differs from runtime identity")
+        revision = str(request.get("candidate_revision", ""))
+        if not revision.startswith(candidate_commit + "+worktree:" + fingerprint):
+            raise WakeupError("sealed review revision differs from runtime identity")
     if orchestrator.get("active_goal") != GOAL_ID:
         raise WakeupError("orchestrator Goal identity differs")
     orchestrator_review_id = orchestrator.get("review_id")
@@ -375,56 +567,65 @@ def inspect(
         raise WakeupError("review identity differs between request and orchestrator")
     heartbeat = load_heartbeat(heartbeat_path)
     authority = fetch_authority(spec, fixture=authority_fixture, command_runner=command_runner)
-    consumed, today, total_limit, daily_limit = _usage(status, provider)
+    static_total, static_today, total_limit, daily_limit, accounting_workday = _usage(
+        status, provider
+    )
     spec_provider = spec["resource_policy"]["providers"][provider]
     if total_limit != spec_provider["max_total_launches"] or daily_limit != spec_provider["max_launches_per_workday"]:
         raise WakeupError(f"{provider} local ceilings do not implement v4")
-    if consumed >= total_limit or today >= daily_limit:
-        return {
-            "schema_version": SCHEMA_VERSION,
-            "status": "WAITING_QUOTA",
-            "provider": provider,
-            "usage": {"total": consumed, "today": today, "total_limit": total_limit, "daily_limit": daily_limit},
-            "safety": safety,
-        }
-    backoff = _active_provider_backoff(orchestrator, provider, now)
-    if backoff is not None:
-        return {
-            "schema_version": SCHEMA_VERSION,
-            "status": "WAITING_PROVIDER_BACKOFF",
-            "provider": provider,
-            "retry_at": backoff,
-            "safety": safety,
-        }
     dispatch_key = canonical_sha256({
         "goal_id": GOAL_ID,
         "goal_version": GOAL_VERSION,
         "action": action,
         "provider": provider,
         "review_id": review_id,
+        "candidate_commit": candidate_commit,
         "candidate_fingerprint": fingerprint,
     })
     with exclusive_lock(writer_lock):
         existing = load_object(state_path, "wakeup state") if state_path.exists() else None
-        if existing is not None:
-            if existing.get("schema_version") != STATE_SCHEMA_VERSION:
-                raise WakeupError("wakeup state schema differs")
-            existing_status = existing.get("status")
-            same_dispatch = existing.get("dispatch_key") == dispatch_key
-            if same_dispatch and existing_status in {"RESERVED", "RUNNING", "COMPLETED"}:
+        history, latest = _validated_history(existing, status, now)
+        consumed, today, _, _ = _effective_usage(history, provider, now.date().isoformat())
+        if consumed < static_total or (
+            accounting_workday == now.date().isoformat() and today < static_today
+        ):
+            raise WakeupError("effective usage regressed below the durable baseline")
+        if consumed >= total_limit or today >= daily_limit:
+            return {
+                "schema_version": SCHEMA_VERSION,
+                "status": "WAITING_QUOTA",
+                "provider": provider,
+                "usage": {"total": consumed, "today": today, "total_limit": total_limit, "daily_limit": daily_limit},
+                "safety": safety,
+            }
+        backoff = _active_provider_backoff(orchestrator, provider, now)
+        if backoff is not None:
+            return {
+                "schema_version": SCHEMA_VERSION,
+                "status": "WAITING_PROVIDER_BACKOFF",
+                "provider": provider,
+                "retry_at": backoff,
+                "safety": safety,
+            }
+        by_key = {item["dispatch_key"]: item for item in history["dispatches"]}
+        if dispatch_key in by_key:
+            existing_status = latest[dispatch_key]
+            if existing_status in DISPATCH_STATUSES:
                 return {
                     "schema_version": SCHEMA_VERSION,
                     "status": "WAITING_DUPLICATE",
                     "dispatch_key": dispatch_key,
-                    "existing_dispatch_key": existing.get("dispatch_key"),
+                    "existing_dispatch_key": dispatch_key,
+                    "existing_status": existing_status,
                     "safety": safety,
                 }
-            if not same_dispatch and existing_status in {"RESERVED", "RUNNING"}:
+        for existing_key, existing_status in latest.items():
+            if existing_key != dispatch_key and existing_status in {"RESERVED", "RUNNING"}:
                 return {
                     "schema_version": SCHEMA_VERSION,
                     "status": "WAITING_ACTIVE_RESERVATION",
                     "dispatch_key": dispatch_key,
-                    "existing_dispatch_key": existing.get("dispatch_key"),
+                    "existing_dispatch_key": existing_key,
                     "safety": safety,
                 }
         result = {
@@ -437,6 +638,7 @@ def inspect(
             "action": action,
             "provider": provider,
             "review_id": review_id,
+            "candidate_commit": candidate_commit,
             "candidate_fingerprint": fingerprint,
             "dispatch_key": dispatch_key,
             "authority": authority,
@@ -446,21 +648,39 @@ def inspect(
         }
         if reserve:
             reservation = {
-                "schema_version": STATE_SCHEMA_VERSION,
-                "status": "RESERVED",
-                "reserved_at": now.isoformat(),
                 "dispatch_key": dispatch_key,
                 "goal_id": GOAL_ID,
                 "goal_version": GOAL_VERSION,
                 "action": action,
                 "provider": provider,
                 "review_id": review_id,
+                "candidate_commit": candidate_commit,
                 "candidate_fingerprint": fingerprint,
-                "model_launch_started": False,
+                "charged_at": now.isoformat(),
+                "workday": now.date().isoformat(),
+                "usage_charge": 1,
+                "accounting_included_in_baseline": False,
             }
-            _atomic_json(state_path, reservation)
+            history["dispatches"].append(reservation)
+            history["events"].append({
+                "dispatch_key": dispatch_key,
+                "status": "RESERVED",
+                "observed_at": now.isoformat(),
+                "model_launch_started": False,
+                "continuation_exit_code": None,
+            })
+            _atomic_json(state_path, history)
+            charged_total, charged_today, _, _ = _effective_usage(
+                history, provider, now.date().isoformat()
+            )
             result["status"] = "RESERVED"
             result["reservation_sha256"] = hashlib.sha256(state_path.read_bytes()).hexdigest()
+            result["usage_after_charge"] = {
+                "total": charged_total,
+                "today": charged_today,
+                "total_limit": total_limit,
+                "daily_limit": daily_limit,
+            }
         return result
 
 

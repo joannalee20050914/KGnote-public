@@ -10,7 +10,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-31T11:34:15+08:00",
+  "updated_at": "2026-10-31T11:48:53+08:00",
   "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -61,9 +61,9 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   },
   "git": {
     "branch": "codex/issue-47-collaboration-wiring",
-    "head": "ac38b67860b5135a526ee39cf8509b1fbfce7aeb",
+    "head": "e9955c778d0aa1ae0d2cc839345dbcbca0e4cc5d",
     "base_commit": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
-    "checkpoint_commit": "ac38b67860b5135a526ee39cf8509b1fbfce7aeb",
+    "checkpoint_commit": "e9955c778d0aa1ae0d2cc839345dbcbca0e4cc5d",
     "previous_integrated_pull_request": {
       "number": 48,
       "url": "https://github.com/joannalee20050914/KGnote-public/pull/48",
@@ -81,12 +81,12 @@ Product Goal, privacy, review, deployment, and go-live conditions.
       "url": "https://github.com/joannalee20050914/KGnote-public/pull/49",
       "state": "OPEN",
       "is_draft": true,
-      "head": "ac38b67860b5135a526ee39cf8509b1fbfce7aeb",
-      "fingerprint": "8447e0932787bbecf11af0019d3a93e1b4940a4efb8eb80070c532d978583084",
+      "head": "e9955c778d0aa1ae0d2cc839345dbcbca0e4cc5d",
+      "fingerprint": "1e37dd7e11944a4f2ae401d64a5f2401137459d490f023699e3e33057f610f15",
       "merge_state_status": "UNKNOWN",
       "review_decision": null
     },
-    "remote_head": "ac38b67860b5135a526ee39cf8509b1fbfce7aeb",
+    "remote_head": "e9955c778d0aa1ae0d2cc839345dbcbca0e4cc5d",
     "remote_spec_blob": "2aa4ed35227ca2626532f6b530d9c3d0212004fe",
     "remote_read_at": "2026-10-31T11:30:43+08:00",
     "reviewed_tree": null,
@@ -103,7 +103,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "bdd3acf9fe8c03ee399199481ae93a3987b44b83c40dc4afd4eb1ef17a95944e",
+    "fingerprint": "c1b9de1ced59e2e3742b2bb83d8bb63376eb4431bdf834131807fc27a6710816",
     "starting_fingerprint": "025295008f940ba5b55ebef2691556cafe82bd110eadae57cc9fb8e7e281aed6",
     "expected_dirty_policy": "Only active EG-4 owned paths may change: exact candidate sealing/review, trusted Mac/Ubuntu runtime deployment, the unique disabled-by-default entrypoint, stop/rollback read-back, PLAN/STATUS/review bus, and ignored deterministic evidence.",
     "preserved_preexisting_dirty_paths": [
@@ -158,16 +158,18 @@ Product Goal, privacy, review, deployment, and go-live conditions.
       "current_workday_launches": 7,
       "accounting_note": "Owner comment 6538300483 carries at least Codex 12/18 and does not erase any prior launch. The Owner-confirmed checkpoint was 13/18 before the current user-triggered repair turn, so this turn is conservatively launch 14. The three blocked-after-delivery occurrences and the historical v2 6/3 overage remain preserved; v4 changes only the current per-workday ceiling to 18 and never increases the 18-launch Goal total.",
       "historical_v2_daily_overage": "6/3 preserved",
-      "daily_ceiling_exceeded_by": 0
+      "daily_ceiling_exceeded_by": 0,
+      "current_workday": "2026-10-31"
     },
     "claude": {
       "ceiling": 12,
       "known_preapproval": 2,
-      "consumed_total_conservative": 2,
-      "remaining_total_conservative": 10,
+      "consumed_total_conservative": 3,
+      "remaining_total_conservative": 9,
       "daily_ceiling": 12,
-      "current_workday_launches": 2,
-      "accounting_note": "Independent Ubuntu Claude infrastructure reviews round 1 and round 2 each completed once under Claude Pro OAuth as claude-sonnet-5-5. Canonical Consumer records 6537302189 and 6537608610 accepted the exact results. Both launches remain counted; v4 changes only the current per-workday ceiling to 12, so Review 004 may consume launch 3/12 only after the exact candidate and no-model gate pass verification."
+      "current_workday_launches": 3,
+      "accounting_note": "Independent Ubuntu Claude infrastructure reviews rounds 1, 2 and Review 004 each completed once under Claude Pro OAuth as claude-sonnet-5-5. Canonical Consumer records 6537302189, 6537608610 and 6538538869 accepted the exact results. All three launches remain counted; v4 changes only the per-workday ceiling to 12 and never resets the 12-launch Goal total.",
+      "current_workday": "2026-10-31"
     },
     "paid_api_fallback": false,
     "reset_forbidden": true,
@@ -198,24 +200,24 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   "review": {
     "state": "IMPLEMENTING",
     "current_review_id": null,
-    "candidate_revision": null,
-    "candidate_fingerprint": null,
+    "candidate_revision": "e9955c778d0aa1ae0d2cc839345dbcbca0e4cc5d+worktree:428be2cd0b089c0a13d35c632543677405ef1eaddb8f0ea5330e51ebd748c716",
+    "candidate_fingerprint": "428be2cd0b089c0a13d35c632543677405ef1eaddb8f0ea5330e51ebd748c716",
     "unresolved_findings": [
-      "R-001",
-      "R-002",
-      "R-003"
+      "R-004",
+      "R-005",
+      "R-006"
     ],
     "human_decision_blockers": []
   },
   "verification": {
-    "candidate_verified": true,
+    "candidate_verified": false,
     "release_verified": false,
-    "control_plane_ready": true,
-    "last_candidate_evidence": "output/control-plane/verification-20261031T113252+0800.json",
-    "last_verified_fingerprint": "bdd3acf9fe8c03ee399199481ae93a3987b44b83c40dc4afd4eb1ef17a95944e",
-    "last_result": "PASS: fingerprint-stable v4 candidate; 518 control-plane tests, 348 product Python tests, 60 Node tests, 16 requirements-guard tests, strict diff, public safety scan and evidence read-back all passed. This does not promote release_verified and Review 004 is still required before deployment or replacement wakeup activation."
+    "control_plane_ready": false,
+    "last_candidate_evidence": "output/control-plane/verification-20261031T113511+0800.json",
+    "last_verified_fingerprint": "428be2cd0b089c0a13d35c632543677405ef1eaddb8f0ea5330e51ebd748c716",
+    "last_result": "Review 004 repairs R-004 through R-006 changed candidate bytes; targeted and full deterministic verification passed before checkpoint."
   },
-  "next_action": "Create and push the path-explicit Review 004 checkpoint, update PR #49 exact identity, then seal review-issue47-end-to-end-autonomous-collaboration-004 for independent Ubuntu Claude review.",
+  "next_action": "Create a path-explicit repair checkpoint, rerun exact-commit verification, then seal Review 005.",
   "external_or_human_gates": [
     {
       "id": "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
@@ -306,6 +308,6 @@ Product Goal, privacy, review, deployment, and go-live conditions.
 Goal `CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION` remains active at milestone `EG-4-TRUSTED-DEPLOYMENT`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
-Unresolved findings: R-001, R-002, R-003. Human decision blockers: none.
-Exact next action: Create and push the path-explicit Review 004 checkpoint, update PR #49 exact identity, then seal review-issue47-end-to-end-autonomous-collaboration-004 for independent Ubuntu Claude review.
+Unresolved findings: R-004, R-005, R-006. Human decision blockers: none.
+Exact next action: Create a path-explicit repair checkpoint, rerun exact-commit verification, then seal Review 005.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

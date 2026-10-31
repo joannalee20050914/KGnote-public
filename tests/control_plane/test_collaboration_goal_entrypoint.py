@@ -43,6 +43,8 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             "collaboration_goal_entrypoint.py",
             "collaboration_goal_dispatch.py",
             "issue47_engineering_wakeup.py",
+            "codex_control.py",
+            "codex_orchestrator.py",
         ):
             (repo / "scripts" / name).write_bytes((ROOT / "scripts" / name).read_bytes())
         (repo / ".ai").mkdir()
@@ -108,6 +110,8 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             "entrypoint_sha256": receipt["entrypoint_sha256"],
             "dispatcher_sha256": receipt["dispatcher_sha256"],
             "engineering_wakeup_sha256": receipt["engineering_wakeup_sha256"],
+            "control_sha256": receipt["control_sha256"],
+            "orchestrator_sha256": receipt["orchestrator_sha256"],
             "product_goal": config["product_goal"],
             "engineering_goal": config["engineering_goal"],
             "activation_authority": config["activation_authority"],
@@ -122,7 +126,6 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
     ) -> tuple[Path, Path, Path]:
         runtime = root / "engineering-runtime"
         (runtime / "scripts").mkdir(parents=True)
-        (runtime / "scripts/codex_orchestrator.py").write_text("# reviewed fixture\n")
         (runtime / "goal-v4.json").write_text("{}\n")
         heartbeat = root / "automations/kgnote-47-goal/automation.toml"
         heartbeat.parent.mkdir(parents=True)
@@ -166,6 +169,8 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             "entrypoint_sha256": receipt["entrypoint_sha256"],
             "dispatcher_sha256": receipt["dispatcher_sha256"],
             "engineering_wakeup_sha256": receipt["engineering_wakeup_sha256"],
+            "control_sha256": receipt["control_sha256"],
+            "orchestrator_sha256": receipt["orchestrator_sha256"],
             "product_goal": None,
             "engineering_goal": config["engineering_goal"],
             "activation_authority": config["activation_authority"],
@@ -199,15 +204,35 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             state_path.parent.mkdir(parents=True, exist_ok=True)
             state_path.write_text(json.dumps({
                 "schema_version": ENTRYPOINT.ENGINEERING_WAKEUP_STATE_SCHEMA,
-                "status": "RESERVED",
-                "dispatch_key": "d" * 64,
-                "model_launch_started": False,
+                "goal_id": ENTRYPOINT.ENGINEERING_GOAL_ID,
+                "goal_version": "2026-10-31.4-engineering-continuation-simplification",
+                "accounting_baseline": {},
+                "dispatches": [{
+                    "dispatch_key": "d" * 64,
+                    "action": "DISPATCH_IMPLEMENTATION",
+                    "provider": "codex",
+                    "candidate_commit": "c" * 40,
+                    "candidate_fingerprint": "f" * 64,
+                }],
+                "events": [{
+                    "dispatch_key": "d" * 64,
+                    "status": "RESERVED",
+                    "model_launch_started": False,
+                }],
             }))
             return subprocess.CompletedProcess(command, 0, json.dumps({
                 "status": "RESERVED",
                 "action": "DISPATCH_IMPLEMENTATION",
+                "provider": "codex",
                 "dispatch_key": "d" * 64,
+                "candidate_commit": "c" * 40,
+                "candidate_fingerprint": "f" * 64,
                 "safety": {"model_launch_started": False},
+            }), "")
+        if str(command[1]).endswith("codex_control.py"):
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "head": "c" * 40,
+                "value": "f" * 64,
             }), "")
         if str(command[1]).endswith("codex_orchestrator.py"):
             return subprocess.CompletedProcess(command, 0, json.dumps({
@@ -345,8 +370,8 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             wakeup_state = json.loads(
                 (root / "engineering-runtime/output/control-plane/collaboration-goal/wakeup-state.json").read_text()
             )
-            self.assertEqual("COMPLETED", wakeup_state["status"])
-            self.assertTrue(wakeup_state["model_launch_started"])
+            self.assertEqual("COMPLETED", wakeup_state["events"][-1]["status"])
+            self.assertTrue(wakeup_state["events"][-1]["model_launch_started"])
             commands = [call.args[0] for call in runner.call_args_list]
             gate_index = next(
                 index for index, command in enumerate(commands)
@@ -358,6 +383,10 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             )
             self.assertLess(gate_index, continuation_index)
             self.assertIn("--reserve", commands[gate_index])
+            self.assertIn("--engineering-reservation", commands[continuation_index])
+            self.assertIn("--dispatch-key", commands[continuation_index])
+            self.assertIn("--expected-action", commands[continuation_index])
+            self.assertIn("--expected-provider", commands[continuation_index])
 
     def test_engineering_gate_wait_never_invokes_continuation(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -383,6 +412,37 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
                 for call in runner.call_args_list
             ))
 
+    def test_engineering_candidate_or_provider_mismatch_never_invokes_continuation(self):
+        cases = ("candidate", "provider")
+        for case in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                repo, commit = self.repository(root)
+                receipt = self.install(root, repo, commit)
+                config_path, _, _ = self.activate_engineering(root, receipt)
+
+                def mismatched(command, **kwargs):
+                    completed = self.engineering_runner(command, **kwargs)
+                    if len(command) > 1 and str(command[1]).endswith("codex_control.py") and case == "candidate":
+                        return subprocess.CompletedProcess(
+                            command, 0,
+                            json.dumps({"head": "0" * 40, "value": "f" * 64}), "",
+                        )
+                    if len(command) > 1 and str(command[1]).endswith("issue47_engineering_wakeup.py") and case == "provider":
+                        value = json.loads(completed.stdout)
+                        value["provider"] = "claude"
+                        return subprocess.CompletedProcess(command, 0, json.dumps(value), "")
+                    return completed
+
+                runner = Mock(side_effect=mismatched)
+                expected = "candidate identity differs|provider differs"
+                with self.assertRaisesRegex(ENTRYPOINT.EntrypointError, expected):
+                    ENTRYPOINT.run_once(config_path, command_runner=runner)
+                self.assertFalse(any(
+                    len(call.args[0]) > 1 and str(call.args[0][1]).endswith("codex_orchestrator.py")
+                    for call in runner.call_args_list
+                ))
+
     def test_engineering_runtime_stop_short_circuits_before_any_command(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -403,6 +463,8 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             ("entrypoint", "clean|entrypoint bytes drifted"),
             ("dispatcher", "clean|dispatcher bytes drifted"),
             ("engineering_wakeup", "clean|engineering_wakeup bytes drifted"),
+            ("control", "clean|control bytes drifted"),
+            ("orchestrator", "clean|orchestrator bytes drifted"),
         )
         for target, message in drift_cases:
             with self.subTest(target=target), tempfile.TemporaryDirectory() as directory:
@@ -419,6 +481,8 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
                         "entrypoint": "collaboration_goal_entrypoint.py",
                         "dispatcher": "collaboration_goal_dispatch.py",
                         "engineering_wakeup": "issue47_engineering_wakeup.py",
+                        "control": "codex_control.py",
+                        "orchestrator": "codex_orchestrator.py",
                     }[target]
                     path = repo / "scripts" / filename
                     path.write_text(path.read_text(encoding="utf-8") + "# drift\n", encoding="utf-8")

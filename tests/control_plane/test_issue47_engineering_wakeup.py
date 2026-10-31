@@ -50,6 +50,8 @@ class Issue47EngineeringWakeupTests(unittest.TestCase):
         }
         self.status = {
             "goal_id": WAKEUP.GOAL_ID,
+            "git": {"head": "b" * 40},
+            "working_state": {"fingerprint": self.fingerprint},
             "goal_spec": {
                 "version": WAKEUP.GOAL_VERSION,
                 "canonical_sha256": WAKEUP.GOAL_SPEC_SHA256,
@@ -60,12 +62,14 @@ class Issue47EngineeringWakeupTests(unittest.TestCase):
                     "current_workday_launches": 7,
                     "ceiling": 18,
                     "daily_ceiling": 18,
+                    "current_workday": "2026-10-31",
                 },
                 "claude": {
                     "consumed_total_conservative": 2,
                     "current_workday_launches": 2,
                     "ceiling": 12,
                     "daily_ceiling": 12,
+                    "current_workday": "2026-10-31",
                 },
             },
         }
@@ -79,6 +83,7 @@ class Issue47EngineeringWakeupTests(unittest.TestCase):
             "status": "READY_FOR_REVIEW",
             "review_id": self.review_id,
             "candidate_fingerprint": self.fingerprint,
+            "candidate_revision": "b" * 40 + "+worktree:" + self.fingerprint,
         }
         self.heartbeat = Path(self.temporary.name) / "automation.toml"
         self.heartbeat.write_text(
@@ -157,8 +162,10 @@ class Issue47EngineeringWakeupTests(unittest.TestCase):
         self.assertEqual(self.review_id, result["review_id"])
         self.assertFalse(result["safety"]["model_launch_started"])
         state = json.loads((self.output / "wakeup-state.json").read_text())
-        self.assertEqual("RESERVED", state["status"])
-        self.assertFalse(state["model_launch_started"])
+        self.assertEqual("RESERVED", state["events"][-1]["status"])
+        self.assertFalse(state["events"][-1]["model_launch_started"])
+        self.assertEqual(3, result["usage_after_charge"]["total"])
+        self.assertEqual(3, result["usage_after_charge"]["today"])
 
     def test_duplicate_tick_does_not_reserve_or_launch_again(self) -> None:
         first = self.inspect(reserve=True)
@@ -168,11 +175,100 @@ class Issue47EngineeringWakeupTests(unittest.TestCase):
         self.assertEqual(first["dispatch_key"], second["existing_dispatch_key"])
         self.assertFalse(second["safety"]["model_launch_started"])
 
+    def test_failed_same_key_is_charged_once_and_never_redispatched(self) -> None:
+        first = self.inspect(reserve=True)
+        state_path = self.output / "wakeup-state.json"
+        state = json.loads(state_path.read_text())
+        state["events"].append({
+            "dispatch_key": first["dispatch_key"], "status": "FAILED",
+            "observed_at": NOW.isoformat(), "model_launch_started": True,
+            "continuation_exit_code": 2,
+        })
+        state_path.write_text(json.dumps(state))
+        second = self.inspect(reserve=True)
+        self.assertEqual("WAITING_DUPLICATE", second["status"])
+        self.assertEqual("FAILED", second["existing_status"])
+        persisted = json.loads(state_path.read_text())
+        self.assertEqual(1, len(persisted["dispatches"]))
+        self.assertEqual(1, persisted["dispatches"][0]["usage_charge"])
+
+    def test_unknown_history_status_fails_closed(self) -> None:
+        first = self.inspect(reserve=True)
+        state_path = self.output / "wakeup-state.json"
+        state = json.loads(state_path.read_text())
+        state["events"].append({
+            "dispatch_key": first["dispatch_key"], "status": "RETRY_ME",
+            "observed_at": NOW.isoformat(), "model_launch_started": True,
+        })
+        state_path.write_text(json.dumps(state))
+        with self.assertRaisesRegex(WAKEUP.WakeupError, "event status"):
+            self.inspect(reserve=True)
+
+    def test_dispatch_charge_persists_and_daily_count_rolls_by_date_only(self) -> None:
+        first = self.inspect(reserve=True)
+        state_path = self.output / "wakeup-state.json"
+        state = json.loads(state_path.read_text())
+        state["events"].append({
+            "dispatch_key": first["dispatch_key"], "status": "COMPLETED",
+            "observed_at": NOW.isoformat(), "model_launch_started": True,
+            "continuation_exit_code": 0,
+        })
+        state_path.write_text(json.dumps(state))
+        self.review_id = "review-issue47-end-to-end-autonomous-collaboration-005"
+        self.request["review_id"] = self.review_id
+        self.orchestrator["review_id"] = self.review_id
+        self._write_runtime()
+        next_day = self.inspect(
+            reserve=True,
+            now=datetime(2026, 11, 1, 10, 0, tzinfo=ZONE),
+        )
+        self.assertEqual("RESERVED", next_day["status"])
+        self.assertEqual(4, next_day["usage_after_charge"]["total"])
+        self.assertEqual(1, next_day["usage_after_charge"]["today"])
+        persisted = json.loads(state_path.read_text())
+        self.assertEqual(2, len(persisted["dispatches"]))
+
+    def test_legacy_completed_state_migrates_without_double_charging(self) -> None:
+        state_path = self.output / "wakeup-state.json"
+        state_path.parent.mkdir(parents=True)
+        state_path.write_text(json.dumps({
+            "schema_version": WAKEUP.LEGACY_STATE_SCHEMA_VERSION,
+            "status": "COMPLETED",
+            "reserved_at": "2026-10-31T11:39:28+08:00",
+            "completed_at": "2026-10-31T11:40:27+08:00",
+            "dispatch_key": "d" * 64,
+            "goal_id": WAKEUP.GOAL_ID,
+            "goal_version": WAKEUP.GOAL_VERSION,
+            "action": "DISPATCH_REVIEW",
+            "provider": "claude",
+            "review_id": "review-issue47-end-to-end-autonomous-collaboration-004",
+            "candidate_fingerprint": self.fingerprint,
+            "model_launch_started": True,
+            "continuation_exit_code": 0,
+        }), encoding="utf-8")
+        self.review_id = "review-issue47-end-to-end-autonomous-collaboration-005"
+        self.request["review_id"] = self.review_id
+        self.orchestrator["review_id"] = self.review_id
+        self._write_runtime()
+        result = self.inspect(reserve=True)
+        self.assertEqual("RESERVED", result["status"])
+        self.assertEqual(3, result["usage_after_charge"]["total"])
+        migrated = json.loads(state_path.read_text(encoding="utf-8"))
+        self.assertEqual(WAKEUP.LEGACY_STATE_SCHEMA_VERSION, migrated["migrated_from"])
+        self.assertTrue(migrated["dispatches"][0]["accounting_included_in_baseline"])
+        self.assertEqual(["RESERVED", "COMPLETED", "RESERVED"], [
+            event["status"] for event in migrated["events"]
+        ])
+
     def test_completed_dispatch_allows_new_identity_but_active_old_one_blocks(self) -> None:
         first = self.inspect(reserve=True)
         state_path = self.output / "wakeup-state.json"
         state = json.loads(state_path.read_text())
-        state["status"] = "COMPLETED"
+        state["events"].append({
+            "dispatch_key": first["dispatch_key"], "status": "COMPLETED",
+            "observed_at": NOW.isoformat(), "model_launch_started": True,
+            "continuation_exit_code": 0,
+        })
         state_path.write_text(json.dumps(state))
         self.review_id = "review-issue47-end-to-end-autonomous-collaboration-005"
         self.request["review_id"] = self.review_id
@@ -183,7 +279,11 @@ class Issue47EngineeringWakeupTests(unittest.TestCase):
         self.assertNotEqual(first["dispatch_key"], second["dispatch_key"])
 
         state = json.loads(state_path.read_text())
-        state["status"] = "RUNNING"
+        state["events"].append({
+            "dispatch_key": second["dispatch_key"], "status": "RUNNING",
+            "observed_at": NOW.isoformat(), "model_launch_started": True,
+            "continuation_exit_code": None,
+        })
         state_path.write_text(json.dumps(state))
         self.review_id = "review-issue47-end-to-end-autonomous-collaboration-006"
         self.request["review_id"] = self.review_id
@@ -252,6 +352,7 @@ class Issue47EngineeringWakeupTests(unittest.TestCase):
             "status": "IMPLEMENTING",
             "review_id": self.review_id,
             "candidate_fingerprint": None,
+            "candidate_revision": None,
         }
         self.orchestrator["state"] = "REPAIRING"
         self._write_runtime()

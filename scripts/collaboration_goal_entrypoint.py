@@ -25,7 +25,7 @@ CONFIG_SCHEMA = "kgnote.collaboration-goal-entrypoint-config.v1"
 RECEIPT_SCHEMA = "kgnote.collaboration-goal-entrypoint-install.v1"
 ACTIVATION_SCHEMA = "kgnote.collaboration-goal-entrypoint-activation.v1"
 RESULT_SCHEMA = "kgnote.collaboration-goal-entrypoint-result.v1"
-ENGINEERING_WAKEUP_STATE_SCHEMA = "kgnote.issue47-engineering-wakeup-state.v1"
+ENGINEERING_WAKEUP_STATE_SCHEMA = "kgnote.issue47-engineering-wakeup-state.v2"
 V4_OWNER_COMMENT_ID = 6538300483
 V4_GOAL_SPEC_SHA256 = "0507d2dbc5c9780afbe3e67a3c8ca66f8fb1b93eff9507c86299baac0141ad5d"
 ENABLED_STATUS = "ENABLED_FOR_EXACT_PRODUCT_GOAL"
@@ -152,7 +152,7 @@ def _require_o2_unloaded(
 def _verify_enabled_identity(
     config_path: Path, config: dict[str, Any], *,
     command_runner: Callable[..., subprocess.CompletedProcess[str]],
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path]:
     receipt_path = Path(str(config.get("install_receipt", "")))
     activation_path = Path(str(config.get("activation_record", "")))
     receipt = _load_object(receipt_path, "install receipt")
@@ -195,16 +195,24 @@ def _verify_enabled_identity(
     entrypoint = repo / "scripts/collaboration_goal_entrypoint.py"
     dispatcher = repo / "scripts/collaboration_goal_dispatch.py"
     wakeup = repo / "scripts/issue47_engineering_wakeup.py"
+    control = repo / "scripts/codex_control.py"
+    orchestrator = repo / "scripts/codex_orchestrator.py"
     if Path(str(receipt.get("entrypoint", ""))).resolve() != entrypoint:
         raise EntrypointError("install receipt entrypoint path differs")
     if Path(str(receipt.get("engineering_wakeup", ""))).resolve() != wakeup:
         raise EntrypointError("install receipt engineering wakeup path differs")
+    if Path(str(receipt.get("control", ""))).resolve() != control:
+        raise EntrypointError("install receipt control path differs")
+    if Path(str(receipt.get("orchestrator", ""))).resolve() != orchestrator:
+        raise EntrypointError("install receipt orchestrator path differs")
     if _inside(repo, str(config.get("dispatcher", "")), "dispatcher") != dispatcher:
         raise EntrypointError("enabled dispatcher path differs from reviewed path")
     if _inside(repo, str(config.get("engineering_wakeup", "")), "engineering wakeup") != wakeup:
         raise EntrypointError("enabled engineering wakeup path differs from reviewed path")
     for name, path in (
-        ("entrypoint", entrypoint), ("dispatcher", dispatcher), ("engineering_wakeup", wakeup),
+        ("entrypoint", entrypoint), ("dispatcher", dispatcher),
+        ("engineering_wakeup", wakeup), ("control", control),
+        ("orchestrator", orchestrator),
     ):
         if not path.is_file() or path.is_symlink():
             raise EntrypointError(f"reviewed {name} is unavailable")
@@ -226,6 +234,8 @@ def _verify_enabled_identity(
         "entrypoint_sha256": receipt.get("entrypoint_sha256"),
         "dispatcher_sha256": receipt.get("dispatcher_sha256"),
         "engineering_wakeup_sha256": receipt.get("engineering_wakeup_sha256"),
+        "control_sha256": receipt.get("control_sha256"),
+        "orchestrator_sha256": receipt.get("orchestrator_sha256"),
         "product_goal": config.get("product_goal"),
         "engineering_goal": config.get("engineering_goal"),
         "activation_authority": config.get("activation_authority"),
@@ -252,7 +262,7 @@ def _verify_enabled_identity(
     _require_no_unexpected_model_processes(command_runner=command_runner)
     _require_no_competing_writer(repo)
     _require_o2_unloaded(command_runner=command_runner)
-    return repo, dispatcher, wakeup
+    return repo, dispatcher, wakeup, control, orchestrator
 
 
 def _absolute_regular_directory(raw: Any, label: str) -> Path:
@@ -301,17 +311,35 @@ def _transition_wakeup_state(
         except BlockingIOError as exc:
             raise EntrypointError("another Issue #47 writer became active") from exc
         state = _load_object(state_path, "engineering wakeup state")
-        if (
-            state.get("schema_version") != ENGINEERING_WAKEUP_STATE_SCHEMA
-            or state.get("dispatch_key") != dispatch_key
-            or state.get("status") not in {"RESERVED", "RUNNING"}
-        ):
+        if state.get("schema_version") != ENGINEERING_WAKEUP_STATE_SCHEMA:
             raise EntrypointError("engineering wakeup reservation identity differs")
-        state["status"] = status
-        state["model_launch_started"] = True
-        state[f"{status.lower()}_at"] = observed_at
-        if continuation_exit_code is not None:
-            state["continuation_exit_code"] = continuation_exit_code
+        dispatches = state.get("dispatches")
+        events = state.get("events")
+        if not isinstance(dispatches, list) or not isinstance(events, list):
+            raise EntrypointError("engineering wakeup history structure differs")
+        matches = [
+            item for item in dispatches
+            if isinstance(item, dict) and item.get("dispatch_key") == dispatch_key
+        ]
+        dispatch_events = [
+            item for item in events
+            if isinstance(item, dict) and item.get("dispatch_key") == dispatch_key
+        ]
+        if len(matches) != 1 or not dispatch_events:
+            raise EntrypointError("engineering wakeup reservation identity differs")
+        current = dispatch_events[-1].get("status")
+        allowed = current == "RESERVED" and status in {"RUNNING", "COMPLETED", "FAILED"} or (
+            current == "RUNNING" and status in {"COMPLETED", "FAILED"}
+        )
+        if not allowed:
+            raise EntrypointError("engineering wakeup transition differs")
+        events.append({
+            "dispatch_key": dispatch_key,
+            "status": status,
+            "observed_at": observed_at,
+            "model_launch_started": True,
+            "continuation_exit_code": continuation_exit_code,
+        })
         state_path.parent.mkdir(parents=True, exist_ok=True)
         descriptor, temporary = tempfile.mkstemp(
             prefix=f".{state_path.name}.", dir=state_path.parent
@@ -331,7 +359,8 @@ def _transition_wakeup_state(
 
 
 def _run_engineering_wakeup(
-    *, deployment_repo: Path, wakeup: Path, config: dict[str, Any],
+    *, deployment_repo: Path, wakeup: Path, control: Path, orchestrator: Path,
+    config: dict[str, Any],
     now: str | None, base: dict[str, Any],
     command_runner: Callable[..., subprocess.CompletedProcess[str]],
 ) -> dict[str, Any]:
@@ -385,16 +414,36 @@ def _run_engineering_wakeup(
         raise EntrypointError("engineering admission reservation returned a failing exit code")
     if gate.get("action") not in {"DISPATCH_IMPLEMENTATION", "DISPATCH_REVIEW"}:
         raise EntrypointError("engineering admission action is not supported")
+    expected_provider = {
+        "DISPATCH_IMPLEMENTATION": "codex",
+        "DISPATCH_REVIEW": "claude",
+    }[gate["action"]]
+    if gate.get("provider") != expected_provider:
+        raise EntrypointError("engineering admission provider differs from its action")
     dispatch_key = str(gate.get("dispatch_key", ""))
     if not re.fullmatch(r"[0-9a-f]{64}", dispatch_key):
         raise EntrypointError("engineering admission dispatch key is not exact")
 
-    orchestrator = runtime / "scripts/codex_orchestrator.py"
-    if not orchestrator.is_file() or orchestrator.is_symlink():
-        raise EntrypointError("engineering continuation orchestrator is unavailable")
+    candidate_commit = str(gate.get("candidate_commit", ""))
+    candidate_fingerprint = str(gate.get("candidate_fingerprint", ""))
+    if not re.fullmatch(r"[0-9a-f]{40}", candidate_commit) or not re.fullmatch(
+        r"[0-9a-f]{64}", candidate_fingerprint
+    ):
+        raise EntrypointError("engineering admission candidate identity is not exact")
+    identity_completed = command_runner(
+        [sys.executable, str(control), "--repo", str(runtime), "fingerprint"],
+        cwd=deployment_repo, capture_output=True, text=True, check=False,
+    )
+    if identity_completed.returncode:
+        raise EntrypointError("runtime candidate identity read-back failed")
+    identity = _json_result(identity_completed, "runtime candidate identity")
+    if identity.get("head") != candidate_commit or identity.get("value") != candidate_fingerprint:
+        raise EntrypointError("runtime candidate identity differs from the reservation")
     continuation = [
         sys.executable, str(orchestrator), "--repo", str(runtime),
-        "resume", "--max-steps", "1",
+        "resume", "--max-steps", "1", "--engineering-reservation", str(state),
+        "--dispatch-key", dispatch_key, "--expected-action", str(gate["action"]),
+        "--expected-provider", expected_provider,
     ]
     _transition_wakeup_state(
         state_path=state, writer_lock=writer_lock, dispatch_key=dispatch_key,
@@ -463,13 +512,14 @@ def run_once(
                 "reason": "engineering Stop Marker is latched",
             }
 
-    repo, dispatcher, wakeup = _verify_enabled_identity(
+    repo, dispatcher, wakeup, control, orchestrator = _verify_enabled_identity(
         config_path, config, command_runner=command_runner,
     )
 
     if status == ENGINEERING_ENABLED_STATUS:
         return _run_engineering_wakeup(
-            deployment_repo=repo, wakeup=wakeup, config=config, now=now,
+            deployment_repo=repo, wakeup=wakeup, control=control,
+            orchestrator=orchestrator, config=config, now=now,
             base=base, command_runner=command_runner,
         )
 
