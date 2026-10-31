@@ -2,12 +2,12 @@
   "schema_version": "kgnote.orchestrator-state.v1",
   "run_id": "orch-issue47-weekend-resume-20261031",
   "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
-  "work_package": "EG-1-INDEPENDENT-REVIEW-AND-PR",
-  "state": "IMPLEMENTING",
+  "work_package": "EG-4-TRUSTED-DEPLOYMENT",
+  "state": "REPAIRING",
   "current_agent": null,
-  "candidate_fingerprint": null,
+  "candidate_fingerprint": "428be2cd0b089c0a13d35c632543677405ef1eaddb8f0ea5330e51ebd748c716",
   "review_id": null,
-  "review_cycle": 0,
+  "review_cycle": 2,
   "max_review_cycles": 5,
   "agent_failures": 0,
   "max_agent_failures": 3,
@@ -23,9 +23,18 @@
       "resolved_at": "2026-10-31T09:27:51+08:00",
       "authority_spec_sha256": "8f3036ec6429e2f8f1e546aea3a8b3bf1c0cb1459e742991a4228612836958cd",
       "authority_comment_id": 6537070839
+    },
+    {
+      "type": "issue47_v2_small_daily_limits",
+      "occurrences": 1,
+      "detected_at": "2026-10-31T10:30:00+08:00",
+      "resolution": "Exact v4 spec and Owner comment 6538300483 set per-workday ceilings equal to unchanged Goal totals (Codex 18, Claude 12). Historical v2 usage 6/3 and 2/2, all three blocked-after-delivery incidents, provider backoff, and cumulative totals remain preserved.",
+      "resolved_at": "2026-10-31T11:30:43+08:00",
+      "authority_spec_sha256": "0507d2dbc5c9780afbe3e67a3c8ca66f8fb1b93eff9507c86299baac0141ad5d",
+      "authority_comment_id": 6538300483
     }
   ],
-  "next_action": "Commit the excluded STATUS/state verification receipt, push and read back the exact branch, then seal review-issue47-end-to-end-autonomous-collaboration-001 for one bounded independent Ubuntu Claude infrastructure review.",
+  "next_action": "Repair Review 004 findings R-004, R-005 and R-006 within exact v4 authority.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -40,5 +49,29 @@
   },
   "last_agent_run": null,
   "created_at": "2026-10-30T20:49:30+08:00",
-  "updated_at": "2026-10-31T09:29:53+08:00"
+  "updated_at": "2026-10-31T11:46:33+08:00",
+  "continuation_checkpoint": {
+    "codex_consumed_total_conservative": 14,
+    "codex_consumed_today_conservative": 7,
+    "codex_daily_ceiling": 18,
+    "codex_remaining_total_conservative": 4,
+    "claude_consumed_total_conservative": 3,
+    "claude_consumed_today": 3,
+    "claude_daily_ceiling": 12,
+    "heartbeat_id": "kgnote-47-goal",
+    "heartbeat_status": "PAUSED",
+    "heartbeat_paused_at": "2026-10-31T11:23:28+08:00",
+    "heartbeat_remaining_occurrences": 5,
+    "next_wakeup": null,
+    "app_goal_blocked_until_external_time_change": false,
+    "app_goal_runtime_status": "blocked",
+    "app_goal_reblocked_at": "2026-10-31T11:19:53+08:00",
+    "continuation_incident_id": "ISSUE47-CODEX-CONTINUATION-AFTER-BLOCK-20261031",
+    "continuation_incident_occurrence_count": 3,
+    "latest_incident_evidence": "output/control-plane/issue47-continuation-admission-incident-20261031T111908+0800-occurrence-003.json",
+    "v4_goal_version": "2026-10-31.4-engineering-continuation-simplification",
+    "v4_goal_spec_sha256": "0507d2dbc5c9780afbe3e67a3c8ca66f8fb1b93eff9507c86299baac0141ad5d",
+    "v4_authority_comment_id": 6538300483,
+    "replacement_wakeup_rule": "A new independent PASS after Review 004 repairs is required before the unique LaunchAgent may replace the paused Codex App heartbeat."
+  }
 }

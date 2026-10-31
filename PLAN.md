@@ -3,7 +3,7 @@
 This file contains one Codex App engineering Goal for Issue #47. It does not
 authorize a KGnote Product Goal. The exact immutable engineering specification
 was approved by the GitHub repository Owner on 2026-10-31 and amended by the
-exact engineering-only weekend exception in comment `6537070839`; model work,
+exact engineering-continuation authority in comment `6538300483`; model work,
 formal deployment, and gated external execution remain limited by the approved
 work window, milestone dependencies, and separate Product Goal / go-live gates.
 
@@ -19,27 +19,33 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
   "product_goal_authorized": false,
   "objective": "以單一、有界且可跨工作日恢復的工程 Goal，保存現有 Issue #47 readiness candidate，固定 exact spec／checkpoint／預算，取得 GitHub Owner 授權後，連續完成獨立審查、one-shot dispatch、無模型整合測試、安全部署、受控 canary、跨日接續與 rollback 證據，最後停在真人產品驗收與常設 go-live 的集中決策；不修改或冒充 O2 v4 Product Goal。",
   "status": "active",
-  "active_milestone_id": "EG-1-INDEPENDENT-REVIEW-AND-PR",
+  "active_milestone_id": "EG-4-TRUSTED-DEPLOYMENT",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
-  "execution_direction_id": "kgnote-issue47-weekend-engineering-exception-2026-10-31",
+  "execution_direction_id": "kgnote-issue47-engineering-continuation-simplification-2026-10-31",
   "goal_spec": {
-    "path": "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.2.json",
+    "path": "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.4.json",
     "schema_path": "schemas/codex-app-engineering-goal/v1/goal-spec.schema.json",
-    "version": "2026-10-31.2-weekend-engineering-exception",
-    "canonical_sha256": "8f3036ec6429e2f8f1e546aea3a8b3bf1c0cb1459e742991a4228612836958cd",
+    "version": "2026-10-31.4-engineering-continuation-simplification",
+    "canonical_sha256": "0507d2dbc5c9780afbe3e67a3c8ca66f8fb1b93eff9507c86299baac0141ad5d",
     "authority_status": "EXACT_GITHUB_OWNER_APPROVED",
-    "authorization_request": "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_AUTHORIZATION_PACKAGE_20261031.md",
+    "authorization_request": "docs/control-plane/ISSUE47_ENGINEERING_AUTONOMY_CONTINUATION_AUTHORIZATION_20261031.md",
     "authority_receipt": {
-      "comment_id": 6537070839,
-      "comment_url": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6537070839",
+      "comment_id": 6538300483,
+      "comment_url": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6538300483",
       "author_login": "joannalee20050914",
       "author_association": "OWNER",
-      "created_at": "2026-10-31T01:19:02Z",
-      "body_sha256": "d01c5fe57c73f99750ff2ec145f4d495897b4062c4e20a97950b4b00d8507e92",
-      "command_canonical_sha256": "6bc2d545b3c116c17d66de592780cd685f0c004306c20dd109ec74b95c4931fc",
+      "created_at": "2026-10-31T03:17:05Z",
+      "body_sha256": "96eb37ed4b4e76aa6c7eab4767fec2c53c12b3d96843b1d77c6a19217844d1a2",
+      "command_canonical_sha256": "53cb7c25ad8216dca4d8daa408af81df1902298d73c91f0fd8c7fefbf53cf7b4",
       "marker": "kgnote-codex-app-engineering-goal-authority:v1",
       "validation": "EXACT_SEMANTIC_MATCH_AND_REMOTE_SPEC_BLOB_READ_BACK"
+    },
+    "predecessor_authority": {
+      "version": "2026-10-31.2-weekend-engineering-exception",
+      "canonical_sha256": "8f3036ec6429e2f8f1e546aea3a8b3bf1c0cb1459e742991a4228612836958cd",
+      "comment_id": 6537070839,
+      "disposition": "PRESERVED_AS_HISTORICAL_AUTHORITY_SUPERSEDED_BY_V4_WITHOUT_RESETTING_USAGE_OR_INCIDENTS"
     }
   },
   "explicit_direction": {
@@ -55,8 +61,10 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     "docs/control-plane/ISSUE47_ONESHOT_ENGINEERING_DIRECTION_20261030.md",
     "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-30.1.json",
     "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.2.json",
+    "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.4.json",
     "docs/control-plane/ISSUE47_WEEKEND_ENGINEERING_EXCEPTION_DIRECTION_20261031.md",
     "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_AUTHORIZATION_PACKAGE_20261031.md",
+    "docs/control-plane/ISSUE47_ENGINEERING_AUTONOMY_CONTINUATION_AUTHORIZATION_20261031.md",
     "schemas/codex-app-engineering-goal/v1/goal-spec.schema.json",
     ".ai/REVIEW_PROTOCOL.md",
     "schemas/product-goal/v1/goal-spec.schema.json",
@@ -109,7 +117,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     "base_revision": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
     "branch": "codex/issue-47-collaboration-wiring",
     "base_branch": "main",
-    "pull_request": 48,
+    "pull_request": 49,
     "automatic_merge": false,
     "merge_authority": "proposed only for the exact Issue #47 PR after GitHub Owner spec approval, required checks, independent review, branch protection, and remote read-back"
   },
@@ -128,15 +136,15 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     "model_concurrency": 1,
     "codex": {
       "max_total": 18,
-      "max_per_workday": 3,
-      "known_preapproval": 7,
-      "remaining_if_approved": 11
+      "max_per_workday": 18,
+      "known_preapproval": 12,
+      "remaining_if_approved": 6
     },
     "claude": {
       "max_total": 12,
-      "max_per_workday": 2,
-      "known_preapproval": 0,
-      "remaining_if_approved": 12
+      "max_per_workday": 12,
+      "known_preapproval": 2,
+      "remaining_if_approved": 10
     },
     "payment": "existing subscription login only; paid API fallback forbidden",
     "reset_rule": "all retries, contexts/sessions, reviews, repairs, cross-day work and unknown reserved attempts share the same totals and cannot be reset"
@@ -173,7 +181,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
       "id": "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
       "status": "COMPLETE",
       "release_verified": false,
-      "rule": "Current exact authority is Owner comment 6537070839 for v2026-10-31.2; it binds the weekend engineering-only windows, at least Codex 7/18 carry-over, permissions, resources and unchanged O2 coexistence."
+      "rule": "Current exact authority is Owner comment 6538300483 for v2026-10-31.4; it preserves the weekend engineering-only windows, carries at least Codex 12/18 and Claude 2/12, removes only stale small daily limits, and permits one reviewed reversible no-model engineering wakeup without Product Goal dispatch."
     },
     {
       "id": "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
@@ -302,7 +310,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     {
       "id": "EG-1-INDEPENDENT-REVIEW-AND-PR",
       "title": "readiness exact candidate 的獨立審查、修復與 PR 整合",
-      "status": "active",
+      "status": "complete",
       "dependencies": [
         "EG-0-WEEKEND-AUTHORITY-AMENDMENT"
       ],
@@ -329,7 +337,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     {
       "id": "EG-2-ONESHOT-DISPATCH",
       "title": "沿用既有 planner／ledger／Router／worker 的真正 one-shot dispatch",
-      "status": "pending",
+      "status": "complete",
       "dependencies": [
         "EG-1-INDEPENDENT-REVIEW-AND-PR"
       ],
@@ -355,7 +363,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     {
       "id": "EG-3-ZERO-MODEL-E2E",
       "title": "無模型整合、失敗安全、停止與 rollback 證據",
-      "status": "pending",
+      "status": "complete",
       "dependencies": [
         "EG-2-ONESHOT-DISPATCH"
       ],
@@ -380,7 +388,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     {
       "id": "EG-4-TRUSTED-DEPLOYMENT",
       "title": "安全部署 exact reviewed generation 與唯一 disabled-by-default 入口",
-      "status": "pending",
+      "status": "active",
       "dependencies": [
         "EG-3-ZERO-MODEL-E2E"
       ],
@@ -397,9 +405,11 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
         "trusted Mac and Ubuntu deployment paths explicitly named by the approved spec"
       ],
       "acceptance": [
-        "Mac/Ubuntu runtime identity、manifest、installed hashes 與 no-model admission receipt 綁定 exact reviewed commit",
-        "新 scheduler/launcher 唯一、預設 disabled、可逆且不共用 O2 state/ledger",
-        "old O2 Runner 維持 disabled/unloaded；duplicate service、unexpected process、stop 與 rollback negative tests 通過"
+      "Mac/Ubuntu runtime identity、manifest、installed hashes 與 no-model admission receipt 綁定 exact reviewed commit",
+      "新 scheduler/launcher 唯一、預設 disabled、可逆且不共用 O2 state/ledger",
+      "old O2 Runner 維持 disabled/unloaded；duplicate service、unexpected process、stop 與 rollback negative tests 通過",
+      "舊 kgnote-47-goal Heartbeat 保持 PAUSED；唯一新入口在任何 Codex／Claude continuation 前以無模型方式驗證 v4 authority、time window、quota、backoff、Stop Marker、writer lock、paused heartbeat 與 dispatch identity",
+      "相同 dispatch key 在 restart 後不得重送；不同且已完成的後續 review/repair identity 可接續，未決 reservation 則 fail closed"
       ]
     },
     {
@@ -482,16 +492,24 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
 
 ## Current execution note
 
-`EG-0-SPEC-SEAL` completed at checkpoint `2b60fbc399e41b016f695b82644ca0dbe106b358`
-and fingerprint `5aea9a8015f1ca926d1444fcd8373ce02aef7cf289b71baaf21461a9f51a3a4b`.
-The exact authorization request was published at
-`https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6523223111`.
-The repository Owner then posted the exact marker and command at
-`https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6536884383`;
-its body SHA-256 is
-`ab27554c2388587cf8e6cd0fce48a0e7247c095bcf872b12f78cc96e4e57e4a3` and
-the command matches the immutable spec exactly. `EG-1-INDEPENDENT-REVIEW-AND-PR`
-is now the only active milestone. No background Codex or Claude context may
-start before 2026-11-02 09:00 Asia/Taipei or outside the approved work window.
-This approval still does not authorize any Product Goal, live canary, standing
-B-scheme go-live, or mutation of O2 v4 runtime records.
+The current exact engineering continuation amendment is Owner comment
+`6538300483`, bound to spec
+`2026-10-31.4-engineering-continuation-simplification` and canonical SHA-256
+`0507d2dbc5c9780afbe3e67a3c8ca66f8fb1b93eff9507c86299baac0141ad5d`.
+`EG-1` was independently reviewed and integrated by PR #48. `EG-2` and `EG-3`
+then completed the real one-shot path plus 495 control-plane, 348 product Python,
+60 Node and 16 requirements-guard tests without a model or Product Goal launch.
+The old Codex App heartbeat is paused after three blocked-after-delivery incidents.
+The new Issue #47 entrypoint is being repaired so its reviewed no-model gate runs
+before any provider continuation, atomically suppresses duplicate dispatch, and
+latches stop/rollback across restart/day changes without touching O2. `EG-4` is
+the only active milestone; Review 004 must pass before any trusted deployment or
+replacement scheduler activation.
+No Product Goal canary, standing scheduler activation, B-scheme go-live or O2
+runtime mutation is authorized.
+
+## Current recovery note
+
+Autonomous orchestration state: `IMPLEMENTING`. Active work package: `EG-4-TRUSTED-DEPLOYMENT`.
+Next action: seal and independently review the exact EG-2/EG-3 candidate before disabled-by-default deployment.
+Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.

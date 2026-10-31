@@ -14,6 +14,7 @@ from pathlib import Path
 
 try:
     from product_goal_worker_identity import (
+        COLLABORATION_IDENTITY_SCHEMA,
         PRODUCT_IDENTITY_SCHEMA,
         PRODUCT_BRANCH,
         PRODUCT_REPOSITORY_URL,
@@ -28,6 +29,7 @@ try:
     )
 except ModuleNotFoundError:  # Direct file loading in repository unit tests.
     from scripts.product_goal_worker_identity import (
+        COLLABORATION_IDENTITY_SCHEMA,
         PRODUCT_IDENTITY_SCHEMA,
         PRODUCT_BRANCH,
         PRODUCT_REPOSITORY_URL,
@@ -55,6 +57,9 @@ PINNED_PYTHON_VERSION = "Python 3.12.3"
 PINNED_NODE_VERSION = "v24.12.0"
 PINNED_NPM_VERSION = "11.6.2"
 PINNED_CODEX_VERSION = "codex-cli 0.146.0"
+PRODUCT_IDENTITY_SCHEMAS = {
+    PRODUCT_IDENTITY_SCHEMA, COLLABORATION_IDENTITY_SCHEMA,
+}
 
 
 class BootstrapError(RuntimeError):
@@ -83,14 +88,20 @@ def _prepare_product_checkout(
 ) -> dict[str, object]:
     """Create once or validate the exact private O2 branch checkout before model launch."""
     candidate_commit = str(identity["candidate_commit"])
+    collaboration = identity.get("schema_version") == COLLABORATION_IDENTITY_SCHEMA
+    branch = str(identity.get("branch") or PRODUCT_BRANCH)
+    repository_url = (
+        f"https://github.com/{identity['repository']}.git"
+        if collaboration else PRODUCT_REPOSITORY_URL
+    )
     entries = list(working_directory.iterdir())
     cloned = False
     if not entries:
         if not allow_clone:
             raise BootstrapError("runtime admission requires an existing exact Product Goal checkout")
-        ref = f"refs/heads/{PRODUCT_BRANCH}"
+        ref = f"refs/heads/{branch}"
         remote = _git_text(
-            ["/usr/bin/git", "ls-remote", "--heads", PRODUCT_REPOSITORY_URL, ref],
+            ["/usr/bin/git", "ls-remote", "--heads", repository_url, ref],
             cwd=working_directory,
             runner=runner,
         ).splitlines()
@@ -101,8 +112,8 @@ def _prepare_product_checkout(
             raise BootstrapError("Product Goal seed branch differs from the sealed candidate")
         _git_text(
             [
-                "/usr/bin/git", "clone", "--branch", PRODUCT_BRANCH,
-                "--single-branch", PRODUCT_REPOSITORY_URL, ".",
+                "/usr/bin/git", "clone", "--branch", branch,
+                "--single-branch", repository_url, ".",
             ],
             cwd=working_directory,
             runner=runner,
@@ -128,7 +139,7 @@ def _prepare_product_checkout(
         ["/usr/bin/git", "remote", "get-url", "origin"],
         cwd=working_directory,
         runner=runner,
-    ) != PRODUCT_REPOSITORY_URL:
+    ) != repository_url:
         raise BootstrapError("Product Goal checkout repository identity is invalid")
     branch = _git_text(
         ["/usr/bin/git", "branch", "--show-current"],
@@ -140,7 +151,7 @@ def _prepare_product_checkout(
         cwd=working_directory,
         runner=runner,
     )
-    if branch != PRODUCT_BRANCH or head != candidate_commit:
+    if branch != str(identity.get("branch") or PRODUCT_BRANCH) or head != candidate_commit:
         raise BootstrapError("Product Goal checkout branch or HEAD differs from the sealed candidate")
     if _git_text(
         ["/usr/bin/git", "status", "--porcelain=v1", "--untracked-files=all"],
@@ -161,7 +172,7 @@ def _prepare_product_checkout(
         "commit": head,
         "tree": tree,
         "git_common_dir": str(common_path),
-        "remote_url": PRODUCT_REPOSITORY_URL,
+        "remote_url": repository_url,
         "clean": True,
     }
 
@@ -243,7 +254,7 @@ def _validate_generic_identity(
             )
         except RuntimeAdmissionError as exc:
             raise BootstrapError(str(exc)) from exc
-    if isinstance(identity, dict) and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA:
+    if isinstance(identity, dict) and identity.get("schema_version") in PRODUCT_IDENTITY_SCHEMAS:
         try:
             return validate_product_goal_identity(
                 identity, event_id=event_id, stage=stage,
@@ -300,13 +311,13 @@ def prepare(event_id: str, stage: str, working_directory: Path, identity: object
         if (
             isinstance(identity, dict)
             and identity.get("schema_version") in {
-                PRODUCT_IDENTITY_SCHEMA, ADMISSION_IDENTITY_SCHEMA,
+                *PRODUCT_IDENTITY_SCHEMAS, ADMISSION_IDENTITY_SCHEMA,
             }
         ):
             runtime_state = WORKTREE_ROOT / "runtime-state"
             handoff = (
                 runtime_state / "product-goal"
-                if identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+                if identity.get("schema_version") in PRODUCT_IDENTITY_SCHEMAS
                 else runtime_state / "admission" / str(identity["challenge"])
             )
             for directory in (runtime_state, handoff):
@@ -327,20 +338,30 @@ def prepare(event_id: str, stage: str, working_directory: Path, identity: object
     if (
         isinstance(identity, dict)
         and identity.get("schema_version") in {
-            PRODUCT_IDENTITY_SCHEMA, ADMISSION_IDENTITY_SCHEMA,
+            *PRODUCT_IDENTITY_SCHEMAS, ADMISSION_IDENTITY_SCHEMA,
         }
     ):
-        checkout_identity = (
-            identity
-            if identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
-            else {
-                "candidate_commit": identity["candidate"]["commit"],
-                "repository": "joannalee20050914/KGnote-public",
-            }
-        )
+        checkout_identity = identity
+        if identity.get("schema_version") == ADMISSION_IDENTITY_SCHEMA:
+            product_identity = identity.get("product_goal_identity")
+            if isinstance(product_identity, dict):
+                checkout_identity = product_identity
+            else:
+                checkout_identity = {
+                    "candidate_commit": identity["candidate"]["commit"],
+                    "repository": "joannalee20050914/KGnote-public",
+                }
         checkout = _prepare_product_checkout(
             working_directory, checkout_identity,
-            allow_clone=identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA,
+            allow_clone=(
+                identity.get("schema_version") in PRODUCT_IDENTITY_SCHEMAS
+                or (
+                    identity.get("schema_version") == ADMISSION_IDENTITY_SCHEMA
+                    and isinstance(identity.get("product_goal_identity"), dict)
+                    and identity["product_goal_identity"].get("schema_version")
+                    == COLLABORATION_IDENTITY_SCHEMA
+                )
+            ),
         )
         if stage in {"codex", "admission"}:
             development_environment = _validate_product_dev_environment(working_directory)
@@ -357,7 +378,7 @@ def prepare(event_id: str, stage: str, working_directory: Path, identity: object
         "mode": oct(stat.S_IMODE(metadata.st_mode)),
         "handoff_directory": (
             str(WORKTREE_ROOT / "runtime-state/product-goal")
-            if isinstance(identity, dict) and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+            if isinstance(identity, dict) and identity.get("schema_version") in PRODUCT_IDENTITY_SCHEMAS
             else (
                 str(WORKTREE_ROOT / "runtime-state/admission" / str(identity["challenge"]))
                 if isinstance(identity, dict) and identity.get("schema_version") == ADMISSION_IDENTITY_SCHEMA

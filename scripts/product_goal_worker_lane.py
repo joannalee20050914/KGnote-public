@@ -30,7 +30,12 @@ from claude_reviewer_adapter import (
     build_claude_schema_projection,
     execute as execute_claude,
 )
-from product_goal_worker_result import CONTEXT_SCHEMA, WorkerResultError, validate_context
+from product_goal_worker_result import (
+    COLLABORATION_CONTEXT_SCHEMA,
+    CONTEXT_SCHEMA,
+    WorkerResultError,
+    validate_context,
+)
 from product_goal_runtime_admission import (
     ADMISSION_CONTEXT_SCHEMA,
     MODEL_PRE_RESERVATION,
@@ -154,11 +159,13 @@ def _run_verifier(
     verifier: Callable[..., tuple[dict[str, Any], int]],
     repo: Path,
     prepublication_context: dict[str, Any],
+    *,
+    o2_profile: bool,
 ) -> tuple[dict[str, Any], int]:
     # Test doubles and older internal callers intentionally retain their simple
     # one-argument contract.  The deployed verifier receives the sealed O2
     # profile explicitly and is the only path allowed to bypass legacy PR #28.
-    if verifier is codex_control.verify:
+    if verifier is codex_control.verify and o2_profile:
         return verifier(
             repo,
             o2_prepublication_context=prepublication_context,
@@ -343,8 +350,8 @@ def admit_codex_development_environment(
 ) -> tuple[dict[str, Any], dict[str, str]]:
     """Prove the exact checkout and toolchain before invoking Codex."""
     context = validate_context(context)
-    if context.get("schema_version") != CONTEXT_SCHEMA:
-        raise LaneError("Codex development admission requires Runner-verified context v2")
+    if context.get("schema_version") not in {CONTEXT_SCHEMA, COLLABORATION_CONTEXT_SCHEMA}:
+        raise LaneError("Codex development admission requires Runner-verified context v2 or v3")
     _admit_pinned_model_runtime(context, lane="Codex")
     candidate, environment = _admit_exact_environment(repo, {
         "commit": context["candidate_commit"],
@@ -533,6 +540,7 @@ def run_codex(
         verifier,
         repo,
         verification_context,
+        o2_profile=context.get("schema_version") == CONTEXT_SCHEMA,
     )
     artifact = {
         "schema_version": "kgnote.codex-product-goal-result.v1",
@@ -578,7 +586,10 @@ def run_verify(
         candidate,
         phase="SEALED_CANDIDATE",
     )
-    evidence, code = _run_verifier(verifier, repo, verification_context)
+    evidence, code = _run_verifier(
+        verifier, repo, verification_context,
+        o2_profile=context.get("schema_version") == CONTEXT_SCHEMA,
+    )
     _atomic_json(evidence_path, evidence)
     return code
 

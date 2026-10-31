@@ -25,6 +25,121 @@ assert CONTROL_TEST_SPEC and CONTROL_TEST_SPEC.loader
 CONTROL_TEST_SPEC.loader.exec_module(CONTROL_TESTS)
 
 
+class EngineeringReservationBindingTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.repo = Path(self.temporary.name)
+        self.state_path = self.repo / "output/control-plane/collaboration-goal/wakeup-state.json"
+        self.state_path.parent.mkdir(parents=True)
+        self.key = "d" * 64
+        self.commit = "c" * 40
+        self.fingerprint = "f" * 64
+        self.review_id = "review-issue47-end-to-end-autonomous-collaboration-005"
+        self.state_path.write_text(json.dumps({
+            "schema_version": "kgnote.issue47-engineering-wakeup-state.v2",
+            "dispatches": [{
+                "dispatch_key": self.key,
+                "action": "DISPATCH_REVIEW",
+                "provider": "claude",
+                "review_id": self.review_id,
+                "candidate_commit": self.commit,
+                "candidate_fingerprint": self.fingerprint,
+            }],
+            "events": [
+                {"dispatch_key": self.key, "status": "RESERVED"},
+                {"dispatch_key": self.key, "status": "RUNNING"},
+            ],
+        }), encoding="utf-8")
+
+    def validate(self, *, action="DISPATCH_REVIEW", provider="claude"):
+        with mock.patch.object(
+            ORCH.control, "repository_fingerprint",
+            return_value={"head": self.commit, "value": self.fingerprint},
+        ), mock.patch.object(
+            ORCH.control, "load_review_artifacts",
+            return_value=({
+                "status": "READY_FOR_REVIEW", "review_id": self.review_id,
+                "candidate_fingerprint": self.fingerprint,
+            }, {}, {}),
+        ), mock.patch.object(
+            ORCH, "read_state",
+            return_value={"state": "READY_FOR_AI_REVIEW"},
+        ):
+            ORCH.validate_engineering_reservation(
+                self.repo, self.state_path, self.key, action, provider,
+            )
+
+    def test_exact_running_review_reservation_is_accepted(self):
+        self.validate()
+
+    def test_changes_required_repair_state_pair_is_accepted(self):
+        value = json.loads(self.state_path.read_text(encoding="utf-8"))
+        value["dispatches"][0].update({
+            "action": "DISPATCH_IMPLEMENTATION",
+            "provider": "codex",
+        })
+        self.state_path.write_text(json.dumps(value), encoding="utf-8")
+        with mock.patch.object(
+            ORCH.control, "repository_fingerprint",
+            return_value={"head": self.commit, "value": self.fingerprint},
+        ), mock.patch.object(
+            ORCH.control, "load_review_artifacts",
+            return_value=({
+                "status": "CHANGES_REQUIRED", "review_id": self.review_id,
+                "candidate_fingerprint": self.fingerprint,
+            }, {}, {}),
+        ), mock.patch.object(
+            ORCH, "read_state", return_value={"state": "REPAIRING"},
+        ):
+            ORCH.validate_engineering_reservation(
+                self.repo, self.state_path, self.key,
+                "DISPATCH_IMPLEMENTATION", "codex",
+            )
+
+    def test_unshared_repair_state_pair_is_rejected(self):
+        with mock.patch.object(
+            ORCH.control, "repository_fingerprint",
+            return_value={"head": self.commit, "value": self.fingerprint},
+        ), mock.patch.object(
+            ORCH.control, "load_review_artifacts",
+            return_value=({
+                "status": "CHANGES_REQUIRED", "review_id": self.review_id,
+                "candidate_fingerprint": self.fingerprint,
+            }, {}, {}),
+        ), mock.patch.object(
+            ORCH, "read_state", return_value={"state": "IMPLEMENTING"},
+        ):
+            with self.assertRaisesRegex(ValueError, "state pair"):
+                ORCH.validate_engineering_reservation(
+                    self.repo, self.state_path, self.key,
+                    "DISPATCH_REVIEW", "claude",
+                )
+
+    def test_action_provider_or_candidate_mismatch_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "action/provider"):
+            self.validate(action="DISPATCH_REVIEW", provider="codex")
+        value = json.loads(self.state_path.read_text(encoding="utf-8"))
+        value["dispatches"][0]["candidate_fingerprint"] = "0" * 64
+        self.state_path.write_text(json.dumps(value), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "runtime candidate"):
+            self.validate()
+
+    def test_non_running_or_outside_reservation_is_rejected(self):
+        value = json.loads(self.state_path.read_text(encoding="utf-8"))
+        value["events"] = value["events"][:1]
+        self.state_path.write_text(json.dumps(value), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "running dispatch"):
+            self.validate()
+        outside = Path(str(self.repo) + "-outside-reservation.json")
+        self.addCleanup(lambda: outside.unlink(missing_ok=True))
+        outside.write_text(self.state_path.read_text(encoding="utf-8"), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "leaves the runtime"):
+            ORCH.validate_engineering_reservation(
+                self.repo, outside, self.key, "DISPATCH_REVIEW", "claude",
+            )
+
+
 class OrchestrationSimulationTests(unittest.TestCase):
     def base_state(self, review_cycle=0, max_cycles=5):
         return {
@@ -572,7 +687,7 @@ class OrchestratorDurabilityTests(unittest.TestCase):
     def make_issue47_weekend_authority_fixture(self, root, *, stale_digest=False):
         relative_spec = Path(
             "docs/control-plane/"
-            "ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.2.json"
+            "ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.4.json"
         )
         target_spec = root / relative_spec
         target_spec.parent.mkdir(parents=True, exist_ok=True)

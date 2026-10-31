@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import subprocess
 import tempfile
 import unittest
@@ -16,7 +17,9 @@ import codex_control as CODEX
 import goal_continuity as GOAL
 import goal_runner_adapter as ADAPTER
 import local_autonomy_runner as RUNNER
+import product_goal_worker_result as WORKER_RESULT
 from tests.control_plane.test_github_product_goal_control import comment
+from tests.control_plane.test_goal_continuity import product_goal_spec as generic_product_goal_spec
 from tests.control_plane.runtime_admission_fixtures import (
     activation_dependency_receipts,
     product_goal_spec,
@@ -66,6 +69,123 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
 
     def write_state(self, repo: Path, state=None):
         path=repo/"state.json"; GOAL.atomic_write_json(path,state or self.state); return path
+
+    def test_generic_goal_builds_provider_neutral_v3_order_with_exact_bindings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            spec = generic_product_goal_spec()
+            state = GOAL.initial_runner_state(spec, now=NOW)
+            authority = CONTROL.resolve_authority([comment(spec)], spec)["record"]
+            state.update({
+                "authority_record": authority,
+                "authority_lease": "ACTIVE",
+                "go_live_authorized": True,
+                "lifecycle": {
+                    "state": "ACTIVE", "revision": 1,
+                    "changed_at": NOW, "reason": "test authority",
+                },
+                "candidate_identity": {
+                    "commit": "4" * 40, "fingerprint": "5" * 64,
+                    "branch": "codex/generic-product-goal", "pull_request": 55,
+                },
+                "event_cursor": {"sequence": 1, "event_sha256": "6" * 64},
+            })
+            state_path = self.write_state(repo, state)
+            action = {
+                "status": "ACTION_READY",
+                "action": "DISPATCH_IMPLEMENTATION",
+                "work_item_id": "WI-O2-IMPLEMENT",
+                "requires_model": True,
+                "provider": "codex",
+                "capacity_basis": "fallback",
+                "resource_window_id": "2026-11-02",
+                "launches_in_window_before": 0,
+                "total_launches_before": 0,
+            }
+            unchanged, path, order, attempt = ADAPTER.ensure_bound_order(
+                spec, state, action, repo=repo, state_path=state_path,
+                occurred_at=NOW, runtime_identity=self.runtime_identity,
+                persist_binding=False,
+            )
+            self.assertEqual(state, unchanged)
+            self.assertTrue(path.is_file())
+            self.assertEqual(
+                "kgnote.authorized-product-goal-work-identity.v2",
+                order["bootstrap_identity"]["schema_version"],
+            )
+            context = order["execution_context"]
+            self.assertEqual("kgnote.product-goal-worker-context.v3", context["schema_version"])
+            self.assertEqual(attempt, context["attempt_id"])
+            self.assertEqual(action["action"], context["next_action"]["action"])
+            self.assertEqual(order["event_id"], context["checkpoint"]["order_event_id"])
+            self.assertEqual("codex", context["usage"]["provider"])
+            self.assertEqual(12, context["usage"]["max_total_launches"])
+            self.assertIsNone(context["review"])
+            GOAL.validate_document(
+                context["dispatch_envelope"], "dispatch-envelope.schema.json",
+            )
+            self.assertEqual(
+                context["dispatch_envelope_sha256"],
+                hashlib.sha256(
+                    GOAL.canonical_json_bytes(context["dispatch_envelope"])
+                ).hexdigest(),
+            )
+            ADAPTER.product_goal_worker_identity.validate_product_goal_identity(
+                order["bootstrap_identity"], event_id=order["event_id"],
+                stage="codex", working_directory=Path(order["working_directory"]),
+                worktree_root=Path("/home/kgnote/.local/share/kgnote"),
+            )
+            ADAPTER.product_goal_worker_identity.validate_product_goal_runtime_context(
+                context, identity=order["bootstrap_identity"],
+            )
+            ADAPTER.linux_worker_router.WorkerOrder.from_dict(order)
+            failed = WORKER_RESULT.adapt_worker_result(
+                context, None, returncode=1,
+            )
+            self.assertEqual(
+                context["dispatch_envelope_sha256"],
+                failed["dispatch_envelope_sha256"],
+            )
+
+    def test_generic_review_candidate_binding_drift_is_rejected_by_router(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            spec = generic_product_goal_spec()
+            state = GOAL.initial_runner_state(spec, now=NOW)
+            authority = CONTROL.resolve_authority([comment(spec)], spec)["record"]
+            state["work_items"][0]["status"] = "VERIFIED"
+            state.update({
+                "authority_record": authority, "authority_lease": "ACTIVE",
+                "go_live_authorized": True,
+                "lifecycle": {
+                    "state": "ACTIVE", "revision": 1,
+                    "changed_at": NOW, "reason": "test authority",
+                },
+                "candidate_identity": {
+                    "commit": "4" * 40, "fingerprint": "5" * 64,
+                    "branch": "codex/generic-product-goal", "pull_request": 55,
+                },
+                "event_cursor": {"sequence": 1, "event_sha256": "6" * 64},
+            })
+            state_path = self.write_state(repo, state)
+            action = {
+                "status": "ACTION_READY", "action": "DISPATCH_REVIEW",
+                "work_item_id": "WI-O2-REVIEW", "requires_model": True,
+                "provider": "claude", "total_launches_before": 0,
+            }
+            _, _, order, _ = ADAPTER.ensure_bound_order(
+                spec, state, action, repo=repo, state_path=state_path,
+                occurred_at=NOW, runtime_identity=self.runtime_identity,
+                persist_binding=False,
+            )
+            self.assertEqual("READY_FOR_REVIEW", order["execution_context"]["review"]["state"])
+            drifted = deepcopy(order)
+            drifted["execution_context"]["review"]["candidate_identity_sha256"] = "0" * 64
+            with self.assertRaisesRegex(
+                ADAPTER.linux_worker_router.RoutingError,
+                "dispatch envelope.*differs",
+            ):
+                ADAPTER.linux_worker_router.WorkerOrder.from_dict(drifted)
 
     def test_runner_creates_seals_and_reuses_same_attempt_order(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -241,15 +361,50 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
                 for dependency in target["dependencies"]:
                     next(row for row in state["work_items"] if row["work_item_id"]==dependency)["status"]="VERIFIED"
                 target["status"]="READY"
+                ledger_path = None
+                if action_name == "DISPATCH_REPAIR":
+                    ledger_path = repo / "ledger.jsonl"
+                    candidate_digest = hashlib.sha256(
+                        GOAL.canonical_json_bytes(state["candidate_identity"])
+                    ).hexdigest()
+                    verdict, _ = GOAL.append_ledger_event(
+                        ledger_path,
+                        event_id=f"{work_item.lower()}-changes-required",
+                        event_type="REVIEW_VERDICT_ACCEPTED",
+                        occurred_at=NOW,
+                        goal_id=self.spec["goal_id"],
+                        goal_version=self.spec["goal_version"],
+                        logical_work_id=target["dependencies"][0],
+                        attempt_id=f"{work_item.lower()}-review-attempt",
+                        payload={
+                            "review_id": f"review-{work_item.lower()}",
+                            "verdict": "CHANGES_REQUIRED",
+                            "candidate_identity_sha256": candidate_digest,
+                        },
+                    )
+                    state["event_cursor"] = {
+                        "sequence": verdict["sequence"],
+                        "event_sha256": verdict["event_sha256"],
+                    }
                 state_path=self.write_state(repo,state)
                 action={"status":"ACTION_READY","action":action_name,"work_item_id":work_item,"requires_model":requires_model}
                 if provider is not None:
                     action.update({"provider":provider,"total_launches_before":0})
                 built=self.ensure_bound_order(
-                    self.spec,state,action,repo=repo,state_path=state_path,occurred_at=NOW,
+                    self.spec,state,action,repo=repo,state_path=state_path,
+                    ledger_path=ledger_path,occurred_at=NOW,
                 )
                 self.assertEqual(stage,built[2]["stage"])
                 self.assertEqual(work_item,built[2]["bootstrap_identity"]["work_item_id"])
+                if action_name == "DISPATCH_REPAIR":
+                    self.assertEqual(
+                        f"review-{work_item.lower()}",
+                        built[2]["execution_context"]["review"]["review_id"],
+                    )
+                    self.assertEqual(
+                        "CHANGES_REQUIRED",
+                        built[2]["execution_context"]["review"]["state"],
+                    )
 
     def test_first_publication_is_bound_to_one_mac_created_draft_pr(self):
         with tempfile.TemporaryDirectory() as directory:

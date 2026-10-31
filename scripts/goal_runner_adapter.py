@@ -1194,12 +1194,18 @@ def _is_exact_o2_goal(spec: dict[str, Any]) -> bool:
 def requires_runtime_admission(
     spec: dict[str, Any], action: dict[str, Any],
 ) -> bool:
-    """Return whether this dispatch is governed by the exact O2 live receipt gate."""
+    """Every model dispatch must cross the live zero-model Ubuntu receipt gate."""
     if not bool(action.get("requires_model")):
         return False
-    if spec.get("goal_id") != product_goal_worker_identity.PRODUCT_GOAL_ID:
+    if (
+        spec.get("goal_id") == "GOAL-KGNOTE-ISOLATED-B-SCHEME-NO-MODEL-TRIAL"
+        and spec.get("repository") == "example.invalid/kgnote-isolated-trial"
+    ):
         return False
-    if not _is_exact_o2_goal(spec):
+    if (
+        spec.get("goal_id") == product_goal_worker_identity.PRODUCT_GOAL_ID
+        and not _is_exact_o2_goal(spec)
+    ):
         raise GoalRunnerError(
             "model dispatch for the O2 Goal ID requires the exact supported version and digest"
         )
@@ -1286,10 +1292,16 @@ def ensure_bound_order(
         raise GoalRunnerError(
             "O2 dynamic order requires the exact supported version and digest"
         )
-    if not _is_exact_o2_goal(spec):
-        path, order, attempt_id = validated_bound_order(
-            spec, state, action, repo=repo,
-        )
+    exact_o2 = _is_exact_o2_goal(spec)
+    selected_work = next(
+        row for row in state["work_items"]
+        if row["work_item_id"] == action["work_item_id"]
+    )
+    if not exact_o2 and (
+        isinstance(selected_work.get("dispatch_binding"), dict)
+        or isinstance(selected_work.get("dispatch_bindings"), dict)
+    ):
+        path, order, attempt_id = validated_bound_order(spec, state, action, repo=repo)
         return state, path, order, attempt_id
     try:
         occurred = datetime.fromisoformat(occurred_at)
@@ -1360,6 +1372,10 @@ def ensure_bound_order(
         raise GoalRunnerError("active dispatch cannot be replaced by a new order")
 
     initial_binding = durable.get("candidate_identity") is None
+    if initial_binding and not exact_o2:
+        raise GoalRunnerError(
+            "generic dynamic WorkOrder requires a pre-bound exact candidate identity"
+        )
     candidate = deepcopy(
         durable.get("candidate_identity") or _initial_o2_candidate_identity(repo)
     )
@@ -1373,7 +1389,13 @@ def ensure_bound_order(
         "runtime_identity": runtime_identity,
     }
     event_suffix = hashlib.sha256(goal_continuity.canonical_json_bytes(identity_seed)).hexdigest()[:16]
-    event_id = f"o2-{str(action['work_item_id']).lower()}-{stage}-{event_suffix}"
+    goal_slug = "goal-" + hashlib.sha256(
+        f"{spec['goal_id']}:{spec['goal_version']}".encode()
+    ).hexdigest()[:20]
+    event_id = (
+        f"o2-{str(action['work_item_id']).lower()}-{stage}-{event_suffix}"
+        if exact_o2 else f"pg-{stage}-{event_suffix}"
+    )
     output = repo / "output/control-plane/product-goal"
     orders = output / "orders"
     context_path = output / "contexts" / f"{event_id}.json"
@@ -1413,8 +1435,85 @@ def ensure_bound_order(
         },
         "candidate_identity": deepcopy(candidate),
     }
+    review_binding = None
+    if action["action"] == "DISPATCH_REVIEW":
+        review_binding = {
+            "review_id": f"{event_id}:{attempt_id}",
+            "state": "READY_FOR_REVIEW",
+            "candidate_identity_sha256": hashlib.sha256(
+                goal_continuity.canonical_json_bytes(candidate)
+            ).hexdigest(),
+        }
+    elif action["action"] == "DISPATCH_REPAIR":
+        if ledger_path is None:
+            raise GoalRunnerError("repair order lacks the accepted review ledger")
+        projection = goal_continuity.reduce_ledger(
+            goal_continuity.read_ledger(ledger_path)
+        )
+        accepted = next(
+            (
+                verdict for verdict in reversed(projection.get("review_verdicts", []))
+                if verdict.get("verdict") == "CHANGES_REQUIRED"
+            ),
+            None,
+        )
+        candidate_digest = hashlib.sha256(
+            goal_continuity.canonical_json_bytes(candidate)
+        ).hexdigest()
+        if (
+            not isinstance(accepted, dict)
+            or not isinstance(accepted.get("review_id"), str)
+            or accepted.get("candidate_identity_sha256") != candidate_digest
+        ):
+            raise GoalRunnerError(
+                "repair order lacks an exact-candidate CHANGES_REQUIRED review binding"
+            )
+        review_binding = {
+            "review_id": accepted["review_id"],
+            "state": "CHANGES_REQUIRED",
+            "candidate_identity_sha256": candidate_digest,
+        }
+    maximum_launches = (
+        spec["resource_policy"]["providers"][provider]["fallback"]["max_total_launches"]
+        if provider in {"codex", "claude"} else None
+    )
+    checkpoint_binding = {
+        "order_event_id": event_id,
+        "path": str((repo / "output/control-plane/product-goal/checkpoints" / f"{event_id}.json").resolve()),
+    }
+    usage_binding = {
+        "provider": provider,
+        "total_launches_before": action.get("total_launches_before"),
+        "max_total_launches": maximum_launches,
+    }
+    next_action_binding = {
+        "status": action["status"], "action": action["action"],
+        "work_item_id": action["work_item_id"],
+        "requires_model": action["requires_model"],
+    }
+    dispatch_envelope = {
+        "schema_version": "kgnote.product-goal-dispatch-envelope.v1",
+        "goal": {
+            "goal_id": spec["goal_id"], "goal_version": spec["goal_version"],
+            "goal_spec_sha256": goal_continuity.goal_spec_sha256(spec),
+        },
+        "work_item_id": action["work_item_id"], "attempt_id": attempt_id,
+        "authority": {
+            "record_sha256": runner_context["authority_record_sha256"],
+            "body_sha256": durable["authority_record"]["body_sha256"],
+            "lease": durable["authority_lease"],
+        },
+        "candidate": deepcopy(candidate),
+        "checkpoint": checkpoint_binding,
+        "review": review_binding,
+        "usage": usage_binding,
+        "next_action": next_action_binding,
+    }
     context = {
-        "schema_version": product_goal_worker_identity.PRODUCT_RUNTIME_CONTEXT_SCHEMA,
+        "schema_version": (
+            product_goal_worker_identity.PRODUCT_RUNTIME_CONTEXT_SCHEMA
+            if exact_o2 else product_goal_worker_identity.COLLABORATION_RUNTIME_CONTEXT_SCHEMA
+        ),
         "goal_id": spec["goal_id"], "goal_version": spec["goal_version"],
         "goal_spec_sha256": goal_continuity.goal_spec_sha256(spec),
         "work_item_id": action["work_item_id"], "order_event_id": event_id,
@@ -1433,6 +1532,14 @@ def ensure_bound_order(
         "obligation_ids": deepcopy(work["obligation_ids"]),
         "runner_context": runner_context,
         "runtime_identity": deepcopy(runtime_identity),
+        "checkpoint": checkpoint_binding,
+        "review": review_binding,
+        "usage": usage_binding,
+        "next_action": next_action_binding,
+        "dispatch_envelope": dispatch_envelope,
+        "dispatch_envelope_sha256": hashlib.sha256(
+            goal_continuity.canonical_json_bytes(dispatch_envelope)
+        ).hexdigest(),
     }
     goal_continuity.atomic_write_json(context_path, context)
     guest_root = Path("/home/kgnote/.local/share/kgnote")
@@ -1447,7 +1554,10 @@ def ensure_bound_order(
         stdout_path=guest_stdout, stderr_path=guest_stderr,
     )
     bootstrap_identity = {
-        "schema_version": "kgnote.authorized-product-goal-work-identity.v1",
+        "schema_version": (
+            product_goal_worker_identity.PRODUCT_IDENTITY_SCHEMA
+            if exact_o2 else product_goal_worker_identity.COLLABORATION_IDENTITY_SCHEMA
+        ),
         "identity_kind": "KGNOTE_PRODUCT_GOAL", "authority_kind": "GITHUB_OWNER_APPROVAL",
         "repository": spec["repository"], "issue": spec["github_issue"],
         "goal_id": spec["goal_id"], "goal_version": spec["goal_version"],
@@ -1456,7 +1566,7 @@ def ensure_bound_order(
         "order_event_id": event_id, "branch": candidate["branch"],
         "candidate_commit": candidate["commit"],
         "candidate_fingerprint": candidate["fingerprint"],
-        "worktree_slug": "goal-o2-reading-experience",
+        "worktree_slug": "goal-o2-reading-experience" if exact_o2 else goal_slug,
         "authority_record": f"https://github.com/{spec['repository']}/issues/{spec['github_issue']}",
         "authority_sha256": durable["authority_record"]["body_sha256"],
         "authority_status": "APPROVED",
@@ -1466,7 +1576,10 @@ def ensure_bound_order(
     order = {
         "schema_version": "kgnote.linux-worker-order.v1", "event_id": event_id,
         "stage": stage,
-        "working_directory": str(guest_root / "work-items/goal-o2-reading-experience"),
+        "working_directory": str(
+            guest_root / "work-items"
+            / ("goal-o2-reading-experience" if exact_o2 else goal_slug)
+        ),
         "handoff_directory": str(guest_output),
         "command": command,
         "checkpoint_path": str((repo / "output/control-plane/product-goal/checkpoints" / f"{event_id}.json").resolve()),
@@ -1924,13 +2037,7 @@ def bind_candidate_pull_request(
     artifact_url: str, occurred_at: str,
 ) -> dict[str, Any]:
     """Bind one Mac GitHub read-back to the already-published exact candidate."""
-    if (
-        spec.get("goal_id") != product_goal_worker_identity.PRODUCT_GOAL_ID
-        or spec.get("goal_version") != product_goal_worker_identity.PRODUCT_GOAL_VERSION
-        or goal_continuity.goal_spec_sha256(spec)
-        != product_goal_worker_identity.PRODUCT_GOAL_SPEC_SHA256
-    ):
-        raise GoalRunnerError("candidate PR binding is available only to the exact O2 Goal")
+    goal_continuity.validate_goal_spec(spec)
     if not isinstance(pull_request, int) or isinstance(pull_request, bool) or pull_request < 1:
         raise GoalRunnerError("candidate PR number is invalid")
     durable = goal_continuity.load_json(state_path)
@@ -2229,6 +2336,15 @@ def _validate_worker_result_binding(
     }
     if any(result.get(key) != value for key, value in exact.items()):
         raise GoalRunnerError("worker result does not bind the exact Goal/Work Item/order")
+    context = order.get("execution_context")
+    if (
+        isinstance(context, dict)
+        and context.get("schema_version")
+        == product_goal_worker_identity.COLLABORATION_RUNTIME_CONTEXT_SCHEMA
+        and result.get("dispatch_envelope_sha256")
+        != context.get("dispatch_envelope_sha256")
+    ):
+        raise GoalRunnerError("worker result dispatch envelope differs from the sealed order")
     result_state = str(result.get("result_state") or "COMPLETED")
     rich_fields = {"attempt_id", "stage", "provider", "candidate", "execution"}
     if rich_fields.intersection(result):
@@ -2240,7 +2356,6 @@ def _validate_worker_result_binding(
             raise GoalRunnerError("worker result provider differs from the immutable Work Item")
         if result_state == "COMPLETED" and not isinstance(result.get("candidate"), dict):
             raise GoalRunnerError("completed worker result lacks exact candidate identity")
-        context = order.get("execution_context")
         candidate = result.get("candidate")
         if (
             isinstance(context, dict) and isinstance(candidate, dict)

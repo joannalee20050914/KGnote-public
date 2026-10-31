@@ -17,7 +17,12 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import linux_worker_router as ROUTER
 import product_goal_runtime_admission as ADMISSION
+import goal_continuity as GOAL
+import goal_runner_adapter as ADAPTER
+import github_product_goal_control as CONTROL
 from tests.control_plane.runtime_admission_fixtures import runtime_identity
+from tests.control_plane.test_goal_continuity import product_goal_spec
+from tests.control_plane.test_github_product_goal_control import comment
 
 
 NOW = datetime(2026, 10, 29, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
@@ -164,6 +169,56 @@ class ProductGoalRuntimeAdmissionTest(unittest.TestCase):
                     ADMISSION.RuntimeAdmissionError, "PAUSE boundary",
                 ):
                     ADMISSION.validate_deployment_request(invalid)
+
+    def test_generic_product_goal_model_admission_preserves_exact_worktree_and_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            spec = product_goal_spec()
+            state = GOAL.initial_runner_state(spec, now=NOW.isoformat())
+            authority = CONTROL.resolve_authority([comment(spec)], spec)["record"]
+            state.update({
+                "authority_record": authority, "authority_lease": "ACTIVE",
+                "go_live_authorized": True,
+                "lifecycle": {
+                    "state": "ACTIVE", "revision": 1,
+                    "changed_at": NOW.isoformat(), "reason": "test",
+                },
+                "candidate_identity": {
+                    "commit": "1" * 40, "fingerprint": "2" * 64,
+                    "branch": "codex/generic-runtime-admission", "pull_request": 47,
+                },
+                "event_cursor": {"sequence": 1, "event_sha256": "3" * 64},
+            })
+            state_path = repo / "state.json"
+            GOAL.atomic_write_json(state_path, state)
+            action = {
+                "status": "ACTION_READY", "action": "DISPATCH_IMPLEMENTATION",
+                "work_item_id": "WI-O2-IMPLEMENT", "requires_model": True,
+                "provider": "codex", "total_launches_before": 0,
+            }
+            runtime = runtime_identity()
+            _, order_path, raw, _ = ADAPTER.ensure_bound_order(
+                spec, state, action, repo=repo, state_path=state_path,
+                occurred_at=NOW.isoformat(), runtime_identity=runtime,
+                persist_binding=False,
+            )
+            product = ROUTER.WorkerOrder.from_dict(raw)
+            receipt_path = repo / "admission.json"
+            admission = ROUTER.admission_order_for_model(
+                product,
+                order_sha256=hashlib.sha256(order_path.read_bytes()).hexdigest(),
+                challenge="5" * 64, runtime_identity=runtime,
+                receipt_path=receipt_path,
+            )
+            self.assertEqual(product.working_directory, admission.working_directory)
+            self.assertEqual(
+                "kgnote.authorized-product-goal-work-identity.v2",
+                admission.bootstrap_identity["product_goal_identity"]["schema_version"],
+            )
+            self.assertEqual(
+                product.execution_context,
+                admission.execution_context["product_goal_context"],
+            )
 
     def test_ssh_and_bootstrap_fail_before_worker_or_model_process(self):
         calls = []

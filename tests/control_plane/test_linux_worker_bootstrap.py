@@ -46,6 +46,39 @@ class LinuxWorkerBootstrapTest(unittest.TestCase):
                 with self.assertRaisesRegex(BOOTSTRAP.BootstrapError,"outside the exact authorized path"):
                     BOOTSTRAP.prepare(event,"claude",generic/"escape",identity)
 
+    def test_collaboration_product_goal_bootstrap_is_bound_to_its_hashed_leaf(self):
+        event = "pg-claude-0123456789abcdef"
+        identity = {
+            "schema_version": "kgnote.authorized-product-goal-work-identity.v2",
+            "identity_kind": "KGNOTE_PRODUCT_GOAL",
+            "authority_kind": "GITHUB_OWNER_APPROVAL",
+            "repository": "joannalee20050914/KGnote-public", "issue": 47,
+            "goal_id": "GOAL-KGNOTE-COLLABORATION-TEST", "goal_version": "v1",
+            "goal_spec_sha256": "a" * 64, "work_item_id": "WI-TEST-REVIEW",
+            "provider": "claude", "stage": "claude", "order_event_id": event,
+            "branch": "codex/collaboration-test", "candidate_commit": "b" * 40,
+            "candidate_fingerprint": "c" * 64,
+            "worktree_slug": "goal-0123456789abcdefabcd",
+            "authority_record": "https://github.com/joannalee20050914/KGnote-public/issues/47",
+            "authority_sha256": "d" * 64, "authority_status": "APPROVED",
+            "authority_action": "APPROVE", "go_live_authorized": True,
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            generic = root / "work-items"
+            target = generic / identity["worktree_slug"]
+            checkout = {"status": "CHECKOUT_READY", "cloned": False}
+            with (
+                patch.object(BOOTSTRAP, "WORKTREE_ROOT", root),
+                patch.object(BOOTSTRAP, "GENERIC_ROOT", generic),
+                patch.object(BOOTSTRAP, "_prepare_product_checkout", return_value=checkout),
+            ):
+                result = BOOTSTRAP.prepare(event, "claude", target, identity)
+                self.assertEqual("READY", result["status"])
+                self.assertEqual(checkout, result["checkout"])
+                with self.assertRaisesRegex(BOOTSTRAP.BootstrapError, "Goal-bound"):
+                    BOOTSTRAP.prepare(event, "claude", generic / "goal-wrong-path", identity)
+
     def _seed_repository(self, root: Path):
         source=root/"source"; origin=root/"origin.git"; source.mkdir()
         subprocess.run(["git","init","-b","codex/o2-reading-experience"],cwd=source,check=True,capture_output=True)

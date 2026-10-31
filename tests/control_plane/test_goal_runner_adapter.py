@@ -16,7 +16,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 from tests.control_plane.test_goal_continuity import product_goal_spec
 from tests.control_plane.test_github_product_goal_control import comment
-from tests.control_plane.runtime_admission_fixtures import prepare_model_reservation
+from tests.control_plane.runtime_admission_fixtures import (
+    prepare_model_reservation,
+    runtime_identity,
+    write_reservation_receipt,
+)
 
 SPEC = importlib.util.spec_from_file_location(
     "goal_runner_adapter", ROOT / "scripts/goal_runner_adapter.py"
@@ -793,6 +797,105 @@ class GoalRunnerAdapterTests(unittest.TestCase):
             )
             self.assertEqual("CLOSED", accepted["state"]["lifecycle"]["state"])
             self.assertFalse(accepted["state"]["go_live_authorized"])
+
+    def test_generic_review_changes_required_reconciles_to_pre_authorized_repair(self):
+        review = deepcopy(self.spec["work_items"][0])
+        review.update({"kind": "REVIEW", "provider": "claude", "allowed_operations": ["review"]})
+        repair = deepcopy(self.spec["work_items"][2])
+        repair["dependencies"] = [review["work_item_id"]]
+        self.spec["work_items"] = [review, repair]
+        self.state = GOAL.initial_runner_state(self.spec, now=NOW.isoformat())
+        self.state["candidate_identity"] = {
+            "commit": "1" * 40, "fingerprint": "2" * 64,
+            "branch": "codex/generic-review-repair", "pull_request": 47,
+        }
+        self.authority = CONTROL.resolve_authority([comment(self.spec)], self.spec)
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            state_path, ledger_path = self.write_state_and_ledger(repo, self.state)
+            active = ADAPTER.reconcile_owner_authority(
+                self.spec, self.state, self.authority,
+                state_path=state_path, ledger_path=ledger_path,
+            )["state"]
+            action = ADAPTER.next_action(
+                self.spec, active, GOAL.read_ledger(ledger_path), self.authority,
+                now=NOW, trial=False,
+            )
+            runtime = runtime_identity()
+            _, order_path, order, attempt_id = ADAPTER.ensure_bound_order(
+                self.spec, active, action, repo=repo, state_path=state_path,
+                ledger_path=ledger_path, occurred_at=NOW.isoformat(),
+                runtime_identity=runtime, persist_binding=False,
+            )
+            receipt_path = write_reservation_receipt(
+                repo, order_path, observed_at=NOW,
+            )
+            reserved, _, reserved_attempt = ADAPTER.reserve_dispatch(
+                self.spec, active, action, state_path=state_path,
+                ledger_path=ledger_path, repo=repo, occurred_at=NOW.isoformat(),
+                prepared_order_path=order_path,
+                admission_receipt_path=receipt_path,
+            )
+            self.assertEqual(attempt_id, reserved_attempt)
+            context = order["execution_context"]
+            result = {
+                "schema_version": "kgnote.product-goal-worker-result.v1",
+                "goal_id": self.spec["goal_id"],
+                "goal_version": self.spec["goal_version"],
+                "goal_spec_sha256": GOAL.goal_spec_sha256(self.spec),
+                "work_item_id": review["work_item_id"],
+                "order_event_id": order["event_id"],
+                "attempt_id": attempt_id, "stage": "claude", "provider": "claude",
+                "result_state": "COMPLETED", "failure_class": None,
+                "outcome": "REVIEW_CHANGES_REQUIRED",
+                "candidate": deepcopy(active["candidate_identity"]),
+                "obligation_evaluations": [{
+                    "obligation_id": "OBL-O2-CORE",
+                    "progress_class": "EVIDENCE_INSUFFICIENT",
+                    "evidence_sha256": "3" * 64,
+                }],
+                "usage": {
+                    "status": "OBSERVED", "input_tokens": 20,
+                    "output_tokens": 5, "source": "claude_result",
+                },
+                "review_verdict": {
+                    "review_id": context["review"]["review_id"],
+                    "verdict": "CHANGES_REQUIRED",
+                    "candidate_identity_sha256": context["review"]["candidate_identity_sha256"],
+                },
+                "review_findings": [{"id": "F-1", "summary": "repair required"}],
+                "publication": None,
+                "execution": {"exit_code": 0},
+                "dispatch_envelope_sha256": context["dispatch_envelope_sha256"],
+            }
+            checkpoint = {
+                "schema_version": "kgnote.linux-worker-route.v1",
+                "status": "COMPLETED", "event_id": order["event_id"],
+                "command_digest": ROUTER.command_digest(ROUTER.WorkerOrder.from_dict(order)),
+                "execution_evidence": {"product_goal_result": result},
+            }
+            Path(order["checkpoint_path"]).parent.mkdir(parents=True, exist_ok=True)
+            Path(order["checkpoint_path"]).write_text(json.dumps(checkpoint), encoding="utf-8")
+            routed = ADAPTER.record_route_outcome(
+                self.spec, reserved, state_path=state_path,
+                work_item_id=review["work_item_id"], attempt_id=attempt_id,
+                route_exit_code=0, occurred_at=NOW.isoformat(),
+            )
+            reconciled = ADAPTER.reconcile_dispatch_checkpoint(
+                self.spec, routed, state_path=state_path, ledger_path=ledger_path,
+                repo=repo, attempt_id=attempt_id, occurred_at=NOW.isoformat(),
+            )
+            self.assertEqual("REVIEW_CHANGES_REQUIRED", reconciled["outcome"])
+            saved = GOAL.load_json(state_path)
+            self.assertEqual("VERIFIED", saved["work_items"][0]["status"])
+            self.assertEqual("READY", saved["work_items"][1]["status"])
+            repair_action = ADAPTER.next_action(
+                self.spec, saved, GOAL.read_ledger(ledger_path), self.authority,
+                now=NOW, trial=False,
+            )
+            self.assertEqual("DISPATCH_REPAIR", repair_action["action"])
+            projection = GOAL.reduce_ledger(GOAL.read_ledger(ledger_path))
+            self.assertEqual("CHANGES_REQUIRED", projection["review_verdicts"][-1]["verdict"])
 
     def test_429_checkpoint_is_attempt_not_verdict_and_resumes_after_backoff(self):
         with tempfile.TemporaryDirectory() as directory:

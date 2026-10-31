@@ -25,6 +25,7 @@ import codex_control as control
 import external_review_control
 import external_review_handoff
 import publish_external_candidate
+from issue47_engineering_wakeup import continuation_binding
 
 
 STATE_PATH = ".ai/ORCHESTRATOR_STATE.json"
@@ -51,16 +52,16 @@ LEGACY_CANARY_GOAL_IDS = frozenset({"GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1"})
 ISSUE47_ENGINEERING_GOAL_ID = (
     "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION"
 )
-ISSUE47_WEEKEND_SPEC_VERSION = "2026-10-31.2-weekend-engineering-exception"
+ISSUE47_WEEKEND_SPEC_VERSION = "2026-10-31.4-engineering-continuation-simplification"
 ISSUE47_WEEKEND_SPEC_SHA256 = (
-    "8f3036ec6429e2f8f1e546aea3a8b3bf1c0cb1459e742991a4228612836958cd"
+    "0507d2dbc5c9780afbe3e67a3c8ca66f8fb1b93eff9507c86299baac0141ad5d"
 )
-ISSUE47_WEEKEND_OWNER_COMMENT_ID = 6537070839
+ISSUE47_WEEKEND_OWNER_COMMENT_ID = 6538300483
 ISSUE47_WEEKEND_OWNER_BODY_SHA256 = (
-    "d01c5fe57c73f99750ff2ec145f4d495897b4062c4e20a97950b4b00d8507e92"
+    "96eb37ed4b4e76aa6c7eab4767fec2c53c12b3d96843b1d77c6a19217844d1a2"
 )
 ISSUE47_WEEKEND_OWNER_COMMAND_SHA256 = (
-    "6bc2d545b3c116c17d66de592780cd685f0c004306c20dd109ec74b95c4931fc"
+    "53cb7c25ad8216dca4d8daa408af81df1902298d73c91f0fd8c7fefbf53cf7b4"
 )
 ISSUE47_WEEKEND_SCOPE = "ISSUE47_INFRA_ENGINEERING_ONLY"
 MACHINE_HANDOFF_STATES = {"AWAITING_EXTERNAL_PRODUCT_REVIEW"}
@@ -1463,6 +1464,64 @@ def request_stop(repo: Path) -> dict[str, Any]:
     return {"status": "stop_requested", "run_id": state.get("run_id"), "human_action_required": False}
 
 
+def validate_engineering_reservation(
+    repo: Path, reservation_path: Path, dispatch_key: str,
+    expected_action: str, expected_provider: str,
+) -> None:
+    """Bind one scheduler continuation to the exact no-model reservation."""
+    try:
+        resolved = reservation_path.resolve()
+        resolved.relative_to(repo.resolve())
+    except ValueError as exc:
+        raise ValueError("engineering reservation leaves the runtime repository") from exc
+    value = json.loads(resolved.read_text(encoding="utf-8"))
+    if value.get("schema_version") != "kgnote.issue47-engineering-wakeup-state.v2":
+        raise ValueError("engineering reservation schema differs")
+    dispatches = value.get("dispatches")
+    events = value.get("events")
+    if not isinstance(dispatches, list) or not isinstance(events, list):
+        raise ValueError("engineering reservation history is malformed")
+    matches = [
+        item for item in dispatches
+        if isinstance(item, dict) and item.get("dispatch_key") == dispatch_key
+    ]
+    dispatch_events = [
+        item for item in events
+        if isinstance(item, dict) and item.get("dispatch_key") == dispatch_key
+    ]
+    if len(matches) != 1 or not dispatch_events or dispatch_events[-1].get("status") != "RUNNING":
+        raise ValueError("engineering reservation is not the exact running dispatch")
+    reservation = matches[0]
+    expected_pairs = {
+        "DISPATCH_IMPLEMENTATION": "codex",
+        "DISPATCH_REVIEW": "claude",
+    }
+    if expected_pairs.get(expected_action) != expected_provider:
+        raise ValueError("engineering expected action/provider pair is invalid")
+    if reservation.get("action") != expected_action or reservation.get("provider") != expected_provider:
+        raise ValueError("engineering continuation differs from the reserved action/provider")
+    fingerprint = control.repository_fingerprint(repo)
+    if (
+        reservation.get("candidate_commit") != fingerprint.get("head")
+        or reservation.get("candidate_fingerprint") != fingerprint.get("value")
+    ):
+        raise ValueError("engineering runtime candidate differs from the reservation")
+    request, _, _ = control.load_review_artifacts(repo)
+    state = read_state(repo)
+    if state is None:
+        raise ValueError("engineering orchestrator state is unavailable")
+    binding = continuation_binding(request.get("status"), state.get("state"))
+    if binding != (expected_action, expected_provider):
+        raise ValueError("engineering continuation state pair differs from the reservation")
+    if request.get("review_id") != reservation.get("review_id"):
+        raise ValueError("engineering continuation review identity differs")
+    if (
+        expected_action == "DISPATCH_REVIEW"
+        and request.get("candidate_fingerprint") != reservation.get("candidate_fingerprint")
+    ):
+        raise ValueError("engineering review continuation candidate differs")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[1])
@@ -1479,6 +1538,13 @@ def main() -> int:
                 choices=sorted(EXPLICIT_RESUME_STATES),
                 help="explicitly authorize recovery from the exact persisted terminal state",
             )
+            command.add_argument("--engineering-reservation", type=Path)
+            command.add_argument("--dispatch-key")
+            command.add_argument(
+                "--expected-action",
+                choices=("DISPATCH_IMPLEMENTATION", "DISPATCH_REVIEW"),
+            )
+            command.add_argument("--expected-provider", choices=("codex", "claude"))
     sub.add_parser("status")
     sub.add_parser("stop")
     args = parser.parse_args()
@@ -1487,6 +1553,19 @@ def main() -> int:
         if args.command in {"start", "resume"}:
             if args.max_review_cycles < 1:
                 raise ValueError("max-review-cycles must be positive")
+            reservation_values = (
+                getattr(args, "engineering_reservation", None),
+                getattr(args, "dispatch_key", None),
+                getattr(args, "expected_action", None),
+                getattr(args, "expected_provider", None),
+            )
+            if any(value is not None for value in reservation_values):
+                if args.command != "resume" or not all(reservation_values):
+                    raise ValueError("engineering reservation binding must be complete and resume-only")
+                validate_engineering_reservation(
+                    repo, reservation_values[0], reservation_values[1],
+                    reservation_values[2], reservation_values[3],
+                )
             result = start(
                 repo,
                 resume=args.command == "resume",
