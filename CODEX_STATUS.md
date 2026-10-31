@@ -10,7 +10,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-31T10:00:00+08:00",
+  "updated_at": "2026-10-31T10:03:00+08:00",
   "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -55,9 +55,9 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   },
   "git": {
     "branch": "codex/issue-47-collaboration-wiring",
-    "head": "52aacd10245546b68a2566b7b5ce68449499a5ef",
+    "head": "8069fcb3a9de9b9a5ffa02d61f74475d10e4f7b6",
     "base_commit": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
-    "checkpoint_commit": "af546b05331aa0bb93f4d8a5443bd8dd36602eab",
+    "checkpoint_commit": "8069fcb3a9de9b9a5ffa02d61f74475d10e4f7b6",
     "draft_pull_request": {
       "number": 48,
       "url": "https://github.com/joannalee20050914/KGnote-public/pull/48",
@@ -79,7 +79,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "d7c2905bc7d1f0806d9d69d441b2695654ba25b1c4c001dbf0069ed51a7acb37",
+    "fingerprint": "72cb7a1a6dcd1d653f29845de242e321c76054f79eaaf0935292c31a5a09afd7",
     "starting_fingerprint": "025295008f940ba5b55ebef2691556cafe82bd110eadae57cc9fb8e7e281aed6",
     "expected_dirty_policy": "Only active EG-4 owned paths may change: exact candidate sealing/review, trusted Mac/Ubuntu runtime deployment, the unique disabled-by-default entrypoint, stop/rollback read-back, PLAN/STATUS/review bus, and ignored deterministic evidence.",
     "preserved_preexisting_dirty_paths": [
