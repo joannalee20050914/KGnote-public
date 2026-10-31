@@ -569,6 +569,57 @@ class EnvelopeSealOrderingTests(OrchestrationSimulationTests):
 
 
 class OrchestratorDurabilityTests(unittest.TestCase):
+    def make_issue47_weekend_authority_fixture(self, root, *, stale_digest=False):
+        relative_spec = Path(
+            "docs/control-plane/"
+            "ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.2.json"
+        )
+        target_spec = root / relative_spec
+        target_spec.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / relative_spec, target_spec)
+        digest = "0" * 64 if stale_digest else ORCH.ISSUE47_WEEKEND_SPEC_SHA256
+        authority_receipt = {
+            "comment_id": ORCH.ISSUE47_WEEKEND_OWNER_COMMENT_ID,
+            "body_sha256": ORCH.ISSUE47_WEEKEND_OWNER_BODY_SHA256,
+            "command_canonical_sha256": ORCH.ISSUE47_WEEKEND_OWNER_COMMAND_SHA256,
+            "validation": "EXACT_SEMANTIC_MATCH_AND_REMOTE_SPEC_BLOB_READ_BACK",
+        }
+        authority_comment = {
+            "comment_id": ORCH.ISSUE47_WEEKEND_OWNER_COMMENT_ID,
+            "body_sha256": ORCH.ISSUE47_WEEKEND_OWNER_BODY_SHA256,
+            "command_canonical_sha256": ORCH.ISSUE47_WEEKEND_OWNER_COMMAND_SHA256,
+            "authority_marker_present": True,
+            "command_exact_semantic_match": True,
+        }
+        shared = {
+            "path": relative_spec.as_posix(),
+            "version": ORCH.ISSUE47_WEEKEND_SPEC_VERSION,
+            "canonical_sha256": digest,
+            "authority_status": "EXACT_GITHUB_OWNER_APPROVED",
+        }
+        plan = {
+            "goal_id": ORCH.ISSUE47_ENGINEERING_GOAL_ID,
+            "product_goal_authorized": False,
+            "goal_spec": {**shared, "authority_receipt": authority_receipt},
+        }
+        status = {
+            "goal_id": ORCH.ISSUE47_ENGINEERING_GOAL_ID,
+            "product_goal_authorized": False,
+            "goal_spec": {**shared, "authority_comment": authority_comment},
+        }
+        (root / "PLAN.md").write_text(
+            "<!-- BEGIN CODEX PLAN JSON -->\n```json\n"
+            + json.dumps(plan)
+            + "\n```\n<!-- END CODEX PLAN JSON -->\n",
+            encoding="utf-8",
+        )
+        (root / "CODEX_STATUS.md").write_text(
+            "<!-- BEGIN CODEX STATUS JSON -->\n```json\n"
+            + json.dumps(status)
+            + "\n```\n<!-- END CODEX STATUS JSON -->\n",
+            encoding="utf-8",
+        )
+
     def copy_repository_snapshot(self, source_root, root):
         shutil.copytree(
             source_root,
@@ -1160,6 +1211,83 @@ class OrchestratorDurabilityTests(unittest.TestCase):
             )
         )
 
+    def test_issue47_exact_weekend_exception_is_date_and_version_scoped(self):
+        zone = ORCH.WORK_TIMEZONE
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_issue47_weekend_authority_fixture(root)
+            cases = (
+                (ORCH.datetime(2026, 10, 31, 9, 14, 59, tzinfo=zone), False),
+                (ORCH.datetime(2026, 10, 31, 9, 15, 0, tzinfo=zone), True),
+                (ORCH.datetime(2026, 10, 31, 17, 59, 59, tzinfo=zone), True),
+                (ORCH.datetime(2026, 10, 31, 18, 0, 0, tzinfo=zone), False),
+                (ORCH.datetime(2026, 11, 1, 8, 59, 59, tzinfo=zone), False),
+                (ORCH.datetime(2026, 11, 1, 9, 0, 0, tzinfo=zone), True),
+                (ORCH.datetime(2026, 11, 1, 17, 59, 59, tzinfo=zone), True),
+                (ORCH.datetime(2026, 11, 1, 18, 0, 0, tzinfo=zone), False),
+                (ORCH.datetime(2026, 11, 2, 9, 0, 0, tzinfo=zone), True),
+                (ORCH.datetime(2026, 11, 7, 10, 0, 0, tzinfo=zone), False),
+                (ORCH.datetime(2026, 11, 8, 10, 0, 0, tzinfo=zone), False),
+                (ORCH.datetime(2026, 11, 20, 17, 59, 59, tzinfo=zone), True),
+                (ORCH.datetime(2026, 11, 20, 18, 0, 0, tzinfo=zone), False),
+            )
+            for moment, expected in cases:
+                with self.subTest(moment=moment):
+                    self.assertEqual(
+                        expected,
+                        ORCH.within_authorized_work_hours(
+                            moment,
+                            goal_id=ORCH.ISSUE47_ENGINEERING_GOAL_ID,
+                            repo=root,
+                        ),
+                    )
+
+    def test_issue47_weekend_exception_fails_closed_on_stale_or_other_authority(self):
+        zone = ORCH.WORK_TIMEZONE
+        saturday = ORCH.datetime(2026, 10, 31, 10, 0, tzinfo=zone)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_issue47_weekend_authority_fixture(root, stale_digest=True)
+            self.assertFalse(
+                ORCH.within_authorized_work_hours(
+                    saturday,
+                    goal_id=ORCH.ISSUE47_ENGINEERING_GOAL_ID,
+                    repo=root,
+                )
+            )
+            self.assertFalse(
+                ORCH.within_authorized_work_hours(
+                    saturday,
+                    goal_id="CODEX-APP-GOAL-O2-S0-S2-LAUNCH-PACKAGE-20261023",
+                    repo=root,
+                )
+            )
+            self.assertFalse(
+                ORCH.within_authorized_work_hours(
+                    saturday,
+                    goal_id="GOAL-KGNOTE-UNAPPROVED-PRODUCT-CANARY",
+                    repo=root,
+                )
+            )
+
+            self.make_issue47_weekend_authority_fixture(root)
+            plan, _ = ORCH.control.load_plan_status(root)
+            plan["goal_spec"]["authority_receipt"]["comment_id"] = 6536884383
+            ORCH.control.replace_embedded_json(
+                root / "PLAN.md",
+                ORCH.control.PLAN_BEGIN,
+                ORCH.control.PLAN_END,
+                plan,
+            )
+            self.assertFalse(
+                ORCH.within_authorized_work_hours(
+                    saturday,
+                    goal_id=ORCH.ISSUE47_ENGINEERING_GOAL_ID,
+                    repo=root,
+                ),
+                "a stale or duplicate predecessor approval must not authorize the successor",
+            )
+
     def test_ordinary_resume_preserves_protected_terminal_states_across_restart(self):
         for terminal in sorted(ORCH.EXPLICIT_RESUME_STATES):
             with self.subTest(terminal=terminal), tempfile.TemporaryDirectory() as tmp:
@@ -1254,8 +1382,8 @@ class OrchestratorDurabilityTests(unittest.TestCase):
         weekend = ORCH.datetime(2026, 10, 24, 9, 0, tzinfo=ORCH.WORK_TIMEZONE)
         real_guard = ORCH.within_authorized_work_hours
 
-        def weekend_guard(*, goal_id=None):
-            return real_guard(weekend, goal_id=goal_id)
+        def weekend_guard(*, goal_id=None, repo=None):
+            return real_guard(weekend, goal_id=goal_id, repo=repo)
 
         for resume in (False, True):
             with self.subTest(resume=resume), tempfile.TemporaryDirectory() as tmp:
@@ -1281,7 +1409,7 @@ class OrchestratorDurabilityTests(unittest.TestCase):
                         root, resume=resume, max_review_cycles=5, max_steps=1,
                         runner=lambda *_: self.fail("must not dispatch"),
                     )
-                guard.assert_called_once_with(goal_id=state["active_goal"])
+                guard.assert_called_once_with(goal_id=state["active_goal"], repo=root)
                 self.assertEqual(result["state"], "IMPLEMENTING")
                 if resume:
                     self.assertEqual((root / ORCH.STATE_PATH).read_bytes(), persisted)

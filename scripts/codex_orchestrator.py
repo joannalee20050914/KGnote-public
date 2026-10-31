@@ -9,6 +9,7 @@ it does not decide product questions or promote human/release gates.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -47,6 +48,21 @@ WORKDAY_START_MINUTE = 9 * 60
 WORKDAY_END_MINUTE = 18 * 60
 LEGACY_CANARY_END_MINUTE = 18 * 60 + 30
 LEGACY_CANARY_GOAL_IDS = frozenset({"GOAL-KGNOTE-D2-T01-SOURCE-LIBRARY-V1"})
+ISSUE47_ENGINEERING_GOAL_ID = (
+    "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION"
+)
+ISSUE47_WEEKEND_SPEC_VERSION = "2026-10-31.2-weekend-engineering-exception"
+ISSUE47_WEEKEND_SPEC_SHA256 = (
+    "8f3036ec6429e2f8f1e546aea3a8b3bf1c0cb1459e742991a4228612836958cd"
+)
+ISSUE47_WEEKEND_OWNER_COMMENT_ID = 6537070839
+ISSUE47_WEEKEND_OWNER_BODY_SHA256 = (
+    "d01c5fe57c73f99750ff2ec145f4d495897b4062c4e20a97950b4b00d8507e92"
+)
+ISSUE47_WEEKEND_OWNER_COMMAND_SHA256 = (
+    "6bc2d545b3c116c17d66de592780cd685f0c004306c20dd109ec74b95c4931fc"
+)
+ISSUE47_WEEKEND_SCOPE = "ISSUE47_INFRA_ENGINEERING_ONLY"
 MACHINE_HANDOFF_STATES = {"AWAITING_EXTERNAL_PRODUCT_REVIEW"}
 MACHINE_STATES = {
     "IMPLEMENTING",
@@ -68,10 +84,133 @@ def now() -> str:
     return datetime.now(WORK_TIMEZONE).isoformat(timespec="seconds")
 
 
+def _canonical_sha256(value: Any) -> str:
+    payload = json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _load_exact_issue47_weekend_spec(repo: Path | None) -> dict[str, Any] | None:
+    """Return the exact approved successor spec, or fail closed.
+
+    Weekend authority is not keyed only by a Goal name.  It requires the
+    repository's PLAN and STATUS to point at the exact immutable spec and the
+    exact Owner receipt.  Any stale checkout, missing receipt, path escape, or
+    byte drift therefore keeps the ordinary weekday-only guard in force.
+    """
+    if repo is None:
+        return None
+    try:
+        root = repo.resolve()
+        plan, status = control.load_plan_status(root)
+        if plan.get("goal_id") != ISSUE47_ENGINEERING_GOAL_ID:
+            return None
+        if status.get("goal_id") != ISSUE47_ENGINEERING_GOAL_ID:
+            return None
+        if plan.get("product_goal_authorized") is not False:
+            return None
+        if status.get("product_goal_authorized") is not False:
+            return None
+
+        plan_goal = plan.get("goal_spec", {})
+        status_goal = status.get("goal_spec", {})
+        expected = {
+            "version": ISSUE47_WEEKEND_SPEC_VERSION,
+            "canonical_sha256": ISSUE47_WEEKEND_SPEC_SHA256,
+            "authority_status": "EXACT_GITHUB_OWNER_APPROVED",
+        }
+        if any(plan_goal.get(key) != value for key, value in expected.items()):
+            return None
+        if any(status_goal.get(key) != value for key, value in expected.items()):
+            return None
+        if plan_goal.get("path") != status_goal.get("path"):
+            return None
+
+        receipt = plan_goal.get("authority_receipt", {})
+        authority = status_goal.get("authority_comment", {})
+        if (
+            receipt.get("comment_id") != ISSUE47_WEEKEND_OWNER_COMMENT_ID
+            or receipt.get("body_sha256") != ISSUE47_WEEKEND_OWNER_BODY_SHA256
+            or receipt.get("command_canonical_sha256")
+            != ISSUE47_WEEKEND_OWNER_COMMAND_SHA256
+            or receipt.get("validation")
+            != "EXACT_SEMANTIC_MATCH_AND_REMOTE_SPEC_BLOB_READ_BACK"
+            or authority.get("comment_id") != ISSUE47_WEEKEND_OWNER_COMMENT_ID
+            or authority.get("body_sha256") != ISSUE47_WEEKEND_OWNER_BODY_SHA256
+            or authority.get("command_canonical_sha256")
+            != ISSUE47_WEEKEND_OWNER_COMMAND_SHA256
+            or authority.get("authority_marker_present") is not True
+            or authority.get("command_exact_semantic_match") is not True
+        ):
+            return None
+
+        relative_path = Path(str(plan_goal.get("path", "")))
+        spec_path = (root / relative_path).resolve()
+        spec_path.relative_to(root)
+        spec = json.loads(spec_path.read_text(encoding="utf-8"))
+        if not isinstance(spec, dict):
+            return None
+        if _canonical_sha256(spec) != ISSUE47_WEEKEND_SPEC_SHA256:
+            return None
+        if (
+            spec.get("goal_id") != ISSUE47_ENGINEERING_GOAL_ID
+            or spec.get("goal_version") != ISSUE47_WEEKEND_SPEC_VERSION
+            or spec.get("product_goal_authorized") is not False
+        ):
+            return None
+        return spec
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return None
+
+
+def _within_exact_issue47_work_hours(local: datetime, repo: Path | None) -> bool:
+    spec = _load_exact_issue47_weekend_spec(repo)
+    if spec is None:
+        return False
+    try:
+        work_period = spec["work_period"]
+        if work_period["timezone"] != "Asia/Taipei":
+            return False
+        period_start = datetime.fromisoformat(work_period["start"]).astimezone(
+            WORK_TIMEZONE
+        )
+        period_end = datetime.fromisoformat(work_period["end"]).astimezone(
+            WORK_TIMEZONE
+        )
+        if not period_start <= local < period_end:
+            return False
+
+        minute = local.hour * 60 + local.minute
+        daily_start = int(work_period["daily_start"][:2]) * 60 + int(
+            work_period["daily_start"][3:]
+        )
+        daily_end = int(work_period["daily_end"][:2]) * 60 + int(
+            work_period["daily_end"][3:]
+        )
+        if local.weekday() in work_period["weekdays"]:
+            return daily_start <= minute < daily_end
+
+        local_date = local.date().isoformat()
+        for window in work_period.get("exception_work_windows", []):
+            if (
+                window.get("date") != local_date
+                or window.get("scope") != ISSUE47_WEEKEND_SCOPE
+            ):
+                continue
+            start = int(window["start"][:2]) * 60 + int(window["start"][3:])
+            end = int(window["end"][:2]) * 60 + int(window["end"][3:])
+            return start <= minute < end
+    except (KeyError, TypeError, ValueError):
+        return False
+    return False
+
+
 def within_authorized_work_hours(
     moment: datetime | None = None,
     *,
     goal_id: str | None = None,
+    repo: Path | None = None,
 ) -> bool:
     """Return whether new autonomous work may start in Asia/Taipei.
 
@@ -86,6 +225,8 @@ def within_authorized_work_hours(
         local = moment.replace(tzinfo=WORK_TIMEZONE)
     else:
         local = moment.astimezone(WORK_TIMEZONE)
+    if goal_id == ISSUE47_ENGINEERING_GOAL_ID:
+        return _within_exact_issue47_work_hours(local, repo)
     if goal_id in LEGACY_CANARY_GOAL_IDS:
         end_minute = LEGACY_CANARY_END_MINUTE
     else:
@@ -1157,7 +1298,9 @@ def run_loop(repo: Path, state: dict[str, Any], runner: AgentRunner, max_steps: 
     try:
         steps = 0
         while state["state"] not in TERMINAL_STATES | MACHINE_HANDOFF_STATES:
-            if not within_authorized_work_hours(goal_id=state.get("active_goal")):
+            if not within_authorized_work_hours(
+                goal_id=state.get("active_goal"), repo=repo
+            ):
                 break
             if (repo / STOP_PATH).exists():
                 (repo / STOP_PATH).unlink()
@@ -1243,7 +1386,9 @@ def start(
         if existing is None:
             raise ValueError("orchestrator_resume: no durable state exists; use start")
         state = existing
-        work_hours_allowed = within_authorized_work_hours(goal_id=state.get("active_goal"))
+        work_hours_allowed = within_authorized_work_hours(
+            goal_id=state.get("active_goal"), repo=repo
+        )
         review_config_path, review_state_path = bind_external_review_runtime(
             repo,
             state,
@@ -1293,7 +1438,9 @@ def start(
         if existing and existing.get("state") not in TERMINAL_STATES:
             raise ValueError("orchestrator_start: active durable state exists; use resume or stop")
         state = derive_state(repo, max_review_cycles=max_review_cycles)
-        work_hours_allowed = within_authorized_work_hours(goal_id=state.get("active_goal"))
+        work_hours_allowed = within_authorized_work_hours(
+            goal_id=state.get("active_goal"), repo=repo
+        )
         bind_external_review_runtime(
             repo,
             state,
