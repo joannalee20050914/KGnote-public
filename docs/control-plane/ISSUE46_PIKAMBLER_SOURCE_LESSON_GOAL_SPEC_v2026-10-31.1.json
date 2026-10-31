@@ -1,0 +1,314 @@
+{
+  "schema_version": "kgnote.product-goal-spec.v1",
+  "identity_kind": "KGNOTE_PRODUCT_GOAL",
+  "authority_kind": "GITHUB_OWNER_APPROVAL",
+  "lifecycle_owner": "MAC_RUNNER",
+  "goal_id": "GOAL-KGNOTE-PIKAMBLER-SOURCE-LESSON-CANARY",
+  "active_goal": "GOAL-KGNOTE-PIKAMBLER-SOURCE-LESSON-CANARY",
+  "goal_version": "2026-10-31.1-isolated-canary-proposal",
+  "title": "Pikambler 原文直接作為 Obsidian 教材：單篇有界試運行",
+  "outcome": "只使用一篇在私有 LLM Wiki 中由 Owner 明確選定的 Pikambler 原始 Markdown：在 Obsidian 直接閱讀完整原文，可就原段落追加疑問與筆記、重開不遺失且不覆寫來源；同時以不需人類複製 Prompt 的真實已授權 Product Goal 接單及獨立審查來驗證 #47。",
+  "repository": "joannalee20050914/KGnote-public",
+  "github_issue": 46,
+  "owner_logins": [
+    "joannalee20050914"
+  ],
+  "requirements": [
+    "KG-ING-01",
+    "KG-ING-02",
+    "KG-WF-01",
+    "KG-WF-03",
+    "KG-MEM-01",
+    "KG-MEM-03",
+    "KG-ALPHA-02",
+    "KG-PLAT-08",
+    "KG-UI-01"
+  ],
+  "rcs": [
+    "RC-04",
+    "RC-05",
+    "RC-06",
+    "RC-15",
+    "RC-19",
+    "RC-31",
+    "RC-32"
+  ],
+  "fds": [
+    "FD-01",
+    "FD-02",
+    "FD-05",
+    "FD-09",
+    "FD-21"
+  ],
+  "dependencies": [
+    "ISSUE47-EXACT-REVIEWED-LAUNCHER-AND-UNIQUE-WRITER-RECEIPT",
+    "ISSUE47-NEW-PRODUCT-GOAL-GENERIC-INTAKE-PASS",
+    "ISSUE46-O2-EXCLUSIVE-ISOLATED-TRIAL-RECEIPT",
+    "ISSUE46-EXACT-PRIVATE-SOURCE-SELECTION-RECEIPT"
+  ],
+  "allowed_operations": [
+    "activate_runner",
+    "commit",
+    "push",
+    "draft_pr",
+    "review",
+    "verify"
+  ],
+  "forbidden_operations": [
+    "merge",
+    "paid_api",
+    "delete_evidence",
+    "modify_branch_protection",
+    "force_push",
+    "clear_stop_marker",
+    "rewrite_legacy_history",
+    "unapproved_data_egress",
+    "read_unselected_private_sources",
+    "publish_private_learning_material_or_paths",
+    "modify_o2_v4_state_ledger_cursor_or_quota",
+    "enable_or_reuse_legacy_o2_runner",
+    "concurrent_model_writer",
+    "treat_trial_as_o2_closed_or_released",
+    "automatically_advance_ordered_backlog",
+    "dispatch_before_generic_product_goal_intake_verified",
+    "dispatch_without_one_selected_private_source",
+    "infer_standing_b_scheme_go_live"
+  ],
+  "work_window": {
+    "timezone": "Asia/Taipei",
+    "weekdays": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "start": "09:00",
+    "end": "18:00"
+  },
+  "resource_policy": {
+    "max_model_concurrency": 1,
+    "providers": {
+      "codex": {
+        "subscription_only": true,
+        "paid_api_fallback": false,
+        "reserve_percent": 10,
+        "capacity_observation": {
+          "status": "PERCENTAGE_UNOBSERVABLE",
+          "remaining_percent": null,
+          "source_kind": null,
+          "observed_at": null,
+          "max_age_seconds": 300
+        },
+        "fallback": {
+          "min_launch_interval_seconds": 300,
+          "max_launches_per_window": 2,
+          "max_total_launches": 6,
+          "quota_backoff_seconds": 3600
+        }
+      },
+      "claude": {
+        "subscription_only": true,
+        "paid_api_fallback": false,
+        "reserve_percent": 10,
+        "capacity_observation": {
+          "status": "PERCENTAGE_UNOBSERVABLE",
+          "remaining_percent": null,
+          "source_kind": null,
+          "observed_at": null,
+          "max_age_seconds": 300
+        },
+        "fallback": {
+          "min_launch_interval_seconds": 300,
+          "max_launches_per_window": 2,
+          "max_total_launches": 6,
+          "quota_backoff_seconds": 3600
+        }
+      }
+    }
+  },
+  "recovery_policy": {
+    "max_same_failure_attempts": 2,
+    "no_progress_before_strategy_adjustment": 2,
+    "max_strategy_adjustments": 1
+  },
+  "review_policy": {
+    "reviewer": "UBUNTU_CLAUDE",
+    "independent": true,
+    "completion_gate_required": true,
+    "round_has_hidden_fixed_limit": false
+  },
+  "completion_conditions": [
+    "Only one explicitly selected private Pikambler source, no bulk/private LLM Wiki sweep; byte-identity and immutable source locator/version read-back pass with duplicate import negative test.",
+    "Obsidian learning entry opens original Pikambler Markdown as the main lesson with its context and speaker distinctions; no rewritten textbook, dashboard-first, metadata-first or second editor is required.",
+    "One user-owned anchored question/note can be saved; after close and reopen the source, note and origin link remain; rerun/source revision preserves note bytes and reports stale anchor explicitly.",
+    "Real authorized Product Goal intake, Mac no-model gate, one bounded Codex implementation, exact PR publication, independent Ubuntu Claude review, any needed repair/re-review and GitHub read-back have durable distinct receipts with no human engineering message relay.",
+    "Trial is excluded from ordered successor backlog while O2 remains ACTIVE; O2 state, ledger, cursor, quotas and legacy Runner stay read-only/unloaded; unique writer and isolated trial source/state/PR/review identities PASS in positive and negative tests.",
+    "Public GitHub/PR/Ubuntu review evidence is synthetic or metadata-only; no original private conversation, individual note, credentials or private path escapes; paid API, automatic merge and standing go-live remain forbidden.",
+    "Product owner performs a real Mac Obsidian read/anchor/reopen usability check; no source/code test or independent review substitutes for acceptance and an exact Owner ACCEPT before CLOSED."
+  ],
+  "human_acceptance_required": true,
+  "obligations": [
+    {
+      "obligation_id": "OBL-PIKA-SOURCE-INTEGRITY",
+      "semantic_key": "5b7e03101ec10cf6de441ebe0761293e01161c8efc2b8eb02df78bca68f777b6",
+      "authority_refs": [
+        "KG-ING-01",
+        "KG-ING-02",
+        "RC-04",
+        "RC-05",
+        "RC-06"
+      ],
+      "description": "只選一份明確指定的 Pikambler Markdown 來源；若已收錄則重用 source ID/revision/locator，不覆寫原文或重複匯入，source-byte SHA-256/read-back 與 user/assistant attribution 必須一致。"
+    },
+    {
+      "obligation_id": "OBL-PIKA-ORIGINAL-LESSON",
+      "semantic_key": "0e91d840d11ba8711962f9cc58852431ac7b70acb093ada54e853b693dafb954",
+      "authority_refs": [
+        "KG-WF-01",
+        "KG-PLAT-08",
+        "KG-ALPHA-02",
+        "RC-15"
+      ],
+      "description": "Obsidian 第一個可讀入口直接呈現完整原始 Pikambler 文章正文，保留段落脈絡；導讀、Concept 與說明只是可選旁支，不能以 AI 重寫文章或系統索引取代原文。"
+    },
+    {
+      "obligation_id": "OBL-PIKA-ANCHORED-NOTES",
+      "semantic_key": "3a7457fe66452bd5919d90341d1e57ebb71a76f6352d54d238138fe9badc8bda",
+      "authority_refs": [
+        "KG-MEM-01",
+        "KG-WF-03",
+        "RC-19",
+        "RC-31"
+      ],
+      "description": "使用者可以對原文段落保存問題／個人筆記與可選補充，精確連回原始位置；關閉重新開啟、重跑導入與原文更新均不覆寫 user-owned notes；原文版本變更時明示過期 anchor，不猜測。"
+    },
+    {
+      "obligation_id": "OBL-PIKA-ROLE-AND-PRIVACY",
+      "semantic_key": "9920770d7aed42a353587e92e39bfd27c796f95a984c36205dc602f3a39f7ca0",
+      "authority_refs": [
+        "KG-MEM-03",
+        "KG-ING-01",
+        "RC-05",
+        "RC-32"
+      ],
+      "description": "區分人類真正輸入／執行、AI 建議與未驗證內容；只在本機使用被明確選取的私人文章，公共 GitHub/PR/Review/Ubuntu model 不含私人對話、路徑、正文與憑證，公開測試使用合成 fixture。"
+    },
+    {
+      "obligation_id": "OBL-PIKA-AUTONOMOUS-SCOPED-TRIAL",
+      "semantic_key": "6d9d50a2f3a1b6bc99350a2e6abf1a9e1e38c393af9e64e2f1b6e9ba81352efa",
+      "authority_refs": [
+        "ISSUE47-ENGINEERING-NO-PASTE-HANDOFF",
+        "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
+        "RC-31",
+        "RC-32"
+      ],
+      "description": "在獨立 exact Owner APPROVE、O2 隔離與 generic Product Goal intake 驗證後，GitHub→Mac 只接收此已授權 Goal，單 writer 且 O2 runtime/read-only；Codex 受限開發、Claude 獨立審查、同一候選修復及 GitHub read-back 全程無人類工程 Prompt 搬運。"
+    }
+  ],
+  "work_items": [
+    {
+      "work_item_id": "WI-PIKA-01-SOURCE-VERIFY",
+      "milestone_id": "ISSUE46-PIKAMBLER-SOURCE-LESSON",
+      "kind": "VERIFY",
+      "dependencies": [],
+      "obligation_ids": [
+        "OBL-PIKA-SOURCE-INTEGRITY",
+        "OBL-PIKA-ROLE-AND-PRIVACY"
+      ],
+      "allowed_operations": [
+        "verify"
+      ],
+      "provider": "NONE"
+    },
+    {
+      "work_item_id": "WI-PIKA-02-IMPLEMENT",
+      "milestone_id": "ISSUE46-PIKAMBLER-SOURCE-LESSON",
+      "kind": "IMPLEMENT",
+      "dependencies": [
+        "WI-PIKA-01-SOURCE-VERIFY"
+      ],
+      "obligation_ids": [
+        "OBL-PIKA-ORIGINAL-LESSON",
+        "OBL-PIKA-ANCHORED-NOTES"
+      ],
+      "allowed_operations": [
+        "commit",
+        "push",
+        "draft_pr"
+      ],
+      "provider": "codex"
+    },
+    {
+      "work_item_id": "WI-PIKA-03-VERIFY",
+      "milestone_id": "ISSUE46-PIKAMBLER-SOURCE-LESSON",
+      "kind": "VERIFY",
+      "dependencies": [
+        "WI-PIKA-02-IMPLEMENT"
+      ],
+      "obligation_ids": [
+        "OBL-PIKA-SOURCE-INTEGRITY",
+        "OBL-PIKA-ORIGINAL-LESSON",
+        "OBL-PIKA-ANCHORED-NOTES",
+        "OBL-PIKA-ROLE-AND-PRIVACY"
+      ],
+      "allowed_operations": [
+        "verify"
+      ],
+      "provider": "NONE"
+    },
+    {
+      "work_item_id": "WI-PIKA-04-PUBLISH",
+      "milestone_id": "ISSUE46-PIKAMBLER-SOURCE-LESSON",
+      "kind": "PUBLISH",
+      "dependencies": [
+        "WI-PIKA-03-VERIFY"
+      ],
+      "obligation_ids": [
+        "OBL-PIKA-ROLE-AND-PRIVACY",
+        "OBL-PIKA-AUTONOMOUS-SCOPED-TRIAL"
+      ],
+      "allowed_operations": [
+        "push",
+        "draft_pr"
+      ],
+      "provider": "NONE"
+    },
+    {
+      "work_item_id": "WI-PIKA-05-REVIEW",
+      "milestone_id": "ISSUE46-PIKAMBLER-SOURCE-LESSON",
+      "kind": "REVIEW",
+      "dependencies": [
+        "WI-PIKA-04-PUBLISH"
+      ],
+      "obligation_ids": [
+        "OBL-PIKA-SOURCE-INTEGRITY",
+        "OBL-PIKA-ORIGINAL-LESSON",
+        "OBL-PIKA-ANCHORED-NOTES",
+        "OBL-PIKA-ROLE-AND-PRIVACY",
+        "OBL-PIKA-AUTONOMOUS-SCOPED-TRIAL"
+      ],
+      "allowed_operations": [
+        "review"
+      ],
+      "provider": "claude"
+    },
+    {
+      "work_item_id": "WI-PIKA-06-ACCEPTANCE",
+      "milestone_id": "ISSUE46-PIKAMBLER-SOURCE-LESSON",
+      "kind": "ACCEPTANCE_PREP",
+      "dependencies": [
+        "WI-PIKA-05-REVIEW"
+      ],
+      "obligation_ids": [
+        "OBL-PIKA-ORIGINAL-LESSON",
+        "OBL-PIKA-ANCHORED-NOTES",
+        "OBL-PIKA-AUTONOMOUS-SCOPED-TRIAL"
+      ],
+      "allowed_operations": [
+        "verify"
+      ],
+      "provider": "NONE"
+    }
+  ]
+}
