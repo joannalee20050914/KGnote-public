@@ -334,6 +334,160 @@ class CollaborationGoalDispatchTests(unittest.TestCase):
                 reservations[0]["payload"]["runtime_admission"]["model_launches"],
             )
 
+    def test_changes_required_dispatches_receipt_bound_repair_and_preserves_usage_on_restart(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = self.repository(Path(directory))
+            spec = deepcopy(self.spec)
+            review = deepcopy(spec["work_items"][0])
+            review.update({
+                "kind": "REVIEW", "provider": "claude",
+                "allowed_operations": ["review"],
+            })
+            repair = deepcopy(spec["work_items"][2])
+            repair["dependencies"] = [review["work_item_id"]]
+            spec["work_items"] = [review, repair]
+            state = GOAL.initial_runner_state(
+                spec, now=NOW.isoformat(),
+                codex_app_goal_provenance={"goal_id": "ISSUE47", "status": "active"},
+            )
+            head = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=repo, text=True,
+            ).strip()
+            state["candidate_identity"] = {
+                "commit": head, "fingerprint": "2" * 64,
+                "branch": "codex/test-goal", "pull_request": 47,
+            }
+            spec_path = repo / "goal.json"
+            state_path = repo / "state.json"
+            ledger_path = repo / "ledger.jsonl"
+            GOAL.atomic_write_json(spec_path, spec)
+            GOAL.atomic_write_json(state_path, state)
+            ledger_path.write_text("", encoding="utf-8")
+            authority_comment = comment(spec)
+            authority = DISPATCH.github_control.resolve_authority(
+                [authority_comment], spec,
+            )
+            active = DISPATCH.goal_runner_adapter.reconcile_owner_authority(
+                spec, state, authority, state_path=state_path,
+                ledger_path=ledger_path, observed_at=NOW,
+            )["state"]
+
+            prior_codex_time = NOW.replace(hour=9, minute=0).isoformat()
+            for suffix, event_type, payload in (
+                ("started", "MODEL_ATTEMPT_STARTED", {"provider": "codex"}),
+                ("finished", "MODEL_ATTEMPT_FINISHED", {"outcome": "WORK_COMPLETED"}),
+            ):
+                GOAL.append_ledger_event(
+                    ledger_path,
+                    event_id=f"prior-codex-{suffix}", event_type=event_type,
+                    occurred_at=prior_codex_time,
+                    goal_id=spec["goal_id"], goal_version=spec["goal_version"],
+                    logical_work_id=repair["work_item_id"],
+                    attempt_id="prior-codex-attempt",
+                    payload=payload,
+                )
+            active["work_items"][0]["status"] = "VERIFIED"
+            active["work_items"][0]["attempts"] = 1
+            active["work_items"][0]["active_attempt_id"] = None
+            active["work_items"][1]["status"] = "READY"
+            active["resource_accounting"] = {
+                "codex": {
+                    "window_id": DISPATCH.goal_runner_adapter.resource_window_id(spec, NOW),
+                    "launches_in_window": 1, "total_launches": 1,
+                    "last_launch_at": prior_codex_time,
+                }
+            }
+            candidate_digest = hashlib.sha256(
+                GOAL.canonical_json_bytes(active["candidate_identity"])
+            ).hexdigest()
+            review_event, _ = GOAL.append_ledger_event(
+                ledger_path,
+                event_id="accepted-review-round-2",
+                event_type="REVIEW_VERDICT_ACCEPTED",
+                occurred_at=NOW.replace(hour=9, minute=30).isoformat(),
+                goal_id=spec["goal_id"], goal_version=spec["goal_version"],
+                logical_work_id=review["work_item_id"],
+                attempt_id="review-attempt-2",
+                payload={
+                    "review_id": "review-round-2",
+                    "verdict": "CHANGES_REQUIRED",
+                    "candidate_identity_sha256": candidate_digest,
+                    "findings": ["finding-repair-required"],
+                    "state_patch": DISPATCH.goal_runner_adapter._state_patch(active),
+                },
+            )
+            active["event_cursor"] = {
+                "sequence": review_event["sequence"],
+                "event_sha256": review_event["event_sha256"],
+            }
+            GOAL.atomic_write_json(state_path, active)
+            runtime = runtime_identity()
+            calls = []
+
+            def run(command, **_kwargs):
+                calls.append(command)
+                if "--discover-runtime" in command:
+                    return subprocess.CompletedProcess(command, 0, json.dumps(runtime), "")
+                if "--admit-order" in command:
+                    order_path = Path(command[command.index("--admit-order") + 1])
+                    receipt_path = Path(command[command.index("--admission-receipt") + 1])
+                    order = json.loads(order_path.read_text(encoding="utf-8"))
+                    receipt = reservation_receipt(
+                        order["execution_context"],
+                        order_sha256=hashlib.sha256(order_path.read_bytes()).hexdigest(),
+                        observed_at=NOW,
+                        router_checkpoint_path=(
+                            repo / "output/control-plane/repair-admission-router.json"
+                        ),
+                    )
+                    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+                    return subprocess.CompletedProcess(command, 0, json.dumps(receipt), "")
+                return subprocess.CompletedProcess(command, 0, "{}", "")
+
+            result = DISPATCH.dispatch_once(
+                repo=repo, spec_path=spec_path, state_path=state_path,
+                ledger_path=ledger_path, now=NOW,
+                router=repo / "scripts/router.py",
+                epoch_record=repo / ".ai/epoch.json",
+                scope_admission=repo / "scripts/admission.py",
+                comments_fetcher=lambda _spec: [authority_comment],
+                command_runner=run,
+            )
+            self.assertEqual("DISPATCHED", result["status"])
+            self.assertEqual("DISPATCH_REPAIR", result["decision"]["action"])
+            self.assertEqual(1, result["decision"]["total_launches_before"])
+            self.assertEqual(4, len(calls))
+            self.assertIn("--discover-runtime", calls[0])
+            self.assertIn("--admit-order", calls[2])
+            order = json.loads((repo / result["order"]["path"]).read_text(encoding="utf-8"))
+            self.assertEqual("review-round-2", order["execution_context"]["review"]["review_id"])
+            self.assertEqual("CHANGES_REQUIRED", order["execution_context"]["review"]["state"])
+            saved = GOAL.load_json(state_path)
+            self.assertEqual(2, saved["resource_accounting"]["codex"]["total_launches"])
+
+            restart_runner = Mock()
+            restarted = DISPATCH.dispatch_once(
+                repo=repo, spec_path=spec_path, state_path=state_path,
+                ledger_path=ledger_path, now=NOW.replace(hour=11),
+                router=repo / "scripts/router.py",
+                epoch_record=repo / ".ai/epoch.json",
+                scope_admission=repo / "scripts/admission.py",
+                comments_fetcher=lambda _spec: [authority_comment],
+                command_runner=restart_runner,
+            )
+            self.assertEqual("CHECKPOINT_PENDING", restarted["status"])
+            restart_runner.assert_not_called()
+            self.assertEqual(
+                2,
+                GOAL.load_json(state_path)["resource_accounting"]["codex"]["total_launches"],
+            )
+            reservations = [
+                row for row in GOAL.read_ledger(ledger_path)
+                if row["payload"].get("operation") == "DISPATCH_RESERVED"
+            ]
+            self.assertEqual(1, len(reservations))
+            self.assertEqual(0, reservations[0]["payload"]["runtime_admission"]["model_launches"])
+
     def test_restart_reconciles_existing_reservation_without_redispatch(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = self.repository(Path(directory))

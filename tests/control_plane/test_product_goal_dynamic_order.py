@@ -361,15 +361,50 @@ class ProductGoalDynamicOrderTest(unittest.TestCase):
                 for dependency in target["dependencies"]:
                     next(row for row in state["work_items"] if row["work_item_id"]==dependency)["status"]="VERIFIED"
                 target["status"]="READY"
+                ledger_path = None
+                if action_name == "DISPATCH_REPAIR":
+                    ledger_path = repo / "ledger.jsonl"
+                    candidate_digest = hashlib.sha256(
+                        GOAL.canonical_json_bytes(state["candidate_identity"])
+                    ).hexdigest()
+                    verdict, _ = GOAL.append_ledger_event(
+                        ledger_path,
+                        event_id=f"{work_item.lower()}-changes-required",
+                        event_type="REVIEW_VERDICT_ACCEPTED",
+                        occurred_at=NOW,
+                        goal_id=self.spec["goal_id"],
+                        goal_version=self.spec["goal_version"],
+                        logical_work_id=target["dependencies"][0],
+                        attempt_id=f"{work_item.lower()}-review-attempt",
+                        payload={
+                            "review_id": f"review-{work_item.lower()}",
+                            "verdict": "CHANGES_REQUIRED",
+                            "candidate_identity_sha256": candidate_digest,
+                        },
+                    )
+                    state["event_cursor"] = {
+                        "sequence": verdict["sequence"],
+                        "event_sha256": verdict["event_sha256"],
+                    }
                 state_path=self.write_state(repo,state)
                 action={"status":"ACTION_READY","action":action_name,"work_item_id":work_item,"requires_model":requires_model}
                 if provider is not None:
                     action.update({"provider":provider,"total_launches_before":0})
                 built=self.ensure_bound_order(
-                    self.spec,state,action,repo=repo,state_path=state_path,occurred_at=NOW,
+                    self.spec,state,action,repo=repo,state_path=state_path,
+                    ledger_path=ledger_path,occurred_at=NOW,
                 )
                 self.assertEqual(stage,built[2]["stage"])
                 self.assertEqual(work_item,built[2]["bootstrap_identity"]["work_item_id"])
+                if action_name == "DISPATCH_REPAIR":
+                    self.assertEqual(
+                        f"review-{work_item.lower()}",
+                        built[2]["execution_context"]["review"]["review_id"],
+                    )
+                    self.assertEqual(
+                        "CHANGES_REQUIRED",
+                        built[2]["execution_context"]["review"]["state"],
+                    )
 
     def test_first_publication_is_bound_to_one_mac_created_draft_pr(self):
         with tempfile.TemporaryDirectory() as directory:

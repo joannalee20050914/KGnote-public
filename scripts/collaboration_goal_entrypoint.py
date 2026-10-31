@@ -8,8 +8,11 @@ until then this entrypoint never reads GitHub and never starts a worker.
 from __future__ import annotations
 
 import argparse
+import fcntl
+import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -17,9 +20,13 @@ from typing import Any, Callable
 
 
 CONFIG_SCHEMA = "kgnote.collaboration-goal-entrypoint-config.v1"
+RECEIPT_SCHEMA = "kgnote.collaboration-goal-entrypoint-install.v1"
+ACTIVATION_SCHEMA = "kgnote.collaboration-goal-entrypoint-activation.v1"
 RESULT_SCHEMA = "kgnote.collaboration-goal-entrypoint-result.v1"
 ENABLED_STATUS = "ENABLED_FOR_EXACT_PRODUCT_GOAL"
 DISABLED_STATUSES = {"DISABLED", "ROLLED_BACK"}
+ENGINEERING_GOAL_ID = "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION"
+LEGACY_O2_LABEL = "com.kgnote.local-autonomy-runner"
 
 
 class EntrypointError(RuntimeError):
@@ -52,6 +59,181 @@ def _inside(root: Path, raw: str, label: str) -> Path:
     return resolved
 
 
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _load_object(path: Path, label: str) -> dict[str, Any]:
+    if not path.is_file() or path.is_symlink():
+        raise EntrypointError(f"{label} is unavailable")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise EntrypointError(f"{label} is not valid JSON") from exc
+    if not isinstance(value, dict):
+        raise EntrypointError(f"{label} root is not an object")
+    return value
+
+
+def _git(repo: Path, *args: str) -> str:
+    completed = subprocess.run(
+        ["/usr/bin/git", *args], cwd=repo,
+        capture_output=True, text=True, check=False,
+    )
+    if completed.returncode:
+        raise EntrypointError("deployment Git identity is unreadable")
+    return completed.stdout.strip()
+
+
+def _require_no_unexpected_model_processes(
+    *, command_runner: Callable[..., subprocess.CompletedProcess[str]],
+) -> None:
+    completed = command_runner(
+        ["/bin/ps", "-axo", "pid=,command="],
+        capture_output=True, text=True, check=False,
+    )
+    if completed.returncode:
+        raise EntrypointError("cannot prove the model-process lane is idle")
+    unexpected: list[str] = []
+    for raw in completed.stdout.splitlines():
+        match = re.match(r"\s*(\d+)\s+(.*)$", raw)
+        if not match or int(match.group(1)) == os.getpid():
+            continue
+        command = match.group(2)
+        if re.search(r"(?:^|\s)(?:\S*/)?codex\s+exec(?:\s|$)", command):
+            unexpected.append(f"pid={match.group(1)} codex-exec")
+        elif re.search(
+            r"(?:^|\s)(?:\S*/)?claude\s+(?:.*\s)?(?:-p|--print)(?:\s|$)",
+            command,
+        ):
+            unexpected.append(f"pid={match.group(1)} claude-print")
+    if unexpected:
+        raise EntrypointError(
+            "unexpected model process is active: " + ", ".join(unexpected)
+        )
+
+
+def _require_no_competing_writer(repo: Path) -> None:
+    lock_path = repo / "output/control-plane/collaboration-goal/writer.lock"
+    if not lock_path.exists() and not lock_path.is_symlink():
+        return
+    if lock_path.is_symlink() or not lock_path.is_file():
+        raise EntrypointError("collaboration Goal writer lock is not a regular file")
+    with lock_path.open("a+", encoding="utf-8") as stream:
+        try:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise EntrypointError("another collaboration Goal writer is active") from exc
+        finally:
+            try:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+            except OSError:
+                pass
+
+
+def _require_o2_unloaded(
+    *, command_runner: Callable[..., subprocess.CompletedProcess[str]],
+) -> None:
+    completed = command_runner(
+        ["/bin/launchctl", "print", f"gui/{os.getuid()}/{LEGACY_O2_LABEL}"],
+        capture_output=True, text=True, check=False,
+    )
+    if completed.returncode == 0:
+        raise EntrypointError("legacy O2 Runner is loaded; fail closed")
+
+
+def _verify_enabled_identity(
+    config_path: Path, config: dict[str, Any], *,
+    command_runner: Callable[..., subprocess.CompletedProcess[str]],
+) -> tuple[Path, Path]:
+    receipt_path = Path(str(config.get("install_receipt", "")))
+    activation_path = Path(str(config.get("activation_record", "")))
+    receipt = _load_object(receipt_path, "install receipt")
+    activation = _load_object(activation_path, "activation record")
+    if receipt.get("schema_version") != RECEIPT_SCHEMA:
+        raise EntrypointError("install receipt schema differs")
+    if activation.get("schema_version") != ACTIVATION_SCHEMA:
+        raise EntrypointError("activation record schema differs")
+    repo = Path(str(config.get("deployment_repository", ""))).resolve()
+    if not repo.is_dir() or repo.is_symlink():
+        raise EntrypointError("deployment repository is absent or is a symlink")
+    deployment = receipt.get("deployment")
+    if not isinstance(deployment, dict):
+        raise EntrypointError("install receipt deployment identity is missing")
+    commit = str(deployment.get("commit", ""))
+    tree = str(deployment.get("tree", ""))
+    if not re.fullmatch(r"[0-9a-f]{40}", commit) or not re.fullmatch(
+        r"[0-9a-f]{40}", tree
+    ):
+        raise EntrypointError("install receipt deployment identity is not exact")
+    if config.get("deployment_commit") != commit or config.get("deployment_tree") != tree:
+        raise EntrypointError("enabled config deployment identity differs")
+    if _git(repo, "rev-parse", "HEAD") != commit:
+        raise EntrypointError("deployment HEAD differs from reviewed commit")
+    if _git(repo, "rev-parse", "HEAD^{tree}") != tree:
+        raise EntrypointError("deployment tree differs from reviewed tree")
+    status_lines = {
+        line for line in _git(
+            repo, "status", "--porcelain=v1", "--untracked-files=all"
+        ).splitlines() if line
+    }
+    allowed_runtime_evidence = {
+        "?? .ai/ORCHESTRATOR_STOP",
+        "?? output/control-plane/collaboration-goal/writer.lock",
+    }
+    if status_lines - allowed_runtime_evidence:
+        raise EntrypointError("deployment repository must remain clean")
+    if _git(repo, "branch", "--show-current"):
+        raise EntrypointError("deployment repository must remain detached")
+    entrypoint = repo / "scripts/collaboration_goal_entrypoint.py"
+    dispatcher = repo / "scripts/collaboration_goal_dispatch.py"
+    if Path(str(receipt.get("entrypoint", ""))).resolve() != entrypoint:
+        raise EntrypointError("install receipt entrypoint path differs")
+    if _inside(repo, str(config.get("dispatcher", "")), "dispatcher") != dispatcher:
+        raise EntrypointError("enabled dispatcher path differs from reviewed path")
+    for name, path in (("entrypoint", entrypoint), ("dispatcher", dispatcher)):
+        if not path.is_file() or path.is_symlink():
+            raise EntrypointError(f"reviewed {name} is unavailable")
+        if _sha256(path) != receipt.get(f"{name}_sha256"):
+            raise EntrypointError(f"reviewed {name} bytes drifted")
+    plist_path = Path(str(receipt.get("plist_path", "")))
+    if not plist_path.is_file() or plist_path.is_symlink():
+        raise EntrypointError("LaunchAgent is unavailable")
+    if Path(str(receipt.get("config_path", ""))) != config_path:
+        raise EntrypointError("install receipt config path differs")
+    exact = {
+        "status": ENABLED_STATUS,
+        "engineering_goal_id": ENGINEERING_GOAL_ID,
+        "install_receipt": str(receipt_path),
+        "install_receipt_sha256": _sha256(receipt_path),
+        "enabled_config_sha256": _sha256(config_path),
+        "enabled_plist_sha256": _sha256(plist_path),
+        "deployment": deployment,
+        "entrypoint_sha256": receipt.get("entrypoint_sha256"),
+        "dispatcher_sha256": receipt.get("dispatcher_sha256"),
+        "product_goal": config.get("product_goal"),
+        "activation_authority": config.get("activation_authority"),
+    }
+    for field, expected in exact.items():
+        if activation.get(field) != expected:
+            raise EntrypointError(f"activation record mismatch for {field}")
+    authority = activation.get("activation_authority")
+    if (
+        not isinstance(authority, dict)
+        or authority.get("status") != "APPROVED"
+        or isinstance(authority.get("authorization_comment_id"), bool)
+        or not isinstance(authority.get("authorization_comment_id"), int)
+        or not re.fullmatch(r"[0-9a-f]{64}", str(authority.get("goal_spec_sha256", "")))
+    ):
+        raise EntrypointError("activation authority receipt is not exact")
+    if Path(str(receipt.get("python", ""))).resolve() != Path(sys.executable).resolve():
+        raise EntrypointError("entrypoint Python differs from the install receipt")
+    _require_no_unexpected_model_processes(command_runner=command_runner)
+    _require_no_competing_writer(repo)
+    _require_o2_unloaded(command_runner=command_runner)
+    return repo, dispatcher
+
+
 def run_once(
     config_path: Path,
     *,
@@ -77,17 +259,16 @@ def run_once(
     if marker.exists():
         return {**base, "status": "STOPPED", "reason": "Stop Marker is latched"}
 
+    repo, dispatcher = _verify_enabled_identity(
+        config_path, config, command_runner=command_runner,
+    )
+
     product_goal = config.get("product_goal")
     if not isinstance(product_goal, dict):
         raise EntrypointError("enabled entrypoint lacks an exact Product Goal binding")
     required = {"spec", "state", "ledger"}
     if set(product_goal) != required:
         raise EntrypointError("enabled Product Goal binding fields differ")
-    dispatcher = _inside(
-        repo,
-        str(config.get("dispatcher", "scripts/collaboration_goal_dispatch.py")),
-        "dispatcher",
-    )
     command = [
         sys.executable,
         str(dispatcher),

@@ -1444,6 +1444,35 @@ def ensure_bound_order(
                 goal_continuity.canonical_json_bytes(candidate)
             ).hexdigest(),
         }
+    elif action["action"] == "DISPATCH_REPAIR":
+        if ledger_path is None:
+            raise GoalRunnerError("repair order lacks the accepted review ledger")
+        projection = goal_continuity.reduce_ledger(
+            goal_continuity.read_ledger(ledger_path)
+        )
+        accepted = next(
+            (
+                verdict for verdict in reversed(projection.get("review_verdicts", []))
+                if verdict.get("verdict") == "CHANGES_REQUIRED"
+            ),
+            None,
+        )
+        candidate_digest = hashlib.sha256(
+            goal_continuity.canonical_json_bytes(candidate)
+        ).hexdigest()
+        if (
+            not isinstance(accepted, dict)
+            or not isinstance(accepted.get("review_id"), str)
+            or accepted.get("candidate_identity_sha256") != candidate_digest
+        ):
+            raise GoalRunnerError(
+                "repair order lacks an exact-candidate CHANGES_REQUIRED review binding"
+            )
+        review_binding = {
+            "review_id": accepted["review_id"],
+            "state": "CHANGES_REQUIRED",
+            "candidate_identity_sha256": candidate_digest,
+        }
     maximum_launches = (
         spec["resource_policy"]["providers"][provider]["fallback"]["max_total_launches"]
         if provider in {"codex", "claude"} else None

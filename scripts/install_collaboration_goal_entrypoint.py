@@ -9,6 +9,7 @@ must remain unloaded throughout.
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
 import json
 import os
@@ -25,6 +26,7 @@ LABEL = "com.kgnote.issue47-collaboration-goal"
 LEGACY_O2_LABEL = "com.kgnote.local-autonomy-runner"
 CONFIG_SCHEMA = "kgnote.collaboration-goal-entrypoint-config.v1"
 RECEIPT_SCHEMA = "kgnote.collaboration-goal-entrypoint-install.v1"
+ACTIVATION_SCHEMA = "kgnote.collaboration-goal-entrypoint-activation.v1"
 ROLLBACK_SCHEMA = "kgnote.collaboration-goal-entrypoint-rollback.v1"
 ENGINEERING_GOAL_ID = "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION"
 
@@ -77,7 +79,16 @@ def _deployment_identity(repo: Path, expected_commit: str) -> dict[str, str]:
         raise EntrypointInstallError("deployment repository is absent or is a symlink")
     if _git(repo, "rev-parse", "HEAD") != expected_commit:
         raise EntrypointInstallError("deployment HEAD differs from reviewed commit")
-    if _git(repo, "status", "--porcelain=v1", "--untracked-files=all"):
+    status_lines = {
+        line for line in _git(
+            repo, "status", "--porcelain=v1", "--untracked-files=all"
+        ).splitlines() if line
+    }
+    allowed_runtime_evidence = {
+        "?? .ai/ORCHESTRATOR_STOP",
+        "?? output/control-plane/collaboration-goal/writer.lock",
+    }
+    if status_lines - allowed_runtime_evidence:
         raise EntrypointInstallError("deployment repository must be clean")
     if _git(repo, "branch", "--show-current"):
         raise EntrypointInstallError("deployment repository must be detached")
@@ -106,6 +117,130 @@ def _require_o2_unloaded(
         raise EntrypointInstallError("legacy O2 Runner is loaded; fail closed")
 
 
+def _require_no_unexpected_model_processes(
+    *, command_runner: Callable[..., subprocess.CompletedProcess[str]],
+) -> None:
+    completed = command_runner(
+        ["/bin/ps", "-axo", "pid=,command="],
+        capture_output=True, text=True, check=False,
+    )
+    if completed.returncode:
+        raise EntrypointInstallError("cannot prove the model-process lane is idle")
+    unexpected: list[str] = []
+    for raw in completed.stdout.splitlines():
+        match = re.match(r"\s*(\d+)\s+(.*)$", raw)
+        if not match or int(match.group(1)) == os.getpid():
+            continue
+        command = match.group(2)
+        if re.search(r"(?:^|\s)(?:\S*/)?codex\s+exec(?:\s|$)", command):
+            unexpected.append(f"pid={match.group(1)} codex-exec")
+        elif re.search(
+            r"(?:^|\s)(?:\S*/)?claude\s+(?:.*\s)?(?:-p|--print)(?:\s|$)",
+            command,
+        ):
+            unexpected.append(f"pid={match.group(1)} claude-print")
+    if unexpected:
+        raise EntrypointInstallError(
+            "unexpected model process is active: " + ", ".join(unexpected)
+        )
+
+
+def _require_no_competing_writer(repo: Path) -> None:
+    lock_path = repo / "output/control-plane/collaboration-goal/writer.lock"
+    if not lock_path.exists() and not lock_path.is_symlink():
+        return
+    if lock_path.is_symlink() or not lock_path.is_file():
+        raise EntrypointInstallError("collaboration Goal writer lock is not a regular file")
+    with lock_path.open("a+", encoding="utf-8") as stream:
+        try:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise EntrypointInstallError(
+                "another collaboration Goal writer is active"
+            ) from exc
+        finally:
+            try:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+            except OSError:
+                pass
+
+
+def _load_json_object(path: Path, label: str) -> dict[str, Any]:
+    if not path.is_file() or path.is_symlink():
+        raise EntrypointInstallError(f"{label} is unavailable")
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise EntrypointInstallError(f"{label} root is not an object")
+    return value
+
+
+def _verify_deployment_receipt(receipt: dict[str, Any]) -> tuple[Path, dict[str, str]]:
+    repo = Path(str(receipt.get("deployment_repository", ""))).resolve()
+    deployment = receipt.get("deployment")
+    if not isinstance(deployment, dict):
+        raise EntrypointInstallError("install receipt deployment identity is missing")
+    identity = _deployment_identity(repo, str(deployment.get("commit", "")))
+    if identity != deployment:
+        raise EntrypointInstallError("deployment tree differs from the install receipt")
+    expected_paths = {
+        "entrypoint": repo / "scripts/collaboration_goal_entrypoint.py",
+        "dispatcher": repo / "scripts/collaboration_goal_dispatch.py",
+    }
+    if Path(str(receipt.get("entrypoint", ""))).resolve() != expected_paths["entrypoint"]:
+        raise EntrypointInstallError("install receipt entrypoint path differs")
+    for name, path in expected_paths.items():
+        if not path.is_file() or path.is_symlink():
+            raise EntrypointInstallError(f"reviewed {name} is unavailable")
+        if _sha256(path) != receipt.get(f"{name}_sha256"):
+            raise EntrypointInstallError(f"reviewed {name} bytes drifted")
+    python = Path(str(receipt.get("python", "")))
+    if not python.is_absolute() or not python.is_file() or not os.access(python, os.X_OK):
+        raise EntrypointInstallError("entrypoint Python no longer matches an executable")
+    return repo, identity
+
+
+def _verify_activation(
+    *, receipt_path: Path, receipt: dict[str, Any], config_path: Path,
+    config: dict[str, Any], plist_path: Path, plist: dict[str, Any],
+) -> dict[str, Any]:
+    activation_path = Path(str(config.get("activation_record", "")))
+    expected_activation_path = Path(str(receipt.get("activation_record_path", "")))
+    if activation_path != expected_activation_path:
+        raise EntrypointInstallError("activation record path differs from install receipt")
+    activation = _load_json_object(activation_path, "activation record")
+    exact = {
+        "schema_version": ACTIVATION_SCHEMA,
+        "status": "ENABLED_FOR_EXACT_PRODUCT_GOAL",
+        "engineering_goal_id": ENGINEERING_GOAL_ID,
+        "install_receipt": str(receipt_path),
+        "install_receipt_sha256": _sha256(receipt_path),
+        "enabled_config_sha256": _sha256(config_path),
+        "enabled_plist_sha256": _sha256(plist_path),
+        "deployment": receipt.get("deployment"),
+        "entrypoint_sha256": receipt.get("entrypoint_sha256"),
+        "dispatcher_sha256": receipt.get("dispatcher_sha256"),
+        "product_goal": config.get("product_goal"),
+        "activation_authority": config.get("activation_authority"),
+    }
+    for field, expected in exact.items():
+        if activation.get(field) != expected:
+            raise EntrypointInstallError(f"activation record mismatch for {field}")
+    if config.get("install_receipt") != str(receipt_path):
+        raise EntrypointInstallError("enabled config install receipt path differs")
+    authority = activation.get("activation_authority")
+    if (
+        not isinstance(authority, dict)
+        or authority.get("status") != "APPROVED"
+        or isinstance(authority.get("authorization_comment_id"), bool)
+        or not isinstance(authority.get("authorization_comment_id"), int)
+        or not re.fullmatch(r"[0-9a-f]{64}", str(authority.get("goal_spec_sha256", "")))
+    ):
+        raise EntrypointInstallError("activation authority receipt is not exact")
+    if plist.get("Disabled") is not False:
+        raise EntrypointInstallError("enabled activation still has a disabled LaunchAgent")
+    return activation
+
+
 def install_disabled(
     *,
     repo: Path,
@@ -127,6 +262,8 @@ def install_disabled(
     dispatcher = repo / "scripts/collaboration_goal_dispatch.py"
     if any(not path.is_file() or path.is_symlink() for path in (entrypoint, dispatcher)):
         raise EntrypointInstallError("reviewed entrypoint or dispatcher is unavailable")
+    _require_no_unexpected_model_processes(command_runner=command_runner)
+    _require_no_competing_writer(repo)
     _require_o2_unloaded(command_runner=command_runner)
     if _launchctl_loaded(LABEL, command_runner=command_runner):
         raise EntrypointInstallError("new collaboration Goal entrypoint is already loaded")
@@ -134,7 +271,8 @@ def install_disabled(
     launch_agents = launch_agents.resolve()
     launch_agents.mkdir(parents=True, exist_ok=True)
     plist_path = launch_agents / f"{LABEL}.plist"
-    for target in (plist_path, config_path, receipt_path):
+    activation_path = config_path.with_name("activation.json")
+    for target in (plist_path, config_path, receipt_path, activation_path):
         if target.exists() or target.is_symlink():
             raise EntrypointInstallError(f"refusing to replace existing target: {target}")
 
@@ -147,6 +285,8 @@ def install_disabled(
         "deployment_tree": identity["tree"],
         "dispatcher": "scripts/collaboration_goal_dispatch.py",
         "stop_marker": ".ai/ORCHESTRATOR_STOP",
+        "install_receipt": str(receipt_path),
+        "activation_record": str(activation_path),
         "product_goal": None,
         "activation_authority": None,
     }
@@ -179,6 +319,7 @@ def install_disabled(
         "plist_path": str(plist_path),
         "plist_sha256": _sha256(plist_path),
         "receipt_path": str(receipt_path),
+        "activation_record_path": str(activation_path),
         "activation": "DISABLED_BY_DEFAULT",
         "launchctl_bootstrap_performed": False,
         "legacy_o2_runner_loaded": False,
@@ -194,30 +335,45 @@ def read_status(
 ) -> dict[str, Any]:
     if not receipt_path.is_file() or receipt_path.is_symlink():
         raise EntrypointInstallError("entrypoint install receipt is unavailable")
-    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt = _load_json_object(receipt_path, "entrypoint install receipt")
     if receipt.get("schema_version") != RECEIPT_SCHEMA:
         raise EntrypointInstallError("entrypoint install receipt schema differs")
     config_path = Path(str(receipt["config_path"]))
     plist_path = Path(str(receipt["plist_path"]))
-    if _sha256(config_path) != receipt.get("config_sha256"):
-        raise EntrypointInstallError("disabled entrypoint config bytes drifted")
-    if _sha256(plist_path) != receipt.get("plist_sha256"):
-        raise EntrypointInstallError("disabled LaunchAgent bytes drifted")
-    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config = _load_json_object(config_path, "entrypoint config")
     plist = plistlib.loads(plist_path.read_bytes())
+    repo, identity = _verify_deployment_receipt(receipt)
+    _require_no_unexpected_model_processes(command_runner=command_runner)
+    _require_no_competing_writer(repo)
     _require_o2_unloaded(command_runner=command_runner)
     new_loaded = _launchctl_loaded(LABEL, command_runner=command_runner)
-    if config.get("status") != "DISABLED" or plist.get("Disabled") is not True:
-        raise EntrypointInstallError("entrypoint is not disabled by default")
-    if new_loaded:
-        raise EntrypointInstallError("disabled entrypoint is unexpectedly loaded")
+    if config.get("status") == "DISABLED":
+        if _sha256(config_path) != receipt.get("config_sha256"):
+            raise EntrypointInstallError("disabled entrypoint config bytes drifted")
+        if _sha256(plist_path) != receipt.get("plist_sha256"):
+            raise EntrypointInstallError("disabled LaunchAgent bytes drifted")
+        if plist.get("Disabled") is not True:
+            raise EntrypointInstallError("entrypoint is not disabled by default")
+        if Path(str(receipt.get("activation_record_path", ""))).exists():
+            raise EntrypointInstallError("disabled install has an unexpected activation record")
+        if new_loaded:
+            raise EntrypointInstallError("disabled entrypoint is unexpectedly loaded")
+        status = "STOPPED"
+    elif config.get("status") == "ENABLED_FOR_EXACT_PRODUCT_GOAL":
+        _verify_activation(
+            receipt_path=receipt_path, receipt=receipt, config_path=config_path,
+            config=config, plist_path=plist_path, plist=plist,
+        )
+        status = "RUNNING" if new_loaded else "ENABLED_NOT_LOADED"
+    else:
+        raise EntrypointInstallError("entrypoint config status is invalid")
     return {
         "schema_version": RECEIPT_SCHEMA,
-        "status": "STOPPED",
+        "status": status,
         "label": LABEL,
-        "loaded": False,
+        "loaded": new_loaded,
         "legacy_o2_runner_loaded": False,
-        "deployment": receipt["deployment"],
+        "deployment": identity,
     }
 
 
@@ -229,18 +385,12 @@ def rollback(
 ) -> dict[str, Any]:
     if not receipt_path.is_file() or receipt_path.is_symlink():
         raise EntrypointInstallError("entrypoint install receipt is unavailable")
-    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt = _load_json_object(receipt_path, "entrypoint install receipt")
     if receipt.get("schema_version") != RECEIPT_SCHEMA:
         raise EntrypointInstallError("entrypoint install receipt schema differs")
-    _require_o2_unloaded(command_runner=command_runner)
     repo = Path(str(receipt["deployment_repository"])).resolve()
-    config_path = Path(str(receipt["config_path"]))
-    plist_path = Path(str(receipt["plist_path"]))
-    if _sha256(config_path) != receipt.get("config_sha256"):
-        raise EntrypointInstallError("refusing rollback after config drift")
-    if _sha256(plist_path) != receipt.get("plist_sha256"):
-        raise EntrypointInstallError("refusing rollback after LaunchAgent drift")
-
+    if repo.is_symlink() or not repo.is_dir():
+        raise EntrypointInstallError("deployment repository is absent or is a symlink")
     stop_marker = repo / ".ai/ORCHESTRATOR_STOP"
     marker_preexisting = stop_marker.exists() or stop_marker.is_symlink()
     if marker_preexisting:
@@ -252,6 +402,28 @@ def rollback(
             b"Issue #47 collaboration Goal rollback; do not auto-resume.\n",
             mode=0o600,
         )
+    _require_o2_unloaded(command_runner=command_runner)
+    config_path = Path(str(receipt["config_path"]))
+    plist_path = Path(str(receipt["plist_path"]))
+    config = _load_json_object(config_path, "entrypoint config")
+    plist = plistlib.loads(plist_path.read_bytes())
+    _verify_deployment_receipt(receipt)
+    activation_path = Path(str(receipt.get("activation_record_path", "")))
+    if config.get("status") == "DISABLED":
+        if _sha256(config_path) != receipt.get("config_sha256"):
+            raise EntrypointInstallError("refusing rollback after config drift")
+        if _sha256(plist_path) != receipt.get("plist_sha256"):
+            raise EntrypointInstallError("refusing rollback after LaunchAgent drift")
+        if activation_path.exists() or activation_path.is_symlink():
+            raise EntrypointInstallError("disabled rollback found an activation record")
+    elif config.get("status") == "ENABLED_FOR_EXACT_PRODUCT_GOAL":
+        _verify_activation(
+            receipt_path=receipt_path, receipt=receipt, config_path=config_path,
+            config=config, plist_path=plist_path, plist=plist,
+        )
+    else:
+        raise EntrypointInstallError("refusing rollback for an invalid config status")
+
     was_loaded = _launchctl_loaded(LABEL, command_runner=command_runner)
     if was_loaded:
         completed = command_runner(
@@ -263,15 +435,21 @@ def rollback(
     if _launchctl_loaded(LABEL, command_runner=command_runner):
         raise EntrypointInstallError("new collaboration entrypoint remains loaded")
     _require_o2_unloaded(command_runner=command_runner)
+    removed = [str(plist_path), str(config_path)]
     plist_path.unlink()
     config_path.unlink()
+    if activation_path.exists():
+        if activation_path.is_symlink() or not activation_path.is_file():
+            raise EntrypointInstallError("activation record is not a regular file")
+        activation_path.unlink()
+        removed.append(str(activation_path))
     result = {
         "schema_version": ROLLBACK_SCHEMA,
         "status": "STOPPED",
         "rolled_back_at": datetime.now(timezone.utc).isoformat(),
         "label": LABEL,
         "was_loaded": was_loaded,
-        "entrypoint_files_removed": [str(plist_path), str(config_path)],
+        "entrypoint_files_removed": removed,
         "stop_marker": str(stop_marker),
         "stop_marker_preexisting": marker_preexisting,
         "install_receipt": str(receipt_path),
