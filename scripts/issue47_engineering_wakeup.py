@@ -36,6 +36,13 @@ HEARTBEAT_ID = "kgnote-47-goal"
 SCHEMA_VERSION = "kgnote.issue47-engineering-wakeup.v1"
 STATE_SCHEMA_VERSION = "kgnote.issue47-engineering-wakeup-state.v2"
 LEGACY_STATE_SCHEMA_VERSION = "kgnote.issue47-engineering-wakeup-state.v1"
+INTAKE_SCHEMA_VERSION = "kgnote.issue47-engineering-intake.v1"
+INTAKE_MARKER_NAME = "KGNOTE-ISSUE47-PRECANARY-NO-PASTE-ENGINEERING-SMOKE-20261031"
+INTAKE_MARKER = f"<!-- {INTAKE_MARKER_NAME} -->"
+INTAKE_COMMENT_ID = 6539158585
+INTAKE_COMMENT_BODY_SHA256 = "2e3c656fda262bcb1c13c4eefe1a7c0a914bd12f0fb294e334f2adc3808a1cf9"
+INTAKE_ACK_NAME = "KGNOTE-ISSUE47-ENGINEERING-INTAKE-ACK"
+ISSUE_NUMBER = 47
 DISPATCH_STATUSES = {"RESERVED", "RUNNING", "COMPLETED", "FAILED"}
 CONTINUATION_BINDINGS = {
     ("READY_FOR_REVIEW", "READY_FOR_AI_REVIEW"): ("DISPATCH_REVIEW", "claude"),
@@ -213,6 +220,363 @@ def fetch_authority(
         "comment_url": comment.get("html_url"),
         "body_sha256": hashlib.sha256(str(comment["body"]).encode()).hexdigest(),
         "command_sha256": canonical_sha256(command),
+    }
+
+
+def fetch_issue_comments(
+    spec: dict[str, Any],
+    *,
+    fixture: Path | None,
+    command_runner: Callable[..., subprocess.CompletedProcess[str]],
+) -> list[dict[str, Any]]:
+    if fixture is not None:
+        if not fixture.is_file() or fixture.is_symlink():
+            raise WakeupError("engineering intake fixture is unavailable")
+        try:
+            value = json.loads(fixture.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise WakeupError("engineering intake fixture is invalid JSON") from exc
+    else:
+        completed = command_runner(
+            [
+                "/opt/homebrew/bin/gh",
+                "api",
+                f"repos/{spec['repository']}/issues/{ISSUE_NUMBER}/comments?per_page=100",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if completed.returncode:
+            raise WakeupError("GitHub Issue #47 intake read-back failed")
+        try:
+            value = json.loads(completed.stdout)
+        except json.JSONDecodeError as exc:
+            raise WakeupError("GitHub Issue #47 intake read-back is invalid") from exc
+    if not isinstance(value, list) or any(not isinstance(item, dict) for item in value):
+        raise WakeupError("GitHub Issue #47 comments must be a list of objects")
+    return value
+
+
+def _intake_ack_marker(body_sha256: str) -> str:
+    return (
+        f"<!-- {INTAKE_ACK_NAME} source_comment_id={INTAKE_COMMENT_ID} "
+        f"source_body_sha256={body_sha256} -->"
+    )
+
+
+def _new_intake_history() -> dict[str, Any]:
+    return {
+        "schema_version": INTAKE_SCHEMA_VERSION,
+        "goal_id": GOAL_ID,
+        "goal_version": GOAL_VERSION,
+        "repository": "joannalee20050914/KGnote-public",
+        "issue": ISSUE_NUMBER,
+        "marker": INTAKE_MARKER_NAME,
+        "receipts": [],
+        "events": [],
+    }
+
+
+def _validated_intake_history(value: dict[str, Any] | None) -> dict[str, Any]:
+    history = _new_intake_history() if value is None else value
+    expected = {
+        "schema_version": INTAKE_SCHEMA_VERSION,
+        "goal_id": GOAL_ID,
+        "goal_version": GOAL_VERSION,
+        "repository": "joannalee20050914/KGnote-public",
+        "issue": ISSUE_NUMBER,
+        "marker": INTAKE_MARKER_NAME,
+    }
+    for field, exact in expected.items():
+        if history.get(field) != exact:
+            raise WakeupError(f"engineering intake history {field} differs")
+    receipts = history.get("receipts")
+    events = history.get("events")
+    if not isinstance(receipts, list) or not isinstance(events, list):
+        raise WakeupError("engineering intake history structure differs")
+    ids: set[str] = set()
+    by_id: dict[str, dict[str, Any]] = {}
+    for receipt in receipts:
+        if not isinstance(receipt, dict):
+            raise WakeupError("engineering intake receipt is not an object")
+        receipt_id = receipt.get("receipt_id")
+        if (
+            not isinstance(receipt_id, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", receipt_id)
+            or receipt_id in ids
+        ):
+            raise WakeupError("engineering intake receipt identity is invalid")
+        ids.add(receipt_id)
+        by_id[receipt_id] = receipt
+    event_statuses: dict[str, list[str]] = {receipt_id: [] for receipt_id in ids}
+    for event in events:
+        if (
+            not isinstance(event, dict)
+            or event.get("status") not in {"RECEIVED", "ADMITTED", "IGNORED", "ACKNOWLEDGED"}
+            or event.get("receipt_id") not in ids
+        ):
+            raise WakeupError("engineering intake event is invalid")
+        event_statuses[str(event["receipt_id"])].append(str(event["status"]))
+    for receipt_id, receipt in by_id.items():
+        sequence = event_statuses[receipt_id]
+        if sequence not in (
+            ["IGNORED"],
+            ["RECEIVED"],
+            ["RECEIVED", "ADMITTED"],
+            ["RECEIVED", "ADMITTED", "ACKNOWLEDGED"],
+        ):
+            raise WakeupError("engineering intake event transition is invalid")
+        if receipt.get("status") != sequence[-1]:
+            raise WakeupError("engineering intake receipt status differs from events")
+        if receipt.get("status") == "ACKNOWLEDGED" and not isinstance(
+            receipt.get("acknowledgement"), dict
+        ):
+            raise WakeupError("engineering intake acknowledgement is missing")
+    return history
+
+
+def _github_comment_identity(comment: dict[str, Any]) -> tuple[str, str, str]:
+    body = str(comment.get("body", ""))
+    body_sha256 = hashlib.sha256(body.encode()).hexdigest()
+    login = str(comment.get("user", {}).get("login", "")) if isinstance(
+        comment.get("user"), dict
+    ) else ""
+    association = str(comment.get("author_association", ""))
+    return body_sha256, login, association
+
+
+def _acknowledge_intake(
+    *,
+    spec: dict[str, Any],
+    comments: list[dict[str, Any]],
+    source: dict[str, Any],
+    receipt_id: str,
+    body_sha256: str,
+    command_runner: Callable[..., subprocess.CompletedProcess[str]],
+) -> dict[str, Any]:
+    marker = _intake_ack_marker(body_sha256)
+    matches = [item for item in comments if marker in str(item.get("body", ""))]
+    if len(matches) > 1:
+        raise WakeupError("GitHub intake acknowledgement is duplicated")
+    body = (
+        marker
+        + "\n## #47 零模型工程入口已接收\n\n"
+        + f"本機唯一工程入口已讀回 Owner comment `{INTAKE_COMMENT_ID}`，"
+        + "核對 exact #47/v4 scope，並留下 durable intake receipt。\n\n"
+        + f"- receipt: `{receipt_id}`\n"
+        + f"- source body SHA-256: `{body_sha256}`\n"
+        + "- `ENGINEERING_NO_PASTE_HANDOFF`: `RECEIVED_AND_ADMITTED`\n"
+        + "- `PRODUCT_GOAL_CANARY`: `NOT_AUTHORIZED`\n"
+        + "- model launch / Product Goal dispatch / O2 Runner: `false`\n\n"
+        + "相同來源與 digest 的後續 tick 只讀回本 receipt，不會重複回寫或派工。"
+    )
+    if matches:
+        observed = matches[0]
+    else:
+        completed = command_runner(
+            [
+                "/opt/homebrew/bin/gh",
+                "api",
+                "--method",
+                "POST",
+                f"repos/{spec['repository']}/issues/{ISSUE_NUMBER}/comments",
+                "-f",
+                f"body={body}",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if completed.returncode:
+            raise WakeupError("GitHub intake acknowledgement write failed")
+        try:
+            created = json.loads(completed.stdout)
+        except json.JSONDecodeError as exc:
+            raise WakeupError("GitHub intake acknowledgement result is invalid") from exc
+        if not isinstance(created, dict) or isinstance(created.get("id"), bool) or not isinstance(
+            created.get("id"), int
+        ):
+            raise WakeupError("GitHub intake acknowledgement identity is invalid")
+        readback = command_runner(
+            [
+                "/opt/homebrew/bin/gh",
+                "api",
+                f"repos/{spec['repository']}/issues/comments/{created['id']}",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if readback.returncode:
+            raise WakeupError("GitHub intake acknowledgement read-back failed")
+        try:
+            observed = json.loads(readback.stdout)
+        except json.JSONDecodeError as exc:
+            raise WakeupError("GitHub intake acknowledgement read-back is invalid") from exc
+    observed_sha256, login, association = _github_comment_identity(observed)
+    if (
+        str(observed.get("body", "")) != body
+        or login != OWNER_LOGIN
+        or association != "OWNER"
+        or not isinstance(observed.get("id"), int)
+        or not isinstance(observed.get("html_url"), str)
+    ):
+        raise WakeupError("GitHub intake acknowledgement read-back differs")
+    return {
+        "comment_id": observed["id"],
+        "comment_url": observed["html_url"],
+        "body_sha256": observed_sha256,
+        "marker": marker,
+    }
+
+
+def process_engineering_intake(
+    *,
+    spec: dict[str, Any],
+    state_path: Path,
+    fixture: Path | None,
+    now: datetime,
+    command_runner: Callable[..., subprocess.CompletedProcess[str]],
+) -> dict[str, Any]:
+    comments = fetch_issue_comments(
+        spec, fixture=fixture, command_runner=command_runner
+    )
+    sources = [
+        item for item in comments
+        if item.get("id") == INTAKE_COMMENT_ID or INTAKE_MARKER in str(item.get("body", ""))
+    ]
+    if len(sources) != 1:
+        raise WakeupError("exact GitHub engineering intake marker is missing or ambiguous")
+    source = sources[0]
+    body_sha256, login, association = _github_comment_identity(source)
+    receipt_id = canonical_sha256({
+        "goal_id": GOAL_ID,
+        "goal_version": GOAL_VERSION,
+        "repository": spec["repository"],
+        "issue": ISSUE_NUMBER,
+        "comment_id": source.get("id"),
+        "body_sha256": body_sha256,
+        "marker": INTAKE_MARKER_NAME,
+    })
+    history = _validated_intake_history(
+        load_object(state_path, "engineering intake state") if state_path.exists() else None
+    )
+    existing = [item for item in history["receipts"] if item.get("receipt_id") == receipt_id]
+    if existing:
+        receipt = existing[0]
+        if receipt.get("status") == "ACKNOWLEDGED" and isinstance(
+            receipt.get("acknowledgement"), dict
+        ):
+            return {
+                "status": "INTAKE_DUPLICATE",
+                "receipt": receipt,
+                "duplicate_suppressed": True,
+                "github_write_performed": False,
+            }
+        if receipt.get("status") not in {"RECEIVED", "ADMITTED"}:
+            raise WakeupError("engineering intake receipt is incomplete")
+        if receipt.get("status") == "RECEIVED":
+            receipt["status"] = "ADMITTED"
+            receipt["admitted_at"] = now.isoformat()
+            history["events"].append({
+                "receipt_id": receipt_id,
+                "status": "ADMITTED",
+                "observed_at": now.isoformat(),
+            })
+        acknowledgement_preexisted = any(
+            _intake_ack_marker(body_sha256) in str(item.get("body", ""))
+            for item in comments
+        )
+        acknowledgement = _acknowledge_intake(
+            spec=spec,
+            comments=comments,
+            source=source,
+            receipt_id=receipt_id,
+            body_sha256=body_sha256,
+            command_runner=command_runner,
+        )
+        receipt["status"] = "ACKNOWLEDGED"
+        receipt["acknowledgement"] = acknowledgement
+        history["events"].append({
+            "receipt_id": receipt_id,
+            "status": "ACKNOWLEDGED",
+            "observed_at": now.isoformat(),
+            "comment_id": acknowledgement["comment_id"],
+        })
+        _atomic_json(state_path, history)
+        return {
+            "status": "INTAKE_RECOVERED",
+            "receipt": receipt,
+            "duplicate_suppressed": True,
+            "github_write_performed": not acknowledgement_preexisted,
+        }
+
+    valid = (
+        source.get("id") == INTAKE_COMMENT_ID
+        and source.get("author_association") == "OWNER"
+        and login == OWNER_LOGIN
+        and str(source.get("body", "")).count(INTAKE_MARKER) == 1
+        and body_sha256 == INTAKE_COMMENT_BODY_SHA256
+    )
+    receipt = {
+        "receipt_id": receipt_id,
+        "status": "RECEIVED" if valid else "IGNORED",
+        "source_comment_id": source.get("id"),
+        "source_comment_url": source.get("html_url"),
+        "source_body_sha256": body_sha256,
+        "source_author_login": login,
+        "source_author_association": association,
+        "marker": INTAKE_MARKER_NAME,
+        "received_at": now.isoformat(),
+        "admitted_at": None,
+        "acknowledgement": None,
+        "safety": {
+            "model_launch_started": False,
+            "product_goal_dispatched": False,
+            "legacy_o2_runner_used": False,
+            "paid_api_used": False,
+        },
+    }
+    history["receipts"].append(receipt)
+    history["events"].append({
+        "receipt_id": receipt_id,
+        "status": "RECEIVED" if valid else "IGNORED",
+        "observed_at": now.isoformat(),
+    })
+    if not valid:
+        _atomic_json(state_path, history)
+        raise WakeupError("GitHub engineering intake identity or digest differs")
+    receipt["status"] = "ADMITTED"
+    receipt["admitted_at"] = now.isoformat()
+    history["events"].append({
+        "receipt_id": receipt_id,
+        "status": "ADMITTED",
+        "observed_at": now.isoformat(),
+    })
+    _atomic_json(state_path, history)
+    acknowledgement = _acknowledge_intake(
+        spec=spec,
+        comments=comments,
+        source=source,
+        receipt_id=receipt_id,
+        body_sha256=body_sha256,
+        command_runner=command_runner,
+    )
+    receipt["status"] = "ACKNOWLEDGED"
+    receipt["acknowledgement"] = acknowledgement
+    history["events"].append({
+        "receipt_id": receipt_id,
+        "status": "ACKNOWLEDGED",
+        "observed_at": now.isoformat(),
+        "comment_id": acknowledgement["comment_id"],
+    })
+    _atomic_json(state_path, history)
+    return {
+        "status": "INTAKE_ADMITTED",
+        "receipt": receipt,
+        "duplicate_suppressed": False,
+        "github_write_performed": True,
     }
 
 
@@ -513,8 +877,10 @@ def inspect(
     spec_path: Path,
     heartbeat_path: Path,
     state_path: Path,
+    intake_state_path: Path,
     writer_lock: Path,
     authority_fixture: Path | None,
+    intake_fixture: Path | None,
     stop_marker: Path,
     now: datetime,
     command_runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
@@ -568,14 +934,6 @@ def inspect(
         repo / ".ai/REVIEW_REQUEST.md", "<!-- BEGIN KGNOTE REVIEW REQUEST JSON -->",
         "<!-- END KGNOTE REVIEW REQUEST JSON -->", "review request",
     )
-    action, provider, review_id = action_identity(status, orchestrator, request)
-    candidate_commit, fingerprint = _runtime_identity(status)
-    if action == "DISPATCH_REVIEW":
-        if request.get("candidate_fingerprint") != fingerprint:
-            raise WakeupError("sealed review fingerprint differs from runtime identity")
-        revision = str(request.get("candidate_revision", ""))
-        if not revision.startswith(candidate_commit + "+worktree:" + fingerprint):
-            raise WakeupError("sealed review revision differs from runtime identity")
     if orchestrator.get("active_goal") != GOAL_ID:
         raise WakeupError("orchestrator Goal identity differs")
     orchestrator_review_id = orchestrator.get("review_id")
@@ -583,6 +941,55 @@ def inspect(
         raise WakeupError("review identity differs between request and orchestrator")
     heartbeat = load_heartbeat(heartbeat_path)
     authority = fetch_authority(spec, fixture=authority_fixture, command_runner=command_runner)
+    with exclusive_lock(writer_lock):
+        intake = process_engineering_intake(
+            spec=spec,
+            state_path=intake_state_path,
+            fixture=intake_fixture,
+            now=now,
+            command_runner=command_runner,
+        )
+    if plan.get("active_milestone_id") == "EG-4A-PRECANARY-NO-PASTE-SMOKE":
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "NO_AUTHORIZED_ENGINEERING_WORK",
+            "observed_at": now.isoformat(),
+            "goal_id": GOAL_ID,
+            "goal_version": GOAL_VERSION,
+            "goal_spec_sha256": GOAL_SPEC_SHA256,
+            "authority": authority,
+            "heartbeat": heartbeat,
+            "intake": intake,
+            "reason": "the active EG-4A smoke is no-model only",
+            "safety": safety,
+        }
+    binding = continuation_binding(request.get("status"), orchestrator.get("state"))
+    if binding is None:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "NO_AUTHORIZED_ENGINEERING_WORK",
+            "observed_at": now.isoformat(),
+            "goal_id": GOAL_ID,
+            "goal_version": GOAL_VERSION,
+            "goal_spec_sha256": GOAL_SPEC_SHA256,
+            "authority": authority,
+            "heartbeat": heartbeat,
+            "intake": intake,
+            "reason": (
+                f"review/orchestrator state pair {request.get('status')!r}/"
+                f"{orchestrator.get('state')!r} is not wakeable"
+            ),
+            "safety": safety,
+        }
+    action, provider = binding
+    review_id = str(request.get("review_id"))
+    candidate_commit, fingerprint = _runtime_identity(status)
+    if action == "DISPATCH_REVIEW":
+        if request.get("candidate_fingerprint") != fingerprint:
+            raise WakeupError("sealed review fingerprint differs from runtime identity")
+        revision = str(request.get("candidate_revision", ""))
+        if not revision.startswith(candidate_commit + "+worktree:" + fingerprint):
+            raise WakeupError("sealed review revision differs from runtime identity")
     static_total, static_today, total_limit, daily_limit, accounting_workday = _usage(
         status, provider
     )
@@ -659,6 +1066,7 @@ def inspect(
             "dispatch_key": dispatch_key,
             "authority": authority,
             "heartbeat": heartbeat,
+            "intake": intake,
             "usage_before": {"total": consumed, "today": today, "total_limit": total_limit, "daily_limit": daily_limit},
             "safety": safety,
         }
@@ -706,8 +1114,10 @@ def main() -> int:
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--heartbeat", type=Path, required=True)
     parser.add_argument("--state", type=Path, required=True)
+    parser.add_argument("--intake-state", type=Path, required=True)
     parser.add_argument("--writer-lock", type=Path, required=True)
     parser.add_argument("--authority-fixture", type=Path)
+    parser.add_argument("--intake-fixture", type=Path)
     parser.add_argument("--stop-marker", type=Path, required=True)
     parser.add_argument("--now")
     parser.add_argument("--reserve", action="store_true")
@@ -718,8 +1128,10 @@ def main() -> int:
             spec_path=args.spec,
             heartbeat_path=args.heartbeat,
             state_path=args.state,
+            intake_state_path=args.intake_state,
             writer_lock=args.writer_lock,
             authority_fixture=args.authority_fixture,
+            intake_fixture=args.intake_fixture,
             stop_marker=args.stop_marker,
             now=parse_time(args.now),
             reserve=args.reserve,
@@ -738,7 +1150,9 @@ def main() -> int:
             },
         }
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
-    return 0 if result["status"] in {"READY_TO_WAKE", "RESERVED", "STOPPED"} else 2
+    return 0 if result["status"] in {
+        "READY_TO_WAKE", "RESERVED", "STOPPED", "NO_AUTHORIZED_ENGINEERING_WORK"
+    } else 2
 
 
 if __name__ == "__main__":

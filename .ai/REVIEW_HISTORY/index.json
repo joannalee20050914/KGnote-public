@@ -1,8 +1,8 @@
 {
   "schema_version": "kgnote.review-history-index.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "event_count": 56,
-  "last_event_id": "evt-0056",
+  "event_count": 66,
+  "last_event_id": "evt-0066",
   "reviews": {
     "review-mainline-integration-20261020-001": {
       "snapshots": [
@@ -355,42 +355,99 @@
           "path": ".ai/REVIEW_HISTORY/review-issue47-end-to-end-autonomous-collaboration-004/result-b57221b91a872822851234048fd1552110f4ca5285f2b5f35a1e8c9cc035b49a.md",
           "sha256": "b57221b91a872822851234048fd1552110f4ca5285f2b5f35a1e8c9cc035b49a",
           "event_id": "evt-0055"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-issue47-end-to-end-autonomous-collaboration-004/resolution-ca7a6acee5b54ad6c5751aa74f2c4f800a8289e03ed6ddc78da012df92885b85.md",
+          "sha256": "ca7a6acee5b54ad6c5751aa74f2c4f800a8289e03ed6ddc78da012df92885b85",
+          "event_id": "evt-0057"
         }
       ],
-      "last_event_type": "IMPLEMENTATION_RESUMED",
+      "last_event_type": "FIXES_PROPOSED",
       "candidate_fingerprint": "428be2cd0b089c0a13d35c632543677405ef1eaddb8f0ea5330e51ebd748c716"
+    },
+    "review-issue47-end-to-end-autonomous-collaboration-005": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-issue47-end-to-end-autonomous-collaboration-005/request-86adeded905ea0be020bca698657327629d1b2aa5c0abd33ff93a7feeeb7baae.md",
+          "sha256": "86adeded905ea0be020bca698657327629d1b2aa5c0abd33ff93a7feeeb7baae",
+          "event_id": "evt-0058"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-issue47-end-to-end-autonomous-collaboration-005/result-c23a70ca7043a4309e019d1ccbb69f3901fe0f9867f52fbcc1c7642bfb2f4041.md",
+          "sha256": "c23a70ca7043a4309e019d1ccbb69f3901fe0f9867f52fbcc1c7642bfb2f4041",
+          "event_id": "evt-0060"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-issue47-end-to-end-autonomous-collaboration-005/resolution-5c2571802b22e8c8ce24080bce6f3afcdc2a5ac7217578ce73b897dc5008b085.md",
+          "sha256": "5c2571802b22e8c8ce24080bce6f3afcdc2a5ac7217578ce73b897dc5008b085",
+          "event_id": "evt-0062"
+        }
+      ],
+      "last_event_type": "FIXES_PROPOSED",
+      "candidate_fingerprint": "3d138c6d34593576ff64cc96075552d9a4c5bc9081026aafa5ef9dc23db11ba5"
+    },
+    "review-issue47-end-to-end-autonomous-collaboration-006": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-issue47-end-to-end-autonomous-collaboration-006/request-a6a8d4846c678b7c7c5a34dc1e63db04a7caf8950852d6a0b89308fc1894facd.md",
+          "sha256": "a6a8d4846c678b7c7c5a34dc1e63db04a7caf8950852d6a0b89308fc1894facd",
+          "event_id": "evt-0063"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-issue47-end-to-end-autonomous-collaboration-006/result-10c28b60bad60d955913ebef9390a20ff3b46daf92fb9ffa111ed3d2300a15c7.md",
+          "sha256": "10c28b60bad60d955913ebef9390a20ff3b46daf92fb9ffa111ed3d2300a15c7",
+          "event_id": "evt-0065"
+        }
+      ],
+      "last_event_type": "PASS_CONSUMED_FOR_PROGRESSION",
+      "candidate_fingerprint": "d4057ebd06ede49a04e0a434a813eb0c5602772fe5292f0ebf24528bbcb19826"
     }
   },
   "findings": {
     "R-001": {
       "status": "VERIFIED",
-      "review_id": "review-issue47-end-to-end-autonomous-collaboration-004",
-      "last_event_id": "evt-0055"
+      "review_id": "review-issue47-end-to-end-autonomous-collaboration-005",
+      "last_event_id": "evt-0062"
     },
     "R-002": {
       "status": "VERIFIED",
-      "review_id": "review-issue47-end-to-end-autonomous-collaboration-004",
-      "last_event_id": "evt-0055"
+      "review_id": "review-issue47-end-to-end-autonomous-collaboration-005",
+      "last_event_id": "evt-0062"
     },
     "R-003": {
       "status": "VERIFIED",
-      "review_id": "review-issue47-end-to-end-autonomous-collaboration-004",
-      "last_event_id": "evt-0055"
+      "review_id": "review-issue47-end-to-end-autonomous-collaboration-005",
+      "last_event_id": "evt-0062"
     },
     "R-004": {
-      "status": "OPEN",
-      "review_id": "review-issue47-end-to-end-autonomous-collaboration-004",
-      "last_event_id": "evt-0055"
+      "status": "VERIFIED",
+      "review_id": "review-issue47-end-to-end-autonomous-collaboration-005",
+      "last_event_id": "evt-0062"
     },
     "R-005": {
-      "status": "OPEN",
-      "review_id": "review-issue47-end-to-end-autonomous-collaboration-004",
-      "last_event_id": "evt-0055"
+      "status": "VERIFIED",
+      "review_id": "review-issue47-end-to-end-autonomous-collaboration-005",
+      "last_event_id": "evt-0062"
     },
     "R-006": {
-      "status": "OPEN",
-      "review_id": "review-issue47-end-to-end-autonomous-collaboration-004",
-      "last_event_id": "evt-0055"
+      "status": "VERIFIED",
+      "review_id": "review-issue47-end-to-end-autonomous-collaboration-005",
+      "last_event_id": "evt-0062"
+    },
+    "R-007": {
+      "status": "VERIFIED",
+      "review_id": "review-issue47-end-to-end-autonomous-collaboration-006",
+      "last_event_id": "evt-0065"
+    },
+    "R-008": {
+      "status": "VERIFIED",
+      "review_id": "review-issue47-end-to-end-autonomous-collaboration-006",
+      "last_event_id": "evt-0065"
+    },
+    "R-009": {
+      "status": "VERIFIED",
+      "review_id": "review-issue47-end-to-end-autonomous-collaboration-006",
+      "last_event_id": "evt-0065"
     }
   }
 }

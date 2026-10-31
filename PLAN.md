@@ -19,7 +19,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
   "product_goal_authorized": false,
   "objective": "以單一、有界且可跨工作日恢復的工程 Goal，保存現有 Issue #47 readiness candidate，固定 exact spec／checkpoint／預算，取得 GitHub Owner 授權後，連續完成獨立審查、one-shot dispatch、無模型整合測試、安全部署、受控 canary、跨日接續與 rollback 證據，最後停在真人產品驗收與常設 go-live 的集中決策；不修改或冒充 O2 v4 Product Goal。",
   "status": "active",
-  "active_milestone_id": "EG-4-TRUSTED-DEPLOYMENT",
+  "active_milestone_id": "EG-4A-PRECANARY-NO-PASTE-SMOKE",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
   "execution_direction_id": "kgnote-issue47-engineering-continuation-simplification-2026-10-31",
@@ -97,7 +97,10 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
       "issue": 47,
       "url": "https://github.com/joannalee20050914/KGnote-public/issues/47",
       "strategy_comment": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6522962957",
-      "strategy_comment_status": "DRAFT_ONLY_NOT_AUTHORIZED"
+      "strategy_comment_status": "DRAFT_ONLY_NOT_AUTHORIZED",
+      "precanary_no_paste_smoke_comment": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6539158585",
+      "precanary_no_paste_smoke_comment_id": 6539158585,
+      "precanary_no_paste_smoke_role": "OWNER_AUTHORED_ACCEPTANCE_PRIORITY_AND_GAP_RECORD_WITHIN_EXISTING_V4_AUTHORITY"
     },
     "forbidden_substitutes": [
       "把 Codex App 工程 Goal 或 Issue #47 DRAFT 留言當成 Product Goal APPROVE",
@@ -107,6 +110,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
       "啟用或共用舊 com.kgnote.local-autonomy-runner",
       "在 exact Owner approval 前或一般／明列週末例外時段外啟動背景 Codex／Claude、正式 deploy 或 dispatch",
       "把 2026-10-31／2026-11-01 工程例外用於 Product Goal canary、產品模型派工、常設排程啟用或 go-live",
+      "為 no-paste smoke 重派已完成 EG-1 至 EG-4 工作、虛構 active model work，或把 intake receipt 當成模型 workflow 完成",
       "使用付費 API、force push、直接 push main、修改 branch protection 或未批准資料外送",
       "把 Codex-primary／Claude-reviewer 的證據宣稱為 Claude-primary／Codex-reviewer 已完成",
       "用 restart、日期、Goal version、branch、PR 或 session 重置 launch/accounting history"
@@ -185,7 +189,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     },
     {
       "id": "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
-      "status": "NOT_STARTED",
+      "status": "PENDING_OWNER_APPROVAL",
       "release_verified": false,
       "rule": "Engineering Goal approval cannot authorize the live Product Goal canary."
     },
@@ -388,7 +392,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     {
       "id": "EG-4-TRUSTED-DEPLOYMENT",
       "title": "安全部署 exact reviewed generation 與唯一 disabled-by-default 入口",
-      "status": "active",
+      "status": "complete",
       "dependencies": [
         "EG-3-ZERO-MODEL-E2E"
       ],
@@ -413,11 +417,42 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
       ]
     },
     {
+      "id": "EG-4A-PRECANARY-NO-PASTE-SMOKE",
+      "title": "Issue #47：先驗收 GitHub→Mac 零模型 no-paste 工程交接",
+      "status": "active",
+      "dependencies": [
+        "EG-4-TRUSTED-DEPLOYMENT"
+      ],
+      "human_gate": "none",
+      "owned_paths": [
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "docs/control-plane/",
+        "scripts/install_collaboration_goal_entrypoint.py",
+        "scripts/collaboration_goal_entrypoint.py",
+        "scripts/issue47_engineering_wakeup.py",
+        "tests/control_plane/test_collaboration_goal_entrypoint.py",
+        "tests/control_plane/test_issue47_engineering_wakeup.py",
+        "output/control-plane/",
+        "trusted Mac deployment/runtime/LaunchAgent paths named by the exact reviewed install receipt",
+        "GitHub Issue #47 comment 6539158585 and its exact machine read-back receipt"
+      ],
+      "acceptance": [
+        "唯一既有 LaunchAgent 能以 reviewed、reversible、engineering-only 模式啟用；activation/status/disable/rollback 均綁定 exact install receipt、v4 authority、reviewed bytes，且 bootstrap 前先有獨立 PASS",
+        "LaunchAgent 以零模型方式從 GitHub Issue #47 找到 Owner comment 6539158585 的公開安全 marker，核對 repository/Issue/Owner/Goal/scope，留下 received/admitted/ignored 事件與 durable receipt，再回寫並讀回唯一 acknowledgement",
+        "相同 GitHub comment 與 body digest 在重複 tick、LaunchAgent restart 及 disable→enable 後不重複 acknowledgement、reservation 或模型啟動",
+        "目前無 active model milestone 且 orchestrator 為 PRODUCT_DECISION_REQUIRED 時，只回報 NO_AUTHORIZED_ENGINEERING_WORK；不得為 smoke 虛構 implementation/review action",
+        "超出時窗、Owner/marker/scope/digest 不符、quota/backoff、Stop Marker、writer lock、舊 O2 Runner 復活或 reviewed bytes drift 均 fail closed，且 Product Goal/O2/paid API/model launch 保持 false",
+        "ENGINEERING_NO_PASTE_HANDOFF 與 PRODUCT_GOAL_CANARY 分開回報；前者只可依 live GitHub→Mac receipt 判定，後者維持 NOT_AUTHORIZED"
+      ]
+    },
+    {
       "id": "EG-5-LIVE-CANARY",
       "title": "受控真實 Product Goal canary 與 Codex→Claude repair/review",
       "status": "pending",
       "dependencies": [
-        "EG-4-TRUSTED-DEPLOYMENT"
+        "EG-4A-PRECANARY-NO-PASTE-SMOKE"
       ],
       "human_gate": "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
       "owned_paths": [
@@ -497,19 +532,25 @@ The current exact engineering continuation amendment is Owner comment
 `2026-10-31.4-engineering-continuation-simplification` and canonical SHA-256
 `0507d2dbc5c9780afbe3e67a3c8ca66f8fb1b93eff9507c86299baac0141ad5d`.
 `EG-1` was independently reviewed and integrated by PR #48. `EG-2` and `EG-3`
-then completed the real one-shot path plus 495 control-plane, 348 product Python,
-60 Node and 16 requirements-guard tests without a model or Product Goal launch.
-The old Codex App heartbeat is paused after three blocked-after-delivery incidents.
-The new Issue #47 entrypoint is being repaired so its reviewed no-model gate runs
-before any provider continuation, atomically suppresses duplicate dispatch, and
-latches stop/rollback across restart/day changes without touching O2. `EG-4` is
-the only active milestone; Review 004 must pass before any trusted deployment or
-replacement scheduler activation.
-No Product Goal canary, standing scheduler activation, B-scheme go-live or O2
-runtime mutation is authorized.
+completed the real one-shot path and no-model integration suite. Review 006 then
+gave exact candidate `9f40afbe0cae11c743fd8147717c631bef201ba9` / fingerprint
+`d4057ebd06ede49a04e0a434a813eb0c5602772fe5292f0ebf24528bbcb19826`
+an independent PASS. PR #49 was merged through active ruleset `25347516` as
+`79d7101e08ae8375cf0e84622393262a5f7c6a70`, and the exact reviewed generation
+was installed as `INSTALLED_DISABLED_NOT_LOADED`. The new label, old O2 label,
+and Product Goal dispatch all remain inactive; the historical Codex App
+heartbeat remains paused after three blocked-after-delivery incidents.
+`EG-4` is complete. Owner comment `6539158585` then corrected the delivery
+order without expanding v4 authority: before `EG-5`, the existing reviewed
+entrypoint must prove a real GitHub→Mac, zero-model, duplicate-suppressed
+engineering handoff. `EG-4A-PRECANARY-NO-PASTE-SMOKE` is therefore the only
+active milestone. It may add the missing safe activation/intake path and obtain
+independent review, but it must not invent model work or dispatch a Product
+Goal. `EG-5` remains pending behind its separate Owner gate. No Product Goal
+canary, standing B-scheme go-live or O2 runtime mutation is authorized.
 
 ## Current recovery note
 
-Autonomous orchestration state: `IMPLEMENTING`. Active work package: `EG-4-TRUSTED-DEPLOYMENT`.
-Next action: seal and independently review the exact EG-2/EG-3 candidate before disabled-by-default deployment.
+Autonomous orchestration state remains `PRODUCT_DECISION_REQUIRED` for model work; active no-model work package: `EG-4A-PRECANARY-NO-PASTE-SMOKE`.
+Next action: implement and independently review the missing GitHub intake plus engineering-only activation path, then activate only the exact reviewed no-model entrypoint and verify live acknowledgement/deduplication. Do not activate `EG-5` or any Product Goal.
 Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import fcntl
 import importlib.util
+import hashlib
 import json
 import sys
 import tempfile
@@ -124,7 +125,50 @@ class Issue47EngineeringWakeupTests(unittest.TestCase):
             "user": {"login": WAKEUP.OWNER_LOGIN},
             "body": WAKEUP.AUTHORITY_MARKER + "\n```json\n" + json.dumps(command) + "\n```",
         }), encoding="utf-8")
+        self.intake_body = (
+            WAKEUP.INTAKE_MARKER
+            + "\n先做零模型的 GitHub→Mac 接收證明。\n"
+            + "PRODUCT_GOAL_CANARY remains NOT_AUTHORIZED.\n"
+            + "不能為了測試把已完成工作重新派發。\n"
+        )
+        self.original_intake_digest = WAKEUP.INTAKE_COMMENT_BODY_SHA256
+        WAKEUP.INTAKE_COMMENT_BODY_SHA256 = hashlib.sha256(
+            self.intake_body.encode()
+        ).hexdigest()
+        self.addCleanup(
+            setattr, WAKEUP, "INTAKE_COMMENT_BODY_SHA256", self.original_intake_digest
+        )
+        self.intake_fixture = self.repo / "intake-comments.json"
+        self.intake_fixture.write_text(json.dumps([{
+            "id": WAKEUP.INTAKE_COMMENT_ID,
+            "html_url": "https://github.com/example/intake",
+            "author_association": "OWNER",
+            "user": {"login": WAKEUP.OWNER_LOGIN},
+            "body": self.intake_body,
+        }]), encoding="utf-8")
+        self.acknowledgements = {}
         self._write_runtime()
+
+    def github_runner(self, command, **_kwargs):
+        if "--method" in command and "POST" in command:
+            body_argument = next(item for item in command if item.startswith("body="))
+            body = body_argument.split("=", 1)[1]
+            comment = {
+                "id": 7000000001,
+                "html_url": "https://github.com/example/ack",
+                "author_association": "OWNER",
+                "user": {"login": WAKEUP.OWNER_LOGIN},
+                "body": body,
+            }
+            self.acknowledgements[comment["id"]] = comment
+            return mock.Mock(returncode=0, stdout=json.dumps(comment), stderr="")
+        if command[-1].endswith("/issues/comments/7000000001"):
+            return mock.Mock(
+                returncode=0,
+                stdout=json.dumps(self.acknowledgements[7000000001]),
+                stderr="",
+            )
+        raise AssertionError(f"unexpected GitHub command: {command}")
 
     def _write_runtime(self) -> None:
         (self.repo / "PLAN.md").write_text(fenced(
@@ -148,10 +192,13 @@ class Issue47EngineeringWakeupTests(unittest.TestCase):
             "spec_path": self.spec_path,
             "heartbeat_path": self.heartbeat,
             "state_path": self.output / "wakeup-state.json",
+            "intake_state_path": self.output / "intake-state.json",
             "writer_lock": self.output / "writer.lock",
             "authority_fixture": self.authority,
+            "intake_fixture": self.intake_fixture,
             "stop_marker": self.repo / ".ai/ORCHESTRATOR_STOP",
             "now": NOW,
+            "command_runner": self.github_runner,
         }
         arguments.update(changes)
         return WAKEUP.inspect(**arguments)
@@ -168,6 +215,45 @@ class Issue47EngineeringWakeupTests(unittest.TestCase):
         self.assertFalse(state["events"][-1]["model_launch_started"])
         self.assertEqual(3, result["usage_after_charge"]["total"])
         self.assertEqual(3, result["usage_after_charge"]["today"])
+
+    def test_no_model_smoke_intake_acknowledges_once_without_dispatch(self) -> None:
+        self.plan["active_milestone_id"] = "EG-4A-PRECANARY-NO-PASTE-SMOKE"
+        self.orchestrator["state"] = "IMPLEMENTING"
+        self.orchestrator["review_id"] = None
+        self.request.update({
+            "status": "IMPLEMENTING",
+            "review_id": "review-issue47-end-to-end-autonomous-collaboration-007",
+            "candidate_fingerprint": None,
+            "candidate_revision": None,
+        })
+        self._write_runtime()
+        first = self.inspect(reserve=True)
+        second = self.inspect(reserve=True)
+        self.assertEqual("NO_AUTHORIZED_ENGINEERING_WORK", first["status"])
+        self.assertEqual("INTAKE_ADMITTED", first["intake"]["status"])
+        self.assertEqual("NO_AUTHORIZED_ENGINEERING_WORK", second["status"])
+        self.assertEqual("INTAKE_DUPLICATE", second["intake"]["status"])
+        self.assertTrue(second["intake"]["duplicate_suppressed"])
+        self.assertEqual(1, len(self.acknowledgements))
+        self.assertFalse(first["safety"]["model_launch_started"])
+        self.assertFalse((self.output / "wakeup-state.json").exists())
+        intake = json.loads((self.output / "intake-state.json").read_text())
+        self.assertEqual("ACKNOWLEDGED", intake["receipts"][0]["status"])
+        self.assertEqual(
+            ["RECEIVED", "ADMITTED", "ACKNOWLEDGED"],
+            [event["status"] for event in intake["events"]],
+        )
+
+    def test_invalid_intake_owner_is_durably_ignored_and_never_acknowledged(self) -> None:
+        comments = json.loads(self.intake_fixture.read_text(encoding="utf-8"))
+        comments[0]["user"]["login"] = "not-the-owner"
+        comments[0]["author_association"] = "CONTRIBUTOR"
+        self.intake_fixture.write_text(json.dumps(comments), encoding="utf-8")
+        with self.assertRaisesRegex(WAKEUP.WakeupError, "identity or digest differs"):
+            self.inspect()
+        intake = json.loads((self.output / "intake-state.json").read_text())
+        self.assertEqual("IGNORED", intake["receipts"][0]["status"])
+        self.assertEqual([], list(self.acknowledgements))
 
     def test_duplicate_tick_does_not_reserve_or_launch_again(self) -> None:
         first = self.inspect(reserve=True)

@@ -85,6 +85,24 @@ def _load_object(path: Path, label: str) -> dict[str, Any]:
     return value
 
 
+def _atomic_json(path: Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_symlink() or (path.exists() and not path.is_file()):
+        raise EntrypointError("entrypoint result path is not a regular file")
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            json.dump(value, stream, indent=2, sort_keys=True, ensure_ascii=False)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
 def _git(repo: Path, *args: str) -> str:
     completed = subprocess.run(
         ["/usr/bin/git", *args], cwd=repo,
@@ -379,7 +397,7 @@ def _run_engineering_wakeup(
         raise EntrypointError("engineering wakeup lacks an exact engineering Goal binding")
     required = {
         "runtime_repository", "goal_spec", "heartbeat", "wakeup_state",
-        "writer_lock", "stop_marker",
+        "intake_state", "result", "writer_lock", "stop_marker",
     }
     if set(binding) != required:
         raise EntrypointError("engineering Goal binding fields differ")
@@ -388,6 +406,9 @@ def _run_engineering_wakeup(
     runtime = _absolute_regular_directory(binding["runtime_repository"], "engineering runtime")
     spec = _runtime_path(runtime, binding["goal_spec"], "engineering Goal spec")
     state = _runtime_path(runtime, binding["wakeup_state"], "engineering wakeup state")
+    intake_state = _runtime_path(
+        runtime, binding["intake_state"], "engineering intake state"
+    )
     writer_lock = _runtime_path(runtime, binding["writer_lock"], "engineering writer lock")
     stop_marker = _runtime_path(runtime, binding["stop_marker"], "engineering Stop Marker")
     heartbeat = Path(str(binding["heartbeat"]))
@@ -402,6 +423,7 @@ def _run_engineering_wakeup(
     gate_command = [
         sys.executable, str(wakeup), "--repo", str(runtime), "--spec", str(spec),
         "--heartbeat", str(heartbeat), "--state", str(state),
+        "--intake-state", str(intake_state),
         "--writer-lock", str(writer_lock), "--stop-marker", str(stop_marker), "--reserve",
     ]
     if now is not None:
@@ -585,12 +607,29 @@ def main() -> int:
             "model_launch_started": False,
             "legacy_o2_runner_used": False,
         }
+    try:
+        config = _load_config(args.config)
+        if config.get("status") == ENGINEERING_ENABLED_STATUS:
+            binding = config.get("engineering_goal")
+            if isinstance(binding, dict) and "result" in binding:
+                runtime = _absolute_regular_directory(
+                    binding.get("runtime_repository"), "engineering runtime"
+                )
+                result_path = _runtime_path(
+                    runtime, binding["result"], "engineering result"
+                )
+                _atomic_json(result_path, result)
+    except (EntrypointError, OSError, ValueError):
+        # The printed result remains authoritative if even the optional durable
+        # result path cannot be safely resolved or written.
+        pass
     print(json.dumps(result, sort_keys=True, ensure_ascii=False))
     if result.get("continuation_exit_code") == 0:
         return 0
     normal_no_model_states = {
         "STOPPED", "DISPATCHED", "WAITING_WORK_WINDOW", "WAITING_QUOTA",
         "WAITING_PROVIDER_BACKOFF", "WAITING_DUPLICATE", "WAITING_ACTIVE_RESERVATION",
+        "NO_AUTHORIZED_ENGINEERING_WORK",
     }
     return 0 if result["status"] in normal_no_model_states else 2
 

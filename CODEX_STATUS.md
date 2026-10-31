@@ -10,7 +10,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-31T11:48:53+08:00",
+  "updated_at": "2026-10-31T12:08:00+08:00",
   "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -18,8 +18,8 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   "lifecycle_owner": "CODEX_APP",
   "product_goal_authorized": false,
   "goal_status": "active",
-  "active_milestone_id": "EG-4-TRUSTED-DEPLOYMENT",
-  "milestone_id": "EG-4-TRUSTED-DEPLOYMENT",
+  "active_milestone_id": "EG-4A-PRECANARY-NO-PASTE-SMOKE",
+  "milestone_id": "EG-4A-PRECANARY-NO-PASTE-SMOKE",
   "milestone_status": "active",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
@@ -61,9 +61,9 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   },
   "git": {
     "branch": "codex/issue-47-collaboration-wiring",
-    "head": "e9955c778d0aa1ae0d2cc839345dbcbca0e4cc5d",
+    "head": "9f40afbe0cae11c743fd8147717c631bef201ba9",
     "base_commit": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
-    "checkpoint_commit": "e9955c778d0aa1ae0d2cc839345dbcbca0e4cc5d",
+    "checkpoint_commit": "9f40afbe0cae11c743fd8147717c631bef201ba9",
     "previous_integrated_pull_request": {
       "number": 48,
       "url": "https://github.com/joannalee20050914/KGnote-public/pull/48",
@@ -79,19 +79,24 @@ Product Goal, privacy, review, deployment, and go-live conditions.
     "draft_pull_request": {
       "number": 49,
       "url": "https://github.com/joannalee20050914/KGnote-public/pull/49",
-      "state": "OPEN",
-      "is_draft": true,
-      "head": "e9955c778d0aa1ae0d2cc839345dbcbca0e4cc5d",
-      "fingerprint": "1e37dd7e11944a4f2ae401d64a5f2401137459d490f023699e3e33057f610f15",
+      "state": "MERGED",
+      "is_draft": false,
+      "head": "9f40afbe0cae11c743fd8147717c631bef201ba9",
+      "fingerprint": "d4057ebd06ede49a04e0a434a813eb0c5602772fe5292f0ebf24528bbcb19826",
       "merge_state_status": "UNKNOWN",
-      "review_decision": null
+      "review_decision": null,
+      "merge_commit": "79d7101e08ae8375cf0e84622393262a5f7c6a70",
+      "merged_at": "2026-10-31T04:06:11Z",
+      "canonical_review_record": "https://github.com/joannalee20050914/KGnote-public/pull/49#issuecomment-6538754865",
+      "ruleset_id": 25347516,
+      "bypass_used": false
     },
-    "remote_head": "e9955c778d0aa1ae0d2cc839345dbcbca0e4cc5d",
+    "remote_head": "9f40afbe0cae11c743fd8147717c631bef201ba9",
     "remote_spec_blob": "2aa4ed35227ca2626532f6b530d9c3d0212004fe",
-    "remote_read_at": "2026-10-31T11:30:43+08:00",
-    "reviewed_tree": null,
-    "merge_tree": null,
-    "merge_tree_identity_verified": false,
+    "remote_read_at": "2026-10-31T12:06:32+08:00",
+    "reviewed_tree": "492bf8765dc0dce209da96f5ca74295b572caa02",
+    "merge_tree": "492bf8765dc0dce209da96f5ca74295b572caa02",
+    "merge_tree_identity_verified": true,
     "engineering_checkpoint_comment": {
       "record_id": 6537768134,
       "url": "https://github.com/joannalee20050914/KGnote-public/pull/49#issuecomment-6537768134",
@@ -99,13 +104,21 @@ Product Goal, privacy, review, deployment, and go-live conditions.
       "fingerprint": "8447e0932787bbecf11af0019d3a93e1b4940a4efb8eb80070c532d978583084",
       "review_id": "review-issue47-end-to-end-autonomous-collaboration-003",
       "updated_at": "2026-10-31T02:27:25Z"
+    },
+    "eg4_completion_comment": {
+      "record_id": 6538807524,
+      "url": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6538807524",
+      "author_login": "joannalee20050914",
+      "author_association": "OWNER",
+      "created_at": "2026-10-31T04:08:00Z",
+      "body_sha256": "dff7f113ebe52de909f2b4992374359e3128925f748701c66d4e5844bbe4151f"
     }
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "c1b9de1ced59e2e3742b2bb83d8bb63376eb4431bdf834131807fc27a6710816",
+    "fingerprint": "a00aa8f73ace46370c6ea6b733c64c6b33b15824aa8c4d6bcf66c1375f48f4f2",
     "starting_fingerprint": "025295008f940ba5b55ebef2691556cafe82bd110eadae57cc9fb8e7e281aed6",
-    "expected_dirty_policy": "Only active EG-4 owned paths may change: exact candidate sealing/review, trusted Mac/Ubuntu runtime deployment, the unique disabled-by-default entrypoint, stop/rollback read-back, PLAN/STATUS/review bus, and ignored deterministic evidence.",
+    "expected_dirty_policy": "EG-4A may change only its declared Issue #47 activation/intake scripts, bounded control-plane tests, PLAN/STATUS/review bus, exact checkpoint/PR receipts, trusted Mac deployment/runtime paths named by the install receipt, and ignored deterministic evidence. Product Goal/O2 runtime paths remain forbidden.",
     "preserved_preexisting_dirty_paths": [
       ".ai/ORCHESTRATION_HISTORY/events.jsonl",
       ".ai/ORCHESTRATOR_STATE.json",
@@ -142,7 +155,13 @@ Product Goal, privacy, review, deployment, and go-live conditions.
     "latest_strategy_comment": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6522962957",
     "authorization_request_comment": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6523223111",
     "engineering_authority_comment": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6538300483",
-    "last_read_at": "2026-10-31T11:30:43+08:00",
+    "precanary_no_paste_smoke_comment": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6539158585",
+    "precanary_no_paste_smoke_comment_id": 6539158585,
+    "precanary_no_paste_smoke_comment_author": "joannalee20050914",
+    "precanary_no_paste_smoke_comment_author_association": "OWNER",
+    "precanary_no_paste_smoke_comment_created_at": "2026-10-31T04:44:26Z",
+    "precanary_no_paste_smoke_comment_body_sha256": "2e3c656fda262bcb1c13c4eefe1a7c0a914bd12f0fb294e334f2adc3808a1cf9",
+    "last_read_at": "2026-10-31T12:08:00+08:00",
     "current_engineering_authority": "exact v2026-10-31.4 engineering Goal preserves the scoped windows and total budgets, removes only the stale small daily caps, and permits one reviewed reversible no-model engineering wakeup; no Product Goal, canary, permanent B-scheme, or standing go-live authority"
   },
   "resource_accounting": {
@@ -164,21 +183,21 @@ Product Goal, privacy, review, deployment, and go-live conditions.
     "claude": {
       "ceiling": 12,
       "known_preapproval": 2,
-      "consumed_total_conservative": 3,
-      "remaining_total_conservative": 9,
+      "consumed_total_conservative": 5,
+      "remaining_total_conservative": 7,
       "daily_ceiling": 12,
-      "current_workday_launches": 3,
-      "accounting_note": "Independent Ubuntu Claude infrastructure reviews rounds 1, 2 and Review 004 each completed once under Claude Pro OAuth as claude-sonnet-5-5. Canonical Consumer records 6537302189, 6537608610 and 6538538869 accepted the exact results. All three launches remain counted; v4 changes only the per-workday ceiling to 12 and never resets the 12-launch Goal total.",
+      "current_workday_launches": 5,
+      "accounting_note": "The pre-Review-005 baseline of 3 launches remains preserved. Durable v2 wake history atomically charged and completed Review 005 and Review 006 once each, so effective cumulative and 2026-10-31 Claude usage is 5/12; no restart, date, review, or Goal transition resets it.",
       "current_workday": "2026-10-31"
     },
     "paid_api_fallback": false,
     "reset_forbidden": true,
-    "work_window_state": "V4_EXACT_AUTHORITY_VALID_HEARTBEAT_PAUSED_IMPLEMENTING_REVIEW004_GATE_REPAIR",
+    "work_window_state": "EG4_COMPLETE_ENTRYPOINT_DISABLED_AWAITING_SEPARATE_PRODUCT_GOAL_CANARY_AUTHORITY",
     "current_window_closes_at": "2026-10-31T18:00:00+08:00",
     "out_of_window_goal_continuation_detected": true,
     "out_of_window_goal_continuation_count": 3,
     "historical_time_only_block_resolution": "RESOLVED_BY_EXACT_SUCCESSOR_AUTHORITY_AND_NO_MODEL_EVIDENCE_AT_2026-10-31T09:27:51+08:00; original 3/3 audit and all usage preserved",
-    "next_model_work_eligible_at": "ONLY_AFTER_REVIEWED_NO_MODEL_GATE_AND_EXACT_REVIEW004_CANDIDATE",
+    "next_model_work_eligible_at": "ONLY_AFTER_EXACT_IMMUTABLE_PRODUCT_GOAL_CANARY_SPEC_OWNER_APPROVAL_AND_FRESH_NO_MODEL_ADMISSION",
     "stale_small_daily_limit_resolution": "Owner comment 6538300483 and exact v4 spec replace only the v2 3/2 per-workday ceilings with 18/12; total usage, incidents and provider backoff are unchanged.",
     "historical_quota_wait_reason": "Under v2, Claude usage was 2/2 and Codex usage was 6/3. This historical blocker is preserved but is not a current v4 admission denial.",
     "quota_wait_evidence": "output/control-plane/issue47-quota-wait-blocked-20261031T102834+0800.json",
@@ -200,24 +219,41 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   "review": {
     "state": "IMPLEMENTING",
     "current_review_id": null,
-    "candidate_revision": "e9955c778d0aa1ae0d2cc839345dbcbca0e4cc5d+worktree:428be2cd0b089c0a13d35c632543677405ef1eaddb8f0ea5330e51ebd748c716",
-    "candidate_fingerprint": "428be2cd0b089c0a13d35c632543677405ef1eaddb8f0ea5330e51ebd748c716",
-    "unresolved_findings": [
-      "R-004",
-      "R-005",
-      "R-006"
-    ],
+    "candidate_revision": null,
+    "candidate_fingerprint": null,
+    "unresolved_findings": [],
     "human_decision_blockers": []
   },
   "verification": {
     "candidate_verified": false,
     "release_verified": false,
     "control_plane_ready": false,
-    "last_candidate_evidence": "output/control-plane/verification-20261031T113511+0800.json",
-    "last_verified_fingerprint": "428be2cd0b089c0a13d35c632543677405ef1eaddb8f0ea5330e51ebd748c716",
-    "last_result": "Review 004 repairs R-004 through R-006 changed candidate bytes; targeted and full deterministic verification passed before checkpoint."
+    "last_candidate_evidence": "output/control-plane/verification-20261031T115913+0800.json",
+    "last_verified_fingerprint": "d4057ebd06ede49a04e0a434a813eb0c5602772fe5292f0ebf24528bbcb19826",
+    "last_result": "Reviewer PASS for review-issue47-end-to-end-autonomous-collaboration-006 was archived and consumed for deterministic progression; it is not rebound to the post-progression fingerprint."
   },
-  "next_action": "Create a path-explicit repair checkpoint, rerun exact-commit verification, then seal Review 005.",
+  "deployment": {
+    "status": "INSTALLED_DISABLED_NOT_LOADED",
+    "evidence": "output/control-plane/issue47-disabled-deployment-20261031T120506+0800.json",
+    "repository": "/Users/joanna/Library/Application Support/KGnote/deployments/issue47-collaboration-goal-9f40afb",
+    "runtime": "/Users/joanna/Library/Application Support/KGnote/runtime/issue47-collaboration-goal",
+    "label": "com.kgnote.issue47-collaboration-goal",
+    "loaded": false,
+    "model_launch_started": false,
+    "legacy_o2_runner_loaded": false
+  },
+  "engineering_no_paste_handoff": {
+    "status": "IMPLEMENTING",
+    "authority_comment_id": 6539158585,
+    "target_marker": "KGNOTE-ISSUE47-PRECANARY-NO-PASTE-ENGINEERING-SMOKE-20261031",
+    "github_to_mac_received": false,
+    "github_acknowledgement_read_back": false,
+    "duplicate_tick_suppressed": false,
+    "launchagent_enabled": false,
+    "model_launch_started": false,
+    "product_goal_canary": "NOT_AUTHORIZED"
+  },
+  "next_action": "Implement and independently review the exact GitHub intake plus engineering-only activation path for EG-4A; bootstrap only the reviewed generation, then verify one acknowledgement and duplicate suppression without model or Product Goal dispatch.",
   "external_or_human_gates": [
     {
       "id": "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
@@ -225,7 +261,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
     },
     {
       "id": "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
-      "status": "not_started"
+      "status": "pending_owner_approval"
     },
     {
       "id": "ISSUE47-FINAL-OWNER-ACCEPTANCE-AND-GO-LIVE",
@@ -269,14 +305,14 @@ Product Goal, privacy, review, deployment, and go-live conditions.
       "2026-11-04",
       "2026-11-05"
     ],
-    "purpose": "Historical Codex App heartbeat retained but paused after three blocked-after-delivery incidents; it must not be reactivated. A separately reviewed single LaunchAgent entrypoint may replace it only after Review 004 PASS.",
+    "purpose": "Historical Codex App heartbeat retained but paused after three blocked-after-delivery incidents; it must not be reactivated. Exact v4 authority permits the separately reviewed LaunchAgent to be activated for one reversible no-model Issue #47 engineering wakeup; Product Goal dispatch still requires its separate gate.",
     "pause_conditions": [
       "goal completion",
       "hard cumulative budget exhaustion",
       "authority or safety stop",
       "2026-11-20T18:00:00+08:00 deadline"
     ],
-    "accounting_note": "The five RRULE occurrences remain in the paused definition but authorize zero future delivery. Codex is conservatively 14/18 after this user-triggered repair turn. No future wake may occur until the replacement entrypoint proves a no-model decision before any provider process."
+    "accounting_note": "The five RRULE occurrences remain in the paused definition but authorize zero future delivery. Codex is conservatively 14/18. The replacement entrypoint remains disabled until the EG-4A activation/intake candidate receives independent PASS; its no-model smoke may not consume model budget or authorize Product Goal work."
   },
   "codex_app_blocked_audit": {
     "status": "HISTORICAL_BLOCKED_THRESHOLD_PRESERVED_HEARTBEAT_PAUSED",
@@ -288,12 +324,12 @@ Product Goal, privacy, review, deployment, and go-live conditions.
     "evidence": "output/control-plane/issue47-quota-wait-blocked-20261031T102834+0800.json",
     "codex_app_goal_runtime_status": "blocked",
     "blocked_at": "2026-10-31T10:30:00+08:00",
-    "repository_plan_status": "active",
-    "resume_rule": "Do not resume the Codex App heartbeat. Only an exact Review 004 PASS may permit the unique disabled-by-default LaunchAgent to be separately activated in v4 engineering-wakeup mode.",
+    "repository_plan_status": "active_no_model_eg4a",
+    "resume_rule": "Do not resume the Codex App heartbeat. The unique new LaunchAgent may be activated only after an exact EG-4A independent PASS and only in v4 engineering no-model mode; Product Goal dispatch remains separately gated.",
     "incident_id": "ISSUE47-CODEX-CONTINUATION-AFTER-BLOCK-20261031",
     "incident_occurrence_count": 3,
     "incident_evidence": "output/control-plane/issue47-continuation-admission-incident-20261031T111908+0800-occurrence-003.json",
-    "containment": "Heartbeat status read back as PAUSED. Review 003 was invalidated before custody; Review 004 covers the v4 gate repair. No Product Goal, O2 Runner, canary or standing go-live was activated.",
+    "containment": "Heartbeat status read back as PAUSED. Review 006 passed the exact repaired candidate; PR #49 was merged and its generation installed disabled/unloaded. No Product Goal, O2 Runner, canary or standing go-live was activated.",
     "reblocked_at": "2026-10-31T11:19:53+08:00",
     "reblock_reason": "Contain all three blocked-after-delivery incidents and prevent a fourth automatic Goal delivery.",
     "second_unexpected_continuation_at": "2026-10-31T11:00:07+08:00",
@@ -305,9 +341,9 @@ Product Goal, privacy, review, deployment, and go-live conditions.
 
 ## Human-readable handoff
 
-Goal `CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION` remains active at milestone `EG-4-TRUSTED-DEPLOYMENT`.
+Goal `CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION` remains active at milestone `EG-4A-PRECANARY-NO-PASTE-SMOKE`.
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
-Unresolved findings: R-004, R-005, R-006. Human decision blockers: none.
-Exact next action: Create a path-explicit repair checkpoint, rerun exact-commit verification, then seal Review 005.
+Unresolved findings: none. Human decision blockers: none.
+Exact next action: Implement and independently review the exact GitHub intake plus engineering-only activation path for EG-4A; bootstrap only the reviewed generation, then verify one acknowledgement and duplicate suppression without model or Product Goal dispatch.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

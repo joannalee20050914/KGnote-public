@@ -170,6 +170,8 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
                 "goal_spec": "goal-v4.json",
                 "heartbeat": str(heartbeat),
                 "wakeup_state": "output/control-plane/collaboration-goal/wakeup-state.json",
+                "intake_state": "output/control-plane/collaboration-goal/intake-state.json",
+                "result": "output/control-plane/collaboration-goal/entrypoint-result.json",
                 "writer_lock": "output/control-plane/collaboration-goal/writer.lock",
                 "stop_marker": ".ai/ORCHESTRATOR_STOP",
             },
@@ -177,6 +179,9 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
                 "status": "APPROVED",
                 "authorization_comment_id": 6538300483,
                 "goal_spec_sha256": "0507d2dbc5c9780afbe3e67a3c8ca66f8fb1b93eff9507c86299baac0141ad5d",
+                "acceptance_comment_id": 6539158585,
+                "mode": "NO_MODEL_ENGINEERING_WAKEUP_ONLY",
+                "product_goal_authorized": False,
             },
         })
         config_path.write_text(json.dumps(config, indent=2, sort_keys=True) + "\n")
@@ -290,6 +295,112 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
                 Path(receipt["receipt_path"]), command_runner=self.unloaded,
             )
             self.assertEqual("STOPPED", status["status"])
+
+    def test_reviewed_engineering_activation_disable_and_reenable_round_trip(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo, commit = self.repository(root)
+            loaded = {"value": False}
+
+            def launchd(command, **_kwargs):
+                if command[:2] == ["/bin/ps", "-axo"]:
+                    return subprocess.CompletedProcess(command, 0, "", "")
+                if command[:2] == ["/bin/launchctl", "print"]:
+                    if command[-1].endswith(INSTALLER.LEGACY_O2_LABEL):
+                        return subprocess.CompletedProcess(command, 3, "", "not loaded")
+                    return subprocess.CompletedProcess(
+                        command, 0 if loaded["value"] else 3, "loaded" if loaded["value"] else "", "",
+                    )
+                if command[:2] == ["/bin/launchctl", "bootstrap"]:
+                    loaded["value"] = True
+                    return subprocess.CompletedProcess(command, 0, "", "")
+                if command[:2] == ["/bin/launchctl", "bootout"]:
+                    loaded["value"] = False
+                    return subprocess.CompletedProcess(command, 0, "", "")
+                if command[:2] == ["/bin/launchctl", "enable"] or command[:2] == [
+                    "/bin/launchctl", "disable"
+                ] or command[:2] == ["/bin/launchctl", "kickstart"]:
+                    return subprocess.CompletedProcess(command, 0, "", "")
+                return subprocess.CompletedProcess(command, 3, "", "unexpected")
+
+            receipt = self.install(root, repo, commit, launchd)
+            runtime = root / "engineering-runtime"
+            runtime.mkdir()
+            (runtime / "goal-v4.json").write_bytes(
+                (ROOT / "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.4.json").read_bytes()
+            )
+            heartbeat = root / "automations/kgnote-47-goal/automation.toml"
+            heartbeat.parent.mkdir(parents=True)
+            heartbeat.write_text('id = "kgnote-47-goal"\nstatus = "PAUSED"\n')
+            arguments = {
+                "runtime_repository": runtime,
+                "goal_spec": "goal-v4.json",
+                "heartbeat": heartbeat,
+                "wakeup_state": "output/control-plane/collaboration-goal/wakeup-state.json",
+                "intake_state": "output/control-plane/collaboration-goal/intake-state.json",
+                "result_path": "output/control-plane/collaboration-goal/entrypoint-result.json",
+                "writer_lock": "output/control-plane/collaboration-goal/writer.lock",
+                "stop_marker": ".ai/ORCHESTRATOR_STOP",
+                "kickstart": True,
+                "command_runner": launchd,
+            }
+            activation = INSTALLER.activate_engineering(
+                Path(str(receipt["receipt_path"])), **arguments,
+            )
+            self.assertEqual("RUNNING", activation["status"])
+            self.assertTrue(loaded["value"])
+            status = INSTALLER.read_status(
+                Path(str(receipt["receipt_path"])), command_runner=launchd,
+            )
+            self.assertEqual("RUNNING", status["status"])
+            self.assertEqual(INSTALLER.ENGINEERING_ENABLED_STATUS, status["mode"])
+            config = json.loads(Path(str(receipt["config_path"])).read_text())
+            self.assertIsNone(config["product_goal"])
+            self.assertEqual(
+                6539158585, config["activation_authority"]["acceptance_comment_id"]
+            )
+            disabled = INSTALLER.disable(
+                Path(str(receipt["receipt_path"])), command_runner=launchd,
+            )
+            self.assertEqual("STOPPED", disabled["status"])
+            self.assertFalse(loaded["value"])
+            self.assertFalse(Path(str(receipt["activation_record_path"])).exists())
+            self.assertEqual(
+                receipt["config_sha256"],
+                hashlib.sha256(Path(str(receipt["config_path"])).read_bytes()).hexdigest(),
+            )
+            INSTALLER.activate_engineering(
+                Path(str(receipt["receipt_path"])), **arguments,
+            )
+            self.assertTrue(loaded["value"])
+
+    def test_engineering_activation_rejects_non_v4_spec_before_bootstrap(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo, commit = self.repository(root)
+            runner = Mock(side_effect=self.unloaded)
+            receipt = self.install(root, repo, commit, runner)
+            runtime = root / "engineering-runtime"
+            runtime.mkdir()
+            (runtime / "goal-v4.json").write_text("{}\n")
+            heartbeat = root / "automation.toml"
+            heartbeat.write_text('id = "kgnote-47-goal"\nstatus = "PAUSED"\n')
+            with self.assertRaisesRegex(
+                INSTALLER.EntrypointInstallError, "spec identity differs"
+            ):
+                INSTALLER.activate_engineering(
+                    Path(str(receipt["receipt_path"])),
+                    runtime_repository=runtime,
+                    goal_spec="goal-v4.json",
+                    heartbeat=heartbeat,
+                    wakeup_state="output/control-plane/collaboration-goal/wakeup-state.json",
+                    intake_state="output/control-plane/collaboration-goal/intake-state.json",
+                    result_path="output/control-plane/collaboration-goal/entrypoint-result.json",
+                    writer_lock="output/control-plane/collaboration-goal/writer.lock",
+                    stop_marker=".ai/ORCHESTRATOR_STOP",
+                    command_runner=runner,
+                )
+            self.assertFalse(any("bootstrap" in call.args[0] for call in runner.call_args_list))
 
     def test_install_fails_closed_when_legacy_o2_runner_is_loaded(self):
         with tempfile.TemporaryDirectory() as directory:

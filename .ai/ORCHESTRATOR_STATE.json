@@ -2,12 +2,12 @@
   "schema_version": "kgnote.orchestrator-state.v1",
   "run_id": "orch-issue47-weekend-resume-20261031",
   "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
-  "work_package": "EG-4-TRUSTED-DEPLOYMENT",
-  "state": "REPAIRING",
+  "work_package": "EG-4A-PRECANARY-NO-PASTE-SMOKE",
+  "state": "IMPLEMENTING",
   "current_agent": null,
-  "candidate_fingerprint": "428be2cd0b089c0a13d35c632543677405ef1eaddb8f0ea5330e51ebd748c716",
+  "candidate_fingerprint": "d4057ebd06ede49a04e0a434a813eb0c5602772fe5292f0ebf24528bbcb19826",
   "review_id": null,
-  "review_cycle": 2,
+  "review_cycle": 5,
   "max_review_cycles": 5,
   "agent_failures": 0,
   "max_agent_failures": 3,
@@ -34,7 +34,7 @@
       "authority_comment_id": 6538300483
     }
   ],
-  "next_action": "Repair Review 004 findings R-004, R-005 and R-006 within exact v4 authority.",
+  "next_action": "Implement and independently review EG-4A GitHub intake plus engineering-only activation; do not dispatch model or Product Goal work for the smoke.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -44,19 +44,19 @@
   },
   "next_human_checkpoint": {
     "id": "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
-    "status": "NOT_STARTED_FUTURE_GATE",
-    "description": "Not required for EG-1; stop here later before any Product Goal canary because the engineering weekend exception grants no product authority."
+    "status": "PENDING_OWNER_APPROVAL",
+    "description": "Required now before EG-5. The engineering weekend exception grants no Product Goal, privacy/data-egress, canary, or standing go-live authority."
   },
   "last_agent_run": null,
   "created_at": "2026-10-30T20:49:30+08:00",
-  "updated_at": "2026-10-31T11:46:33+08:00",
+  "updated_at": "2026-10-31T12:56:37+08:00",
   "continuation_checkpoint": {
     "codex_consumed_total_conservative": 14,
     "codex_consumed_today_conservative": 7,
     "codex_daily_ceiling": 18,
     "codex_remaining_total_conservative": 4,
-    "claude_consumed_total_conservative": 3,
-    "claude_consumed_today": 3,
+    "claude_consumed_total_conservative": 5,
+    "claude_consumed_today": 5,
     "claude_daily_ceiling": 12,
     "heartbeat_id": "kgnote-47-goal",
     "heartbeat_status": "PAUSED",
@@ -72,6 +72,20 @@
     "v4_goal_version": "2026-10-31.4-engineering-continuation-simplification",
     "v4_goal_spec_sha256": "0507d2dbc5c9780afbe3e67a3c8ca66f8fb1b93eff9507c86299baac0141ad5d",
     "v4_authority_comment_id": 6538300483,
-    "replacement_wakeup_rule": "A new independent PASS after Review 004 repairs is required before the unique LaunchAgent may replace the paused Codex App heartbeat."
+    "replacement_wakeup_rule": "Review 006 PASS generation is installed disabled and unloaded. The paused Codex App heartbeat must never resume; the new LaunchAgent may activate only for an exact separately approved Product Goal canary.",
+    "claude_remaining_total_conservative": 7
+  },
+  "trusted_deployment": {
+    "status": "INSTALLED_DISABLED_NOT_LOADED",
+    "candidate_commit": "9f40afbe0cae11c743fd8147717c631bef201ba9",
+    "candidate_fingerprint": "d4057ebd06ede49a04e0a434a813eb0c5602772fe5292f0ebf24528bbcb19826",
+    "review_id": "review-issue47-end-to-end-autonomous-collaboration-006",
+    "pull_request": 49,
+    "merge_commit": "79d7101e08ae8375cf0e84622393262a5f7c6a70",
+    "evidence": "output/control-plane/issue47-disabled-deployment-20261031T120506+0800.json",
+    "new_label_loaded": false,
+    "legacy_o2_runner_loaded": false,
+    "product_goal_configured": false,
+    "model_launch_started": false
   }
 }
