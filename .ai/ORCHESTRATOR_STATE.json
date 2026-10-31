@@ -1,6 +1,6 @@
 {
   "schema_version": "kgnote.orchestrator-state.v1",
-  "run_id": "orch-945fa4a7ec7e",
+  "run_id": "orch-issue47-weekend-resume-20261031",
   "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "work_package": "EG-1-INDEPENDENT-REVIEW-AND-PR",
   "state": "IMPLEMENTING",
@@ -13,7 +13,19 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Preserve the exact checkpoint and perform only no-model validation until 2026-11-02 09:00 Asia/Taipei. Then run deterministic verification, seal the EG-1 candidate, and start the bounded independent Ubuntu Claude infrastructure review.",
+  "resolved_blockers": [
+    {
+      "type": "codex_goal_pre_window_continuation",
+      "occurrences": 3,
+      "detected_at": "2026-10-31T09:11:25+08:00",
+      "unlock_at": "2026-11-02T09:00:00+08:00",
+      "resolution": "Resolved only by exact successor spec v2026-10-31.2, Owner comment 6537070839, live Asia/Taipei exception-window read-back, preflight/review/requirements guards, 476 control-plane tests, and disabled/unloaded O2 Runner evidence; the original 3/3 audit and all launch usage remain preserved.",
+      "resolved_at": "2026-10-31T09:27:51+08:00",
+      "authority_spec_sha256": "8f3036ec6429e2f8f1e546aea3a8b3bf1c0cb1459e742991a4228612836958cd",
+      "authority_comment_id": 6537070839
+    }
+  ],
+  "next_action": "Create and push a path-explicit checkpoint for verified fingerprint 77e9600f, seal review-issue47-end-to-end-autonomous-collaboration-001, then start one bounded independent Ubuntu Claude infrastructure review; Product Goal dispatch, canary, scheduler activation, and standing go-live remain forbidden.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -23,10 +35,10 @@
   },
   "next_human_checkpoint": {
     "id": "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
-    "status": "NOT_STARTED",
-    "description": "Engineering Goal approval does not authorize the future live Product Goal canary; a separate immutable Product Goal and exact Owner approval remain required."
+    "status": "NOT_STARTED_FUTURE_GATE",
+    "description": "Not required for EG-1; stop here later before any Product Goal canary because the engineering weekend exception grants no product authority."
   },
   "last_agent_run": null,
   "created_at": "2026-10-30T20:49:30+08:00",
-  "updated_at": "2026-10-31T09:05:29+08:00"
+  "updated_at": "2026-10-31T09:28:22+08:00"
 }

@@ -10,7 +10,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-31T09:07:39+08:00",
+  "updated_at": "2026-10-31T09:28:22+08:00",
   "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -24,23 +24,23 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
   "goal_spec": {
-    "path": "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-30.1.json",
-    "version": "2026-10-30.1-owner-approval-proposal",
-    "canonical_sha256": "f78a49397822bf17a89f7477be2efe840c0dddfa58cf767153cf31281bdcdce4",
+    "path": "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.2.json",
+    "version": "2026-10-31.2-weekend-engineering-exception",
+    "canonical_sha256": "8f3036ec6429e2f8f1e546aea3a8b3bf1c0cb1459e742991a4228612836958cd",
     "schema_validated": true,
     "authority_status": "EXACT_GITHUB_OWNER_APPROVED",
     "authority_comment": {
-      "comment_id": 6536884383,
-      "comment_url": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6536884383",
+      "comment_id": 6537070839,
+      "comment_url": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6537070839",
       "author_login": "joannalee20050914",
       "author_association": "OWNER",
-      "created_at": "2026-10-31T01:01:57Z",
-      "updated_at": "2026-10-31T01:01:57Z",
-      "body_sha256": "ab27554c2388587cf8e6cd0fce48a0e7247c095bcf872b12f78cc96e4e57e4a3",
-      "command_canonical_sha256": "9a054355717303ec38957b2d656a908f3df9eb6e7eb983d2b098e5f1a08b1d60",
+      "created_at": "2026-10-31T01:19:02Z",
+      "updated_at": "2026-10-31T01:19:02Z",
+      "body_sha256": "d01c5fe57c73f99750ff2ec145f4d495897b4062c4e20a97950b4b00d8507e92",
+      "command_canonical_sha256": "6bc2d545b3c116c17d66de592780cd685f0c004306c20dd109ec74b95c4931fc",
       "authority_marker_present": true,
       "command_exact_semantic_match": true,
-      "remote_spec_blob": "bf970ebf761bd4a6e8d5df9d083a6afba78df99b"
+      "remote_spec_blob": "284c8ab1de11bdb3d96b3b8491ac6a876e4d7e7b"
     },
     "authorization_request": {
       "comment_id": 6523223111,
@@ -55,19 +55,19 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   },
   "git": {
     "branch": "codex/issue-47-collaboration-wiring",
-    "head": "f74fca88abdbcc67c002c32c797257d733500a98",
+    "head": "2801b3e932754fcc93fab404daa45aab991e2e4b",
     "base_commit": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
-    "checkpoint_commit": "2b60fbc399e41b016f695b82644ca0dbe106b358",
+    "checkpoint_commit": "2801b3e932754fcc93fab404daa45aab991e2e4b",
     "draft_pull_request": null,
-    "remote_head": "f74fca88abdbcc67c002c32c797257d733500a98",
-    "remote_spec_blob": "bf970ebf761bd4a6e8d5df9d083a6afba78df99b",
-    "remote_read_at": "2026-10-30T20:52:00+08:00"
+    "remote_head": "7b4accdbff4869284217dd96fc6857271ec690c3",
+    "remote_spec_blob": "284c8ab1de11bdb3d96b3b8491ac6a876e4d7e7b",
+    "remote_read_at": "2026-10-31T09:22:52+08:00"
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "d4a25ef70dd95cf2152fbf6209897b8fbdc1dcb70261f06681d60d314294d313",
+    "fingerprint": "77e9600f9eddccc5d1275fe8050dcbca9c7f78f2e9d424323dfc24191c778fd4",
     "starting_fingerprint": "025295008f940ba5b55ebef2691556cafe82bd110eadae57cc9fb8e7e281aed6",
-    "expected_dirty_policy": "Only the preserved Issue #47 readiness candidate, exact engineering Goal spec/schema/authorization package, PLAN/STATUS/review bus, bounded tests, and ignored deterministic evidence may change during EG-0.",
+    "expected_dirty_policy": "Only active EG-1 owned paths may change: preserved Issue #47 readiness/control-plane artifacts, exact successor spec/schema/authority, orchestrator weekend gate, bounded tests, PLAN/STATUS/review bus, and ignored deterministic evidence.",
     "preserved_preexisting_dirty_paths": [
       ".ai/ORCHESTRATION_HISTORY/events.jsonl",
       ".ai/ORCHESTRATOR_STATE.json",
@@ -103,27 +103,38 @@ Product Goal, privacy, review, deployment, and go-live conditions.
     "delivery_status": "ENGINEERING_GOAL_AUTHORIZED / PRODUCT_GOAL_NOT_AUTHORIZED",
     "latest_strategy_comment": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6522962957",
     "authorization_request_comment": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6523223111",
-    "engineering_authority_comment": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6536884383",
-    "last_read_at": "2026-10-31T09:05:29+08:00",
-    "current_engineering_authority": "exact engineering Goal approved; no model start before 2026-11-02T09:00:00+08:00, and no Product Goal, live canary, scheduler activation, or standing go-live authority"
+    "engineering_authority_comment": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6537070839",
+    "last_read_at": "2026-10-31T09:22:52+08:00",
+    "current_engineering_authority": "exact v2026-10-31.2 engineering Goal approved for the two scoped weekend windows and normal weekdays; no Product Goal, live canary, standing scheduler activation, or standing go-live authority"
   },
   "resource_accounting": {
-    "work_period": "2026-11-02T09:00:00+08:00/2026-11-20T18:00:00+08:00",
+    "work_period": "2026-10-31T09:15:00+08:00/2026-11-20T18:00:00+08:00",
     "model_concurrency": 1,
     "codex": {
       "ceiling": 18,
-      "known_preapproval": 2,
-      "remaining_if_approved": 16,
-      "daily_ceiling": 3
+      "owner_acknowledged_carryover_minimum": 7,
+      "post_owner_resume_launches_conservative": 1,
+      "consumed_total_conservative": 8,
+      "remaining_total_conservative": 10,
+      "daily_ceiling": 3,
+      "current_approved_workday_launches": 1,
+      "accounting_note": "Owner comment 6537070839 carries at least 7/18 from all prior contexts, including the preserved 3/3 pre-window blocked audit. This resumed invocation began inside the new 2026-10-31 exception and is conservatively counted as launch 8/18; no date, version, branch, PR, or session reset was applied."
     },
     "claude": {
       "ceiling": 12,
       "known_preapproval": 0,
-      "remaining_if_approved": 12,
-      "daily_ceiling": 2
+      "consumed_total_conservative": 0,
+      "remaining_total_conservative": 12,
+      "daily_ceiling": 2,
+      "current_approved_workday_launches": 0
     },
     "paid_api_fallback": false,
-    "reset_forbidden": true
+    "reset_forbidden": true,
+    "work_window_state": "OPEN_EXCEPTION_ENGINEERING_ONLY_NO_MODEL_GATE_PASS",
+    "current_window_closes_at": "2026-10-31T18:00:00+08:00",
+    "out_of_window_goal_continuation_detected": true,
+    "out_of_window_goal_continuation_count": 3,
+    "historical_time_only_block_resolution": "RESOLVED_BY_EXACT_SUCCESSOR_AUTHORITY_AND_NO_MODEL_EVIDENCE_AT_2026-10-31T09:27:51+08:00; original 3/3 audit and all usage preserved"
   },
   "legacy_o2_protection": {
     "goal_id": "GOAL-KGNOTE-O2-READING-EXPERIENCE",
@@ -148,15 +159,15 @@ Product Goal, privacy, review, deployment, and go-live conditions.
     "candidate_verified": true,
     "release_verified": false,
     "control_plane_ready": true,
-    "last_candidate_evidence": "output/control-plane/verification-20261031T090641+0800.json",
-    "last_verified_fingerprint": "d4a25ef70dd95cf2152fbf6209897b8fbdc1dcb70261f06681d60d314294d313",
-    "last_result": "EG-1 pre-checkpoint deterministic verification passed with stable fingerprint d4a25ef7 and evidence read-back: 16 requirements guard tests, 473 control-plane tests, 348 product Python tests, 60 Node tests, strict diff, public-safety scan and untracked-whitespace gate. Exact GitHub Owner authority remains bound to comment 6536884383; release, independent review, and Product Goal execution remain unverified until their separate gates pass."
+    "last_candidate_evidence": "output/control-plane/verification-20261031T092822+0800.json",
+    "last_verified_fingerprint": "77e9600f9eddccc5d1275fe8050dcbca9c7f78f2e9d424323dfc24191c778fd4",
+    "last_result": "The exact v2026-10-31.2 successor candidate and weekend time gate passed with stable fingerprint 77e9600f: preflight/review/requirements guards, 476 control-plane tests, 348 product Python tests, 60 Node tests, strict diff, public-safety scan, untracked-whitespace gate, evidence read-back, and host proof that the old O2 Runner remains disabled/unloaded. release_verified and Product Goal execution remain false."
   },
-  "next_action": "Create and push a path-explicit EG-1 authority-transition checkpoint, verify the resulting exact HEAD and remote read-back, then wait for the 2026-11-02 09:00 Asia/Taipei work-window opening before sealing and launching the bounded independent Ubuntu Claude infrastructure review; do not dispatch a Product Goal.",
+  "next_action": "Run full deterministic verification for fingerprint 77e9600f, create and push a path-explicit checkpoint, seal review-issue47-end-to-end-autonomous-collaboration-001, and launch at most one bounded independent Ubuntu Claude infrastructure review. Conservative Codex usage is 8/18; Product Goal dispatch, canary, scheduler activation, and standing go-live remain forbidden.",
   "external_or_human_gates": [
     {
       "id": "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
-      "status": "complete_exact_owner_approval_comment_6536884383"
+      "status": "complete_exact_owner_approval_comment_6537070839"
     },
     {
       "id": "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
@@ -180,7 +191,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
     }
   ],
   "forbidden_during_goal": [
-    "alter, broaden, replace, self-author, or infer authority beyond GitHub Owner comment 6536884383",
+    "alter, broaden, replace, self-author, or infer authority beyond GitHub Owner comment 6537070839",
     "treat this engineering Goal as Product Goal authority",
     "launch background Codex or Claude before exact approval or outside the work window",
     "dispatch a Product Goal without its separate immutable spec and Owner approval",
@@ -199,5 +210,5 @@ Goal `CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION` remains active
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Create and push a path-explicit EG-1 authority-transition checkpoint, verify the resulting exact HEAD and remote read-back, then wait for the 2026-11-02 09:00 Asia/Taipei work-window opening before sealing and launching the bounded independent Ubuntu Claude infrastructure review; do not dispatch a Product Goal.
+Exact next action: Run full deterministic verification for fingerprint 77e9600f, create and push a path-explicit checkpoint, seal review-issue47-end-to-end-autonomous-collaboration-001, and launch at most one bounded independent Ubuntu Claude infrastructure review. Conservative Codex usage is 8/18; Product Goal dispatch, canary, scheduler activation, and standing go-live remain forbidden.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

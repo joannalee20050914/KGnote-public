@@ -12,6 +12,10 @@ import jsonschema
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_PATH = (
     ROOT
+    / "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.2.json"
+)
+PREDECESSOR_SPEC_PATH = (
+    ROOT
     / "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-30.1.json"
 )
 SCHEMA_PATH = (
@@ -19,18 +23,19 @@ SCHEMA_PATH = (
 )
 PACKAGE_PATH = (
     ROOT
-    / "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_AUTHORIZATION_PACKAGE_20261030.md"
+    / "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_AUTHORIZATION_PACKAGE_20261031.md"
 )
 PLAN_PATH = ROOT / "PLAN.md"
 STATUS_PATH = ROOT / "CODEX_STATUS.md"
-EXPECTED_DIGEST = "f78a49397822bf17a89f7477be2efe840c0dddfa58cf767153cf31281bdcdce4"
+EXPECTED_DIGEST = "8f3036ec6429e2f8f1e546aea3a8b3bf1c0cb1459e742991a4228612836958cd"
+PREDECESSOR_DIGEST = "f78a49397822bf17a89f7477be2efe840c0dddfa58cf767153cf31281bdcdce4"
 AUTHORITY_MARKER = "<!-- kgnote-codex-app-engineering-goal-authority:v1 -->"
-OWNER_APPROVAL_COMMENT_ID = 6536884383
+OWNER_APPROVAL_COMMENT_ID = 6537070839
 OWNER_APPROVAL_BODY_SHA256 = (
-    "ab27554c2388587cf8e6cd0fce48a0e7247c095bcf872b12f78cc96e4e57e4a3"
+    "d01c5fe57c73f99750ff2ec145f4d495897b4062c4e20a97950b4b00d8507e92"
 )
 OWNER_APPROVAL_COMMAND_SHA256 = (
-    "9a054355717303ec38957b2d656a908f3df9eb6e7eb983d2b098e5f1a08b1d60"
+    "6bc2d545b3c116c17d66de592780cd685f0c004306c20dd109ec74b95c4931fc"
 )
 
 
@@ -79,8 +84,8 @@ class Issue47EngineeringGoalSpecTests(unittest.TestCase):
         providers = self.spec["resource_policy"]["providers"]
         self.assertEqual(1, self.spec["resource_policy"]["max_model_concurrency"])
         self.assertEqual(18, providers["codex"]["max_total_launches"])
-        self.assertEqual(2, providers["codex"]["known_preapproval_launches"])
-        self.assertEqual(16, providers["codex"]["remaining_after_known_preapproval"])
+        self.assertEqual(7, providers["codex"]["known_preapproval_launches"])
+        self.assertEqual(11, providers["codex"]["remaining_after_known_preapproval"])
         self.assertEqual(12, providers["claude"]["max_total_launches"])
         self.assertEqual(0, providers["claude"]["known_preapproval_launches"])
         self.assertEqual(12, providers["claude"]["remaining_after_known_preapproval"])
@@ -92,6 +97,37 @@ class Issue47EngineeringGoalSpecTests(unittest.TestCase):
                 - provider["known_preapproval_launches"],
                 provider["remaining_after_known_preapproval"],
             )
+
+    def test_predecessor_stays_immutable_and_weekend_windows_are_narrow(self) -> None:
+        predecessor = json.loads(PREDECESSOR_SPEC_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(PREDECESSOR_DIGEST, canonical_sha256(predecessor))
+        self.assertEqual(predecessor["goal_id"], self.spec["goal_id"])
+        self.assertEqual(predecessor["work_items"], self.spec["work_items"])
+        self.assertEqual(
+            predecessor["legacy_o2_protection"], self.spec["legacy_o2_protection"]
+        )
+        self.assertEqual(
+            [
+                {
+                    "date": "2026-10-31",
+                    "start": "09:15",
+                    "end": "18:00",
+                    "scope": "ISSUE47_INFRA_ENGINEERING_ONLY",
+                },
+                {
+                    "date": "2026-11-01",
+                    "start": "09:00",
+                    "end": "18:00",
+                    "scope": "ISSUE47_INFRA_ENGINEERING_ONLY",
+                },
+            ],
+            self.spec["work_period"]["exception_work_windows"],
+        )
+        self.assertFalse(self.spec["product_goal_authorized"])
+        self.assertIn(
+            "use_weekend_exception_for_product_goal_canary_or_standing_go_live",
+            self.spec["forbidden_operations"],
+        )
 
     def test_work_item_dependencies_are_ordered_and_unique(self) -> None:
         seen: set[str] = set()
@@ -188,7 +224,7 @@ class Issue47EngineeringGoalSpecTests(unittest.TestCase):
         self.assertFalse(status["product_goal_authorized"])
         gates = {item["id"]: item["status"] for item in status["external_or_human_gates"]}
         self.assertEqual(
-            "complete_exact_owner_approval_comment_6536884383",
+            "complete_exact_owner_approval_comment_6537070839",
             gates["ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL"],
         )
         self.assertEqual(

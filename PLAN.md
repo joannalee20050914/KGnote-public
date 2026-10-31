@@ -2,9 +2,10 @@
 
 This file contains one Codex App engineering Goal for Issue #47. It does not
 authorize a KGnote Product Goal. The exact immutable engineering specification
-was approved by the GitHub repository Owner on 2026-10-31; model work, formal
-deployment, and gated external execution remain limited by the approved work
-window, milestone dependencies, and the separate Product Goal / go-live gates.
+was approved by the GitHub repository Owner on 2026-10-31 and amended by the
+exact engineering-only weekend exception in comment `6537070839`; model work,
+formal deployment, and gated external execution remain limited by the approved
+work window, milestone dependencies, and separate Product Goal / go-live gates.
 
 <!-- BEGIN CODEX PLAN JSON -->
 ```json
@@ -21,28 +22,28 @@ window, milestone dependencies, and the separate Product Goal / go-live gates.
   "active_milestone_id": "EG-1-INDEPENDENT-REVIEW-AND-PR",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
-  "execution_direction_id": "kgnote-issue47-end-to-end-engineering-goal-2026-10-30",
+  "execution_direction_id": "kgnote-issue47-weekend-engineering-exception-2026-10-31",
   "goal_spec": {
-    "path": "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-30.1.json",
+    "path": "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.2.json",
     "schema_path": "schemas/codex-app-engineering-goal/v1/goal-spec.schema.json",
-    "version": "2026-10-30.1-owner-approval-proposal",
-    "canonical_sha256": "f78a49397822bf17a89f7477be2efe840c0dddfa58cf767153cf31281bdcdce4",
+    "version": "2026-10-31.2-weekend-engineering-exception",
+    "canonical_sha256": "8f3036ec6429e2f8f1e546aea3a8b3bf1c0cb1459e742991a4228612836958cd",
     "authority_status": "EXACT_GITHUB_OWNER_APPROVED",
-    "authorization_request": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6523223111",
+    "authorization_request": "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_AUTHORIZATION_PACKAGE_20261031.md",
     "authority_receipt": {
-      "comment_id": 6536884383,
-      "comment_url": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6536884383",
+      "comment_id": 6537070839,
+      "comment_url": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6537070839",
       "author_login": "joannalee20050914",
       "author_association": "OWNER",
-      "created_at": "2026-10-31T01:01:57Z",
-      "body_sha256": "ab27554c2388587cf8e6cd0fce48a0e7247c095bcf872b12f78cc96e4e57e4a3",
-      "command_canonical_sha256": "9a054355717303ec38957b2d656a908f3df9eb6e7eb983d2b098e5f1a08b1d60",
+      "created_at": "2026-10-31T01:19:02Z",
+      "body_sha256": "d01c5fe57c73f99750ff2ec145f4d495897b4062c4e20a97950b4b00d8507e92",
+      "command_canonical_sha256": "6bc2d545b3c116c17d66de592780cd685f0c004306c20dd109ec74b95c4931fc",
       "marker": "kgnote-codex-app-engineering-goal-authority:v1",
       "validation": "EXACT_SEMANTIC_MATCH_AND_REMOTE_SPEC_BLOB_READ_BACK"
     }
   },
   "explicit_direction": {
-    "date": "2026-10-30",
+    "date": "2026-10-31",
     "speaker": "product owner",
     "source_path": "PLAN.md",
     "durable_goal_record": "PLAN.md"
@@ -53,6 +54,9 @@ window, milestone dependencies, and the separate Product Goal / go-live gates.
     "docs/control-plane/B_SCHEME_OPERATIONS.md",
     "docs/control-plane/ISSUE47_ONESHOT_ENGINEERING_DIRECTION_20261030.md",
     "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-30.1.json",
+    "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.2.json",
+    "docs/control-plane/ISSUE47_WEEKEND_ENGINEERING_EXCEPTION_DIRECTION_20261031.md",
+    "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_AUTHORIZATION_PACKAGE_20261031.md",
     "schemas/codex-app-engineering-goal/v1/goal-spec.schema.json",
     ".ai/REVIEW_PROTOCOL.md",
     "schemas/product-goal/v1/goal-spec.schema.json",
@@ -93,7 +97,8 @@ window, milestone dependencies, and the separate Product Goal / go-live gates.
       "建立第二套 planner、ledger、Router、worker 或 state machine",
       "修改、合併、重設或搬用 O2 v4 authority、state、ledger cursor 9、Codex 4/5、checkpoint 或封存 evidence",
       "啟用或共用舊 com.kgnote.local-autonomy-runner",
-      "在 exact Owner approval 前或工作時段外啟動背景 Codex／Claude、正式 deploy 或 dispatch",
+      "在 exact Owner approval 前或一般／明列週末例外時段外啟動背景 Codex／Claude、正式 deploy 或 dispatch",
+      "把 2026-10-31／2026-11-01 工程例外用於 Product Goal canary、產品模型派工、常設排程啟用或 go-live",
       "使用付費 API、force push、直接 push main、修改 branch protection 或未批准資料外送",
       "把 Codex-primary／Claude-reviewer 的證據宣稱為 Claude-primary／Codex-reviewer 已完成",
       "用 restart、日期、Goal version、branch、PR 或 session 重置 launch/accounting history"
@@ -118,14 +123,14 @@ window, milestone dependencies, and the separate Product Goal / go-live gates.
     "unverified_scope": "checkpoint commit, independent infrastructure review, PR integration, real dispatch, deployment, canary, schedule continuation and rollback"
   },
   "resource_budget": {
-    "work_period": "2026-11-02T09:00:00+08:00 through 2026-11-20T18:00:00+08:00",
-    "work_window": "Monday-Friday Asia/Taipei 09:00-18:00",
+    "work_period": "2026-10-31T09:15:00+08:00 through 2026-11-20T18:00:00+08:00",
+    "work_window": "Monday-Friday Asia/Taipei 09:00-18:00 plus engineering-only 2026-10-31 09:15-18:00 and 2026-11-01 09:00-18:00",
     "model_concurrency": 1,
     "codex": {
       "max_total": 18,
       "max_per_workday": 3,
-      "known_preapproval": 2,
-      "remaining_if_approved": 16
+      "known_preapproval": 7,
+      "remaining_if_approved": 11
     },
     "claude": {
       "max_total": 12,
@@ -168,7 +173,7 @@ window, milestone dependencies, and the separate Product Goal / go-live gates.
       "id": "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
       "status": "COMPLETE",
       "release_verified": false,
-      "rule": "Required before background model launch, formal deployment or gated external execution; must bind exact engineering Goal ID/version/SHA, permissions, resources and O2 coexistence."
+      "rule": "Current exact authority is Owner comment 6537070839 for v2026-10-31.2; it binds the weekend engineering-only windows, at least Codex 7/18 carry-over, permissions, resources and unchanged O2 coexistence."
     },
     {
       "id": "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
@@ -267,11 +272,39 @@ window, milestone dependencies, and the separate Product Goal / go-live gates.
       ]
     },
     {
+      "id": "EG-0-WEEKEND-AUTHORITY-AMENDMENT",
+      "title": "讀回並整合限時週末工程例外，不重置歷史或產品 gate",
+      "status": "complete",
+      "dependencies": [
+        "EG-0-OWNER-AUTHORITY"
+      ],
+      "human_gate": "complete",
+      "owned_paths": [
+        "PLAN.md",
+        "CODEX_STATUS.md",
+        ".ai/",
+        "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.2.json",
+        "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_AUTHORIZATION_PACKAGE_20261031.md",
+        "docs/control-plane/ISSUE47_WEEKEND_ENGINEERING_EXCEPTION_DIRECTION_20261031.md",
+        "schemas/codex-app-engineering-goal/v1/",
+        "scripts/codex_orchestrator.py",
+        "tests/control_plane/",
+        "output/control-plane/",
+        "GitHub Issue #47 exact Owner reply 6537070839"
+      ],
+      "acceptance": [
+        "successor spec canonical SHA-256 8f3036ec... and Owner comment 6537070839 read back exactly",
+        "predecessor spec, checkpoint, 3/3 blocked audit, review history and at least Codex 7/18 usage remain preserved",
+        "no-model positive/negative tests enforce Oct31/Nov1 only, exact version/authority, O2 read-only and Product Goal/go-live denial",
+        "only the historical future-start time blocker may be resolved; every other blocker remains fail closed"
+      ]
+    },
+    {
       "id": "EG-1-INDEPENDENT-REVIEW-AND-PR",
       "title": "readiness exact candidate 的獨立審查、修復與 PR 整合",
       "status": "active",
       "dependencies": [
-        "EG-0-OWNER-AUTHORITY"
+        "EG-0-WEEKEND-AUTHORITY-AMENDMENT"
       ],
       "human_gate": "none",
       "owned_paths": [
@@ -280,6 +313,7 @@ window, milestone dependencies, and the separate Product Goal / go-live gates.
         ".ai/",
         "docs/control-plane/",
         "schemas/codex-app-engineering-goal/",
+        "scripts/codex_orchestrator.py",
         "scripts/collaboration_goal_wakeup.py",
         "tests/control_plane/",
         "output/control-plane/",
