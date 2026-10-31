@@ -109,7 +109,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     "base_revision": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
     "branch": "codex/issue-47-collaboration-wiring",
     "base_branch": "main",
-    "pull_request": 48,
+    "pull_request": 49,
     "automatic_merge": false,
     "merge_authority": "proposed only for the exact Issue #47 PR after GitHub Owner spec approval, required checks, independent review, branch protection, and remote read-back"
   },

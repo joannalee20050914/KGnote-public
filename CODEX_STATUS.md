@@ -10,7 +10,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-31T10:03:00+08:00",
+  "updated_at": "2026-10-31T10:07:00+08:00",
   "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -55,10 +55,10 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   },
   "git": {
     "branch": "codex/issue-47-collaboration-wiring",
-    "head": "8069fcb3a9de9b9a5ffa02d61f74475d10e4f7b6",
+    "head": "c7acc2a223c6c463f380f492809d1ba281f72531",
     "base_commit": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
-    "checkpoint_commit": "8069fcb3a9de9b9a5ffa02d61f74475d10e4f7b6",
-    "draft_pull_request": {
+    "checkpoint_commit": "c7acc2a223c6c463f380f492809d1ba281f72531",
+    "previous_integrated_pull_request": {
       "number": 48,
       "url": "https://github.com/joannalee20050914/KGnote-public/pull/48",
       "state": "MERGED",
@@ -70,16 +70,26 @@ Product Goal, privacy, review, deployment, and go-live conditions.
       "ruleset_id": 25347516,
       "bypass_used": false
     },
-    "remote_head": "52aacd10245546b68a2566b7b5ce68449499a5ef",
+    "draft_pull_request": {
+      "number": 49,
+      "url": "https://github.com/joannalee20050914/KGnote-public/pull/49",
+      "state": "OPEN",
+      "is_draft": true,
+      "head": "c7acc2a223c6c463f380f492809d1ba281f72531",
+      "fingerprint": "8160f3ca2d5500b9318351612d869847daf5072c17b1ea0bb0941f9cf6ff9d7b",
+      "merge_state_status": "CLEAN",
+      "review_decision": null
+    },
+    "remote_head": "c7acc2a223c6c463f380f492809d1ba281f72531",
     "remote_spec_blob": "284c8ab1de11bdb3d96b3b8491ac6a876e4d7e7b",
-    "remote_read_at": "2026-10-31T09:41:34+08:00",
-    "reviewed_tree": "09349202a9a33b5c657eb00c749350bd40905dc7",
-    "merge_tree": "09349202a9a33b5c657eb00c749350bd40905dc7",
-    "merge_tree_identity_verified": true
+    "remote_read_at": "2026-10-31T10:07:00+08:00",
+    "reviewed_tree": null,
+    "merge_tree": null,
+    "merge_tree_identity_verified": false
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "72cb7a1a6dcd1d653f29845de242e321c76054f79eaaf0935292c31a5a09afd7",
+    "fingerprint": "8160f3ca2d5500b9318351612d869847daf5072c17b1ea0bb0941f9cf6ff9d7b",
     "starting_fingerprint": "025295008f940ba5b55ebef2691556cafe82bd110eadae57cc9fb8e7e281aed6",
     "expected_dirty_policy": "Only active EG-4 owned paths may change: exact candidate sealing/review, trusted Mac/Ubuntu runtime deployment, the unique disabled-by-default entrypoint, stop/rollback read-back, PLAN/STATUS/review bus, and ignored deterministic evidence.",
     "preserved_preexisting_dirty_paths": [
