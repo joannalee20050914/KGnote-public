@@ -37,6 +37,12 @@ SCHEMA_VERSION = "kgnote.issue47-engineering-wakeup.v1"
 STATE_SCHEMA_VERSION = "kgnote.issue47-engineering-wakeup-state.v2"
 LEGACY_STATE_SCHEMA_VERSION = "kgnote.issue47-engineering-wakeup-state.v1"
 DISPATCH_STATUSES = {"RESERVED", "RUNNING", "COMPLETED", "FAILED"}
+CONTINUATION_BINDINGS = {
+    ("READY_FOR_REVIEW", "READY_FOR_AI_REVIEW"): ("DISPATCH_REVIEW", "claude"),
+    ("IMPLEMENTING", "IMPLEMENTING"): ("DISPATCH_IMPLEMENTATION", "codex"),
+    ("IMPLEMENTING", "REPAIRING"): ("DISPATCH_IMPLEMENTATION", "codex"),
+    ("CHANGES_REQUIRED", "REPAIRING"): ("DISPATCH_IMPLEMENTATION", "codex"),
+}
 
 
 class WakeupError(RuntimeError):
@@ -226,19 +232,20 @@ def action_identity(
     status: dict[str, Any], orchestrator: dict[str, Any], request: dict[str, Any]
 ) -> tuple[str, str, str | None]:
     review_state = request.get("status")
-    if review_state == "READY_FOR_REVIEW":
-        if orchestrator.get("state") != "READY_FOR_AI_REVIEW":
-            raise WakeupError("orchestrator is not ready for the sealed review")
-        return (
-            "DISPATCH_REVIEW",
-            "claude",
-            str(request.get("review_id")),
+    binding = continuation_binding(review_state, orchestrator.get("state"))
+    if binding is None:
+        raise WakeupError(
+            f"review/orchestrator state pair {review_state!r}/"
+            f"{orchestrator.get('state')!r} is not wakeable"
         )
-    if review_state in {"IMPLEMENTING", "CHANGES_REQUIRED"}:
-        if orchestrator.get("state") not in {"IMPLEMENTING", "REPAIRING"}:
-            raise WakeupError("orchestrator is not ready for implementation or repair")
-        return ("DISPATCH_IMPLEMENTATION", "codex", str(request.get("review_id")))
-    raise WakeupError(f"review state {review_state!r} is not wakeable")
+    return (*binding, str(request.get("review_id")))
+
+
+def continuation_binding(
+    review_state: Any, orchestrator_state: Any,
+) -> tuple[str, str] | None:
+    """Return the one action/provider pair both admission and continuation accept."""
+    return CONTINUATION_BINDINGS.get((review_state, orchestrator_state))
 
 
 def _usage(
@@ -408,6 +415,15 @@ def _validated_history(
     for event in events:
         if not isinstance(event, dict) or event.get("dispatch_key") not in by_key:
             raise WakeupError("dispatch event identity is invalid")
+        observed_at = event.get("observed_at")
+        if not isinstance(observed_at, str):
+            raise WakeupError("dispatch event timestamp is missing")
+        try:
+            observed = datetime.fromisoformat(observed_at)
+        except ValueError as exc:
+            raise WakeupError("dispatch event timestamp is invalid") from exc
+        if observed.tzinfo is None or observed.utcoffset() is None:
+            raise WakeupError("dispatch event timestamp must include an offset")
         key = str(event["dispatch_key"])
         new = event.get("status")
         if new not in DISPATCH_STATUSES:

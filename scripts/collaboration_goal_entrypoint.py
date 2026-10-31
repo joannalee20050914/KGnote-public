@@ -17,8 +17,10 @@ import re
 import subprocess
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
+from zoneinfo import ZoneInfo
 
 
 CONFIG_SCHEMA = "kgnote.collaboration-goal-entrypoint-config.v1"
@@ -34,6 +36,7 @@ ENABLED_STATUSES = {ENABLED_STATUS, ENGINEERING_ENABLED_STATUS}
 DISABLED_STATUSES = {"DISABLED", "ROLLED_BACK"}
 ENGINEERING_GOAL_ID = "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION"
 LEGACY_O2_LABEL = "com.kgnote.local-autonomy-runner"
+TRANSITION_ZONE = ZoneInfo("Asia/Taipei")
 
 
 class EntrypointError(RuntimeError):
@@ -333,10 +336,17 @@ def _transition_wakeup_state(
         )
         if not allowed:
             raise EntrypointError("engineering wakeup transition differs")
+        timestamp = observed_at or datetime.now(TRANSITION_ZONE).isoformat()
+        try:
+            parsed_timestamp = datetime.fromisoformat(timestamp)
+        except ValueError as exc:
+            raise EntrypointError("engineering wakeup transition timestamp is invalid") from exc
+        if parsed_timestamp.tzinfo is None or parsed_timestamp.utcoffset() is None:
+            raise EntrypointError("engineering wakeup transition timestamp must include an offset")
         events.append({
             "dispatch_key": dispatch_key,
             "status": status,
-            "observed_at": observed_at,
+            "observed_at": parsed_timestamp.astimezone(TRANSITION_ZONE).isoformat(),
             "model_launch_started": True,
             "continuation_exit_code": continuation_exit_code,
         })

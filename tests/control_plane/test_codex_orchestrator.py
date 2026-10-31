@@ -73,6 +73,49 @@ class EngineeringReservationBindingTests(unittest.TestCase):
     def test_exact_running_review_reservation_is_accepted(self):
         self.validate()
 
+    def test_changes_required_repair_state_pair_is_accepted(self):
+        value = json.loads(self.state_path.read_text(encoding="utf-8"))
+        value["dispatches"][0].update({
+            "action": "DISPATCH_IMPLEMENTATION",
+            "provider": "codex",
+        })
+        self.state_path.write_text(json.dumps(value), encoding="utf-8")
+        with mock.patch.object(
+            ORCH.control, "repository_fingerprint",
+            return_value={"head": self.commit, "value": self.fingerprint},
+        ), mock.patch.object(
+            ORCH.control, "load_review_artifacts",
+            return_value=({
+                "status": "CHANGES_REQUIRED", "review_id": self.review_id,
+                "candidate_fingerprint": self.fingerprint,
+            }, {}, {}),
+        ), mock.patch.object(
+            ORCH, "read_state", return_value={"state": "REPAIRING"},
+        ):
+            ORCH.validate_engineering_reservation(
+                self.repo, self.state_path, self.key,
+                "DISPATCH_IMPLEMENTATION", "codex",
+            )
+
+    def test_unshared_repair_state_pair_is_rejected(self):
+        with mock.patch.object(
+            ORCH.control, "repository_fingerprint",
+            return_value={"head": self.commit, "value": self.fingerprint},
+        ), mock.patch.object(
+            ORCH.control, "load_review_artifacts",
+            return_value=({
+                "status": "CHANGES_REQUIRED", "review_id": self.review_id,
+                "candidate_fingerprint": self.fingerprint,
+            }, {}, {}),
+        ), mock.patch.object(
+            ORCH, "read_state", return_value={"state": "IMPLEMENTING"},
+        ):
+            with self.assertRaisesRegex(ValueError, "state pair"):
+                ORCH.validate_engineering_reservation(
+                    self.repo, self.state_path, self.key,
+                    "DISPATCH_REVIEW", "claude",
+                )
+
     def test_action_provider_or_candidate_mismatch_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "action/provider"):
             self.validate(action="DISPATCH_REVIEW", provider="codex")

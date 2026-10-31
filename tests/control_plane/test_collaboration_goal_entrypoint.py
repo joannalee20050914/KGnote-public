@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -32,6 +33,33 @@ INSTALLER = load(
 
 
 class CollaborationGoalEntrypointTests(unittest.TestCase):
+    def test_transition_without_now_records_timezone_aware_timestamp(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state_path = root / "wakeup-state.json"
+            lock_path = root / "writer.lock"
+            key = "d" * 64
+            state_path.write_text(json.dumps({
+                "schema_version": ENTRYPOINT.ENGINEERING_WAKEUP_STATE_SCHEMA,
+                "dispatches": [{"dispatch_key": key}],
+                "events": [{
+                    "dispatch_key": key,
+                    "status": "RESERVED",
+                    "observed_at": "2026-10-31T12:00:00+08:00",
+                }],
+            }), encoding="utf-8")
+            ENTRYPOINT._transition_wakeup_state(
+                state_path=state_path,
+                writer_lock=lock_path,
+                dispatch_key=key,
+                status="RUNNING",
+                observed_at=None,
+            )
+            event = json.loads(state_path.read_text(encoding="utf-8"))["events"][-1]
+            observed = datetime.fromisoformat(event["observed_at"])
+            self.assertIsNotNone(observed.utcoffset())
+            self.assertEqual(8 * 60 * 60, int(observed.utcoffset().total_seconds()))
+
     def repository(self, root: Path) -> tuple[Path, str]:
         repo = root / "repo"
         repo.mkdir()

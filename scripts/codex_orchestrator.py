@@ -25,6 +25,7 @@ import codex_control as control
 import external_review_control
 import external_review_handoff
 import publish_external_candidate
+from issue47_engineering_wakeup import continuation_binding
 
 
 STATE_PATH = ".ai/ORCHESTRATOR_STATE.json"
@@ -1509,20 +1510,16 @@ def validate_engineering_reservation(
     state = read_state(repo)
     if state is None:
         raise ValueError("engineering orchestrator state is unavailable")
-    if expected_action == "DISPATCH_REVIEW":
-        if (
-            request.get("status") != "READY_FOR_REVIEW"
-            or request.get("review_id") != reservation.get("review_id")
-            or request.get("candidate_fingerprint") != reservation.get("candidate_fingerprint")
-            or state.get("state") != "READY_FOR_AI_REVIEW"
-        ):
-            raise ValueError("engineering review continuation is not the reserved review")
-    elif (
-        request.get("status") != "IMPLEMENTING"
-        or request.get("review_id") != reservation.get("review_id")
-        or state.get("state") not in {"IMPLEMENTING", "REPAIRING"}
+    binding = continuation_binding(request.get("status"), state.get("state"))
+    if binding != (expected_action, expected_provider):
+        raise ValueError("engineering continuation state pair differs from the reservation")
+    if request.get("review_id") != reservation.get("review_id"):
+        raise ValueError("engineering continuation review identity differs")
+    if (
+        expected_action == "DISPATCH_REVIEW"
+        and request.get("candidate_fingerprint") != reservation.get("candidate_fingerprint")
     ):
-        raise ValueError("engineering implementation continuation is not the reserved repair")
+        raise ValueError("engineering review continuation candidate differs")
 
 
 def main() -> int:
