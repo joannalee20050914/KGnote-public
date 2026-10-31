@@ -7,9 +7,9 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 {
   "schema_version": "kgnote.review-request.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "review_id": "review-issue47-end-to-end-autonomous-collaboration-007",
+  "review_id": "review-issue47-end-to-end-autonomous-collaboration-008",
   "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
-  "milestone_id": "EG-4-TRUSTED-DEPLOYMENT",
+  "milestone_id": "EG-4A-PRECANARY-NO-PASTE-SMOKE",
   "status": "IMPLEMENTING",
   "author_role": "CODEX_IMPLEMENTER",
   "base_revision": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
@@ -34,16 +34,17 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     "AGENTS.md"
   ],
   "changed_areas": [
-    "shared repair admission and continuation state-pair binding",
-    "timezone-aware append-only transition timestamps and fail-closed history validation",
-    "Review 005 R-007 and R-008 regression coverage"
+    "Issue #47 exact GitHub Owner comment intake, append-only receipt, acknowledgement read-back, and duplicate suppression",
+    "reviewed v4-only LaunchAgent engineering activation, disable, rollback, and durable result binding",
+    "EG-4A control-plane state and regression tests"
   ],
   "acceptance_criteria": [
-    "Mac/Ubuntu runtime identity、manifest、installed hashes 與 no-model admission receipt 綁定 exact reviewed commit",
-    "新 scheduler/launcher 唯一、預設 disabled、可逆且不共用 O2 state/ledger",
-    "old O2 Runner 維持 disabled/unloaded；duplicate service、unexpected process、stop 與 rollback negative tests 通過",
-    "舊 kgnote-47-goal Heartbeat 保持 PAUSED；唯一新入口在任何 Codex／Claude continuation 前以無模型方式驗證 v4 authority、time window、quota、backoff、Stop Marker、writer lock、paused heartbeat 與 dispatch identity",
-    "相同 dispatch key 在 restart 後不得重送；不同且已完成的後續 review/repair identity 可接續，未決 reservation 則 fail closed"
+    "唯一既有 LaunchAgent 能以 reviewed、reversible、engineering-only 模式啟用；activation/status/disable/rollback 均綁定 exact install receipt、v4 authority、reviewed bytes，且 bootstrap 前先有獨立 PASS",
+    "LaunchAgent 以零模型方式從 GitHub Issue #47 找到 Owner comment 6539158585 的公開安全 marker，核對 repository/Issue/Owner/Goal/scope，留下 received/admitted/ignored 事件與 durable receipt，再回寫並讀回唯一 acknowledgement",
+    "相同 GitHub comment 與 body digest 在重複 tick、LaunchAgent restart 及 disable→enable 後不重複 acknowledgement、reservation 或模型啟動",
+    "目前無 active model milestone 且 orchestrator 為 PRODUCT_DECISION_REQUIRED 時，只回報 NO_AUTHORIZED_ENGINEERING_WORK；不得為 smoke 虛構 implementation/review action",
+    "超出時窗、Owner/marker/scope/digest 不符、quota/backoff、Stop Marker、writer lock、舊 O2 Runner 復活或 reviewed bytes drift 均 fail closed，且 Product Goal/O2/paid API/model launch 保持 false",
+    "ENGINEERING_NO_PASTE_HANDOFF 與 PRODUCT_GOAL_CANARY 分開回報；前者只可依 live GitHub→Mac receipt 判定，後者維持 NOT_AUTHORIZED"
   ],
   "negative_requirements": [
     "把 Codex App 工程 Goal 或 Issue #47 DRAFT 留言當成 Product Goal APPROVE",
@@ -71,60 +72,58 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     {
       "name": "requirements_guard",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T115913+0800.json#requirements_guard"
+      "evidence": "output/control-plane/verification-20261031T130727+0800.json#requirements_guard"
     },
     {
       "name": "requirements_guard_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T115913+0800.json#requirements_guard_tests"
+      "evidence": "output/control-plane/verification-20261031T130727+0800.json#requirements_guard_tests"
     },
     {
       "name": "control_plane_negative_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T115913+0800.json#control_plane_negative_tests"
+      "evidence": "output/control-plane/verification-20261031T130727+0800.json#control_plane_negative_tests"
     },
     {
       "name": "python_product_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T115913+0800.json#python_product_tests"
+      "evidence": "output/control-plane/verification-20261031T130727+0800.json#python_product_tests"
     },
     {
       "name": "node_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T115913+0800.json#node_tests"
+      "evidence": "output/control-plane/verification-20261031T130727+0800.json#node_tests"
     },
     {
       "name": "strict_git_diff_check",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T115913+0800.json#strict_git_diff_check"
+      "evidence": "output/control-plane/verification-20261031T130727+0800.json#strict_git_diff_check"
     },
     {
       "name": "review_completion_gate",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T115913+0800.json#review_completion_gate"
+      "evidence": "output/control-plane/verification-20261031T130727+0800.json#review_completion_gate"
     },
     {
       "name": "public_safety_scan",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T115913+0800.json#public_safety_scan"
+      "evidence": "output/control-plane/verification-20261031T130727+0800.json#public_safety_scan"
     },
     {
       "name": "untracked_whitespace",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T115913+0800.json#untracked_whitespace"
+      "evidence": "output/control-plane/verification-20261031T130727+0800.json#untracked_whitespace"
     }
   ],
   "known_deviations": [
-    "The Codex App kgnote-47-goal heartbeat remains PAUSED; the new LaunchAgent is not deployed or enabled before independent PASS."
+    "Live Mac bootstrap is intentionally deferred until independent PASS."
   ],
   "known_uncertainties": [
-    "Product Goal canary, cross-workday live resume and permanent go-live remain later separately gated milestones."
+    "launchd and GitHub acknowledgement behavior still require the bounded live Mac smoke after review."
   ],
   "reviewer_focus": [
-    "Re-verify R-007 and R-008 against the exact committed candidate.",
-    "Drive CHANGES_REQUIRED plus REPAIRING from no-model reservation through a single charge, RUNNING, and continuation validation without a FAILED duplicate dead-end.",
-    "Reject missing, invalid, or timezone-naive transition timestamps while preserving legacy migration and Review 004 accounting fixes.",
-    "Re-verify carried unresolved findings from immutable history: R-007, R-008."
+    "Confirm no path can dispatch Product Goal, start Codex or Claude, or touch O2 during the pre-canary smoke.",
+    "Confirm activation is exact-candidate-only, reversible, crash-safe, and duplicate GitHub writes are suppressed."
   ],
   "preserved_human_gates": [
     "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
@@ -143,7 +142,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
   "candidate_manifest": {
     "algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
     "branch": "codex/issue-47-collaboration-wiring",
-    "head": "9f40afbe0cae11c743fd8147717c631bef201ba9",
+    "head": "a364c8b45f41ab62cac016fa455ea70ef207e036",
     "excluded_paths": [
       ".ai/DECISIONS.md",
       ".ai/ORCHESTRATOR.lock",
@@ -272,7 +271,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "PLAN.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "5610fc01d39088be33e4bf7f5fccae432516abeff2fe3a69b9f8a4841255f30c"
+        "sha256": "e95f67b140626ad61e145f5f39eadafb5d9b04301c93a23a143a2261c92ee96e"
       },
       {
         "path": "README.md",
@@ -1544,7 +1543,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "scripts/collaboration_goal_entrypoint.py",
         "kind": "file",
         "mode": "0o755",
-        "sha256": "2d1a8f7cb85a678612a66a3e21b96861d9d7a52e286902cc3b16b2bfda8b6afc"
+        "sha256": "bd46ca7e99e1d9841e4300972b4d5ab18f9430425e4ec2f39bc735351a55bfc5"
       },
       {
         "path": "scripts/collaboration_goal_wakeup.py",
@@ -1616,7 +1615,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "scripts/install_collaboration_goal_entrypoint.py",
         "kind": "file",
         "mode": "0o755",
-        "sha256": "aab65d697d4cbf6dedde17fc50b08090d47dadac69abace4845c095fd9d0c48f"
+        "sha256": "fa1ea48fb24af7a4875c363fa322b0035fe183290692bbccad861d06eed7be8a"
       },
       {
         "path": "scripts/install_runner_python_runtime.py",
@@ -1634,7 +1633,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "scripts/issue47_engineering_wakeup.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "d1cf2af06021f9c13203e22dac881792d74350b6a620a37a2613c2b8be95234b"
+        "sha256": "987446fc8b3eaba855bd0bc3616d0554bf5e6cae88f753c0220d183f8a1e9ad2"
       },
       {
         "path": "scripts/kgnote_alpha.py",
@@ -2234,7 +2233,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/control_plane/test_collaboration_goal_entrypoint.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "6a44c339e6a46cb1c8194d1e4ddd6c60ba1a17288012b07d1b8e120b3cb763bb"
+        "sha256": "b058047e6a2854e36a24999a9d5fb29d5a899ee7afb76b2cc11a5101c12a9939"
       },
       {
         "path": "tests/control_plane/test_collaboration_goal_wakeup.py",
@@ -2300,13 +2299,13 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/control_plane/test_issue47_engineering_goal_spec.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "33cb1eeec0eef6fbeaf9dfc41153fdcebaffeefa9f2412374fb87c302bea8268"
+        "sha256": "504931128262cc672f35057fc1c3d755f0fe9de6e65a8bd01dae342c10673cb3"
       },
       {
         "path": "tests/control_plane/test_issue47_engineering_wakeup.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "afa6528c7d79bbcca94c2cef338aff2d9112b4f27bd0639dc491247713afffa7"
+        "sha256": "cf324aa3301165bf6e6239e182992d8a1b40d2bb710b9eb047831ed54112e752"
       },
       {
         "path": "tests/control_plane/test_issue9_goal_history_replay.py",
@@ -3429,6 +3428,6 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 
 ## Human-readable status
 
-Review `review-issue47-end-to-end-autonomous-collaboration-007` is `IMPLEMENTING`.
+Review `review-issue47-end-to-end-autonomous-collaboration-008` is `IMPLEMENTING`.
 It has no active candidate binding and cannot be interpreted as a review request or PASS.
 Codex must complete deterministic verification before issuing this request.

@@ -10,7 +10,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
 ```json
 {
   "schema_version": "kgnote.codex-status.v1",
-  "updated_at": "2026-10-31T12:08:00+08:00",
+  "updated_at": "2026-10-31T13:13:38+08:00",
   "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
@@ -61,42 +61,39 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   },
   "git": {
     "branch": "codex/issue-47-collaboration-wiring",
-    "head": "9f40afbe0cae11c743fd8147717c631bef201ba9",
+    "head": "a364c8b45f41ab62cac016fa455ea70ef207e036",
     "base_commit": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
-    "checkpoint_commit": "9f40afbe0cae11c743fd8147717c631bef201ba9",
+    "checkpoint_commit": "a364c8b45f41ab62cac016fa455ea70ef207e036",
     "previous_integrated_pull_request": {
-      "number": 48,
-      "url": "https://github.com/joannalee20050914/KGnote-public/pull/48",
-      "state": "MERGED",
-      "is_draft": false,
-      "reviewed_head": "af546b05331aa0bb93f4d8a5443bd8dd36602eab",
-      "merge_commit": "52aacd10245546b68a2566b7b5ce68449499a5ef",
-      "merged_at": "2026-10-31T01:41:34Z",
-      "canonical_review_record": "https://github.com/joannalee20050914/KGnote-public/pull/48#issuecomment-6537302189",
-      "ruleset_id": 25347516,
-      "bypass_used": false
-    },
-    "draft_pull_request": {
       "number": 49,
       "url": "https://github.com/joannalee20050914/KGnote-public/pull/49",
       "state": "MERGED",
       "is_draft": false,
-      "head": "9f40afbe0cae11c743fd8147717c631bef201ba9",
-      "fingerprint": "d4057ebd06ede49a04e0a434a813eb0c5602772fe5292f0ebf24528bbcb19826",
-      "merge_state_status": "UNKNOWN",
-      "review_decision": null,
+      "reviewed_head": "9f40afbe0cae11c743fd8147717c631bef201ba9",
       "merge_commit": "79d7101e08ae8375cf0e84622393262a5f7c6a70",
       "merged_at": "2026-10-31T04:06:11Z",
       "canonical_review_record": "https://github.com/joannalee20050914/KGnote-public/pull/49#issuecomment-6538754865",
       "ruleset_id": 25347516,
       "bypass_used": false
     },
-    "remote_head": "9f40afbe0cae11c743fd8147717c631bef201ba9",
+    "draft_pull_request": {
+      "number": 50,
+      "url": "https://github.com/joannalee20050914/KGnote-public/pull/50",
+      "state": "OPEN",
+      "is_draft": true,
+      "head": "a364c8b45f41ab62cac016fa455ea70ef207e036",
+      "fingerprint": "1750cddb9799b37195c138d3c997f25ed2d508666be906e9ac17b93ba0276e84",
+      "merge_state_status": "CLEAN",
+      "review_decision": null,
+      "created_at": "2026-10-31T05:08:50Z",
+      "base_head": "79d7101e08ae8375cf0e84622393262a5f7c6a70"
+    },
+    "remote_head": "a364c8b45f41ab62cac016fa455ea70ef207e036",
     "remote_spec_blob": "2aa4ed35227ca2626532f6b530d9c3d0212004fe",
-    "remote_read_at": "2026-10-31T12:06:32+08:00",
-    "reviewed_tree": "492bf8765dc0dce209da96f5ca74295b572caa02",
-    "merge_tree": "492bf8765dc0dce209da96f5ca74295b572caa02",
-    "merge_tree_identity_verified": true,
+    "remote_read_at": "2026-10-31T13:08:50+08:00",
+    "reviewed_tree": null,
+    "merge_tree": null,
+    "merge_tree_identity_verified": false,
     "engineering_checkpoint_comment": {
       "record_id": 6537768134,
       "url": "https://github.com/joannalee20050914/KGnote-public/pull/49#issuecomment-6537768134",
@@ -116,7 +113,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
   },
   "working_state": {
     "fingerprint_algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
-    "fingerprint": "a00aa8f73ace46370c6ea6b733c64c6b33b15824aa8c4d6bcf66c1375f48f4f2",
+    "fingerprint": "02d23c70e497380252fed9029cec6bd6bfb2f8901e21005677cce052bb713af9",
     "starting_fingerprint": "025295008f940ba5b55ebef2691556cafe82bd110eadae57cc9fb8e7e281aed6",
     "expected_dirty_policy": "EG-4A may change only its declared Issue #47 activation/intake scripts, bounded control-plane tests, PLAN/STATUS/review bus, exact checkpoint/PR receipts, trusted Mac deployment/runtime paths named by the install receipt, and ignored deterministic evidence. Product Goal/O2 runtime paths remain forbidden.",
     "preserved_preexisting_dirty_paths": [
@@ -183,16 +180,16 @@ Product Goal, privacy, review, deployment, and go-live conditions.
     "claude": {
       "ceiling": 12,
       "known_preapproval": 2,
-      "consumed_total_conservative": 5,
-      "remaining_total_conservative": 7,
+      "consumed_total_conservative": 6,
+      "remaining_total_conservative": 6,
       "daily_ceiling": 12,
-      "current_workday_launches": 5,
-      "accounting_note": "The pre-Review-005 baseline of 3 launches remains preserved. Durable v2 wake history atomically charged and completed Review 005 and Review 006 once each, so effective cumulative and 2026-10-31 Claude usage is 5/12; no restart, date, review, or Goal transition resets it.",
+      "current_workday_launches": 6,
+      "accounting_note": "The pre-Review-005 baseline of 3 launches remains preserved. Reviews 005, 006, and external Review 007 round 6 each consumed one Claude Pro launch, so effective cumulative and 2026-10-31 Claude usage is 6/12; no restart, date, review, or Goal transition resets it.",
       "current_workday": "2026-10-31"
     },
     "paid_api_fallback": false,
     "reset_forbidden": true,
-    "work_window_state": "EG4_COMPLETE_ENTRYPOINT_DISABLED_AWAITING_SEPARATE_PRODUCT_GOAL_CANARY_AUTHORITY",
+    "work_window_state": "EG4A_REPAIRING_EXTERNAL_REVIEW_FINDINGS_WITH_PRODUCT_GOAL_CANARY_NOT_AUTHORIZED",
     "current_window_closes_at": "2026-10-31T18:00:00+08:00",
     "out_of_window_goal_continuation_detected": true,
     "out_of_window_goal_continuation_count": 3,
@@ -222,15 +219,38 @@ Product Goal, privacy, review, deployment, and go-live conditions.
     "candidate_revision": null,
     "candidate_fingerprint": null,
     "unresolved_findings": [],
+    "external_review_finding_repairs": [
+      {
+        "id": "finding-no-model-mode-not-enforced",
+        "severity": "major",
+        "status": "FIXED_PENDING_REVIEW",
+        "evidence": "scripts/collaboration_goal_entrypoint.py plus tests/control_plane/test_collaboration_goal_entrypoint.py::test_engineering_activation_is_structurally_no_model",
+        "source": "https://github.com/joannalee20050914/KGnote-public/pull/50#issuecomment-6539434285"
+      },
+      {
+        "id": "finding-intake-comment-listing-unpaginated-and-spoofable",
+        "severity": "minor",
+        "status": "FIXED_PENDING_REVIEW",
+        "evidence": "scripts/issue47_engineering_wakeup.py plus tests/control_plane/test_issue47_engineering_wakeup.py::test_paginated_intake_ignores_non_owner_marker_spoofs",
+        "source": "https://github.com/joannalee20050914/KGnote-public/pull/50#issuecomment-6539434285"
+      },
+      {
+        "id": "finding-activation-crash-window-and-writer-lock-check",
+        "severity": "minor",
+        "status": "FIXED_PENDING_REVIEW",
+        "evidence": "scripts/install_collaboration_goal_entrypoint.py plus hard-crash boundary and runtime-writer-lock regression tests",
+        "source": "https://github.com/joannalee20050914/KGnote-public/pull/50#issuecomment-6539434285"
+      }
+    ],
     "human_decision_blockers": []
   },
   "verification": {
-    "candidate_verified": false,
+    "candidate_verified": true,
     "release_verified": false,
-    "control_plane_ready": false,
-    "last_candidate_evidence": "output/control-plane/verification-20261031T115913+0800.json",
-    "last_verified_fingerprint": "d4057ebd06ede49a04e0a434a813eb0c5602772fe5292f0ebf24528bbcb19826",
-    "last_result": "Reviewer PASS for review-issue47-end-to-end-autonomous-collaboration-006 was archived and consumed for deterministic progression; it is not rebound to the post-progression fingerprint."
+    "control_plane_ready": true,
+    "last_candidate_evidence": "output/control-plane/verification-20261031T131723+0800.json",
+    "last_verified_fingerprint": "02d23c70e497380252fed9029cec6bd6bfb2f8901e21005677cce052bb713af9",
+    "last_result": "All three external Review 007 findings are FIXED_PENDING_REVIEW. Deterministic verification passed for the repair fingerprint 02d23c70e497380252fed9029cec6bd6bfb2f8901e21005677cce052bb713af9; release verification remains false."
   },
   "deployment": {
     "status": "INSTALLED_DISABLED_NOT_LOADED",
@@ -253,7 +273,7 @@ Product Goal, privacy, review, deployment, and go-live conditions.
     "model_launch_started": false,
     "product_goal_canary": "NOT_AUTHORIZED"
   },
-  "next_action": "Implement and independently review the exact GitHub intake plus engineering-only activation path for EG-4A; bootstrap only the reviewed generation, then verify one acknowledgement and duplicate suppression without model or Product Goal dispatch.",
+  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-issue47-end-to-end-autonomous-collaboration-008.",
   "external_or_human_gates": [
     {
       "id": "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
@@ -345,5 +365,5 @@ Goal `CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION` remains active
 Review state is `IMPLEMENTING`.
 There is no active submitted review request.
 Unresolved findings: none. Human decision blockers: none.
-Exact next action: Implement and independently review the exact GitHub intake plus engineering-only activation path for EG-4A; bootstrap only the reviewed generation, then verify one acknowledgement and duplicate suppression without model or Product Goal dispatch.
+Exact next action: Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-issue47-end-to-end-autonomous-collaboration-008.
 PA-HUMAN-1, NS-HUMAN-SMOKE, and release verification remain unchanged by local review automation.

@@ -12,7 +12,7 @@ import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -233,44 +233,9 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
         if command[:2] == ["/bin/launchctl", "print"]:
             return subprocess.CompletedProcess(command, 3, "", "not loaded")
         if str(command[1]).endswith("issue47_engineering_wakeup.py"):
-            state_path = Path(command[command.index("--state") + 1])
-            state_path.parent.mkdir(parents=True, exist_ok=True)
-            state_path.write_text(json.dumps({
-                "schema_version": ENTRYPOINT.ENGINEERING_WAKEUP_STATE_SCHEMA,
-                "goal_id": ENTRYPOINT.ENGINEERING_GOAL_ID,
-                "goal_version": "2026-10-31.4-engineering-continuation-simplification",
-                "accounting_baseline": {},
-                "dispatches": [{
-                    "dispatch_key": "d" * 64,
-                    "action": "DISPATCH_IMPLEMENTATION",
-                    "provider": "codex",
-                    "candidate_commit": "c" * 40,
-                    "candidate_fingerprint": "f" * 64,
-                }],
-                "events": [{
-                    "dispatch_key": "d" * 64,
-                    "status": "RESERVED",
-                    "model_launch_started": False,
-                }],
-            }))
             return subprocess.CompletedProcess(command, 0, json.dumps({
-                "status": "RESERVED",
-                "action": "DISPATCH_IMPLEMENTATION",
-                "provider": "codex",
-                "dispatch_key": "d" * 64,
-                "candidate_commit": "c" * 40,
-                "candidate_fingerprint": "f" * 64,
+                "status": "NO_AUTHORIZED_ENGINEERING_WORK",
                 "safety": {"model_launch_started": False},
-            }), "")
-        if str(command[1]).endswith("codex_control.py"):
-            return subprocess.CompletedProcess(command, 0, json.dumps({
-                "head": "c" * 40,
-                "value": "f" * 64,
-            }), "")
-        if str(command[1]).endswith("codex_orchestrator.py"):
-            return subprocess.CompletedProcess(command, 0, json.dumps({
-                "state": "IMPLEMENTING",
-                "review_id": "review-issue47-end-to-end-autonomous-collaboration-004",
             }), "")
         return subprocess.CompletedProcess(command, 2, "", "unexpected command")
 
@@ -402,6 +367,105 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
                 )
             self.assertFalse(any("bootstrap" in call.args[0] for call in runner.call_args_list))
 
+    def test_engineering_activation_hard_crash_at_each_write_boundary_is_recoverable(self):
+        for boundary in ("after_record", "after_plist", "after_config"):
+            with self.subTest(boundary=boundary), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                repo, commit = self.repository(root)
+                receipt = self.install(root, repo, commit)
+                runtime = root / "engineering-runtime"
+                runtime.mkdir()
+                (runtime / "goal-v4.json").write_bytes(
+                    (ROOT / "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.4.json").read_bytes()
+                )
+                heartbeat = root / "automation.toml"
+                heartbeat.write_text('id = "kgnote-47-goal"\nstatus = "PAUSED"\n')
+                arguments = {
+                    "runtime_repository": runtime,
+                    "goal_spec": "goal-v4.json",
+                    "heartbeat": heartbeat,
+                    "wakeup_state": "output/control-plane/collaboration-goal/wakeup-state.json",
+                    "intake_state": "output/control-plane/collaboration-goal/intake-state.json",
+                    "result_path": "output/control-plane/collaboration-goal/entrypoint-result.json",
+                    "writer_lock": "output/control-plane/collaboration-goal/writer.lock",
+                    "stop_marker": ".ai/ORCHESTRATOR_STOP",
+                    "command_runner": self.unloaded,
+                }
+                config_path = Path(str(receipt["config_path"]))
+                plist_path = Path(str(receipt["plist_path"]))
+                original_atomic_bytes = INSTALLER._atomic_bytes
+
+                def interrupted_write(path, data, mode=0o600):
+                    target = Path(path)
+                    if boundary == "after_record" and target == plist_path:
+                        raise SystemExit("simulated hard crash after activation record")
+                    if boundary == "after_plist" and target == config_path:
+                        raise SystemExit("simulated hard crash after enabled plist")
+                    return original_atomic_bytes(target, data, mode)
+
+                verify_side_effect = (
+                    SystemExit("simulated hard crash after enabled config")
+                    if boundary == "after_config" else None
+                )
+                with patch.object(INSTALLER, "_atomic_bytes", side_effect=interrupted_write):
+                    if verify_side_effect is None:
+                        with self.assertRaises(SystemExit):
+                            INSTALLER.activate_engineering(
+                                Path(str(receipt["receipt_path"])), **arguments
+                            )
+                    else:
+                        with patch.object(
+                            INSTALLER, "_verify_activation", side_effect=verify_side_effect
+                        ), self.assertRaises(SystemExit):
+                            INSTALLER.activate_engineering(
+                                Path(str(receipt["receipt_path"])), **arguments
+                            )
+
+                recovered = INSTALLER.disable(
+                    Path(str(receipt["receipt_path"])), command_runner=self.unloaded
+                )
+                self.assertEqual("STOPPED", recovered["status"])
+                self.assertEqual(receipt["config_sha256"], hashlib.sha256(
+                    config_path.read_bytes()
+                ).hexdigest())
+                self.assertEqual(receipt["plist_sha256"], hashlib.sha256(
+                    plist_path.read_bytes()
+                ).hexdigest())
+                self.assertFalse(Path(str(receipt["activation_record_path"])).exists())
+
+    def test_engineering_activation_checks_the_bound_runtime_writer_lock(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo, commit = self.repository(root)
+            receipt = self.install(root, repo, commit)
+            runtime = root / "engineering-runtime"
+            runtime.mkdir()
+            (runtime / "goal-v4.json").write_bytes(
+                (ROOT / "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.4.json").read_bytes()
+            )
+            heartbeat = root / "automation.toml"
+            heartbeat.write_text('id = "kgnote-47-goal"\nstatus = "PAUSED"\n')
+            lock_path = runtime / "custom/runtime-writer.lock"
+            lock_path.parent.mkdir(parents=True)
+            with lock_path.open("a+", encoding="utf-8") as lock:
+                fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                with self.assertRaisesRegex(
+                    INSTALLER.EntrypointInstallError,
+                    "another collaboration Goal writer",
+                ):
+                    INSTALLER.activate_engineering(
+                        Path(str(receipt["receipt_path"])),
+                        runtime_repository=runtime,
+                        goal_spec="goal-v4.json",
+                        heartbeat=heartbeat,
+                        wakeup_state="output/wakeup-state.json",
+                        intake_state="output/intake-state.json",
+                        result_path="output/result.json",
+                        writer_lock="custom/runtime-writer.lock",
+                        stop_marker=".ai/ORCHESTRATOR_STOP",
+                        command_runner=self.unloaded,
+                    )
+
     def test_install_fails_closed_when_legacy_o2_runner_is_loaded(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -490,7 +554,7 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             self.assertEqual("DISPATCHED", result["status"])
             self.assertFalse(result["model_launch_started"])
 
-    def test_engineering_activation_runs_no_model_gate_before_continuation(self):
+    def test_engineering_activation_is_structurally_no_model(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo, commit = self.repository(root)
@@ -504,83 +568,75 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             result = ENTRYPOINT.run_once(
                 config_path, now="2026-10-31T12:00:00+08:00", command_runner=runner,
             )
-            self.assertEqual("IMPLEMENTING", result["status"])
-            self.assertTrue(result["model_launch_started"])
-            wakeup_state = json.loads(
-                (root / "engineering-runtime/output/control-plane/collaboration-goal/wakeup-state.json").read_text()
-            )
-            self.assertEqual("COMPLETED", wakeup_state["events"][-1]["status"])
-            self.assertTrue(wakeup_state["events"][-1]["model_launch_started"])
-            commands = [call.args[0] for call in runner.call_args_list]
-            gate_index = next(
-                index for index, command in enumerate(commands)
-                if len(command) > 1 and str(command[1]).endswith("issue47_engineering_wakeup.py")
-            )
-            continuation_index = next(
-                index for index, command in enumerate(commands)
-                if len(command) > 1 and str(command[1]).endswith("codex_orchestrator.py")
-            )
-            self.assertLess(gate_index, continuation_index)
-            self.assertIn("--reserve", commands[gate_index])
-            self.assertIn("--engineering-reservation", commands[continuation_index])
-            self.assertIn("--dispatch-key", commands[continuation_index])
-            self.assertIn("--expected-action", commands[continuation_index])
-            self.assertIn("--expected-provider", commands[continuation_index])
-
-    def test_engineering_gate_wait_never_invokes_continuation(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            repo, commit = self.repository(root)
-            receipt = self.install(root, repo, commit)
-            config_path, _, _ = self.activate_engineering(root, receipt)
-
-            def waiting(command, **kwargs):
-                if len(command) > 1 and str(command[1]).endswith("issue47_engineering_wakeup.py"):
-                    return subprocess.CompletedProcess(command, 2, json.dumps({
-                        "status": "WAITING_QUOTA",
-                        "safety": {"model_launch_started": False},
-                    }), "")
-                return self.engineering_runner(command, **kwargs)
-
-            runner = Mock(side_effect=waiting)
-            result = ENTRYPOINT.run_once(config_path, command_runner=runner)
-            self.assertEqual("WAITING_QUOTA", result["status"])
+            self.assertEqual("NO_AUTHORIZED_ENGINEERING_WORK", result["status"])
             self.assertFalse(result["model_launch_started"])
+            self.assertFalse(
+                (root / "engineering-runtime/output/control-plane/collaboration-goal/wakeup-state.json").exists()
+            )
+            commands = [call.args[0] for call in runner.call_args_list]
+            gate = next(
+                command for command in commands
+                if len(command) > 1
+                and str(command[1]).endswith("issue47_engineering_wakeup.py")
+            )
+            self.assertIn("--no-model-only", gate)
+            self.assertNotIn("--reserve", gate)
             self.assertFalse(any(
-                len(call.args[0]) > 1 and str(call.args[0][1]).endswith("codex_orchestrator.py")
-                for call in runner.call_args_list
+                len(command) > 1
+                and str(command[1]).endswith("codex_orchestrator.py")
+                for command in commands
             ))
 
-    def test_engineering_candidate_or_provider_mismatch_never_invokes_continuation(self):
-        cases = ("candidate", "provider")
-        for case in cases:
-            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+    def test_engineering_no_model_mode_rejects_any_exposed_continuation(self):
+        for exposed in ("RESERVED", "WAITING_QUOTA"):
+            with self.subTest(exposed=exposed), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 repo, commit = self.repository(root)
                 receipt = self.install(root, repo, commit)
                 config_path, _, _ = self.activate_engineering(root, receipt)
 
-                def mismatched(command, **kwargs):
-                    completed = self.engineering_runner(command, **kwargs)
-                    if len(command) > 1 and str(command[1]).endswith("codex_control.py") and case == "candidate":
-                        return subprocess.CompletedProcess(
-                            command, 0,
-                            json.dumps({"head": "0" * 40, "value": "f" * 64}), "",
-                        )
-                    if len(command) > 1 and str(command[1]).endswith("issue47_engineering_wakeup.py") and case == "provider":
-                        value = json.loads(completed.stdout)
-                        value["provider"] = "claude"
-                        return subprocess.CompletedProcess(command, 0, json.dumps(value), "")
-                    return completed
+                def exposed_gate(command, **kwargs):
+                    if len(command) > 1 and str(command[1]).endswith(
+                        "issue47_engineering_wakeup.py"
+                    ):
+                        return subprocess.CompletedProcess(command, 0, json.dumps({
+                            "status": exposed,
+                            "safety": {"model_launch_started": False},
+                        }), "")
+                    return self.engineering_runner(command, **kwargs)
 
-                runner = Mock(side_effect=mismatched)
-                expected = "candidate identity differs|provider differs"
-                with self.assertRaisesRegex(ENTRYPOINT.EntrypointError, expected):
+                runner = Mock(side_effect=exposed_gate)
+                with self.assertRaisesRegex(
+                    ENTRYPOINT.EntrypointError, "attempted to expose a continuation"
+                ):
                     ENTRYPOINT.run_once(config_path, command_runner=runner)
                 self.assertFalse(any(
-                    len(call.args[0]) > 1 and str(call.args[0][1]).endswith("codex_orchestrator.py")
+                    len(call.args[0]) > 1
+                    and str(call.args[0][1]).endswith("codex_orchestrator.py")
                     for call in runner.call_args_list
                 ))
+
+    def test_engineering_activation_rejects_tampered_no_model_authority(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo, commit = self.repository(root)
+            receipt = self.install(root, repo, commit)
+            config_path, activation_path, _ = self.activate_engineering(root, receipt)
+            config = json.loads(config_path.read_text())
+            activation = json.loads(activation_path.read_text())
+            config["activation_authority"]["mode"] = "MODEL_CAPABLE"
+            activation["activation_authority"] = config["activation_authority"]
+            config_path.write_text(json.dumps(config, indent=2, sort_keys=True) + "\n")
+            activation["enabled_config_sha256"] = hashlib.sha256(
+                config_path.read_bytes()
+            ).hexdigest()
+            activation_path.write_text(
+                json.dumps(activation, indent=2, sort_keys=True) + "\n"
+            )
+            with self.assertRaisesRegex(
+                ENTRYPOINT.EntrypointError, "exact no-model v4 authority"
+            ):
+                ENTRYPOINT.run_once(config_path, command_runner=self.engineering_runner)
 
     def test_engineering_runtime_stop_short_circuits_before_any_command(self):
         with tempfile.TemporaryDirectory() as directory:

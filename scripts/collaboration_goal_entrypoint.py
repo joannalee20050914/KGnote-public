@@ -3,8 +3,9 @@
 
 The installed configuration is deliberately disabled.  It may later be
 activated either for one exact Product Goal or for the exact Issue #47
-engineering continuation.  The engineering mode always runs the reviewed
-no-model admission gate before it invokes the continuation command.
+engineering intake.  The currently authorized engineering mode is
+structurally no-model: it can run only the reviewed intake gate and cannot
+reserve or invoke an orchestrator continuation.
 """
 from __future__ import annotations
 
@@ -30,6 +31,8 @@ RESULT_SCHEMA = "kgnote.collaboration-goal-entrypoint-result.v1"
 ENGINEERING_WAKEUP_STATE_SCHEMA = "kgnote.issue47-engineering-wakeup-state.v2"
 V4_OWNER_COMMENT_ID = 6538300483
 V4_GOAL_SPEC_SHA256 = "0507d2dbc5c9780afbe3e67a3c8ca66f8fb1b93eff9507c86299baac0141ad5d"
+NO_PASTE_ACCEPTANCE_COMMENT_ID = 6539158585
+NO_MODEL_ENGINEERING_MODE = "NO_MODEL_ENGINEERING_WAKEUP_ONLY"
 ENABLED_STATUS = "ENABLED_FOR_EXACT_PRODUCT_GOAL"
 ENGINEERING_ENABLED_STATUS = "ENABLED_FOR_EXACT_ENGINEERING_GOAL_WAKEUP"
 ENABLED_STATUSES = {ENABLED_STATUS, ENGINEERING_ENABLED_STATUS}
@@ -141,8 +144,7 @@ def _require_no_unexpected_model_processes(
         )
 
 
-def _require_no_competing_writer(repo: Path) -> None:
-    lock_path = repo / "output/control-plane/collaboration-goal/writer.lock"
+def _require_writer_lock_available(lock_path: Path) -> None:
     if not lock_path.exists() and not lock_path.is_symlink():
         return
     if lock_path.is_symlink() or not lock_path.is_file():
@@ -157,6 +159,12 @@ def _require_no_competing_writer(repo: Path) -> None:
                 fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
             except OSError:
                 pass
+
+
+def _require_no_competing_writer(repo: Path) -> None:
+    _require_writer_lock_available(
+        repo / "output/control-plane/collaboration-goal/writer.lock"
+    )
 
 
 def _require_o2_unloaded(
@@ -276,12 +284,28 @@ def _verify_enabled_identity(
     if config.get("status") == ENGINEERING_ENABLED_STATUS and (
         authority.get("authorization_comment_id") != V4_OWNER_COMMENT_ID
         or authority.get("goal_spec_sha256") != V4_GOAL_SPEC_SHA256
+        or authority.get("acceptance_comment_id") != NO_PASTE_ACCEPTANCE_COMMENT_ID
+        or authority.get("mode") != NO_MODEL_ENGINEERING_MODE
+        or authority.get("product_goal_authorized") is not False
     ):
-        raise EntrypointError("engineering wakeup activation is not bound to exact v4 authority")
+        raise EntrypointError(
+            "engineering wakeup activation is not bound to exact no-model v4 authority"
+        )
     if Path(str(receipt.get("python", ""))).resolve() != Path(sys.executable).resolve():
         raise EntrypointError("entrypoint Python differs from the install receipt")
     _require_no_unexpected_model_processes(command_runner=command_runner)
-    _require_no_competing_writer(repo)
+    if config.get("status") == ENGINEERING_ENABLED_STATUS:
+        binding = config.get("engineering_goal")
+        if not isinstance(binding, dict):
+            raise EntrypointError("engineering Goal binding is unavailable")
+        runtime = _absolute_regular_directory(
+            binding.get("runtime_repository"), "engineering runtime"
+        )
+        _require_writer_lock_available(
+            _runtime_path(runtime, binding.get("writer_lock"), "engineering writer lock")
+        )
+    else:
+        _require_no_competing_writer(repo)
     _require_o2_unloaded(command_runner=command_runner)
     return repo, dispatcher, wakeup, control, orchestrator
 
@@ -387,8 +411,7 @@ def _transition_wakeup_state(
 
 
 def _run_engineering_wakeup(
-    *, deployment_repo: Path, wakeup: Path, control: Path, orchestrator: Path,
-    config: dict[str, Any],
+    *, deployment_repo: Path, wakeup: Path, config: dict[str, Any],
     now: str | None, base: dict[str, Any],
     command_runner: Callable[..., subprocess.CompletedProcess[str]],
 ) -> dict[str, Any]:
@@ -424,7 +447,8 @@ def _run_engineering_wakeup(
         sys.executable, str(wakeup), "--repo", str(runtime), "--spec", str(spec),
         "--heartbeat", str(heartbeat), "--state", str(state),
         "--intake-state", str(intake_state),
-        "--writer-lock", str(writer_lock), "--stop-marker", str(stop_marker), "--reserve",
+        "--writer-lock", str(writer_lock), "--stop-marker", str(stop_marker),
+        "--no-model-only",
     ]
     if now is not None:
         gate_command.extend(["--now", now])
@@ -435,71 +459,16 @@ def _run_engineering_wakeup(
     gate_safety = gate.get("safety")
     if not isinstance(gate_safety, dict) or gate_safety.get("model_launch_started") is not False:
         raise EntrypointError("engineering admission gate did not prove a no-model decision")
-    if gate.get("status") != "RESERVED":
-        return {
-            **base,
-            "status": gate.get("status", "BLOCKED"),
-            "admission_gate_exit_code": gate_completed.returncode,
-            "admission_gate_result": gate,
-        }
-    if gate_completed.returncode:
-        raise EntrypointError("engineering admission reservation returned a failing exit code")
-    if gate.get("action") not in {"DISPATCH_IMPLEMENTATION", "DISPATCH_REVIEW"}:
-        raise EntrypointError("engineering admission action is not supported")
-    expected_provider = {
-        "DISPATCH_IMPLEMENTATION": "codex",
-        "DISPATCH_REVIEW": "claude",
-    }[gate["action"]]
-    if gate.get("provider") != expected_provider:
-        raise EntrypointError("engineering admission provider differs from its action")
-    dispatch_key = str(gate.get("dispatch_key", ""))
-    if not re.fullmatch(r"[0-9a-f]{64}", dispatch_key):
-        raise EntrypointError("engineering admission dispatch key is not exact")
-
-    candidate_commit = str(gate.get("candidate_commit", ""))
-    candidate_fingerprint = str(gate.get("candidate_fingerprint", ""))
-    if not re.fullmatch(r"[0-9a-f]{40}", candidate_commit) or not re.fullmatch(
-        r"[0-9a-f]{64}", candidate_fingerprint
-    ):
-        raise EntrypointError("engineering admission candidate identity is not exact")
-    identity_completed = command_runner(
-        [sys.executable, str(control), "--repo", str(runtime), "fingerprint"],
-        cwd=deployment_repo, capture_output=True, text=True, check=False,
-    )
-    if identity_completed.returncode:
-        raise EntrypointError("runtime candidate identity read-back failed")
-    identity = _json_result(identity_completed, "runtime candidate identity")
-    if identity.get("head") != candidate_commit or identity.get("value") != candidate_fingerprint:
-        raise EntrypointError("runtime candidate identity differs from the reservation")
-    continuation = [
-        sys.executable, str(orchestrator), "--repo", str(runtime),
-        "resume", "--max-steps", "1", "--engineering-reservation", str(state),
-        "--dispatch-key", dispatch_key, "--expected-action", str(gate["action"]),
-        "--expected-provider", expected_provider,
-    ]
-    _transition_wakeup_state(
-        state_path=state, writer_lock=writer_lock, dispatch_key=dispatch_key,
-        status="RUNNING", observed_at=now,
-    )
-    completed = command_runner(
-        continuation, cwd=runtime, capture_output=True, text=True, check=False,
-    )
-    result = _json_result(completed, "engineering continuation")
-    _transition_wakeup_state(
-        state_path=state, writer_lock=writer_lock, dispatch_key=dispatch_key,
-        status="COMPLETED" if completed.returncode == 0 else "FAILED",
-        observed_at=now, continuation_exit_code=completed.returncode,
-    )
+    if gate_completed.returncode or gate.get("status") != "NO_AUTHORIZED_ENGINEERING_WORK":
+        raise EntrypointError(
+            "no-model engineering gate attempted to expose a continuation"
+        )
     return {
         **base,
-        "status": result.get("state", result.get("status", "BLOCKED")),
+        "status": "NO_AUTHORIZED_ENGINEERING_WORK",
         "admission_gate_exit_code": gate_completed.returncode,
         "admission_gate_result": gate,
-        "continuation_exit_code": completed.returncode,
-        "continuation_result": result,
-        # A reservation followed by invocation is charged conservatively even
-        # if the provider fails before returning a durable launch receipt.
-        "model_launch_started": True,
+        "model_launch_started": False,
     }
 
 
@@ -550,8 +519,7 @@ def run_once(
 
     if status == ENGINEERING_ENABLED_STATUS:
         return _run_engineering_wakeup(
-            deployment_repo=repo, wakeup=wakeup, control=control,
-            orchestrator=orchestrator, config=config, now=now,
+            deployment_repo=repo, wakeup=wakeup, config=config, now=now,
             base=base, command_runner=command_runner,
         )
 

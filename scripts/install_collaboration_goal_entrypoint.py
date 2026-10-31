@@ -177,8 +177,7 @@ def _require_no_unexpected_model_processes(
         )
 
 
-def _require_no_competing_writer(repo: Path) -> None:
-    lock_path = repo / "output/control-plane/collaboration-goal/writer.lock"
+def _require_writer_lock_available(lock_path: Path) -> None:
     if not lock_path.exists() and not lock_path.is_symlink():
         return
     if lock_path.is_symlink() or not lock_path.is_file():
@@ -195,6 +194,12 @@ def _require_no_competing_writer(repo: Path) -> None:
                 fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
             except OSError:
                 pass
+
+
+def _require_no_competing_writer(repo: Path) -> None:
+    _require_writer_lock_available(
+        repo / "output/control-plane/collaboration-goal/writer.lock"
+    )
 
 
 def _load_json_object(path: Path, label: str) -> dict[str, Any]:
@@ -308,6 +313,74 @@ def _verify_deployment_receipt(receipt: dict[str, Any]) -> tuple[Path, dict[str,
     return repo, identity
 
 
+def _verify_engineering_activation_record(
+    *, receipt_path: Path, receipt: dict[str, Any], activation: dict[str, Any],
+) -> None:
+    exact = {
+        "schema_version": ACTIVATION_SCHEMA,
+        "status": ENGINEERING_ENABLED_STATUS,
+        "engineering_goal_id": ENGINEERING_GOAL_ID,
+        "install_receipt": str(receipt_path),
+        "install_receipt_sha256": _sha256(receipt_path),
+        "deployment": receipt.get("deployment"),
+        "entrypoint_sha256": receipt.get("entrypoint_sha256"),
+        "dispatcher_sha256": receipt.get("dispatcher_sha256"),
+        "engineering_wakeup_sha256": receipt.get("engineering_wakeup_sha256"),
+        "control_sha256": receipt.get("control_sha256"),
+        "orchestrator_sha256": receipt.get("orchestrator_sha256"),
+        "product_goal": None,
+    }
+    for field, expected in exact.items():
+        if activation.get(field) != expected:
+            raise EntrypointInstallError(
+                f"engineering activation record mismatch for {field}"
+            )
+    for field in ("enabled_config_sha256", "enabled_plist_sha256"):
+        if not re.fullmatch(r"[0-9a-f]{64}", str(activation.get(field, ""))):
+            raise EntrypointInstallError(
+                f"engineering activation record {field} is invalid"
+            )
+    if not isinstance(activation.get("engineering_goal"), dict):
+        raise EntrypointInstallError("engineering activation binding is unavailable")
+    authority = activation.get("activation_authority")
+    if authority != {
+        "status": "APPROVED",
+        "authorization_comment_id": V4_OWNER_COMMENT_ID,
+        "goal_spec_sha256": V4_GOAL_SPEC_SHA256,
+        "acceptance_comment_id": NO_PASTE_ACCEPTANCE_COMMENT_ID,
+        "mode": "NO_MODEL_ENGINEERING_WAKEUP_ONLY",
+        "product_goal_authorized": False,
+    }:
+        raise EntrypointInstallError("engineering activation authority scope differs")
+
+
+def _verify_partial_engineering_activation(
+    *, receipt_path: Path, receipt: dict[str, Any], config_path: Path,
+    config: dict[str, Any], plist_path: Path, plist: dict[str, Any],
+    activation_path: Path,
+) -> None:
+    if config != _disabled_config(receipt) or _sha256(config_path) != receipt.get(
+        "config_sha256"
+    ):
+        raise EntrypointInstallError("partial activation disabled config differs")
+    activation = _load_json_object(activation_path, "partial activation record")
+    _verify_engineering_activation_record(
+        receipt_path=receipt_path, receipt=receipt, activation=activation
+    )
+    plist_sha256 = _sha256(plist_path)
+    if plist_sha256 == receipt.get("plist_sha256"):
+        if plist != _disabled_plist(receipt):
+            raise EntrypointInstallError("partial activation disabled plist differs")
+    elif plist_sha256 == activation.get("enabled_plist_sha256"):
+        expected_enabled = _disabled_plist(receipt)
+        expected_enabled["Disabled"] = False
+        expected_enabled["RunAtLoad"] = True
+        if plist != expected_enabled:
+            raise EntrypointInstallError("partial activation enabled plist differs")
+    else:
+        raise EntrypointInstallError("partial activation plist bytes differ")
+
+
 def _verify_activation(
     *, receipt_path: Path, receipt: dict[str, Any], config_path: Path,
     config: dict[str, Any], plist_path: Path, plist: dict[str, Any],
@@ -355,6 +428,9 @@ def _verify_activation(
     elif config.get("status") == ENGINEERING_ENABLED_STATUS:
         if config.get("product_goal") is not None or not isinstance(config.get("engineering_goal"), dict):
             raise EntrypointInstallError("engineering Goal activation bindings differ")
+        _verify_engineering_activation_record(
+            receipt_path=receipt_path, receipt=receipt, activation=activation
+        )
         if authority.get("authorization_comment_id") != V4_OWNER_COMMENT_ID:
             raise EntrypointInstallError("engineering wakeup authority comment differs from v4")
         if authority.get("goal_spec_sha256") != V4_GOAL_SPEC_SHA256:
@@ -551,6 +627,7 @@ def activate_engineering(
         name: _runtime_relative(runtime, value, f"engineering {name}")
         for name, value in relative_fields.items()
     }
+    _require_writer_lock_available(resolved_runtime_paths["writer_lock"])
     if resolved_runtime_paths["stop_marker"].exists() or resolved_runtime_paths[
         "stop_marker"
     ].is_symlink():
@@ -588,16 +665,14 @@ def activate_engineering(
         json.dumps(enabled_config, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     ).encode()
     enabled_plist_bytes = plistlib.dumps(enabled_plist, fmt=plistlib.FMT_XML)
-    _atomic_bytes(config_path, enabled_config_bytes, mode=0o600)
-    _atomic_bytes(plist_path, enabled_plist_bytes, mode=0o600)
     activation = {
         "schema_version": ACTIVATION_SCHEMA,
         "status": ENGINEERING_ENABLED_STATUS,
         "engineering_goal_id": ENGINEERING_GOAL_ID,
         "install_receipt": str(receipt_path),
         "install_receipt_sha256": _sha256(receipt_path),
-        "enabled_config_sha256": _sha256(config_path),
-        "enabled_plist_sha256": _sha256(plist_path),
+        "enabled_config_sha256": hashlib.sha256(enabled_config_bytes).hexdigest(),
+        "enabled_plist_sha256": hashlib.sha256(enabled_plist_bytes).hexdigest(),
         "deployment": identity,
         "entrypoint_sha256": receipt.get("entrypoint_sha256"),
         "dispatcher_sha256": receipt.get("dispatcher_sha256"),
@@ -609,8 +684,14 @@ def activate_engineering(
         "activation_authority": authority,
         "activated_at": datetime.now(timezone.utc).isoformat(),
     }
-    _atomic_json(activation_path, activation)
     try:
+        # The activation record is a recovery journal.  Until the final config
+        # write, the entrypoint remains disabled even if launchd notices the
+        # plist.  A hard interruption after either write is recoverable by the
+        # reviewed disable/rollback commands from receipt-bound bytes.
+        _atomic_json(activation_path, activation)
+        _atomic_bytes(plist_path, enabled_plist_bytes, mode=0o600)
+        _atomic_bytes(config_path, enabled_config_bytes, mode=0o600)
         _verify_activation(
             receipt_path=receipt_path,
             receipt=receipt,
@@ -700,15 +781,23 @@ def disable(
     plist = plistlib.loads(plist_path.read_bytes())
     was_loaded = _launchctl_loaded(LABEL, command_runner=command_runner)
     if config.get("status") == "DISABLED":
-        if (
+        partial_activation = activation_path.exists() or activation_path.is_symlink()
+        if partial_activation:
+            if activation_path.is_symlink() or not activation_path.is_file():
+                raise EntrypointInstallError("partial activation record is not regular")
+            _verify_partial_engineering_activation(
+                receipt_path=receipt_path, receipt=receipt,
+                config_path=config_path, config=config,
+                plist_path=plist_path, plist=plist,
+                activation_path=activation_path,
+            )
+        elif (
             config != _disabled_config(receipt)
             or _sha256(config_path) != receipt.get("config_sha256")
             or plist != _disabled_plist(receipt)
             or _sha256(plist_path) != receipt.get("plist_sha256")
         ):
             raise EntrypointInstallError("disabled entrypoint bytes differ")
-        if activation_path.exists() or activation_path.is_symlink():
-            raise EntrypointInstallError("disabled entrypoint has an activation record")
         if was_loaded:
             completed = command_runner(
                 ["/bin/launchctl", "bootout", f"gui/{os.getuid()}/{LABEL}"],
@@ -726,11 +815,19 @@ def disable(
         )
         if _launchctl_loaded(LABEL, command_runner=command_runner):
             raise EntrypointInstallError("disabled entrypoint remains loaded")
+        if partial_activation:
+            _restore_disabled_install(
+                receipt=receipt,
+                config_path=config_path,
+                plist_path=plist_path,
+                activation_path=activation_path,
+            )
         return {
             "schema_version": RECEIPT_SCHEMA,
             "status": "STOPPED",
             "label": LABEL,
             "was_loaded": was_loaded,
+            "partial_activation_recovered": partial_activation,
             "deployment": identity,
             "legacy_o2_runner_loaded": False,
         }
@@ -823,6 +920,11 @@ def read_status(
             if not isinstance(binding, dict):
                 raise EntrypointInstallError("engineering Goal binding is unavailable")
             runtime = Path(str(binding.get("runtime_repository", ""))).resolve()
+            _require_writer_lock_available(
+                _runtime_relative(
+                    runtime, binding.get("writer_lock"), "engineering writer lock"
+                )
+            )
             result_path = _runtime_relative(
                 runtime, binding.get("result"), "engineering result"
             )
@@ -870,10 +972,17 @@ def rollback(
     if config.get("status") == "DISABLED":
         if _sha256(config_path) != receipt.get("config_sha256"):
             raise EntrypointInstallError("refusing rollback after config drift")
-        if _sha256(plist_path) != receipt.get("plist_sha256"):
-            raise EntrypointInstallError("refusing rollback after LaunchAgent drift")
         if activation_path.exists() or activation_path.is_symlink():
-            raise EntrypointInstallError("disabled rollback found an activation record")
+            if activation_path.is_symlink() or not activation_path.is_file():
+                raise EntrypointInstallError("partial activation record is not regular")
+            _verify_partial_engineering_activation(
+                receipt_path=receipt_path, receipt=receipt,
+                config_path=config_path, config=config,
+                plist_path=plist_path, plist=plist,
+                activation_path=activation_path,
+            )
+        elif _sha256(plist_path) != receipt.get("plist_sha256"):
+            raise EntrypointInstallError("refusing rollback after LaunchAgent drift")
     elif config.get("status") in ENABLED_STATUSES:
         _verify_activation(
             receipt_path=receipt_path, receipt=receipt, config_path=config_path,

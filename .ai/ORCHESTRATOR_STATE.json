@@ -5,7 +5,7 @@
   "work_package": "EG-4A-PRECANARY-NO-PASTE-SMOKE",
   "state": "IMPLEMENTING",
   "current_agent": null,
-  "candidate_fingerprint": "d4057ebd06ede49a04e0a434a813eb0c5602772fe5292f0ebf24528bbcb19826",
+  "candidate_fingerprint": null,
   "review_id": null,
   "review_cycle": 5,
   "max_review_cycles": 5,
@@ -34,7 +34,7 @@
       "authority_comment_id": 6538300483
     }
   ],
-  "next_action": "Implement and independently review EG-4A GitHub intake plus engineering-only activation; do not dispatch model or Product Goal work for the smoke.",
+  "next_action": "Repair the invalidated candidate within current authority, rerun deterministic verification, and issue review-issue47-end-to-end-autonomous-collaboration-008.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -49,7 +49,7 @@
   },
   "last_agent_run": null,
   "created_at": "2026-10-30T20:49:30+08:00",
-  "updated_at": "2026-10-31T12:56:37+08:00",
+  "updated_at": "2026-10-31T13:13:38+08:00",
   "continuation_checkpoint": {
     "codex_consumed_total_conservative": 14,
     "codex_consumed_today_conservative": 7,

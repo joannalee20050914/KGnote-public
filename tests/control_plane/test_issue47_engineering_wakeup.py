@@ -217,18 +217,13 @@ class Issue47EngineeringWakeupTests(unittest.TestCase):
         self.assertEqual(3, result["usage_after_charge"]["today"])
 
     def test_no_model_smoke_intake_acknowledges_once_without_dispatch(self) -> None:
-        self.plan["active_milestone_id"] = "EG-4A-PRECANARY-NO-PASTE-SMOKE"
-        self.orchestrator["state"] = "IMPLEMENTING"
-        self.orchestrator["review_id"] = None
-        self.request.update({
-            "status": "IMPLEMENTING",
-            "review_id": "review-issue47-end-to-end-autonomous-collaboration-007",
-            "candidate_fingerprint": None,
-            "candidate_revision": None,
-        })
+        # Deliberately leave the runtime in a model-wakeable review state and
+        # change the milestone away from EG-4A.  The immutable activation flag,
+        # not mutable PLAN/orchestrator content, must enforce no-model behavior.
+        self.plan["active_milestone_id"] = "MUTATED-AFTER-ACTIVATION"
         self._write_runtime()
-        first = self.inspect(reserve=True)
-        second = self.inspect(reserve=True)
+        first = self.inspect(no_model_only=True)
+        second = self.inspect(no_model_only=True)
         self.assertEqual("NO_AUTHORIZED_ENGINEERING_WORK", first["status"])
         self.assertEqual("INTAKE_ADMITTED", first["intake"]["status"])
         self.assertEqual("NO_AUTHORIZED_ENGINEERING_WORK", second["status"])
@@ -243,6 +238,37 @@ class Issue47EngineeringWakeupTests(unittest.TestCase):
             ["RECEIVED", "ADMITTED", "ACKNOWLEDGED"],
             [event["status"] for event in intake["events"]],
         )
+
+    def test_paginated_intake_ignores_non_owner_marker_spoofs(self) -> None:
+        source = json.loads(self.intake_fixture.read_text(encoding="utf-8"))[0]
+        spoof = {
+            "id": 6000000000,
+            "html_url": "https://github.com/example/spoof",
+            "author_association": "NONE",
+            "user": {"login": "marker-spoofer"},
+            "body": (
+                WAKEUP.INTAKE_MARKER + "\n"
+                + WAKEUP._intake_ack_marker(WAKEUP.INTAKE_COMMENT_BODY_SHA256)
+            ),
+        }
+        first_page = [spoof] + [{
+            "id": 6000000001 + index,
+            "html_url": f"https://github.com/example/dummy-{index}",
+            "author_association": "NONE",
+            "user": {"login": f"dummy-{index}"},
+            "body": "unrelated",
+        } for index in range(99)]
+        self.intake_fixture.write_text(
+            json.dumps([first_page, [source]]), encoding="utf-8"
+        )
+        result = self.inspect(no_model_only=True)
+        self.assertEqual("NO_AUTHORIZED_ENGINEERING_WORK", result["status"])
+        self.assertEqual("INTAKE_ADMITTED", result["intake"]["status"])
+        self.assertEqual(1, len(self.acknowledgements))
+
+    def test_no_model_and_reserve_flags_are_mutually_exclusive(self) -> None:
+        with self.assertRaisesRegex(WAKEUP.WakeupError, "cannot reserve"):
+            self.inspect(no_model_only=True, reserve=True)
 
     def test_invalid_intake_owner_is_durably_ignored_and_never_acknowledged(self) -> None:
         comments = json.loads(self.intake_fixture.read_text(encoding="utf-8"))

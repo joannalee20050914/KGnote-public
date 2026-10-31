@@ -241,6 +241,8 @@ def fetch_issue_comments(
             [
                 "/opt/homebrew/bin/gh",
                 "api",
+                "--paginate",
+                "--slurp",
                 f"repos/{spec['repository']}/issues/{ISSUE_NUMBER}/comments?per_page=100",
             ],
             capture_output=True,
@@ -253,6 +255,12 @@ def fetch_issue_comments(
             value = json.loads(completed.stdout)
         except json.JSONDecodeError as exc:
             raise WakeupError("GitHub Issue #47 intake read-back is invalid") from exc
+    if (
+        isinstance(value, list)
+        and value
+        and all(isinstance(page, list) for page in value)
+    ):
+        value = [item for page in value for item in page]
     if not isinstance(value, list) or any(not isinstance(item, dict) for item in value):
         raise WakeupError("GitHub Issue #47 comments must be a list of objects")
     return value
@@ -356,7 +364,11 @@ def _acknowledge_intake(
     command_runner: Callable[..., subprocess.CompletedProcess[str]],
 ) -> dict[str, Any]:
     marker = _intake_ack_marker(body_sha256)
-    matches = [item for item in comments if marker in str(item.get("body", ""))]
+    matches = [
+        item for item in comments
+        if marker in str(item.get("body", ""))
+        and _github_comment_identity(item)[1:] == (OWNER_LOGIN, "OWNER")
+    ]
     if len(matches) > 1:
         raise WakeupError("GitHub intake acknowledgement is duplicated")
     body = (
@@ -442,10 +454,7 @@ def process_engineering_intake(
     comments = fetch_issue_comments(
         spec, fixture=fixture, command_runner=command_runner
     )
-    sources = [
-        item for item in comments
-        if item.get("id") == INTAKE_COMMENT_ID or INTAKE_MARKER in str(item.get("body", ""))
-    ]
+    sources = [item for item in comments if item.get("id") == INTAKE_COMMENT_ID]
     if len(sources) != 1:
         raise WakeupError("exact GitHub engineering intake marker is missing or ambiguous")
     source = sources[0]
@@ -486,6 +495,7 @@ def process_engineering_intake(
             })
         acknowledgement_preexisted = any(
             _intake_ack_marker(body_sha256) in str(item.get("body", ""))
+            and _github_comment_identity(item)[1:] == (OWNER_LOGIN, "OWNER")
             for item in comments
         )
         acknowledgement = _acknowledge_intake(
@@ -885,7 +895,10 @@ def inspect(
     now: datetime,
     command_runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
     reserve: bool = False,
+    no_model_only: bool = False,
 ) -> dict[str, Any]:
+    if no_model_only and reserve:
+        raise WakeupError("no-model intake mode cannot reserve a continuation")
     safety = {
         "no_model_gate": True,
         "model_launch_started": False,
@@ -949,7 +962,7 @@ def inspect(
             now=now,
             command_runner=command_runner,
         )
-    if plan.get("active_milestone_id") == "EG-4A-PRECANARY-NO-PASTE-SMOKE":
+    if no_model_only:
         return {
             "schema_version": SCHEMA_VERSION,
             "status": "NO_AUTHORIZED_ENGINEERING_WORK",
@@ -960,7 +973,7 @@ def inspect(
             "authority": authority,
             "heartbeat": heartbeat,
             "intake": intake,
-            "reason": "the active EG-4A smoke is no-model only",
+            "reason": "the immutable activation mode is no-model intake only",
             "safety": safety,
         }
     binding = continuation_binding(request.get("status"), orchestrator.get("state"))
@@ -1121,6 +1134,7 @@ def main() -> int:
     parser.add_argument("--stop-marker", type=Path, required=True)
     parser.add_argument("--now")
     parser.add_argument("--reserve", action="store_true")
+    parser.add_argument("--no-model-only", action="store_true")
     args = parser.parse_args()
     try:
         result = inspect(
@@ -1135,6 +1149,7 @@ def main() -> int:
             stop_marker=args.stop_marker,
             now=parse_time(args.now),
             reserve=args.reserve,
+            no_model_only=args.no_model_only,
         )
     except (OSError, ValueError, WakeupError) as exc:
         result = {
