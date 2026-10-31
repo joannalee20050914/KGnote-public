@@ -445,7 +445,7 @@ class RunnerTests(unittest.TestCase):
                 current=now, command_runner=fake,
             )
             self.assertEqual("DISPATCHED", first["status"])
-            self.assertEqual(3, len(calls))
+            self.assertEqual(5, len(calls))
             before = len(calls)
             second = RUNNER.run_product_goal_mode(
                 repo, spec_path=spec_path, state_path=state_path, ledger_path=ledger_path,

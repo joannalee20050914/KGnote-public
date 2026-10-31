@@ -1,8 +1,8 @@
 {
   "schema_version": "kgnote.review-history-index.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "event_count": 43,
-  "last_event_id": "evt-0043",
+  "event_count": 45,
+  "last_event_id": "evt-0045",
   "reviews": {
     "review-mainline-integration-20261020-001": {
       "snapshots": [
@@ -300,6 +300,17 @@
       ],
       "last_event_type": "INVALIDATED",
       "candidate_fingerprint": null
+    },
+    "review-issue47-end-to-end-autonomous-collaboration-001": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-issue47-end-to-end-autonomous-collaboration-001/request-b33728e2a6d24c065f345d5a58a0a169d746a30565436214ccacfbea64a5c9ff.md",
+          "sha256": "b33728e2a6d24c065f345d5a58a0a169d746a30565436214ccacfbea64a5c9ff",
+          "event_id": "evt-0044"
+        }
+      ],
+      "last_event_type": "PASS_CONSUMED_FOR_PROGRESSION",
+      "candidate_fingerprint": "9d33ab47669a0fe6a9b0d8d0746985f90c27822fcd3a57d4d88a3bbe43677d43"
     }
   },
   "findings": {}

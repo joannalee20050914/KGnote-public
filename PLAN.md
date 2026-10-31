@@ -19,7 +19,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
   "product_goal_authorized": false,
   "objective": "以單一、有界且可跨工作日恢復的工程 Goal，保存現有 Issue #47 readiness candidate，固定 exact spec／checkpoint／預算，取得 GitHub Owner 授權後，連續完成獨立審查、one-shot dispatch、無模型整合測試、安全部署、受控 canary、跨日接續與 rollback 證據，最後停在真人產品驗收與常設 go-live 的集中決策；不修改或冒充 O2 v4 Product Goal。",
   "status": "active",
-  "active_milestone_id": "EG-1-INDEPENDENT-REVIEW-AND-PR",
+  "active_milestone_id": "EG-4-TRUSTED-DEPLOYMENT",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
   "execution_direction_id": "kgnote-issue47-weekend-engineering-exception-2026-10-31",
@@ -302,7 +302,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     {
       "id": "EG-1-INDEPENDENT-REVIEW-AND-PR",
       "title": "readiness exact candidate 的獨立審查、修復與 PR 整合",
-      "status": "active",
+      "status": "complete",
       "dependencies": [
         "EG-0-WEEKEND-AUTHORITY-AMENDMENT"
       ],
@@ -329,7 +329,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     {
       "id": "EG-2-ONESHOT-DISPATCH",
       "title": "沿用既有 planner／ledger／Router／worker 的真正 one-shot dispatch",
-      "status": "pending",
+      "status": "complete",
       "dependencies": [
         "EG-1-INDEPENDENT-REVIEW-AND-PR"
       ],
@@ -355,7 +355,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     {
       "id": "EG-3-ZERO-MODEL-E2E",
       "title": "無模型整合、失敗安全、停止與 rollback 證據",
-      "status": "pending",
+      "status": "complete",
       "dependencies": [
         "EG-2-ONESHOT-DISPATCH"
       ],
@@ -380,7 +380,7 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
     {
       "id": "EG-4-TRUSTED-DEPLOYMENT",
       "title": "安全部署 exact reviewed generation 與唯一 disabled-by-default 入口",
-      "status": "pending",
+      "status": "active",
       "dependencies": [
         "EG-3-ZERO-MODEL-E2E"
       ],
@@ -482,16 +482,21 @@ work window, milestone dependencies, and separate Product Goal / go-live gates.
 
 ## Current execution note
 
-`EG-0-SPEC-SEAL` completed at checkpoint `2b60fbc399e41b016f695b82644ca0dbe106b358`
-and fingerprint `5aea9a8015f1ca926d1444fcd8373ce02aef7cf289b71baaf21461a9f51a3a4b`.
-The exact authorization request was published at
-`https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6523223111`.
-The repository Owner then posted the exact marker and command at
-`https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6536884383`;
-its body SHA-256 is
-`ab27554c2388587cf8e6cd0fce48a0e7247c095bcf872b12f78cc96e4e57e4a3` and
-the command matches the immutable spec exactly. `EG-1-INDEPENDENT-REVIEW-AND-PR`
-is now the only active milestone. No background Codex or Claude context may
-start before 2026-11-02 09:00 Asia/Taipei or outside the approved work window.
-This approval still does not authorize any Product Goal, live canary, standing
-B-scheme go-live, or mutation of O2 v4 runtime records.
+The exact weekend engineering amendment is Owner comment `6537070839`, bound to
+spec `2026-10-31.2-weekend-engineering-exception` and canonical SHA-256
+`8f3036ec6429e2f8f1e546aea3a8b3bf1c0cb1459e742991a4228612836958cd`.
+`EG-1` was independently reviewed and integrated by PR #48. `EG-2` and `EG-3`
+then completed the real one-shot path plus 495 control-plane, 348 product Python,
+60 Node and 16 requirements-guard tests without a model or Product Goal launch.
+The new Issue #47 entrypoint has only been rehearsed in isolation: it installs
+disabled, reads back `STOPPED`, latches stop across restart/day changes and rolls
+back without changing Product Goal evidence or touching O2. `EG-4` is the only
+active milestone; exact-candidate review must pass before any trusted deployment.
+No Product Goal canary, standing scheduler activation, B-scheme go-live or O2
+runtime mutation is authorized.
+
+## Current recovery note
+
+Autonomous orchestration state: `IMPLEMENTING`. Active work package: `EG-4-TRUSTED-DEPLOYMENT`.
+Next action: seal and independently review the exact EG-2/EG-3 candidate before disabled-by-default deployment.
+Repository artifacts remain authoritative; PA-HUMAN-1, NS-HUMAN-SMOKE, and release_verified=false remain unchanged.

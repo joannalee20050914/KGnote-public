@@ -31,8 +31,31 @@ def validate_product_goal(epoch: dict[str, Any], order: dict[str, Any]) -> dict[
         or not isinstance(candidate.get("fingerprint"), str) or len(candidate["fingerprint"]) != 64
     ):
         raise AdmissionError("Product Goal candidate identity is invalid")
+    if identity.get("schema_version") in {
+        "kgnote.authorized-product-goal-work-identity.v1",
+        "kgnote.authorized-product-goal-work-identity.v2",
+    }:
+        if any(
+            candidate.get(key) != identity.get(target)
+            for key, target in {
+                "commit": "candidate_commit", "fingerprint": "candidate_fingerprint",
+                "branch": "branch",
+            }.items()
+        ):
+            raise AdmissionError("Product Goal candidate differs from bootstrap identity")
     if admission.get("authority_status") != "APPROVED" or admission.get("go_live_authorized") is not True:
         raise AdmissionError("Product Goal authority is not admitted")
+    if identity.get("schema_version") in {
+        "kgnote.authorized-product-goal-work-identity.v1",
+        "kgnote.authorized-product-goal-work-identity.v2",
+    }:
+        if (
+            identity.get("authority_status") != "APPROVED"
+            or identity.get("authority_action") not in {"APPROVE", "RESUME"}
+            or identity.get("go_live_authorized") is not True
+            or admission.get("authority_sha256") != identity.get("authority_sha256")
+        ):
+            raise AdmissionError("Product Goal authority differs from bootstrap identity")
     if admission.get("stop_marker_clear") is not True:
         raise AdmissionError("Stop Marker does not authorize Product Goal dispatch")
     if admission.get("requires_model") is True:

@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kgnote.local/schemas/product-goal/v1/dispatch-envelope.schema.json",
+  "title": "KGnote provider-neutral Product Goal dispatch envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "goal", "work_item_id", "attempt_id", "authority",
+    "candidate", "checkpoint", "review", "usage", "next_action"
+  ],
+  "properties": {
+    "schema_version": {"const": "kgnote.product-goal-dispatch-envelope.v1"},
+    "goal": {
+      "type": "object", "additionalProperties": false,
+      "required": ["goal_id", "goal_version", "goal_spec_sha256"],
+      "properties": {
+        "goal_id": {"type": "string", "pattern": "^GOAL-KGNOTE-[A-Z0-9-]+$"},
+        "goal_version": {"type": "string", "minLength": 1},
+        "goal_spec_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "work_item_id": {"type": "string", "pattern": "^WI-[A-Z0-9-]+$"},
+    "attempt_id": {"type": "string", "minLength": 1},
+    "authority": {
+      "type": "object", "additionalProperties": false,
+      "required": ["record_sha256", "body_sha256", "lease"],
+      "properties": {
+        "record_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "body_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "lease": {"const": "ACTIVE"}
+      }
+    },
+    "candidate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["commit", "fingerprint", "branch"],
+      "properties": {
+        "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "branch": {"type": "string", "pattern": "^codex/[a-z0-9][a-z0-9-]{2,80}$"},
+        "pull_request": {"type": ["integer", "null"], "minimum": 1}
+      }
+    },
+    "checkpoint": {
+      "type": "object", "additionalProperties": false,
+      "required": ["order_event_id", "path"],
+      "properties": {
+        "order_event_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"},
+        "path": {"type": "string", "minLength": 1}
+      }
+    },
+    "review": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["review_id", "state", "candidate_identity_sha256"],
+          "properties": {
+            "review_id": {"type": "string", "minLength": 1},
+            "state": {"enum": ["READY_FOR_REVIEW", "CHANGES_REQUIRED", "PASS"]},
+            "candidate_identity_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          }
+        }
+      ]
+    },
+    "usage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["provider", "total_launches_before", "max_total_launches"],
+      "properties": {
+        "provider": {"enum": ["codex", "claude", "NONE"]},
+        "total_launches_before": {"type": ["integer", "null"], "minimum": 0},
+        "max_total_launches": {"type": ["integer", "null"], "minimum": 1}
+      }
+    },
+    "next_action": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "action", "work_item_id", "requires_model"],
+      "properties": {
+        "status": {"const": "ACTION_READY"},
+        "action": {"type": "string", "minLength": 1},
+        "work_item_id": {"type": "string", "pattern": "^WI-[A-Z0-9-]+$"},
+        "requires_model": {"type": "boolean"}
+      }
+    }
+  }
+}

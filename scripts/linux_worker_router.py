@@ -20,6 +20,7 @@ from zoneinfo import ZoneInfo
 
 from codex_jsonl_evidence import parse_codex_jsonl, provider_failure_from_output
 from product_goal_worker_identity import (
+    COLLABORATION_IDENTITY_SCHEMA,
     PRODUCT_IDENTITY_SCHEMA,
     ProductGoalIdentityError,
     validate_product_goal_identity,
@@ -54,6 +55,9 @@ STAGES = {"admission", "codex", "claude", "publisher", "push", "ingestion"}
 WORKTREE_ROOT = Path("/home/kgnote/.local/share/kgnote")
 EVIDENCE_PREFIX = "KGNOTE_EXECUTION_EVIDENCE="
 ORDER_SCHEMA = "kgnote.linux-worker-order.v1"
+PRODUCT_IDENTITY_SCHEMAS = {
+    PRODUCT_IDENTITY_SCHEMA, COLLABORATION_IDENTITY_SCHEMA,
+}
 
 
 class RoutingError(RuntimeError):
@@ -121,7 +125,7 @@ class WorkerOrder:
         if self.handoff_directory is not None:
             product_goal_handoff = (
                 isinstance(self.bootstrap_identity, dict)
-                and self.bootstrap_identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+                and self.bootstrap_identity.get("schema_version") in PRODUCT_IDENTITY_SCHEMAS
                 and self.handoff_directory == WORKTREE_ROOT / "runtime-state/product-goal"
             )
             admission_handoff = (
@@ -139,7 +143,7 @@ class WorkerOrder:
                 raise RoutingError("handoff_directory must be separate from the candidate worktree")
             if (
                 isinstance(self.bootstrap_identity, dict)
-                and self.bootstrap_identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+                and self.bootstrap_identity.get("schema_version") in PRODUCT_IDENTITY_SCHEMAS
                 and not product_goal_handoff
             ):
                 raise RoutingError("Product Goal handoff_directory differs from the exact durable root")
@@ -190,7 +194,7 @@ class WorkerOrder:
             raise RoutingError("admission order must pin an immutable runtime generation")
         if (
             isinstance(self.bootstrap_identity, dict)
-            and self.bootstrap_identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+            and self.bootstrap_identity.get("schema_version") in PRODUCT_IDENTITY_SCHEMAS
         ):
             try:
                 validate_product_goal_runtime_context(
@@ -225,7 +229,7 @@ def validate_bootstrap_identity(
         except RuntimeAdmissionError as exc:
             raise RoutingError(str(exc)) from exc
         return
-    if isinstance(identity, dict) and identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA:
+    if isinstance(identity, dict) and identity.get("schema_version") in PRODUCT_IDENTITY_SCHEMAS:
         try:
             validate_product_goal_identity(
                 identity, event_id=event_id, stage=stage,
@@ -457,7 +461,7 @@ def route(
         product_codex = (
             order.stage == "codex"
             and isinstance(order.bootstrap_identity, dict)
-            and order.bootstrap_identity.get("schema_version") == PRODUCT_IDENTITY_SCHEMA
+            and order.bootstrap_identity.get("schema_version") in PRODUCT_IDENTITY_SCHEMAS
         )
         environment_admission = product_codex or order.stage == "admission"
         bootstrap_admitted = (
@@ -604,11 +608,19 @@ def _admission_order(
     handoff = WORKTREE_ROOT / "runtime-state/admission" / str(identity["challenge"])
     evidence = handoff / "worker-receipt.json"
     generation = Path(runtime["generation"])
+    product_identity = identity.get("product_goal_identity")
+    working_directory = PRODUCT_WORKING_DIRECTORY
+    if identity.get("admission_kind") == MODEL_PRE_RESERVATION:
+        if not isinstance(product_identity, dict):
+            raise RoutingError("model admission lacks Product Goal working identity")
+        working_directory = (
+            WORKTREE_ROOT / "work-items" / str(product_identity.get("worktree_slug"))
+        )
     raw = {
         "schema_version": ORDER_SCHEMA,
         "event_id": event_id,
         "stage": "admission",
-        "working_directory": str(PRODUCT_WORKING_DIRECTORY),
+        "working_directory": str(working_directory),
         "handoff_directory": str(handoff),
         "command": [
             "/usr/bin/python3", str(generation / "product_goal_worker_lane.py"),
@@ -637,7 +649,7 @@ def admission_order_for_model(
         raise RoutingError("only a model-bearing Product Goal order can request live admission")
     if (
         not isinstance(product_order.bootstrap_identity, dict)
-        or product_order.bootstrap_identity.get("schema_version") != PRODUCT_IDENTITY_SCHEMA
+        or product_order.bootstrap_identity.get("schema_version") not in PRODUCT_IDENTITY_SCHEMAS
         or not isinstance(product_order.execution_context, dict)
     ):
         raise RoutingError("model admission lacks the exact Product Goal identity")

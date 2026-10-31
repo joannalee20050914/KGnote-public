@@ -19,6 +19,7 @@ from typing import Any
 
 try:
     from product_goal_worker_identity import (
+        COLLABORATION_IDENTITY_SCHEMA,
         PRODUCT_GOAL_ID,
         PRODUCT_GOAL_VERSION,
         PRODUCT_IDENTITY_SCHEMA,
@@ -28,6 +29,7 @@ try:
     )
 except ModuleNotFoundError:  # Repository package import in unit tests.
     from scripts.product_goal_worker_identity import (
+        COLLABORATION_IDENTITY_SCHEMA,
         PRODUCT_GOAL_ID,
         PRODUCT_GOAL_VERSION,
         PRODUCT_IDENTITY_SCHEMA,
@@ -54,6 +56,10 @@ EXECUTION_DIRECTION_ID = "kgnote-o2-runtime-receipt-pre-reservation-2026-10-29"
 PRODUCT_WORKING_DIRECTORY = Path(
     "/home/kgnote/.local/share/kgnote/work-items/goal-o2-reading-experience"
 )
+WORKTREE_ROOT = PRODUCT_WORKING_DIRECTORY.parents[1]
+PRODUCT_IDENTITY_SCHEMAS = {
+    PRODUCT_IDENTITY_SCHEMA, COLLABORATION_IDENTITY_SCHEMA,
+}
 REQUIRED_GENERATION_FILES = {
     "requirements-runtime.lock",
     "product_goal_runtime_admission.py",
@@ -265,18 +271,19 @@ def validate_admission_identity(
     challenge = identity.get("challenge")
     if not isinstance(challenge, str) or CHALLENGE_RE.fullmatch(challenge) is None:
         raise RuntimeAdmissionError("runtime admission challenge is invalid")
-    if working_directory != PRODUCT_WORKING_DIRECTORY or (
-        working_directory != worktree_root / "work-items" / "goal-o2-reading-experience"
-    ):
-        raise RuntimeAdmissionError("runtime admission checkout path differs")
     validate_runtime_identity(identity.get("runtime_identity"))
     candidate = _candidate_fields(identity.get("candidate"))
     kind = identity.get("admission_kind")
     if kind == MODEL_PRE_RESERVATION:
         product_identity = identity.get("product_goal_identity")
         context = identity.get("product_goal_context")
-        if not isinstance(product_identity, dict) or product_identity.get("schema_version") != PRODUCT_IDENTITY_SCHEMA:
+        if not isinstance(product_identity, dict) or product_identity.get("schema_version") not in PRODUCT_IDENTITY_SCHEMAS:
             raise RuntimeAdmissionError("model admission lacks the original Product Goal identity")
+        expected_working_directory = (
+            worktree_root / "work-items" / str(product_identity.get("worktree_slug"))
+        )
+        if working_directory != expected_working_directory:
+            raise RuntimeAdmissionError("runtime admission checkout path differs")
         try:
             validate_product_goal_identity(
                 product_identity,
@@ -305,6 +312,8 @@ def validate_admission_identity(
         ):
             raise RuntimeAdmissionError("model admission identity is not exact and active")
     elif kind == DEPLOYMENT_ACCEPTANCE:
+        if working_directory != PRODUCT_WORKING_DIRECTORY:
+            raise RuntimeAdmissionError("deployment admission checkout path differs")
         if (
             identity.get("execution_direction_id") != EXECUTION_DIRECTION_ID
             or identity.get("product_goal_id") != PRODUCT_GOAL_ID

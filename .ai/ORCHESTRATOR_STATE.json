@@ -2,7 +2,7 @@
   "schema_version": "kgnote.orchestrator-state.v1",
   "run_id": "orch-issue47-weekend-resume-20261031",
   "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
-  "work_package": "EG-1-INDEPENDENT-REVIEW-AND-PR",
+  "work_package": "EG-4-TRUSTED-DEPLOYMENT",
   "state": "IMPLEMENTING",
   "current_agent": null,
   "candidate_fingerprint": null,
@@ -25,7 +25,7 @@
       "authority_comment_id": 6537070839
     }
   ],
-  "next_action": "Commit the excluded STATUS/state verification receipt, push and read back the exact branch, then seal review-issue47-end-to-end-autonomous-collaboration-001 for one bounded independent Ubuntu Claude infrastructure review.",
+  "next_action": "Seal and independently review the exact EG-2/EG-3 candidate before disabled-by-default trusted deployment.",
   "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
@@ -40,5 +40,11 @@
   },
   "last_agent_run": null,
   "created_at": "2026-10-30T20:49:30+08:00",
-  "updated_at": "2026-10-31T09:29:53+08:00"
+  "updated_at": "2026-10-31T10:00:00+08:00",
+  "external_review_binding": {
+    "program_id": "program-kgnote-issue47-engineering-review-v1",
+    "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
+    "config_path": "output/control-plane/issue47-review-r1/github-product-reviewer.json",
+    "state_path": "output/control-plane/issue47-review-r1/external-review-state.json"
+  }
 }

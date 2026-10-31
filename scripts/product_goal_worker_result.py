@@ -21,6 +21,7 @@ from typing import Any, Callable
 try:
     from codex_jsonl_evidence import parse_codex_jsonl, provider_failure_from_output
     from product_goal_worker_identity import (
+        COLLABORATION_RUNTIME_CONTEXT_SCHEMA,
         PRODUCT_RUNTIME_CONTEXT_SCHEMA,
         ProductGoalIdentityError,
         validate_product_goal_runtime_context,
@@ -28,6 +29,7 @@ try:
 except ModuleNotFoundError:  # Package import in repository unit tests.
     from scripts.codex_jsonl_evidence import parse_codex_jsonl, provider_failure_from_output
     from scripts.product_goal_worker_identity import (
+        COLLABORATION_RUNTIME_CONTEXT_SCHEMA,
         PRODUCT_RUNTIME_CONTEXT_SCHEMA,
         ProductGoalIdentityError,
         validate_product_goal_runtime_context,
@@ -35,6 +37,7 @@ except ModuleNotFoundError:  # Package import in repository unit tests.
 
 
 CONTEXT_SCHEMA = PRODUCT_RUNTIME_CONTEXT_SCHEMA
+COLLABORATION_CONTEXT_SCHEMA = COLLABORATION_RUNTIME_CONTEXT_SCHEMA
 LEGACY_CONTEXT_SCHEMA = "kgnote.product-goal-worker-context.v1"
 RESULT_SCHEMA = "kgnote.product-goal-worker-result.v1"
 EVIDENCE_PREFIX = "KGNOTE_EXECUTION_EVIDENCE="
@@ -70,10 +73,10 @@ def _atomic_json(path: Path, value: dict[str, Any]) -> None:
 
 def validate_context(context: object) -> dict[str, Any]:
     if not isinstance(context, dict) or context.get("schema_version") not in {
-        CONTEXT_SCHEMA, LEGACY_CONTEXT_SCHEMA,
+        CONTEXT_SCHEMA, COLLABORATION_CONTEXT_SCHEMA, LEGACY_CONTEXT_SCHEMA,
     }:
         raise WorkerResultError("worker context is missing or unsupported")
-    if context.get("schema_version") == CONTEXT_SCHEMA:
+    if context.get("schema_version") in {CONTEXT_SCHEMA, COLLABORATION_CONTEXT_SCHEMA}:
         try:
             validate_product_goal_runtime_context(context)
         except ProductGoalIdentityError as exc:
@@ -220,6 +223,8 @@ def adapt_worker_result(
             "stderr_sha256": hashlib.sha256(stderr).hexdigest(),
         },
     }
+    if context.get("schema_version") == COLLABORATION_CONTEXT_SCHEMA:
+        result["dispatch_envelope_sha256"] = context["dispatch_envelope_sha256"]
     if returncode != 0:
         failure, classification_evidence = _failure_class(returncode, combined, artifact)
         if context["stage"] in {"publisher", "push"} and failure == "DETERMINISTIC_WORKER_FAILURE":
