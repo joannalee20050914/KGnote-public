@@ -9,7 +9,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
   "protocol_version": "kgnote.review-protocol.v1",
   "review_id": "review-issue47-end-to-end-autonomous-collaboration-001",
   "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
-  "milestone_id": "EG-0-OWNER-AUTHORITY",
+  "milestone_id": "EG-1-INDEPENDENT-REVIEW-AND-PR",
   "status": "IMPLEMENTING",
   "author_role": "CODEX_IMPLEMENTER",
   "base_revision": "e3a2102f1d4822e2526c3b9db90903b1ee88f6dc",
@@ -34,20 +34,18 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     "PLAN.md",
     "CODEX_STATUS.md",
     ".ai/",
-    "docs/control-plane/ISSUE47_ONESHOT_ENGINEERING_DIRECTION_20261030.md",
-    "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-30.1.json",
-    "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_AUTHORIZATION_PACKAGE_20261030.md",
-    "schemas/codex-app-engineering-goal/v1/",
+    "docs/control-plane/",
+    "schemas/codex-app-engineering-goal/",
     "scripts/collaboration_goal_wakeup.py",
-    "tests/control_plane/test_collaboration_goal_wakeup.py",
-    "tests/control_plane/test_issue47_engineering_goal_spec.py",
-    "output/control-plane/"
+    "tests/control_plane/",
+    "output/control-plane/",
+    "GitHub Issue #47 and the exact Issue #47 PR"
   ],
   "acceptance_criteria": [
-    "Owner-authored Issue #47 comment 綁定 exact Goal ID、version、canonical SHA-256、完整 permissions、resource acknowledgement 與 bounded coexistence",
-    "comment author login 與 author_association=OWNER 讀回一致，body digest 與 comment identity 有 durable receipt",
-    "任何舊 DRAFT、agent-authored、自動生成、stale digest、縮減或擴張 permissions 的留言均拒絕",
-    "授權仍明示 product_goal_authorized=false 與 standing_b_scheme_go_live_authorized=false"
+    "checkpoint candidate 經 deterministic verifier 與獨立 Ubuntu Claude infrastructure review",
+    "CHANGES_REQUIRED 自動回 Codex repair、重驗與復審，所有 launch 計入同一 budget",
+    "Draft PR、remote HEAD、fingerprint、review round 與 Consumer read-back identity 一致",
+    "只在 branch protection、required checks、independent PASS 與 allowed operation 全部成立後整合 PR"
   ],
   "negative_requirements": [
     "把 Codex App 工程 Goal 或 Issue #47 DRAFT 留言當成 Product Goal APPROVE",

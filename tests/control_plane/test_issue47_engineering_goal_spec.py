@@ -21,8 +21,17 @@ PACKAGE_PATH = (
     ROOT
     / "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_AUTHORIZATION_PACKAGE_20261030.md"
 )
+PLAN_PATH = ROOT / "PLAN.md"
+STATUS_PATH = ROOT / "CODEX_STATUS.md"
 EXPECTED_DIGEST = "f78a49397822bf17a89f7477be2efe840c0dddfa58cf767153cf31281bdcdce4"
 AUTHORITY_MARKER = "<!-- kgnote-codex-app-engineering-goal-authority:v1 -->"
+OWNER_APPROVAL_COMMENT_ID = 6536884383
+OWNER_APPROVAL_BODY_SHA256 = (
+    "ab27554c2388587cf8e6cd0fce48a0e7247c095bcf872b12f78cc96e4e57e4a3"
+)
+OWNER_APPROVAL_COMMAND_SHA256 = (
+    "9a054355717303ec38957b2d656a908f3df9eb6e7eb983d2b098e5f1a08b1d60"
+)
 
 
 def canonical_sha256(value: object) -> str:
@@ -30,6 +39,22 @@ def canonical_sha256(value: object) -> str:
         value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def embedded_json(path: Path, label: str) -> dict[str, object]:
+    text = path.read_text(encoding="utf-8")
+    match = re.search(
+        rf"<!-- BEGIN {re.escape(label)} -->\s*```json\s*(\{{.*?\}})\s*```"
+        rf"\s*<!-- END {re.escape(label)} -->",
+        text,
+        flags=re.DOTALL,
+    )
+    if match is None:
+        raise AssertionError(f"missing embedded JSON block {label} in {path}")
+    value = json.loads(match.group(1))
+    if not isinstance(value, dict):
+        raise AssertionError(f"embedded JSON block {label} must be an object")
+    return value
 
 
 class Issue47EngineeringGoalSpecTests(unittest.TestCase):
@@ -127,6 +152,50 @@ class Issue47EngineeringGoalSpecTests(unittest.TestCase):
         self.assertEqual(
             self.spec["product_goal_coexistence"]["policy"],
             command["product_goal_coexistence"],
+        )
+
+    def test_owner_approval_receipt_advances_only_the_engineering_goal(self) -> None:
+        plan = embedded_json(PLAN_PATH, "CODEX PLAN JSON")
+        status = embedded_json(STATUS_PATH, "CODEX STATUS JSON")
+        self.assertEqual(
+            "EXACT_GITHUB_OWNER_APPROVED_CODEX_APP_EXECUTION_GOAL",
+            plan["authority_kind"],
+        )
+        self.assertEqual(
+            "EG-1-INDEPENDENT-REVIEW-AND-PR", plan["active_milestone_id"]
+        )
+        milestones = {item["id"]: item for item in plan["milestones"]}
+        self.assertEqual("complete", milestones["EG-0-OWNER-AUTHORITY"]["status"])
+        self.assertEqual("complete", milestones["EG-0-OWNER-AUTHORITY"]["human_gate"])
+        self.assertEqual("active", milestones["EG-1-INDEPENDENT-REVIEW-AND-PR"]["status"])
+
+        receipt = plan["goal_spec"]["authority_receipt"]
+        self.assertEqual(OWNER_APPROVAL_COMMENT_ID, receipt["comment_id"])
+        self.assertEqual(OWNER_APPROVAL_BODY_SHA256, receipt["body_sha256"])
+        self.assertEqual(
+            OWNER_APPROVAL_COMMAND_SHA256, receipt["command_canonical_sha256"]
+        )
+        self.assertEqual(
+            "EXACT_GITHUB_OWNER_APPROVED", plan["goal_spec"]["authority_status"]
+        )
+        self.assertFalse(plan["product_goal_authorized"])
+
+        authority = status["goal_spec"]["authority_comment"]
+        self.assertEqual(OWNER_APPROVAL_COMMENT_ID, authority["comment_id"])
+        self.assertEqual(OWNER_APPROVAL_BODY_SHA256, authority["body_sha256"])
+        self.assertTrue(authority["authority_marker_present"])
+        self.assertTrue(authority["command_exact_semantic_match"])
+        self.assertFalse(status["product_goal_authorized"])
+        gates = {item["id"]: item["status"] for item in status["external_or_human_gates"]}
+        self.assertEqual(
+            "complete_exact_owner_approval_comment_6536884383",
+            gates["ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL"],
+        )
+        self.assertEqual(
+            "not_started", gates["ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL"]
+        )
+        self.assertEqual(
+            "not_started", gates["ISSUE47-FINAL-OWNER-ACCEPTANCE-AND-GO-LIVE"]
         )
 
 

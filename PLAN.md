@@ -2,8 +2,9 @@
 
 This file contains one Codex App engineering Goal for Issue #47. It does not
 authorize a KGnote Product Goal. The exact immutable engineering specification
-must receive a separate GitHub Owner approval before background model work,
-formal deployment, or other gated external execution begins.
+was approved by the GitHub repository Owner on 2026-10-31; model work, formal
+deployment, and gated external execution remain limited by the approved work
+window, milestone dependencies, and the separate Product Goal / go-live gates.
 
 <!-- BEGIN CODEX PLAN JSON -->
 ```json
@@ -12,12 +13,12 @@ formal deployment, or other gated external execution begins.
   "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "goal_layer": "CODEX_APP_EXECUTION_GOAL",
-  "authority_kind": "CURRENT_USER_EXECUTION_INSTRUCTION_PENDING_GITHUB_OWNER_SEAL",
+  "authority_kind": "EXACT_GITHUB_OWNER_APPROVED_CODEX_APP_EXECUTION_GOAL",
   "lifecycle_owner": "CODEX_APP",
   "product_goal_authorized": false,
   "objective": "以單一、有界且可跨工作日恢復的工程 Goal，保存現有 Issue #47 readiness candidate，固定 exact spec／checkpoint／預算，取得 GitHub Owner 授權後，連續完成獨立審查、one-shot dispatch、無模型整合測試、安全部署、受控 canary、跨日接續與 rollback 證據，最後停在真人產品驗收與常設 go-live 的集中決策；不修改或冒充 O2 v4 Product Goal。",
   "status": "active",
-  "active_milestone_id": "EG-0-OWNER-AUTHORITY",
+  "active_milestone_id": "EG-1-INDEPENDENT-REVIEW-AND-PR",
   "product_direction_id": "kgnote-obsidian-first-2026-09-22",
   "requirements_baseline_id": "kgnote-reconciliation-2026-09-27-r8",
   "execution_direction_id": "kgnote-issue47-end-to-end-engineering-goal-2026-10-30",
@@ -26,8 +27,19 @@ formal deployment, or other gated external execution begins.
     "schema_path": "schemas/codex-app-engineering-goal/v1/goal-spec.schema.json",
     "version": "2026-10-30.1-owner-approval-proposal",
     "canonical_sha256": "f78a49397822bf17a89f7477be2efe840c0dddfa58cf767153cf31281bdcdce4",
-    "authority_status": "AWAITING_EXACT_GITHUB_OWNER_APPROVAL",
-    "authorization_request": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6523223111"
+    "authority_status": "EXACT_GITHUB_OWNER_APPROVED",
+    "authorization_request": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6523223111",
+    "authority_receipt": {
+      "comment_id": 6536884383,
+      "comment_url": "https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6536884383",
+      "author_login": "joannalee20050914",
+      "author_association": "OWNER",
+      "created_at": "2026-10-31T01:01:57Z",
+      "body_sha256": "ab27554c2388587cf8e6cd0fce48a0e7247c095bcf872b12f78cc96e4e57e4a3",
+      "command_canonical_sha256": "9a054355717303ec38957b2d656a908f3df9eb6e7eb983d2b098e5f1a08b1d60",
+      "marker": "kgnote-codex-app-engineering-goal-authority:v1",
+      "validation": "EXACT_SEMANTIC_MATCH_AND_REMOTE_SPEC_BLOB_READ_BACK"
+    }
   },
   "explicit_direction": {
     "date": "2026-10-30",
@@ -154,7 +166,7 @@ formal deployment, or other gated external execution begins.
   "preserved_human_gates": [
     {
       "id": "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
-      "status": "PENDING",
+      "status": "COMPLETE",
       "release_verified": false,
       "rule": "Required before background model launch, formal deployment or gated external execution; must bind exact engineering Goal ID/version/SHA, permissions, resources and O2 coexistence."
     },
@@ -233,11 +245,11 @@ formal deployment, or other gated external execution begins.
     {
       "id": "EG-0-OWNER-AUTHORITY",
       "title": "等待並讀回 exact GitHub Owner 工程 Goal 授權",
-      "status": "active",
+      "status": "complete",
       "dependencies": [
         "EG-0-SPEC-SEAL"
       ],
-      "human_gate": "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
+      "human_gate": "complete",
       "owned_paths": [
         "PLAN.md",
         "CODEX_STATUS.md",
@@ -257,7 +269,7 @@ formal deployment, or other gated external execution begins.
     {
       "id": "EG-1-INDEPENDENT-REVIEW-AND-PR",
       "title": "readiness exact candidate 的獨立審查、修復與 PR 整合",
-      "status": "pending",
+      "status": "active",
       "dependencies": [
         "EG-0-OWNER-AUTHORITY"
       ],
@@ -438,10 +450,14 @@ formal deployment, or other gated external execution begins.
 
 `EG-0-SPEC-SEAL` completed at checkpoint `2b60fbc399e41b016f695b82644ca0dbe106b358`
 and fingerprint `5aea9a8015f1ca926d1444fcd8373ce02aef7cf289b71baaf21461a9f51a3a4b`.
-The exact authorization request was published and read back at
-`https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6523223111`;
-it deliberately contains no authority marker. `EG-0-OWNER-AUTHORITY` is the
-only active milestone and is an explicit human gate. Codex must not self-author
-the Owner approval, launch background Codex or Claude work, dispatch a Product
-Goal, enable a scheduler, or deploy a live generation before the exact GitHub
-Owner authority exists and the approved work window opens.
+The exact authorization request was published at
+`https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6523223111`.
+The repository Owner then posted the exact marker and command at
+`https://github.com/joannalee20050914/KGnote-public/issues/47#issuecomment-6536884383`;
+its body SHA-256 is
+`ab27554c2388587cf8e6cd0fce48a0e7247c095bcf872b12f78cc96e4e57e4a3` and
+the command matches the immutable spec exactly. `EG-1-INDEPENDENT-REVIEW-AND-PR`
+is now the only active milestone. No background Codex or Claude context may
+start before 2026-11-02 09:00 Asia/Taipei or outside the approved work window.
+This approval still does not authorize any Product Goal, live canary, standing
+B-scheme go-live, or mutation of O2 v4 runtime records.

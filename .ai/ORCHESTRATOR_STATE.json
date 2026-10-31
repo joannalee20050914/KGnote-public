@@ -2,8 +2,8 @@
   "schema_version": "kgnote.orchestrator-state.v1",
   "run_id": "orch-945fa4a7ec7e",
   "active_goal": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
-  "work_package": "EG-0-OWNER-AUTHORITY",
-  "state": "HUMAN_CHECKPOINT_REQUIRED",
+  "work_package": "EG-1-INDEPENDENT-REVIEW-AND-PR",
+  "state": "IMPLEMENTING",
   "current_agent": null,
   "candidate_fingerprint": null,
   "review_id": null,
@@ -13,8 +13,8 @@
   "max_agent_failures": 3,
   "empty_reviewer_results": 0,
   "blockers": [],
-  "next_action": "Exact Issue #47 engineering Goal approval is required from the GitHub repository Owner. The request comment has authority_effect=NONE; do not self-approve or start model work.",
-  "human_action_required": true,
+  "next_action": "Preserve the exact checkpoint and perform only no-model validation until 2026-11-02 09:00 Asia/Taipei. Then run deterministic verification, seal the EG-1 candidate, and start the bounded independent Ubuntu Claude infrastructure review.",
+  "human_action_required": false,
   "candidate_custody": {
     "status": "NONE",
     "owner": null,
@@ -22,11 +22,11 @@
     "fingerprint": null
   },
   "next_human_checkpoint": {
-    "id": "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
-    "status": "PENDING",
-    "description": "Required before background model launch, formal deployment or gated external execution; must bind exact engineering Goal ID/version/SHA, permissions, resources and O2 coexistence."
+    "id": "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
+    "status": "NOT_STARTED",
+    "description": "Engineering Goal approval does not authorize the future live Product Goal canary; a separate immutable Product Goal and exact Owner approval remain required."
   },
   "last_agent_run": null,
   "created_at": "2026-10-30T20:49:30+08:00",
-  "updated_at": "2026-10-30T20:49:30+08:00"
+  "updated_at": "2026-10-31T09:05:29+08:00"
 }
