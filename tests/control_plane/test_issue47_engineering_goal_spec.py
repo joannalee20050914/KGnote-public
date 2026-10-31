@@ -198,14 +198,15 @@ class Issue47EngineeringGoalSpecTests(unittest.TestCase):
             plan["authority_kind"],
         )
         self.assertEqual(
-            "EG-3-ZERO-MODEL-E2E", plan["active_milestone_id"]
+            "EG-4-TRUSTED-DEPLOYMENT", plan["active_milestone_id"]
         )
         milestones = {item["id"]: item for item in plan["milestones"]}
         self.assertEqual("complete", milestones["EG-0-OWNER-AUTHORITY"]["status"])
         self.assertEqual("complete", milestones["EG-0-OWNER-AUTHORITY"]["human_gate"])
         self.assertEqual("complete", milestones["EG-1-INDEPENDENT-REVIEW-AND-PR"]["status"])
         self.assertEqual("complete", milestones["EG-2-ONESHOT-DISPATCH"]["status"])
-        self.assertEqual("active", milestones["EG-3-ZERO-MODEL-E2E"]["status"])
+        self.assertEqual("complete", milestones["EG-3-ZERO-MODEL-E2E"]["status"])
+        self.assertEqual("active", milestones["EG-4-TRUSTED-DEPLOYMENT"]["status"])
 
         receipt = plan["goal_spec"]["authority_receipt"]
         self.assertEqual(OWNER_APPROVAL_COMMENT_ID, receipt["comment_id"])
