@@ -204,7 +204,7 @@ class Issue47EngineeringGoalSpecTests(unittest.TestCase):
             plan["authority_kind"],
         )
         self.assertEqual(
-            "EG-4-TRUSTED-DEPLOYMENT", plan["active_milestone_id"]
+            "EG-4A-PRECANARY-NO-PASTE-SMOKE", plan["active_milestone_id"]
         )
         milestones = {item["id"]: item for item in plan["milestones"]}
         self.assertEqual("complete", milestones["EG-0-OWNER-AUTHORITY"]["status"])
@@ -212,7 +212,14 @@ class Issue47EngineeringGoalSpecTests(unittest.TestCase):
         self.assertEqual("complete", milestones["EG-1-INDEPENDENT-REVIEW-AND-PR"]["status"])
         self.assertEqual("complete", milestones["EG-2-ONESHOT-DISPATCH"]["status"])
         self.assertEqual("complete", milestones["EG-3-ZERO-MODEL-E2E"]["status"])
-        self.assertEqual("active", milestones["EG-4-TRUSTED-DEPLOYMENT"]["status"])
+        self.assertEqual("complete", milestones["EG-4-TRUSTED-DEPLOYMENT"]["status"])
+        self.assertEqual(
+            "active", milestones["EG-4A-PRECANARY-NO-PASTE-SMOKE"]["status"]
+        )
+        self.assertEqual(
+            "ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL",
+            milestones["EG-5-LIVE-CANARY"]["human_gate"],
+        )
 
         receipt = plan["goal_spec"]["authority_receipt"]
         self.assertEqual(OWNER_APPROVAL_COMMENT_ID, receipt["comment_id"])
@@ -237,10 +244,18 @@ class Issue47EngineeringGoalSpecTests(unittest.TestCase):
             gates["ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL"],
         )
         self.assertEqual(
-            "not_started", gates["ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL"]
+            "pending_owner_approval",
+            gates["ISSUE47-EXACT-PRODUCT-GOAL-CANARY-APPROVAL"],
         )
         self.assertEqual(
             "not_started", gates["ISSUE47-FINAL-OWNER-ACCEPTANCE-AND-GO-LIVE"]
+        )
+        self.assertEqual(
+            6539158585, status["engineering_no_paste_handoff"]["authority_comment_id"]
+        )
+        self.assertEqual(
+            "NOT_AUTHORIZED",
+            status["engineering_no_paste_handoff"]["product_goal_canary"],
         )
 
 
