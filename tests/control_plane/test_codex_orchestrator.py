@@ -572,7 +572,7 @@ class OrchestratorDurabilityTests(unittest.TestCase):
     def make_issue47_weekend_authority_fixture(self, root, *, stale_digest=False):
         relative_spec = Path(
             "docs/control-plane/"
-            "ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.2.json"
+            "ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.4.json"
         )
         target_spec = root / relative_spec
         target_spec.parent.mkdir(parents=True, exist_ok=True)

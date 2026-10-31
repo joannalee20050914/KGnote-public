@@ -1,8 +1,8 @@
 {
   "schema_version": "kgnote.review-history-index.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "event_count": 45,
-  "last_event_id": "evt-0045",
+  "event_count": 52,
+  "last_event_id": "evt-0052",
   "reviews": {
     "review-mainline-integration-20261020-001": {
       "snapshots": [
@@ -311,7 +311,55 @@
       ],
       "last_event_type": "PASS_CONSUMED_FOR_PROGRESSION",
       "candidate_fingerprint": "9d33ab47669a0fe6a9b0d8d0746985f90c27822fcd3a57d4d88a3bbe43677d43"
+    },
+    "review-issue47-end-to-end-autonomous-collaboration-002": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-issue47-end-to-end-autonomous-collaboration-002/request-e6e5a5c89366e2e4693dc98045ec40bffc553d217776cad103f9fdd05134230f.md",
+          "sha256": "e6e5a5c89366e2e4693dc98045ec40bffc553d217776cad103f9fdd05134230f",
+          "event_id": "evt-0046"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-issue47-end-to-end-autonomous-collaboration-002/result-62829a2292a5d05102603876ba85761454824e895ba39fb7d56410c37e0353b4.md",
+          "sha256": "62829a2292a5d05102603876ba85761454824e895ba39fb7d56410c37e0353b4",
+          "event_id": "evt-0048"
+        },
+        {
+          "path": ".ai/REVIEW_HISTORY/review-issue47-end-to-end-autonomous-collaboration-002/resolution-45b302d272f8dd609d1cb1b4a94809308962c2f0a5f03cccd16437ba543f46ef.md",
+          "sha256": "45b302d272f8dd609d1cb1b4a94809308962c2f0a5f03cccd16437ba543f46ef",
+          "event_id": "evt-0050"
+        }
+      ],
+      "last_event_type": "FIXES_PROPOSED",
+      "candidate_fingerprint": "8fb2eb87eb57f9ad3a3166e737022291888d7ac9300b517eba36d6eebaf97693"
+    },
+    "review-issue47-end-to-end-autonomous-collaboration-003": {
+      "snapshots": [
+        {
+          "path": ".ai/REVIEW_HISTORY/review-issue47-end-to-end-autonomous-collaboration-003/request-6588a34bfa67113dbec9f1f567b188be3d3294e24cab562190e46c7d0f82890d.md",
+          "sha256": "6588a34bfa67113dbec9f1f567b188be3d3294e24cab562190e46c7d0f82890d",
+          "event_id": "evt-0051"
+        }
+      ],
+      "last_event_type": "INVALIDATED",
+      "candidate_fingerprint": "8447e0932787bbecf11af0019d3a93e1b4940a4efb8eb80070c532d978583084"
     }
   },
-  "findings": {}
+  "findings": {
+    "R-001": {
+      "status": "FIXED_PENDING_REVIEW",
+      "review_id": "review-issue47-end-to-end-autonomous-collaboration-002",
+      "last_event_id": "evt-0050"
+    },
+    "R-002": {
+      "status": "FIXED_PENDING_REVIEW",
+      "review_id": "review-issue47-end-to-end-autonomous-collaboration-002",
+      "last_event_id": "evt-0050"
+    },
+    "R-003": {
+      "status": "FIXED_PENDING_REVIEW",
+      "review_id": "review-issue47-end-to-end-autonomous-collaboration-002",
+      "last_event_id": "evt-0050"
+    }
+  }
 }

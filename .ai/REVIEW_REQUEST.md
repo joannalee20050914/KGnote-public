@@ -7,7 +7,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 {
   "schema_version": "kgnote.review-request.v1",
   "protocol_version": "kgnote.review-protocol.v1",
-  "review_id": "review-issue47-end-to-end-autonomous-collaboration-002",
+  "review_id": "review-issue47-end-to-end-autonomous-collaboration-004",
   "goal_id": "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION",
   "milestone_id": "EG-4-TRUSTED-DEPLOYMENT",
   "status": "IMPLEMENTING",
@@ -34,31 +34,12 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     "AGENTS.md"
   ],
   "changed_areas": [
-    "PLAN.md",
-    "CODEX_STATUS.md",
-    ".ai/",
-    "schemas/product-goal/v1/",
-    "config/ubuntu-worker-runtime-manifest.json",
-    "scripts/collaboration_goal_dispatch.py",
-    "scripts/collaboration_goal_entrypoint.py",
-    "scripts/install_collaboration_goal_entrypoint.py",
-    "scripts/goal_runner_adapter.py",
-    "scripts/linux_worker_bootstrap.py",
-    "scripts/linux_worker_router.py",
-    "scripts/product_goal_runtime_admission.py",
-    "scripts/product_goal_worker_identity.py",
-    "scripts/product_goal_worker_lane.py",
-    "scripts/product_goal_worker_result.py",
-    "tests/control_plane/"
+    "Trusted Issue #47 entrypoint/install/rollback identity checks and dispatcher-level CHANGES_REQUIRED to DISPATCH_REPAIR binding with cumulative quota and restart suppression."
   ],
   "acceptance_criteria": [
-    "只有 exact Product Goal Owner authority 才會 durable reserve 與 route，未授權維持 WAITING_AUTHORIZATION",
-    "重用 goal_continuity、github_product_goal_control、goal_runner_adapter、linux_worker_router 與 worker lane，不建立第二套 state machine",
-    "WorkOrder 與結果綁定 Goal、Work Item、authority、candidate、checkpoint、review、usage 與 next action",
-    "未授權、wrong repository/identity、protected O2、single writer、restart、stale version/commit/review 全部 fail closed",
-    "GitHub Draft PR side effect 只有 exact read-back 後才 ledger binding；CHANGES_REQUIRED 自動回 repair/re-review",
-    "新 entrypoint 只允許 disabled-by-default 安裝，stop 跨 restart/day 仍鎖定，rollback 保留 Goal evidence 且不載入 O2",
-    "舊 O2 Runner、O2 state/ledger、舊 singleton review config 均未使用或修改"
+    "Mac/Ubuntu runtime identity、manifest、installed hashes 與 no-model admission receipt 綁定 exact reviewed commit",
+    "新 scheduler/launcher 唯一、預設 disabled、可逆且不共用 O2 state/ledger",
+    "old O2 Runner 維持 disabled/unloaded；duplicate service、unexpected process、stop 與 rollback negative tests 通過"
   ],
   "negative_requirements": [
     "把 Codex App 工程 Goal 或 Issue #47 DRAFT 留言當成 Product Goal APPROVE",
@@ -86,63 +67,58 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
     {
       "name": "requirements_guard",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T093337+0800.json#requirements_guard"
+      "evidence": "output/control-plane/verification-20261031T102102+0800.json#requirements_guard"
     },
     {
       "name": "requirements_guard_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T093337+0800.json#requirements_guard_tests"
+      "evidence": "output/control-plane/verification-20261031T102102+0800.json#requirements_guard_tests"
     },
     {
       "name": "control_plane_negative_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T093337+0800.json#control_plane_negative_tests"
+      "evidence": "output/control-plane/verification-20261031T102102+0800.json#control_plane_negative_tests"
     },
     {
       "name": "python_product_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T093337+0800.json#python_product_tests"
+      "evidence": "output/control-plane/verification-20261031T102102+0800.json#python_product_tests"
     },
     {
       "name": "node_tests",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T093337+0800.json#node_tests"
+      "evidence": "output/control-plane/verification-20261031T102102+0800.json#node_tests"
     },
     {
       "name": "strict_git_diff_check",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T093337+0800.json#strict_git_diff_check"
+      "evidence": "output/control-plane/verification-20261031T102102+0800.json#strict_git_diff_check"
     },
     {
       "name": "review_completion_gate",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T093337+0800.json#review_completion_gate"
+      "evidence": "output/control-plane/verification-20261031T102102+0800.json#review_completion_gate"
     },
     {
       "name": "public_safety_scan",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T093337+0800.json#public_safety_scan"
+      "evidence": "output/control-plane/verification-20261031T102102+0800.json#public_safety_scan"
     },
     {
       "name": "untracked_whitespace",
       "status": "PASS",
-      "evidence": "output/control-plane/verification-20261031T093337+0800.json#untracked_whitespace"
+      "evidence": "output/control-plane/verification-20261031T102102+0800.json#untracked_whitespace"
     }
   ],
   "known_deviations": [
-    "No Product Goal canary is authorized or executed; all dispatch integration evidence is no-model.",
-    "The new LaunchAgent was rehearsed only in isolated temporary paths and has not been installed in the trusted Mac runtime.",
-    "Standing B-scheme go-live and scheduler activation remain forbidden."
+    "The new scheduler entrypoint remains disabled and unloaded; no Product Goal live canary or standing go-live is authorized. Claude-primary to Codex-reviewer remains NOT_VERIFIED."
   ],
   "known_uncertainties": [
-    "Claude-primary/Codex-reviewer reverse-provider path remains NOT_VERIFIED."
+    "No live Product Goal dispatch is included in this engineering candidate. Native launchd activation is intentionally withheld pending exact-candidate independent review and the later authorized milestone gates."
   ],
   "reviewer_focus": [
-    "Verify the one-shot path reuses the existing planner, append-only ledger, Router and worker lane and cannot reserve/route before exact Product Goal authority plus live zero-model runtime admission.",
-    "Verify provider-neutral v3 identity/envelope binds authority, candidate, checkpoint, review, usage and result digest without weakening the protected O2 v1/v2 path.",
-    "Verify restart, duplicate wake, stale identity/review, GitHub read-back and CHANGES_REQUIRED repair routing fail closed without duplicate model launches or writes.",
-    "Verify the unique LaunchAgent installer is disabled by default, never bootstraps during install, preserves a pre-existing Stop Marker, and rolls back only its own exact files while O2 remains unloaded/read-only.",
-    "Verify no Product Goal canary, standing scheduler activation, paid API, O2 mutation or bidirectional-provider completion is inferred from the no-model evidence."
+    "Re-evaluate R-001 unexpected-process/duplicate-service/competing-writer/stop/rollback negatives; R-002 exact receipt-bound deployed HEAD/tree/entrypoint/dispatcher activation and drift rejection; R-003 dispatcher-level accepted CHANGES_REQUIRED to repair with exact review identity, live admission, shared usage, and restart no-redispatch.",
+    "Re-verify carried unresolved findings from immutable history: R-001, R-002, R-003."
   ],
   "preserved_human_gates": [
     "ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL",
@@ -161,7 +137,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
   "candidate_manifest": {
     "algorithm": "sha256-canonical-json-v3-branch-independent-review-bus-exclusions",
     "branch": "codex/issue-47-collaboration-wiring",
-    "head": "af546b05331aa0bb93f4d8a5443bd8dd36602eab",
+    "head": "ac38b67860b5135a526ee39cf8509b1fbfce7aeb",
     "excluded_paths": [
       ".ai/DECISIONS.md",
       ".ai/ORCHESTRATOR.lock",
@@ -290,7 +266,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "PLAN.md",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "e318f96a902732bb0c26826c64cc836e1e69a381465dca5891c4f702203e5813"
+        "sha256": "a0da2a209e55b2b893107b8830d6eac78a4930e3c6fa24a5ff57c755e52644f5"
       },
       {
         "path": "README.md",
@@ -302,7 +278,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "config/ubuntu-worker-runtime-manifest.json",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "e8a5c1b26d9894ffd6e9c9aa3b36a08e1d607ef69df4f6e1cb2990acfba49ffe"
+        "sha256": "e17c0471ed727d71319842f204988860e258a47ef35d8d017604966a3e99781b"
       },
       {
         "path": "docs/ADR-0001-GEMINI-EXTRACTION-TRANSPORT.md",
@@ -1403,6 +1379,12 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "sha256": "5b437359f86e465870c2b78bf30ac6ce5ae667c30f7a544fa483d0dd43eb0ac2"
       },
       {
+        "path": "schemas/product-goal/v1/dispatch-envelope.schema.json",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "237a0db45e5239b3c000dd1713713f867113ff72c8924770db8ed1e93747f362"
+      },
+      {
         "path": "schemas/product-goal/v1/github-authority-record.schema.json",
         "kind": "file",
         "mode": "0o644",
@@ -1430,7 +1412,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "schemas/product-goal/v1/worker-result.schema.json",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "2e62ce6050e53a650d9e0f8bd12b886a977f30e594298c7fe98c367ac5401fa6"
+        "sha256": "132cc4f3df6d865e95da65b4ff7e4d3f28dde152256d900242a307c879f1b620"
       },
       {
         "path": "schemas/product-review/v1/review-result.schema.json",
@@ -1535,6 +1517,18 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "sha256": "4e10afe9543cf739d98ec1b07d94a3b1ec26dee3b33a1c560746f10ae9cc1c5d"
       },
       {
+        "path": "scripts/collaboration_goal_dispatch.py",
+        "kind": "file",
+        "mode": "0o755",
+        "sha256": "7196fada0a44911848a1bb35da54b3b1c87919acf28bb2468b46a75259bd03c6"
+      },
+      {
+        "path": "scripts/collaboration_goal_entrypoint.py",
+        "kind": "file",
+        "mode": "0o755",
+        "sha256": "e0db49b839be0e1d3887a38cf4a7530ee55e919cabe521fedf479233efc35fb7"
+      },
+      {
         "path": "scripts/collaboration_goal_wakeup.py",
         "kind": "file",
         "mode": "0o644",
@@ -1550,7 +1544,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "scripts/epoch_scope_admission.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "08d537d6395226ca2db8b82ecf11384505e9389cae906c761704d750e2527ce8"
+        "sha256": "389887a60df9e443850505e4fc804d0b4aba1f0305d9f6e107ab01c9542a4249"
       },
       {
         "path": "scripts/external_review_control.py",
@@ -1592,13 +1586,19 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "scripts/goal_runner_adapter.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "4a7710ae9e583f1dcde295beed2e0f2542b8d11844ed687fb27134bd28e6df64"
+        "sha256": "047e34766dd74e18937421756263a8bf0ae77a7d65ee0351c4217e71971fb96c"
       },
       {
         "path": "scripts/import_markdown.py",
         "kind": "file",
         "mode": "0o644",
         "sha256": "80a1f796c294b0edc1154fd258ba36501715666d801ad38a6c9f2b8d18506947"
+      },
+      {
+        "path": "scripts/install_collaboration_goal_entrypoint.py",
+        "kind": "file",
+        "mode": "0o755",
+        "sha256": "23a0e3dc5bc906c67d83e9f84350063e1a0af9cd97825c3970a74daea6d79a8f"
       },
       {
         "path": "scripts/install_runner_python_runtime.py",
@@ -1634,7 +1634,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "scripts/linux_worker_bootstrap.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "d151c2f3837f9bf34966aa6535028870da7281809bf20536754fc40ceca19d05"
+        "sha256": "531d7a85fe1aca3c5a8db13a97da5c9cd833286faaf591d363618779db97f35b"
       },
       {
         "path": "scripts/linux_worker_guard.py",
@@ -1646,7 +1646,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "scripts/linux_worker_router.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "29fd83bac11d558d6fa6e6b03b6ff68cdfadffa419610e006123711308e64dcd"
+        "sha256": "03177bbb77097a1317b9c0c532a27f3b15d2f8f2f041f951a018103e9149b882"
       },
       {
         "path": "scripts/local_autonomy_runner.py",
@@ -1676,25 +1676,25 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "scripts/product_goal_runtime_admission.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "7f1ece6fd0faf8569cded06a9808b785d756c81e422aa2240ae8b0d59f4a3b34"
+        "sha256": "9a571ea7320bdb16df3a92f1c74e8e9b8e369f3cbb598918facf3b58c5e6f446"
       },
       {
         "path": "scripts/product_goal_worker_identity.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "9015359c40960145d6864c3bbad19e9f7ee46e77e37230c2959d30eb84438fcc"
+        "sha256": "05102fb872f85624ceb74d7368905658c17d9c20bc5b435b2ba3bdea836222b7"
       },
       {
         "path": "scripts/product_goal_worker_lane.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "68008a404d3158e93f0538ab1a26d711c4cc0d930f1d8c3d07f715fb9aa84565"
+        "sha256": "313dc5b4b01fd934f4d8a6e1368295d0daf5f133f1792877503f072027f9ae99"
       },
       {
         "path": "scripts/product_goal_worker_result.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "7b1194c39aa8e7c4db06b250666af2cc1ce73a66fc73dac37d96883945d1ba5c"
+        "sha256": "1e1367de33ef02897e3d636faff1c91de807a343aebf88b7098a899404334803"
       },
       {
         "path": "scripts/publish_external_candidate.py",
@@ -2201,6 +2201,18 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "sha256": "9846f633acad6661e9dc2d5447e47a67347b38355a7aac23480c4f053a075c4e"
       },
       {
+        "path": "tests/control_plane/test_collaboration_goal_dispatch.py",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "ad188b48ba29bb036beff5e4cbb0a32925b2879edc00341fc319bd2e9de30364"
+      },
+      {
+        "path": "tests/control_plane/test_collaboration_goal_entrypoint.py",
+        "kind": "file",
+        "mode": "0o644",
+        "sha256": "92ee092a156cdc77c88700b9ae13ccc21eaf90a1f6bd67f2aabedd4566d73032"
+      },
+      {
         "path": "tests/control_plane/test_collaboration_goal_wakeup.py",
         "kind": "file",
         "mode": "0o644",
@@ -2258,13 +2270,13 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/control_plane/test_goal_runner_adapter.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "eb7da435da35e50b93730bfc64e0923f314317bb4bca3b76735d196a0d96f05a"
+        "sha256": "fa02c4f7af5b91f42ceb1edaa7de269a808ec1b77310fcce25185ab6d518013f"
       },
       {
         "path": "tests/control_plane/test_issue47_engineering_goal_spec.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "f806a9fe75e8be10159cea6d95e597be643464ff66e47eaca1516528e721175d"
+        "sha256": "1143d92b0aac3b1ed6b4ecd1d6a8b1d91e5295e6db43af548e264bf38f8725be"
       },
       {
         "path": "tests/control_plane/test_issue9_goal_history_replay.py",
@@ -2282,7 +2294,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/control_plane/test_linux_worker_bootstrap.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "b670c5fa1b22c0200cd351c9d38d92905d804a4d15f1f5431bb7fbe98ab80988"
+        "sha256": "90baea5fc7ee3929ddcf540012d204a466c30f2c2b2fddafc4569f5f17bc24c4"
       },
       {
         "path": "tests/control_plane/test_linux_worker_guard.py",
@@ -2300,7 +2312,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/control_plane/test_local_autonomy_runner.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "bfc4a7342e6bce2d53e91c9e23276f88b5444b55ea771b0f02bec2cc7739d9bd"
+        "sha256": "2056b7638cdb4b7c91a5afd809bba0bb7287cd2cdf84089185bb848185cfd09d"
       },
       {
         "path": "tests/control_plane/test_o2_classification_reconciliation.py",
@@ -2330,7 +2342,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/control_plane/test_product_goal_dynamic_order.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "f4aa1d572493a6a15664902f26920e5317af8635fdfc1f0ab6d445c3329627a6"
+        "sha256": "15ed5fa1a10043efe545b8ba0cf290a63cda4c434b46c3494baf70894cf6519a"
       },
       {
         "path": "tests/control_plane/test_product_goal_isolated_trial.py",
@@ -2342,7 +2354,7 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
         "path": "tests/control_plane/test_product_goal_runtime_admission.py",
         "kind": "file",
         "mode": "0o644",
-        "sha256": "0787406c26511cc489ff213cdb3a0f68238f9472f2f5e8f709094f336400aad7"
+        "sha256": "7a5b9d459c882ab7117e46de810444944e3f7bb9ce7be1425241f396768ef529"
       },
       {
         "path": "tests/control_plane/test_product_goal_runtime_wiring.py",
@@ -3387,6 +3399,6 @@ Writer: Codex implementation agent. The JSON block is canonical; prose outside i
 
 ## Human-readable status
 
-Review `review-issue47-end-to-end-autonomous-collaboration-002` is `IMPLEMENTING`.
+Review `review-issue47-end-to-end-autonomous-collaboration-004` is `IMPLEMENTING`.
 It has no active candidate binding and cannot be interpreted as a review request or PASS.
 Codex must complete deterministic verification before issuing this request.

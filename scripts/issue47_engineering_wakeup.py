@@ -1,0 +1,509 @@
+#!/usr/bin/env python3
+"""No-model admission gate for the single Issue #47 engineering wakeup.
+
+The scheduler runs this program before any Codex or Claude command.  It reads
+the exact Owner authority, work window, cumulative accounting, review state,
+Stop Marker, writer lock, provider backoff, and the paused Codex App heartbeat.
+Only an atomic, duplicate-suppressed reservation may authorize a later model
+command.  This module never launches a model itself.
+"""
+from __future__ import annotations
+
+import argparse
+import fcntl
+import hashlib
+import json
+import os
+import re
+import subprocess
+import tempfile
+import tomllib
+from contextlib import contextmanager
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable, Iterator
+from zoneinfo import ZoneInfo
+
+
+ZONE = ZoneInfo("Asia/Taipei")
+GOAL_ID = "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION"
+GOAL_VERSION = "2026-10-31.4-engineering-continuation-simplification"
+GOAL_SPEC_SHA256 = "0507d2dbc5c9780afbe3e67a3c8ca66f8fb1b93eff9507c86299baac0141ad5d"
+OWNER_COMMENT_ID = 6538300483
+OWNER_LOGIN = "joannalee20050914"
+AUTHORITY_MARKER = "<!-- kgnote-codex-app-engineering-goal-authority:v1 -->"
+HEARTBEAT_ID = "kgnote-47-goal"
+SCHEMA_VERSION = "kgnote.issue47-engineering-wakeup.v1"
+STATE_SCHEMA_VERSION = "kgnote.issue47-engineering-wakeup-state.v1"
+
+
+class WakeupError(RuntimeError):
+    pass
+
+
+def canonical_bytes(value: Any) -> bytes:
+    return json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+
+
+def canonical_sha256(value: Any) -> str:
+    return hashlib.sha256(canonical_bytes(value)).hexdigest()
+
+
+def load_object(path: Path, label: str) -> dict[str, Any]:
+    if not path.is_file() or path.is_symlink():
+        raise WakeupError(f"{label} is absent or not a regular file")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise WakeupError(f"{label} is not valid JSON") from exc
+    if not isinstance(value, dict):
+        raise WakeupError(f"{label} root must be an object")
+    return value
+
+
+def embedded_json(path: Path, begin: str, end: str, label: str) -> dict[str, Any]:
+    if not path.is_file() or path.is_symlink():
+        raise WakeupError(f"{label} is absent or not a regular file")
+    text = path.read_text(encoding="utf-8")
+    if text.count(begin) != 1 or text.count(end) != 1:
+        raise WakeupError(f"{label} has invalid structured markers")
+    body = text.split(begin, 1)[1].split(end, 1)[0]
+    match = re.search(r"```json\s*(.*?)\s*```", body, re.DOTALL)
+    if match is None:
+        raise WakeupError(f"{label} lacks structured JSON")
+    try:
+        value = json.loads(match.group(1))
+    except json.JSONDecodeError as exc:
+        raise WakeupError(f"{label} structured JSON is invalid") from exc
+    if not isinstance(value, dict):
+        raise WakeupError(f"{label} structured JSON must be an object")
+    return value
+
+
+def parse_time(value: str | None) -> datetime:
+    if value is None:
+        return datetime.now(ZONE)
+    try:
+        observed = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise WakeupError("--now must be ISO-8601") from exc
+    if observed.tzinfo is None:
+        raise WakeupError("--now must include an offset")
+    return observed.astimezone(ZONE)
+
+
+def within_work_window(spec: dict[str, Any], now: datetime) -> bool:
+    period = spec.get("work_period")
+    if not isinstance(period, dict) or period.get("timezone") != "Asia/Taipei":
+        raise WakeupError("spec work period is unavailable")
+    start = datetime.fromisoformat(str(period.get("start"))).astimezone(ZONE)
+    end = datetime.fromisoformat(str(period.get("end"))).astimezone(ZONE)
+    if not start <= now < end:
+        return False
+    local_date = now.date().isoformat()
+    for window in period.get("exception_work_windows", []):
+        if not isinstance(window, dict) or window.get("date") != local_date:
+            continue
+        if window.get("scope") != "ISSUE47_INFRA_ENGINEERING_ONLY":
+            raise WakeupError("exception window scope differs")
+        return str(window["start"]) <= now.strftime("%H:%M") < str(window["end"])
+    if now.weekday() not in period.get("weekdays", []):
+        return False
+    return str(period["daily_start"]) <= now.strftime("%H:%M") < str(period["daily_end"])
+
+
+def _parse_authority_body(body: str) -> dict[str, Any]:
+    if body.count(AUTHORITY_MARKER) != 1:
+        raise WakeupError("Owner authority marker differs")
+    match = re.search(
+        re.escape(AUTHORITY_MARKER) + r"\s*```json\s*(\{.*?\})\s*```",
+        body,
+        re.DOTALL,
+    )
+    if match is None:
+        raise WakeupError("Owner authority command is missing")
+    try:
+        value = json.loads(match.group(1))
+    except json.JSONDecodeError as exc:
+        raise WakeupError("Owner authority command is invalid JSON") from exc
+    if not isinstance(value, dict):
+        raise WakeupError("Owner authority command must be an object")
+    return value
+
+
+def fetch_authority(
+    spec: dict[str, Any],
+    *,
+    fixture: Path | None,
+    command_runner: Callable[..., subprocess.CompletedProcess[str]],
+) -> dict[str, Any]:
+    if fixture is not None:
+        comment = load_object(fixture, "Owner authority fixture")
+    else:
+        completed = command_runner(
+            [
+                "/opt/homebrew/bin/gh",
+                "api",
+                f"repos/{spec['repository']}/issues/comments/{OWNER_COMMENT_ID}",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if completed.returncode:
+            raise WakeupError("GitHub Owner authority read-back failed")
+        try:
+            comment = json.loads(completed.stdout)
+        except json.JSONDecodeError as exc:
+            raise WakeupError("GitHub Owner authority read-back is invalid") from exc
+        if not isinstance(comment, dict):
+            raise WakeupError("GitHub Owner authority read-back must be an object")
+    if (
+        comment.get("id") != OWNER_COMMENT_ID
+        or comment.get("author_association") != "OWNER"
+        or not isinstance(comment.get("user"), dict)
+        or comment["user"].get("login") != OWNER_LOGIN
+    ):
+        raise WakeupError("GitHub Owner authority identity differs")
+    command = _parse_authority_body(str(comment.get("body", "")))
+    providers = spec["resource_policy"]["providers"]
+    expected = {
+        "schema_version": "kgnote.codex-app-engineering-goal-authority-command.v1",
+        "action": "APPROVE",
+        "goal_id": GOAL_ID,
+        "goal_version": GOAL_VERSION,
+        "goal_spec_sha256": GOAL_SPEC_SHA256,
+        "permissions": spec["allowed_operations"],
+        "product_goal_coexistence": spec["product_goal_coexistence"]["policy"],
+        "product_goal_authorized": False,
+        "standing_b_scheme_go_live_authorized": False,
+    }
+    for key, value in expected.items():
+        if command.get(key) != value:
+            raise WakeupError(f"Owner authority {key} differs")
+    resources = command.get("resource_acknowledgement")
+    if not isinstance(resources, dict):
+        raise WakeupError("Owner authority resources are missing")
+    resource_expected = {
+        "max_model_concurrency": 1,
+        "codex_max_per_workday": providers["codex"]["max_launches_per_workday"],
+        "codex_max_total": providers["codex"]["max_total_launches"],
+        "codex_known_preapproval": providers["codex"]["known_preapproval_launches"],
+        "claude_max_per_workday": providers["claude"]["max_launches_per_workday"],
+        "claude_max_total": providers["claude"]["max_total_launches"],
+        "claude_known_preapproval": providers["claude"]["known_preapproval_launches"],
+        "paid_api_fallback": False,
+        "history_reset_forbidden": True,
+    }
+    for key, value in resource_expected.items():
+        if resources.get(key) != value:
+            raise WakeupError(f"Owner authority resource {key} differs")
+    return {
+        "comment_id": OWNER_COMMENT_ID,
+        "comment_url": comment.get("html_url"),
+        "body_sha256": hashlib.sha256(str(comment["body"]).encode()).hexdigest(),
+        "command_sha256": canonical_sha256(command),
+    }
+
+
+def load_heartbeat(path: Path) -> dict[str, Any]:
+    if not path.is_file() or path.is_symlink():
+        raise WakeupError("Codex heartbeat definition is unavailable")
+    try:
+        value = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        raise WakeupError("Codex heartbeat definition is invalid") from exc
+    if value.get("id") != HEARTBEAT_ID or value.get("status") != "PAUSED":
+        raise WakeupError("Codex heartbeat must be the exact paused Issue #47 task")
+    return {"id": HEARTBEAT_ID, "status": "PAUSED", "updated_at": value.get("updated_at")}
+
+
+def action_identity(
+    status: dict[str, Any], orchestrator: dict[str, Any], request: dict[str, Any]
+) -> tuple[str, str, str | None, str | None]:
+    review_state = request.get("status")
+    if review_state == "READY_FOR_REVIEW":
+        if orchestrator.get("state") != "READY_FOR_AI_REVIEW":
+            raise WakeupError("orchestrator is not ready for the sealed review")
+        return (
+            "DISPATCH_REVIEW",
+            "claude",
+            str(request.get("review_id")),
+            str(request.get("candidate_fingerprint")),
+        )
+    if review_state in {"IMPLEMENTING", "CHANGES_REQUIRED"}:
+        if orchestrator.get("state") not in {"IMPLEMENTING", "REPAIRING"}:
+            raise WakeupError("orchestrator is not ready for implementation or repair")
+        return ("DISPATCH_IMPLEMENTATION", "codex", str(request.get("review_id")), None)
+    raise WakeupError(f"review state {review_state!r} is not wakeable")
+
+
+def _usage(status: dict[str, Any], provider: str) -> tuple[int, int, int, int]:
+    policy = status.get("resource_accounting", {}).get(provider)
+    if not isinstance(policy, dict):
+        raise WakeupError(f"{provider} accounting is missing")
+    fields = (
+        policy.get("consumed_total_conservative"),
+        policy.get("current_workday_launches"),
+        policy.get("ceiling"),
+        policy.get("daily_ceiling"),
+    )
+    if any(isinstance(value, bool) or not isinstance(value, int) for value in fields):
+        raise WakeupError(f"{provider} accounting is not exact")
+    return fields  # type: ignore[return-value]
+
+
+def _active_provider_backoff(
+    orchestrator: dict[str, Any], provider: str, now: datetime
+) -> str | None:
+    for blocker in orchestrator.get("blockers", []):
+        if not isinstance(blocker, dict):
+            continue
+        blocker_type = str(blocker.get("type", ""))
+        if "daily_budget" in blocker_type:
+            continue
+        if provider not in blocker_type and blocker.get("provider") != provider:
+            continue
+        retry = blocker.get("retry_at") or blocker.get("backoff_until")
+        if isinstance(retry, str) and datetime.fromisoformat(retry).astimezone(ZONE) > now:
+            return retry
+    return None
+
+
+@contextmanager
+def exclusive_lock(path: Path) -> Iterator[None]:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_symlink() or (path.exists() and not path.is_file()):
+        raise WakeupError("writer lock is not a regular file")
+    with path.open("a+", encoding="utf-8") as stream:
+        try:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise WakeupError("another Issue #47 writer is active") from exc
+        try:
+            yield
+        finally:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+
+
+def _atomic_json(path: Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_symlink() or (path.exists() and not path.is_file()):
+        raise WakeupError("wakeup state is not a regular file")
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def inspect(
+    *,
+    repo: Path,
+    spec_path: Path,
+    heartbeat_path: Path,
+    state_path: Path,
+    writer_lock: Path,
+    authority_fixture: Path | None,
+    stop_marker: Path,
+    now: datetime,
+    command_runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+    reserve: bool = False,
+) -> dict[str, Any]:
+    safety = {
+        "no_model_gate": True,
+        "model_launch_started": False,
+        "product_goal_dispatched": False,
+        "legacy_o2_runner_used": False,
+        "paid_api_used": False,
+    }
+    if stop_marker.exists() or stop_marker.is_symlink():
+        return {"schema_version": SCHEMA_VERSION, "status": "STOPPED", "safety": safety}
+    repo = repo.resolve()
+    spec = load_object(spec_path, "v4 engineering Goal spec")
+    if (
+        spec.get("goal_id") != GOAL_ID
+        or spec.get("goal_version") != GOAL_VERSION
+        or canonical_sha256(spec) != GOAL_SPEC_SHA256
+    ):
+        raise WakeupError("v4 engineering Goal identity or digest differs")
+    if not within_work_window(spec, now):
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "WAITING_WORK_WINDOW",
+            "observed_at": now.isoformat(),
+            "safety": safety,
+        }
+    plan = embedded_json(
+        repo / "PLAN.md", "<!-- BEGIN CODEX PLAN JSON -->",
+        "<!-- END CODEX PLAN JSON -->", "PLAN",
+    )
+    status = embedded_json(
+        repo / "CODEX_STATUS.md", "<!-- BEGIN CODEX STATUS JSON -->",
+        "<!-- END CODEX STATUS JSON -->", "CODEX_STATUS",
+    )
+    if plan.get("goal_id") != GOAL_ID or status.get("goal_id") != GOAL_ID:
+        raise WakeupError("PLAN/STATUS Goal identity differs")
+    for source, label in ((plan, "PLAN"), (status, "CODEX_STATUS")):
+        bound = source.get("goal_spec")
+        if not isinstance(bound, dict):
+            raise WakeupError(f"{label} lacks Goal spec binding")
+        if (
+            bound.get("version") != GOAL_VERSION
+            or bound.get("canonical_sha256") != GOAL_SPEC_SHA256
+        ):
+            raise WakeupError(f"{label} is not bound to v4")
+    orchestrator = load_object(repo / ".ai/ORCHESTRATOR_STATE.json", "orchestrator state")
+    request = embedded_json(
+        repo / ".ai/REVIEW_REQUEST.md", "<!-- BEGIN KGNOTE REVIEW REQUEST JSON -->",
+        "<!-- END KGNOTE REVIEW REQUEST JSON -->", "review request",
+    )
+    action, provider, review_id, fingerprint = action_identity(status, orchestrator, request)
+    if orchestrator.get("active_goal") != GOAL_ID:
+        raise WakeupError("orchestrator Goal identity differs")
+    orchestrator_review_id = orchestrator.get("review_id")
+    if orchestrator_review_id is not None and request.get("review_id") != orchestrator_review_id:
+        raise WakeupError("review identity differs between request and orchestrator")
+    heartbeat = load_heartbeat(heartbeat_path)
+    authority = fetch_authority(spec, fixture=authority_fixture, command_runner=command_runner)
+    consumed, today, total_limit, daily_limit = _usage(status, provider)
+    spec_provider = spec["resource_policy"]["providers"][provider]
+    if total_limit != spec_provider["max_total_launches"] or daily_limit != spec_provider["max_launches_per_workday"]:
+        raise WakeupError(f"{provider} local ceilings do not implement v4")
+    if consumed >= total_limit or today >= daily_limit:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "WAITING_QUOTA",
+            "provider": provider,
+            "usage": {"total": consumed, "today": today, "total_limit": total_limit, "daily_limit": daily_limit},
+            "safety": safety,
+        }
+    backoff = _active_provider_backoff(orchestrator, provider, now)
+    if backoff is not None:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "WAITING_PROVIDER_BACKOFF",
+            "provider": provider,
+            "retry_at": backoff,
+            "safety": safety,
+        }
+    dispatch_key = canonical_sha256({
+        "goal_id": GOAL_ID,
+        "goal_version": GOAL_VERSION,
+        "action": action,
+        "provider": provider,
+        "review_id": review_id,
+        "candidate_fingerprint": fingerprint,
+    })
+    with exclusive_lock(writer_lock):
+        existing = load_object(state_path, "wakeup state") if state_path.exists() else None
+        if existing is not None:
+            if existing.get("schema_version") != STATE_SCHEMA_VERSION:
+                raise WakeupError("wakeup state schema differs")
+            existing_status = existing.get("status")
+            same_dispatch = existing.get("dispatch_key") == dispatch_key
+            if same_dispatch and existing_status in {"RESERVED", "RUNNING", "COMPLETED"}:
+                return {
+                    "schema_version": SCHEMA_VERSION,
+                    "status": "WAITING_DUPLICATE",
+                    "dispatch_key": dispatch_key,
+                    "existing_dispatch_key": existing.get("dispatch_key"),
+                    "safety": safety,
+                }
+            if not same_dispatch and existing_status in {"RESERVED", "RUNNING"}:
+                return {
+                    "schema_version": SCHEMA_VERSION,
+                    "status": "WAITING_ACTIVE_RESERVATION",
+                    "dispatch_key": dispatch_key,
+                    "existing_dispatch_key": existing.get("dispatch_key"),
+                    "safety": safety,
+                }
+        result = {
+            "schema_version": SCHEMA_VERSION,
+            "status": "READY_TO_WAKE",
+            "observed_at": now.isoformat(),
+            "goal_id": GOAL_ID,
+            "goal_version": GOAL_VERSION,
+            "goal_spec_sha256": GOAL_SPEC_SHA256,
+            "action": action,
+            "provider": provider,
+            "review_id": review_id,
+            "candidate_fingerprint": fingerprint,
+            "dispatch_key": dispatch_key,
+            "authority": authority,
+            "heartbeat": heartbeat,
+            "usage_before": {"total": consumed, "today": today, "total_limit": total_limit, "daily_limit": daily_limit},
+            "safety": safety,
+        }
+        if reserve:
+            reservation = {
+                "schema_version": STATE_SCHEMA_VERSION,
+                "status": "RESERVED",
+                "reserved_at": now.isoformat(),
+                "dispatch_key": dispatch_key,
+                "goal_id": GOAL_ID,
+                "goal_version": GOAL_VERSION,
+                "action": action,
+                "provider": provider,
+                "review_id": review_id,
+                "candidate_fingerprint": fingerprint,
+                "model_launch_started": False,
+            }
+            _atomic_json(state_path, reservation)
+            result["status"] = "RESERVED"
+            result["reservation_sha256"] = hashlib.sha256(state_path.read_bytes()).hexdigest()
+        return result
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", type=Path, required=True)
+    parser.add_argument("--spec", type=Path, required=True)
+    parser.add_argument("--heartbeat", type=Path, required=True)
+    parser.add_argument("--state", type=Path, required=True)
+    parser.add_argument("--writer-lock", type=Path, required=True)
+    parser.add_argument("--authority-fixture", type=Path)
+    parser.add_argument("--stop-marker", type=Path, required=True)
+    parser.add_argument("--now")
+    parser.add_argument("--reserve", action="store_true")
+    args = parser.parse_args()
+    try:
+        result = inspect(
+            repo=args.repo,
+            spec_path=args.spec,
+            heartbeat_path=args.heartbeat,
+            state_path=args.state,
+            writer_lock=args.writer_lock,
+            authority_fixture=args.authority_fixture,
+            stop_marker=args.stop_marker,
+            now=parse_time(args.now),
+            reserve=args.reserve,
+        )
+    except (OSError, ValueError, WakeupError) as exc:
+        result = {
+            "schema_version": SCHEMA_VERSION,
+            "status": "BLOCKED",
+            "error": str(exc),
+            "safety": {
+                "no_model_gate": True,
+                "model_launch_started": False,
+                "product_goal_dispatched": False,
+                "legacy_o2_runner_used": False,
+                "paid_api_used": False,
+            },
+        }
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    return 0 if result["status"] in {"READY_TO_WAKE", "RESERVED", "STOPPED"} else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

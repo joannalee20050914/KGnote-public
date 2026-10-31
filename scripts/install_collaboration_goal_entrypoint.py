@@ -29,6 +29,9 @@ RECEIPT_SCHEMA = "kgnote.collaboration-goal-entrypoint-install.v1"
 ACTIVATION_SCHEMA = "kgnote.collaboration-goal-entrypoint-activation.v1"
 ROLLBACK_SCHEMA = "kgnote.collaboration-goal-entrypoint-rollback.v1"
 ENGINEERING_GOAL_ID = "CODEX-APP-GOAL-ISSUE47-END-TO-END-AUTONOMOUS-COLLABORATION"
+PRODUCT_ENABLED_STATUS = "ENABLED_FOR_EXACT_PRODUCT_GOAL"
+ENGINEERING_ENABLED_STATUS = "ENABLED_FOR_EXACT_ENGINEERING_GOAL_WAKEUP"
+ENABLED_STATUSES = {PRODUCT_ENABLED_STATUS, ENGINEERING_ENABLED_STATUS}
 
 
 class EntrypointInstallError(RuntimeError):
@@ -61,6 +64,28 @@ def _atomic_json(path: Path, value: dict[str, Any]) -> None:
         path,
         (json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode(),
     )
+
+
+def _latch_stop_marker(path: Path, message: bytes) -> bool:
+    preexisting = path.exists() or path.is_symlink()
+    if preexisting:
+        if path.is_symlink() or not path.is_file():
+            raise EntrypointInstallError("existing Stop Marker is not a regular file")
+    else:
+        _atomic_bytes(path, message, mode=0o600)
+    return preexisting
+
+
+def _runtime_relative(repo: Path, raw: Any, label: str) -> Path:
+    value = str(raw)
+    if not value or Path(value).is_absolute():
+        raise EntrypointInstallError(f"{label} must be a runtime-relative path")
+    path = (repo / value).resolve()
+    try:
+        path.relative_to(repo.resolve())
+    except ValueError as exc:
+        raise EntrypointInstallError(f"{label} leaves the engineering runtime") from exc
+    return path
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -185,9 +210,11 @@ def _verify_deployment_receipt(receipt: dict[str, Any]) -> tuple[Path, dict[str,
     expected_paths = {
         "entrypoint": repo / "scripts/collaboration_goal_entrypoint.py",
         "dispatcher": repo / "scripts/collaboration_goal_dispatch.py",
+        "engineering_wakeup": repo / "scripts/issue47_engineering_wakeup.py",
     }
-    if Path(str(receipt.get("entrypoint", ""))).resolve() != expected_paths["entrypoint"]:
-        raise EntrypointInstallError("install receipt entrypoint path differs")
+    for name, path in expected_paths.items():
+        if Path(str(receipt.get(name, ""))).resolve() != path:
+            raise EntrypointInstallError(f"install receipt {name} path differs")
     for name, path in expected_paths.items():
         if not path.is_file() or path.is_symlink():
             raise EntrypointInstallError(f"reviewed {name} is unavailable")
@@ -210,7 +237,7 @@ def _verify_activation(
     activation = _load_json_object(activation_path, "activation record")
     exact = {
         "schema_version": ACTIVATION_SCHEMA,
-        "status": "ENABLED_FOR_EXACT_PRODUCT_GOAL",
+        "status": config.get("status"),
         "engineering_goal_id": ENGINEERING_GOAL_ID,
         "install_receipt": str(receipt_path),
         "install_receipt_sha256": _sha256(receipt_path),
@@ -219,7 +246,9 @@ def _verify_activation(
         "deployment": receipt.get("deployment"),
         "entrypoint_sha256": receipt.get("entrypoint_sha256"),
         "dispatcher_sha256": receipt.get("dispatcher_sha256"),
+        "engineering_wakeup_sha256": receipt.get("engineering_wakeup_sha256"),
         "product_goal": config.get("product_goal"),
+        "engineering_goal": config.get("engineering_goal"),
         "activation_authority": config.get("activation_authority"),
     }
     for field, expected in exact.items():
@@ -236,6 +265,18 @@ def _verify_activation(
         or not re.fullmatch(r"[0-9a-f]{64}", str(authority.get("goal_spec_sha256", "")))
     ):
         raise EntrypointInstallError("activation authority receipt is not exact")
+    if config.get("status") == PRODUCT_ENABLED_STATUS:
+        if not isinstance(config.get("product_goal"), dict) or config.get("engineering_goal") is not None:
+            raise EntrypointInstallError("Product Goal activation bindings differ")
+    elif config.get("status") == ENGINEERING_ENABLED_STATUS:
+        if config.get("product_goal") is not None or not isinstance(config.get("engineering_goal"), dict):
+            raise EntrypointInstallError("engineering Goal activation bindings differ")
+        if authority.get("authorization_comment_id") != 6538300483:
+            raise EntrypointInstallError("engineering wakeup authority comment differs from v4")
+        if authority.get("goal_spec_sha256") != "0507d2dbc5c9780afbe3e67a3c8ca66f8fb1b93eff9507c86299baac0141ad5d":
+            raise EntrypointInstallError("engineering wakeup Goal digest differs from v4")
+    else:
+        raise EntrypointInstallError("activation status is invalid")
     if plist.get("Disabled") is not False:
         raise EntrypointInstallError("enabled activation still has a disabled LaunchAgent")
     return activation
@@ -260,8 +301,12 @@ def install_disabled(
         raise EntrypointInstallError("entrypoint Python is unavailable")
     entrypoint = repo / "scripts/collaboration_goal_entrypoint.py"
     dispatcher = repo / "scripts/collaboration_goal_dispatch.py"
-    if any(not path.is_file() or path.is_symlink() for path in (entrypoint, dispatcher)):
-        raise EntrypointInstallError("reviewed entrypoint or dispatcher is unavailable")
+    engineering_wakeup = repo / "scripts/issue47_engineering_wakeup.py"
+    if any(
+        not path.is_file() or path.is_symlink()
+        for path in (entrypoint, dispatcher, engineering_wakeup)
+    ):
+        raise EntrypointInstallError("reviewed entrypoint, dispatcher, or engineering wakeup is unavailable")
     _require_no_unexpected_model_processes(command_runner=command_runner)
     _require_no_competing_writer(repo)
     _require_o2_unloaded(command_runner=command_runner)
@@ -284,10 +329,12 @@ def install_disabled(
         "deployment_commit": expected_commit,
         "deployment_tree": identity["tree"],
         "dispatcher": "scripts/collaboration_goal_dispatch.py",
+        "engineering_wakeup": "scripts/issue47_engineering_wakeup.py",
         "stop_marker": ".ai/ORCHESTRATOR_STOP",
         "install_receipt": str(receipt_path),
         "activation_record": str(activation_path),
         "product_goal": None,
+        "engineering_goal": None,
         "activation_authority": None,
     }
     _atomic_json(config_path, config)
@@ -312,8 +359,11 @@ def install_disabled(
         "deployment": identity,
         "python": str(python),
         "entrypoint": str(entrypoint),
+        "dispatcher": str(dispatcher),
+        "engineering_wakeup": str(engineering_wakeup),
         "entrypoint_sha256": _sha256(entrypoint),
         "dispatcher_sha256": _sha256(dispatcher),
+        "engineering_wakeup_sha256": _sha256(engineering_wakeup),
         "config_path": str(config_path),
         "config_sha256": _sha256(config_path),
         "plist_path": str(plist_path),
@@ -359,7 +409,7 @@ def read_status(
         if new_loaded:
             raise EntrypointInstallError("disabled entrypoint is unexpectedly loaded")
         status = "STOPPED"
-    elif config.get("status") == "ENABLED_FOR_EXACT_PRODUCT_GOAL":
+    elif config.get("status") in ENABLED_STATUSES:
         _verify_activation(
             receipt_path=receipt_path, receipt=receipt, config_path=config_path,
             config=config, plist_path=plist_path, plist=plist,
@@ -392,16 +442,9 @@ def rollback(
     if repo.is_symlink() or not repo.is_dir():
         raise EntrypointInstallError("deployment repository is absent or is a symlink")
     stop_marker = repo / ".ai/ORCHESTRATOR_STOP"
-    marker_preexisting = stop_marker.exists() or stop_marker.is_symlink()
-    if marker_preexisting:
-        if stop_marker.is_symlink() or not stop_marker.is_file():
-            raise EntrypointInstallError("existing Stop Marker is not a regular file")
-    else:
-        _atomic_bytes(
-            stop_marker,
-            b"Issue #47 collaboration Goal rollback; do not auto-resume.\n",
-            mode=0o600,
-        )
+    marker_preexisting = _latch_stop_marker(
+        stop_marker, b"Issue #47 collaboration Goal rollback; do not auto-resume.\n"
+    )
     _require_o2_unloaded(command_runner=command_runner)
     config_path = Path(str(receipt["config_path"]))
     plist_path = Path(str(receipt["plist_path"]))
@@ -416,13 +459,30 @@ def rollback(
             raise EntrypointInstallError("refusing rollback after LaunchAgent drift")
         if activation_path.exists() or activation_path.is_symlink():
             raise EntrypointInstallError("disabled rollback found an activation record")
-    elif config.get("status") == "ENABLED_FOR_EXACT_PRODUCT_GOAL":
+    elif config.get("status") in ENABLED_STATUSES:
         _verify_activation(
             receipt_path=receipt_path, receipt=receipt, config_path=config_path,
             config=config, plist_path=plist_path, plist=plist,
         )
     else:
         raise EntrypointInstallError("refusing rollback for an invalid config status")
+
+    runtime_stop_marker: Path | None = None
+    runtime_marker_preexisting: bool | None = None
+    if config.get("status") == ENGINEERING_ENABLED_STATUS:
+        binding = config.get("engineering_goal")
+        if not isinstance(binding, dict):
+            raise EntrypointInstallError("engineering Goal binding is unavailable")
+        runtime = Path(str(binding.get("runtime_repository", "")))
+        if not runtime.is_absolute() or runtime.is_symlink() or not runtime.is_dir():
+            raise EntrypointInstallError("engineering runtime is unavailable")
+        runtime_stop_marker = _runtime_relative(
+            runtime.resolve(), binding.get("stop_marker"), "engineering Stop Marker"
+        )
+        runtime_marker_preexisting = _latch_stop_marker(
+            runtime_stop_marker,
+            b"Issue #47 engineering wakeup rollback; do not auto-resume.\n",
+        )
 
     was_loaded = _launchctl_loaded(LABEL, command_runner=command_runner)
     if was_loaded:
@@ -452,6 +512,10 @@ def rollback(
         "entrypoint_files_removed": removed,
         "stop_marker": str(stop_marker),
         "stop_marker_preexisting": marker_preexisting,
+        "engineering_runtime_stop_marker": (
+            str(runtime_stop_marker) if runtime_stop_marker is not None else None
+        ),
+        "engineering_runtime_stop_marker_preexisting": runtime_marker_preexisting,
         "install_receipt": str(receipt_path),
         "preserved_evidence": True,
         "legacy_o2_runner_loaded": False,

@@ -12,30 +12,30 @@ import jsonschema
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_PATH = (
     ROOT
-    / "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.2.json"
+    / "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.4.json"
 )
 PREDECESSOR_SPEC_PATH = (
     ROOT
-    / "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-30.1.json"
+    / "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_SPEC_v2026-10-31.2.json"
 )
 SCHEMA_PATH = (
     ROOT / "schemas/codex-app-engineering-goal/v1/goal-spec.schema.json"
 )
 PACKAGE_PATH = (
     ROOT
-    / "docs/control-plane/ISSUE47_END_TO_END_ENGINEERING_GOAL_AUTHORIZATION_PACKAGE_20261031.md"
+    / "docs/control-plane/ISSUE47_ENGINEERING_AUTONOMY_CONTINUATION_AUTHORIZATION_20261031.md"
 )
 PLAN_PATH = ROOT / "PLAN.md"
 STATUS_PATH = ROOT / "CODEX_STATUS.md"
-EXPECTED_DIGEST = "8f3036ec6429e2f8f1e546aea3a8b3bf1c0cb1459e742991a4228612836958cd"
-PREDECESSOR_DIGEST = "f78a49397822bf17a89f7477be2efe840c0dddfa58cf767153cf31281bdcdce4"
+EXPECTED_DIGEST = "0507d2dbc5c9780afbe3e67a3c8ca66f8fb1b93eff9507c86299baac0141ad5d"
+PREDECESSOR_DIGEST = "8f3036ec6429e2f8f1e546aea3a8b3bf1c0cb1459e742991a4228612836958cd"
 AUTHORITY_MARKER = "<!-- kgnote-codex-app-engineering-goal-authority:v1 -->"
-OWNER_APPROVAL_COMMENT_ID = 6537070839
+OWNER_APPROVAL_COMMENT_ID = 6538300483
 OWNER_APPROVAL_BODY_SHA256 = (
-    "d01c5fe57c73f99750ff2ec145f4d495897b4062c4e20a97950b4b00d8507e92"
+    "96eb37ed4b4e76aa6c7eab4767fec2c53c12b3d96843b1d77c6a19217844d1a2"
 )
 OWNER_APPROVAL_COMMAND_SHA256 = (
-    "6bc2d545b3c116c17d66de592780cd685f0c004306c20dd109ec74b95c4931fc"
+    "53cb7c25ad8216dca4d8daa408af81df1902298d73c91f0fd8c7fefbf53cf7b4"
 )
 
 
@@ -84,11 +84,13 @@ class Issue47EngineeringGoalSpecTests(unittest.TestCase):
         providers = self.spec["resource_policy"]["providers"]
         self.assertEqual(1, self.spec["resource_policy"]["max_model_concurrency"])
         self.assertEqual(18, providers["codex"]["max_total_launches"])
-        self.assertEqual(7, providers["codex"]["known_preapproval_launches"])
-        self.assertEqual(11, providers["codex"]["remaining_after_known_preapproval"])
+        self.assertEqual(18, providers["codex"]["max_launches_per_workday"])
+        self.assertEqual(12, providers["codex"]["known_preapproval_launches"])
+        self.assertEqual(6, providers["codex"]["remaining_after_known_preapproval"])
         self.assertEqual(12, providers["claude"]["max_total_launches"])
-        self.assertEqual(0, providers["claude"]["known_preapproval_launches"])
-        self.assertEqual(12, providers["claude"]["remaining_after_known_preapproval"])
+        self.assertEqual(12, providers["claude"]["max_launches_per_workday"])
+        self.assertEqual(2, providers["claude"]["known_preapproval_launches"])
+        self.assertEqual(10, providers["claude"]["remaining_after_known_preapproval"])
         for provider in providers.values():
             self.assertTrue(provider["subscription_only"])
             self.assertFalse(provider["paid_api_fallback"])
@@ -124,6 +126,10 @@ class Issue47EngineeringGoalSpecTests(unittest.TestCase):
             self.spec["work_period"]["exception_work_windows"],
         )
         self.assertFalse(self.spec["product_goal_authorized"])
+        self.assertIn(
+            "enable_one_reviewed_reversible_no_model_engineering_wakeup_for_exact_issue47_goal_only_without_product_goal_dispatch",
+            self.spec["allowed_operations"],
+        )
         self.assertIn(
             "use_weekend_exception_for_product_goal_canary_or_standing_go_live",
             self.spec["forbidden_operations"],
@@ -227,7 +233,7 @@ class Issue47EngineeringGoalSpecTests(unittest.TestCase):
         self.assertFalse(status["product_goal_authorized"])
         gates = {item["id"]: item["status"] for item in status["external_or_human_gates"]}
         self.assertEqual(
-            "complete_exact_owner_approval_comment_6537070839",
+            "complete_exact_owner_approval_comment_6538300483",
             gates["ISSUE47-ENGINEERING-GOAL-OWNER-APPROVAL"],
         )
         self.assertEqual(
