@@ -168,6 +168,32 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
         with self.assertRaises(INTAKE.IntakeBlocked):
             self.inspect()
 
+    def test_paused_revoked_and_explicit_owner_resume(self):
+        self.comments = [
+            comment(self.spec, action="APPROVE", comment_id=100),
+            comment(self.spec, action="PAUSE", comment_id=101),
+        ]
+        self.assertEqual("WAITING_AUTHORIZATION", self.inspect()["status"])
+        self.comments.append(comment(self.spec, action="RESUME", comment_id=102))
+        self.assertEqual("ADMISSION_ELIGIBLE_NO_MODEL_ONLY", self.inspect()["status"])
+        self.comments.append(comment(self.spec, action="REVOKE", comment_id=103))
+        self.assertEqual("WAITING_AUTHORIZATION", self.inspect()["status"])
+
+    def test_unknown_launchctl_error_does_not_prove_o2_unloaded(self):
+        def unknown_launchctl(cmd, **kwargs):
+            if cmd[:2] == ["/bin/launchctl", "print"]:
+                return subprocess.CompletedProcess(cmd, 42, "", "permission denied")
+            return self.runner(cmd, **kwargs)
+        with self.assertRaises(INTAKE.IntakeBlocked):
+            INTAKE.inspect(
+                repo=self.repo, spec_relative="goal.json",
+                guard_path=self.guard_path, guard_sha256=pin(self.guard_path)["sha256"],
+                state_path=self.new_state, ledger_path=self.new_ledger,
+                stop_marker=self.stop_marker, now=NOW,
+                comments_fetcher=lambda _: deepcopy(self.comments),
+                runner=unknown_launchctl,
+            )
+
     def test_work_window_and_stop_marker_precede_external_checks(self):
         self.assertEqual(
             "WAITING_WORK_WINDOW",
