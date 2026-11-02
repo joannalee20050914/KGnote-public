@@ -139,6 +139,7 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             "entrypoint_sha256": receipt["entrypoint_sha256"],
             "dispatcher_sha256": receipt["dispatcher_sha256"],
             "engineering_wakeup_sha256": receipt["engineering_wakeup_sha256"],
+            "product_intake_sha256": receipt["product_intake_sha256"],
             "control_sha256": receipt["control_sha256"],
             "orchestrator_sha256": receipt["orchestrator_sha256"],
             "product_goal": config["product_goal"],
@@ -203,6 +204,7 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             "entrypoint_sha256": receipt["entrypoint_sha256"],
             "dispatcher_sha256": receipt["dispatcher_sha256"],
             "engineering_wakeup_sha256": receipt["engineering_wakeup_sha256"],
+            "product_intake_sha256": receipt["product_intake_sha256"],
             "control_sha256": receipt["control_sha256"],
             "orchestrator_sha256": receipt["orchestrator_sha256"],
             "product_goal": None,
@@ -707,6 +709,7 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             ("entrypoint", "clean|entrypoint bytes drifted"),
             ("dispatcher", "clean|dispatcher bytes drifted"),
             ("engineering_wakeup", "clean|engineering_wakeup bytes drifted"),
+            ("product_intake", "clean|product_intake bytes drifted"),
             ("control", "clean|control bytes drifted"),
             ("orchestrator", "clean|orchestrator bytes drifted"),
         )
@@ -725,6 +728,7 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
                         "entrypoint": "collaboration_goal_entrypoint.py",
                         "dispatcher": "collaboration_goal_dispatch.py",
                         "engineering_wakeup": "issue47_engineering_wakeup.py",
+                        "product_intake": "product_goal_intake.py",
                         "control": "codex_control.py",
                         "orchestrator": "codex_orchestrator.py",
                     }[target]
