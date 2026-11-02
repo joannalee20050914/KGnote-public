@@ -74,8 +74,8 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
             "private_source_selection": {"receipt": pin(self.source_receipt)},
             "dependencies": {"O2-ISOLATION-RECEIPT": pin(self.dependency)},
             "product_runtime": {
-                "state": str(self.private / "new-state.json"),
-                "ledger": str(self.private / "new-ledger.jsonl"),
+                "state": str(self.private / "new-product-runtime" / "new-state.json"),
+                "ledger": str(self.private / "new-product-runtime" / "new-ledger.jsonl"),
                 "writer_lock": str(self.lock),
             },
         }
@@ -126,8 +126,13 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
 
     def test_no_owner_approval_means_no_isolation_or_model_work(self):
         self.comments = []
+        fixed_pin = pin(self.guard_path)["sha256"]
         self.guard_path.unlink()
-        result = self.inspect()
+        result = INTAKE.inspect(
+            repo=self.repo, spec_relative="goal.json", guard_path=self.guard_path,
+            guard_sha256=fixed_pin, stop_marker=self.stop_marker, now=NOW,
+            comments_fetcher=lambda _: [], runner=self.runner,
+        )
         self.assertEqual("WAITING_AUTHORIZATION", result["status"])
         self.assertFalse(result["product_goal_dispatched"])
 
@@ -172,6 +177,21 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
         self.assertEqual("WAITING_ISOLATION_OR_SOURCE", self.inspect()["status"])
         self.o2_loaded = False
         self.guard["product_runtime"]["state"] = str(self.o2_state)
+        write(self.guard_path, self.guard)
+        with self.assertRaises(INTAKE.IntakeBlocked):
+            self.inspect()
+
+    def test_private_source_cannot_live_in_public_checkout(self):
+        exposed = self.repo / "private-source.md"
+        exposed.write_bytes(self.source.read_bytes())
+        receipt = {
+            "goal_id": self.spec["goal_id"],
+            "goal_spec_sha256": INTAKE.goal.goal_spec_sha256(self.spec),
+            "selected_by_owner": True,
+            "source": pin(exposed),
+        }
+        write(self.source_receipt, receipt)
+        self.guard["private_source_selection"]["receipt"] = pin(self.source_receipt)
         write(self.guard_path, self.guard)
         with self.assertRaises(INTAKE.IntakeBlocked):
             self.inspect()
