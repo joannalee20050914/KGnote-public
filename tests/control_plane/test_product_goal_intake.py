@@ -117,7 +117,9 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
     def inspect(self, *, now=NOW):
         return INTAKE.inspect(
             repo=self.repo, spec_relative="goal.json", guard_path=self.guard_path,
-            guard_sha256=pin(self.guard_path)["sha256"], stop_marker=self.stop_marker,
+            guard_sha256=pin(self.guard_path)["sha256"],
+            state_path=self.new_state, ledger_path=self.new_ledger,
+            stop_marker=self.stop_marker,
             now=now, comments_fetcher=lambda spec: deepcopy(self.comments),
             runner=self.runner,
         )
@@ -151,7 +153,8 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
         self.guard_path.unlink()
         result = INTAKE.inspect(
             repo=self.repo, spec_relative="goal.json", guard_path=self.guard_path,
-            guard_sha256=fixed_pin, stop_marker=self.stop_marker, now=NOW,
+            guard_sha256=fixed_pin, state_path=self.new_state,
+            ledger_path=self.new_ledger, stop_marker=self.stop_marker, now=NOW,
             comments_fetcher=lambda _: [], runner=self.runner,
         )
         self.assertEqual("WAITING_AUTHORIZATION", result["status"])
@@ -246,6 +249,7 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
             INTAKE.inspect(
                 repo=self.repo, spec_relative="goal.json", guard_path=self.guard_path,
                 guard_sha256=pin(self.guard_path)["sha256"],
+                state_path=self.new_state, ledger_path=self.new_ledger,
                 stop_marker=self.stop_marker, now=NOW,
                 comments_fetcher=lambda _: deepcopy(self.comments),
                 runner=wrong_remote,
@@ -256,6 +260,7 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
             INTAKE.inspect(
                 repo=self.repo, spec_relative="linked-goal.json",
                 guard_path=self.guard_path, guard_sha256=pin(self.guard_path)["sha256"],
+                state_path=self.new_state, ledger_path=self.new_ledger,
                 stop_marker=self.stop_marker, now=NOW,
                 comments_fetcher=lambda _: deepcopy(self.comments),
                 runner=self.runner,
