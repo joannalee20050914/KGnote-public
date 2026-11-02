@@ -71,6 +71,7 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             "collaboration_goal_entrypoint.py",
             "collaboration_goal_dispatch.py",
             "issue47_engineering_wakeup.py",
+            "product_goal_intake.py",
             "codex_control.py",
             "codex_orchestrator.py",
         ):
@@ -138,6 +139,7 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             "entrypoint_sha256": receipt["entrypoint_sha256"],
             "dispatcher_sha256": receipt["dispatcher_sha256"],
             "engineering_wakeup_sha256": receipt["engineering_wakeup_sha256"],
+            "product_intake_sha256": receipt["product_intake_sha256"],
             "control_sha256": receipt["control_sha256"],
             "orchestrator_sha256": receipt["orchestrator_sha256"],
             "product_goal": config["product_goal"],
@@ -202,6 +204,7 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             "entrypoint_sha256": receipt["entrypoint_sha256"],
             "dispatcher_sha256": receipt["dispatcher_sha256"],
             "engineering_wakeup_sha256": receipt["engineering_wakeup_sha256"],
+            "product_intake_sha256": receipt["product_intake_sha256"],
             "control_sha256": receipt["control_sha256"],
             "orchestrator_sha256": receipt["orchestrator_sha256"],
             "product_goal": None,
@@ -551,8 +554,56 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
                 config_path, now="2026-11-02T09:00:00+08:00",
                 command_runner=self.enabled_runner,
             )
-            self.assertEqual("DISPATCHED", result["status"])
+            self.assertEqual("WAITING_ISOLATION_GUARD", result["status"])
             self.assertFalse(result["model_launch_started"])
+
+    def test_product_dispatch_requires_real_no_model_preflight_before_router(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo, commit = self.repository(root)
+            receipt = self.install(root, repo, commit)
+            config_path, activation_path = self.activate(receipt)
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            config["product_goal"].update({
+                "intake_guard": str(root / "private-isolation-guard.json"),
+                "intake_guard_sha256": "a" * 64,
+            })
+            config_path.write_text(json.dumps(config, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+            activation = json.loads(activation_path.read_text(encoding="utf-8"))
+            activation["product_goal"] = config["product_goal"]
+            activation["enabled_config_sha256"] = hashlib.sha256(config_path.read_bytes()).hexdigest()
+            activation_path.write_text(json.dumps(activation, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+            commands = []
+
+            def gate_runner(command, **kwargs):
+                commands.append(command)
+                if command[:2] == ["/bin/ps", "-axo"] or command[:2] == ["/bin/launchctl", "print"]:
+                    return self.enabled_runner(command, **kwargs)
+                if len(command) > 1 and str(command[1]).endswith("product_goal_intake.py"):
+                    return subprocess.CompletedProcess(command, 0, json.dumps({
+                        "status": "WAITING_AUTHORIZATION",
+                        "no_model_gate": True, "model_launch_started": False,
+                        "model_reservation_created": False, "product_goal_dispatched": False,
+                    }), "")
+                raise AssertionError("dispatcher must not start on a waiting intake")
+
+            result = ENTRYPOINT.run_once(config_path, command_runner=gate_runner)
+            self.assertEqual("WAITING_AUTHORIZATION", result["status"])
+            self.assertFalse(result["model_launch_started"])
+            self.assertEqual(1, sum("product_goal_intake.py" in " ".join(c) for c in commands))
+
+            def accepted_gate(command, **kwargs):
+                if len(command) > 1 and str(command[1]).endswith("product_goal_intake.py"):
+                    return subprocess.CompletedProcess(command, 0, json.dumps({
+                        "status": "ADMISSION_ELIGIBLE_NO_MODEL_ONLY",
+                        "no_model_gate": True, "model_launch_started": False,
+                        "model_reservation_created": False, "product_goal_dispatched": False,
+                    }), "")
+                return self.enabled_runner(command, **kwargs)
+
+            admitted = ENTRYPOINT.run_once(config_path, command_runner=accepted_gate)
+            self.assertEqual("DISPATCHED", admitted["status"])
+            self.assertFalse(admitted["model_launch_started"])
 
     def test_engineering_activation_is_structurally_no_model(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -658,6 +709,7 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
             ("entrypoint", "clean|entrypoint bytes drifted"),
             ("dispatcher", "clean|dispatcher bytes drifted"),
             ("engineering_wakeup", "clean|engineering_wakeup bytes drifted"),
+            ("product_intake", "clean|product_intake bytes drifted"),
             ("control", "clean|control bytes drifted"),
             ("orchestrator", "clean|orchestrator bytes drifted"),
         )
@@ -676,6 +728,7 @@ class CollaborationGoalEntrypointTests(unittest.TestCase):
                         "entrypoint": "collaboration_goal_entrypoint.py",
                         "dispatcher": "collaboration_goal_dispatch.py",
                         "engineering_wakeup": "issue47_engineering_wakeup.py",
+                        "product_intake": "product_goal_intake.py",
                         "control": "codex_control.py",
                         "orchestrator": "codex_orchestrator.py",
                     }[target]

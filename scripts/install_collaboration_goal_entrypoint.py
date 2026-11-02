@@ -296,6 +296,7 @@ def _verify_deployment_receipt(receipt: dict[str, Any]) -> tuple[Path, dict[str,
         "entrypoint": repo / "scripts/collaboration_goal_entrypoint.py",
         "dispatcher": repo / "scripts/collaboration_goal_dispatch.py",
         "engineering_wakeup": repo / "scripts/issue47_engineering_wakeup.py",
+        "product_intake": repo / "scripts/product_goal_intake.py",
         "control": repo / "scripts/codex_control.py",
         "orchestrator": repo / "scripts/codex_orchestrator.py",
     }
@@ -326,6 +327,7 @@ def _verify_engineering_activation_record(
         "entrypoint_sha256": receipt.get("entrypoint_sha256"),
         "dispatcher_sha256": receipt.get("dispatcher_sha256"),
         "engineering_wakeup_sha256": receipt.get("engineering_wakeup_sha256"),
+        "product_intake_sha256": receipt.get("product_intake_sha256"),
         "control_sha256": receipt.get("control_sha256"),
         "orchestrator_sha256": receipt.get("orchestrator_sha256"),
         "product_goal": None,
@@ -402,6 +404,7 @@ def _verify_activation(
         "entrypoint_sha256": receipt.get("entrypoint_sha256"),
         "dispatcher_sha256": receipt.get("dispatcher_sha256"),
         "engineering_wakeup_sha256": receipt.get("engineering_wakeup_sha256"),
+        "product_intake_sha256": receipt.get("product_intake_sha256"),
         "control_sha256": receipt.get("control_sha256"),
         "orchestrator_sha256": receipt.get("orchestrator_sha256"),
         "product_goal": config.get("product_goal"),
@@ -469,14 +472,15 @@ def install_disabled(
     entrypoint = repo / "scripts/collaboration_goal_entrypoint.py"
     dispatcher = repo / "scripts/collaboration_goal_dispatch.py"
     engineering_wakeup = repo / "scripts/issue47_engineering_wakeup.py"
+    product_intake = repo / "scripts/product_goal_intake.py"
     control = repo / "scripts/codex_control.py"
     orchestrator = repo / "scripts/codex_orchestrator.py"
     if any(
         not path.is_file() or path.is_symlink()
-        for path in (entrypoint, dispatcher, engineering_wakeup, control, orchestrator)
+        for path in (entrypoint, dispatcher, engineering_wakeup, product_intake, control, orchestrator)
     ):
         raise EntrypointInstallError(
-            "reviewed entrypoint, dispatcher, engineering wakeup, control, or orchestrator is unavailable"
+            "reviewed entrypoint, dispatcher, engineering wakeup, product intake, control, or orchestrator is unavailable"
         )
     _require_no_unexpected_model_processes(command_runner=command_runner)
     _require_no_competing_writer(repo)
@@ -532,11 +536,13 @@ def install_disabled(
         "entrypoint": str(entrypoint),
         "dispatcher": str(dispatcher),
         "engineering_wakeup": str(engineering_wakeup),
+        "product_intake": str(product_intake),
         "control": str(control),
         "orchestrator": str(orchestrator),
         "entrypoint_sha256": _sha256(entrypoint),
         "dispatcher_sha256": _sha256(dispatcher),
         "engineering_wakeup_sha256": _sha256(engineering_wakeup),
+        "product_intake_sha256": _sha256(product_intake),
         "control_sha256": _sha256(control),
         "orchestrator_sha256": _sha256(orchestrator),
         "config_path": str(config_path),
@@ -677,6 +683,7 @@ def activate_engineering(
         "entrypoint_sha256": receipt.get("entrypoint_sha256"),
         "dispatcher_sha256": receipt.get("dispatcher_sha256"),
         "engineering_wakeup_sha256": receipt.get("engineering_wakeup_sha256"),
+        "product_intake_sha256": receipt.get("product_intake_sha256"),
         "control_sha256": receipt.get("control_sha256"),
         "orchestrator_sha256": receipt.get("orchestrator_sha256"),
         "product_goal": None,

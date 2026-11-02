@@ -224,12 +224,15 @@ def _verify_enabled_identity(
     entrypoint = repo / "scripts/collaboration_goal_entrypoint.py"
     dispatcher = repo / "scripts/collaboration_goal_dispatch.py"
     wakeup = repo / "scripts/issue47_engineering_wakeup.py"
+    product_intake = repo / "scripts/product_goal_intake.py"
     control = repo / "scripts/codex_control.py"
     orchestrator = repo / "scripts/codex_orchestrator.py"
     if Path(str(receipt.get("entrypoint", ""))).resolve() != entrypoint:
         raise EntrypointError("install receipt entrypoint path differs")
     if Path(str(receipt.get("engineering_wakeup", ""))).resolve() != wakeup:
         raise EntrypointError("install receipt engineering wakeup path differs")
+    if Path(str(receipt.get("product_intake", ""))).resolve() != product_intake:
+        raise EntrypointError("install receipt product intake path differs")
     if Path(str(receipt.get("control", ""))).resolve() != control:
         raise EntrypointError("install receipt control path differs")
     if Path(str(receipt.get("orchestrator", ""))).resolve() != orchestrator:
@@ -240,7 +243,7 @@ def _verify_enabled_identity(
         raise EntrypointError("enabled engineering wakeup path differs from reviewed path")
     for name, path in (
         ("entrypoint", entrypoint), ("dispatcher", dispatcher),
-        ("engineering_wakeup", wakeup), ("control", control),
+        ("engineering_wakeup", wakeup), ("product_intake", product_intake), ("control", control),
         ("orchestrator", orchestrator),
     ):
         if not path.is_file() or path.is_symlink():
@@ -263,6 +266,7 @@ def _verify_enabled_identity(
         "entrypoint_sha256": receipt.get("entrypoint_sha256"),
         "dispatcher_sha256": receipt.get("dispatcher_sha256"),
         "engineering_wakeup_sha256": receipt.get("engineering_wakeup_sha256"),
+        "product_intake_sha256": receipt.get("product_intake_sha256"),
         "control_sha256": receipt.get("control_sha256"),
         "orchestrator_sha256": receipt.get("orchestrator_sha256"),
         "product_goal": config.get("product_goal"),
@@ -526,9 +530,55 @@ def run_once(
     product_goal = config.get("product_goal")
     if not isinstance(product_goal, dict):
         raise EntrypointError("enabled entrypoint lacks an exact Product Goal binding")
-    required = {"spec", "state", "ledger"}
+    # An old product-mode configuration without a host-pinned O2/private
+    # isolation guard can never dispatch a model. Engineering intake remains
+    # on its separate, already reviewed no-model path.
+    old_required = {"spec", "state", "ledger"}
+    required = old_required | {"intake_guard", "intake_guard_sha256"}
+    if set(product_goal) == old_required:
+        return {**base, "status": "WAITING_ISOLATION_GUARD"}
     if set(product_goal) != required:
         raise EntrypointError("enabled Product Goal binding fields differ")
+    intake = repo / "scripts/product_goal_intake.py"
+    if not intake.is_file() or intake.is_symlink():
+        raise EntrypointError("reviewed Product Goal intake script is absent")
+    exact_spec = _inside(repo, str(product_goal["spec"]), "Product Goal spec")
+    exact_state = _inside(repo, str(product_goal["state"]), "Product Goal state")
+    exact_ledger = _inside(repo, str(product_goal["ledger"]), "Product Goal ledger")
+    guard = Path(str(product_goal["intake_guard"]))
+    if not guard.is_absolute() or guard.is_symlink() or guard.resolve().is_relative_to(repo):
+        raise EntrypointError("private intake guard is not an absolute external path")
+    digest = str(product_goal["intake_guard_sha256"])
+    if not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise EntrypointError("private intake guard pin is not SHA-256")
+    preflight = [
+        sys.executable, str(intake),
+        "--repo", str(repo),
+        "--spec", str(exact_spec.relative_to(repo)),
+        "--guard", str(guard),
+        "--guard-sha256", digest,
+        "--state", str(exact_state),
+        "--ledger", str(exact_ledger),
+        "--stop-marker", str(marker),
+    ]
+    if now is not None:
+        preflight.extend(["--now", now])
+    checked = command_runner(
+        preflight, cwd=repo, capture_output=True, text=True, check=False,
+    )
+    admission = _json_result(checked, "generic Product Goal preflight")
+    if (admission.get("model_launch_started") is not False
+            or admission.get("model_reservation_created") is not False
+            or admission.get("product_goal_dispatched") is not False
+            or admission.get("no_model_gate") is not True):
+        raise EntrypointError("generic Product Goal preflight is not proven no-model")
+    if admission.get("status") != "ADMISSION_ELIGIBLE_NO_MODEL_ONLY":
+        return {
+            **base, "status": admission.get("status", "BLOCKED"),
+            "product_goal_intake": admission,
+        }
+    if checked.returncode:
+        raise EntrypointError("Product Goal preflight returned an invalid success code")
     command = [
         sys.executable,
         str(dispatcher),

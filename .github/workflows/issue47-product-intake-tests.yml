@@ -1,0 +1,71 @@
+name: Issue 47 exact Product Goal intake tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/workflows/issue47-product-intake-tests.yml
+      - scripts/product_goal_intake.py
+      - scripts/collaboration_goal_entrypoint.py
+      - tests/control_plane/test_product_goal_intake.py
+      - tests/control_plane/test_collaboration_goal_entrypoint.py
+
+permissions:
+  contents: read
+
+jobs:
+  intake:
+    if: ${{ github.event.pull_request.number == 52 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline-test Python schema dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
+      - name: Run exact no-model Product Goal intake and entrypoint tests
+        run: |
+          python -m unittest -v \
+            tests.control_plane.test_product_goal_intake \
+            tests.control_plane.test_collaboration_goal_entrypoint
+      - name: Run control-plane regression excluding documented host-only historical tests
+        run: |
+          python - <<'PY'
+          import unittest
+
+          # These historical tests target a Mac-local .venv or a former PR #28
+          # active-publication state and are not portable to a read-only PR runner.
+          # The unfiltered 554-test result remains visible in the previous run.
+          host_only = {
+              "test_runner_python_runtime.RunnerPythonRuntimeTest.test_runtime_probe_imports_runner_stack_and_rejects_retired_prefix",
+              "test_codex_control.RepositoryIntegrityTests.test_current_orchestrator_state_matches_plan_and_review_bus",
+              "test_codex_control.RepositoryIntegrityTests.test_fresh_agent_can_reconstruct_resume_state_from_repository_only",
+          }
+
+          def flatten(suite):
+              for entry in suite:
+                  if isinstance(entry, unittest.TestSuite):
+                      yield from flatten(entry)
+                  else:
+                      yield entry
+
+          suite = unittest.defaultTestLoader.discover(
+              "tests/control_plane", pattern="test_*.py"
+          )
+          discovered = list(flatten(suite))
+          seen = {case.id() for case in discovered}
+          missing = host_only - seen
+          if missing:
+              raise SystemExit(f"Historical test identities changed: {sorted(missing)}")
+          print(f"Discovered {len(discovered)} tests; excluding exactly {len(host_only)} host-only legacy tests.")
+          for name in sorted(host_only):
+              print(f"BASELINE-EXCLUSION: {name}")
+          selected = [case for case in discovered if case.id() not in host_only]
+          result = unittest.TextTestRunner(verbosity=1).run(unittest.TestSuite(selected))
+          if not result.wasSuccessful():
+              raise SystemExit(1)
+          PY
