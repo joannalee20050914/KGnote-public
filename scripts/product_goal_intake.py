@@ -189,6 +189,10 @@ def _require_isolated_proofs(
     writer = Path(str(runtime["writer_lock"]))
     if state.resolve() != expected_state.resolve() or ledger.resolve() != expected_ledger.resolve():
         raise IntakeBlocked("preflight runtime and dispatcher runtime do not match")
+    if not state.resolve().is_relative_to(repo) or not ledger.resolve().is_relative_to(repo):
+        raise IntakeBlocked("new Goal state and ledger must be within dispatcher repository")
+    if writer.resolve() != (repo / "output/control-plane/collaboration-goal/writer.lock").resolve():
+        raise IntakeBlocked("global writer lock differs from the existing collaboration dispatcher")
     if (not state.is_absolute() or not ledger.is_absolute()
             or state.resolve() == ledger.resolve()
             or state.resolve() in {o2_state, o2_ledger}
