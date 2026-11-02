@@ -224,12 +224,15 @@ def _verify_enabled_identity(
     entrypoint = repo / "scripts/collaboration_goal_entrypoint.py"
     dispatcher = repo / "scripts/collaboration_goal_dispatch.py"
     wakeup = repo / "scripts/issue47_engineering_wakeup.py"
+    product_intake = repo / "scripts/product_goal_intake.py"
     control = repo / "scripts/codex_control.py"
     orchestrator = repo / "scripts/codex_orchestrator.py"
     if Path(str(receipt.get("entrypoint", ""))).resolve() != entrypoint:
         raise EntrypointError("install receipt entrypoint path differs")
     if Path(str(receipt.get("engineering_wakeup", ""))).resolve() != wakeup:
         raise EntrypointError("install receipt engineering wakeup path differs")
+    if Path(str(receipt.get("product_intake", ""))).resolve() != product_intake:
+        raise EntrypointError("install receipt product intake path differs")
     if Path(str(receipt.get("control", ""))).resolve() != control:
         raise EntrypointError("install receipt control path differs")
     if Path(str(receipt.get("orchestrator", ""))).resolve() != orchestrator:
@@ -240,7 +243,7 @@ def _verify_enabled_identity(
         raise EntrypointError("enabled engineering wakeup path differs from reviewed path")
     for name, path in (
         ("entrypoint", entrypoint), ("dispatcher", dispatcher),
-        ("engineering_wakeup", wakeup), ("control", control),
+        ("engineering_wakeup", wakeup), ("product_intake", product_intake), ("control", control),
         ("orchestrator", orchestrator),
     ):
         if not path.is_file() or path.is_symlink():
@@ -263,6 +266,7 @@ def _verify_enabled_identity(
         "entrypoint_sha256": receipt.get("entrypoint_sha256"),
         "dispatcher_sha256": receipt.get("dispatcher_sha256"),
         "engineering_wakeup_sha256": receipt.get("engineering_wakeup_sha256"),
+        "product_intake_sha256": receipt.get("product_intake_sha256"),
         "control_sha256": receipt.get("control_sha256"),
         "orchestrator_sha256": receipt.get("orchestrator_sha256"),
         "product_goal": config.get("product_goal"),
