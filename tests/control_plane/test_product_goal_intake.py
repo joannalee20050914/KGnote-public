@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import fcntl
 import importlib.util
 import json
 import subprocess
@@ -66,6 +67,23 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
         })
         self.lock = self.private / "global-writer.lock"
         self.lock.write_bytes(b"")
+        self.runtime = self.private / "new-product-runtime"
+        self.runtime.mkdir()
+        self.new_state = self.runtime / "new-state.json"
+        self.new_ledger = self.runtime / "new-ledger.jsonl"
+        deps = [{
+            "dependency_id": "O2-ISOLATION-RECEIPT",
+            "status": "CLOSED",
+            "source_kind": "EXTERNAL_DECISION_RESOLVED",
+            "goal_version": None,
+            "goal_spec_sha256": None,
+            "evidence_sha256": pin(self.dependency)["sha256"],
+            "verified_at": NOW.isoformat(),
+        }]
+        write(self.new_state, INTAKE.goal.initial_runner_state(
+            self.spec, now=NOW.isoformat(), dependency_receipts=deps
+        ))
+        self.new_ledger.write_text("", encoding="utf-8")
         self.guard = {
             "schema_version": "kgnote.product-goal-isolation-guard.v1",
             "goal_id": self.spec["goal_id"],
@@ -74,8 +92,8 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
             "private_source_selection": {"receipt": pin(self.source_receipt)},
             "dependencies": {"O2-ISOLATION-RECEIPT": pin(self.dependency)},
             "product_runtime": {
-                "state": str(self.private / "new-product-runtime" / "new-state.json"),
-                "ledger": str(self.private / "new-product-runtime" / "new-ledger.jsonl"),
+                "state": str(self.new_state),
+                "ledger": str(self.new_ledger),
                 "writer_lock": str(self.lock),
             },
         }
@@ -106,7 +124,8 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
 
     def test_valid_owner_private_selection_o2_isolation_without_model(self):
         before = (self.o2_state.read_bytes(), self.o2_ledger.read_bytes(),
-                  self.guard_path.read_bytes())
+                  self.guard_path.read_bytes(), self.new_state.read_bytes(),
+                  self.new_ledger.read_bytes())
         first = self.inspect()
         second = self.inspect()
         self.assertEqual("ADMISSION_ELIGIBLE_NO_MODEL_ONLY", first["status"])
@@ -118,7 +137,9 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
         self.assertFalse(first["paid_api_used"])
         self.assertEqual(before, (self.o2_state.read_bytes(),
                                   self.o2_ledger.read_bytes(),
-                                  self.guard_path.read_bytes()))
+                                  self.guard_path.read_bytes(),
+                                  self.new_state.read_bytes(),
+                                  self.new_ledger.read_bytes()))
         self.assertEqual(0, len(list(self.repo.glob("output/**/*"))))
         self.assertFalse(any("codex" in " ".join(cmd).lower() or
                              "claude" in " ".join(cmd).lower()
@@ -155,10 +176,11 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
         self.assertEqual([], self.commands)
 
     def test_tampered_o2_bytes_and_source_are_rejected(self):
+        original = self.o2_state.read_bytes()
         self.o2_state.write_text('{"status":"tampered"}', encoding="utf-8")
         with self.assertRaises(INTAKE.IntakeBlocked):
             self.inspect()
-        self.o2_state.write_text('{"status":"ACTIVE"}', encoding="utf-8")
+        self.o2_state.write_bytes(original)
         self.source.write_text("different private bytes", encoding="utf-8")
         with self.assertRaises(INTAKE.IntakeBlocked):
             self.inspect()
@@ -194,6 +216,17 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
         self.guard["private_source_selection"]["receipt"] = pin(self.source_receipt)
         write(self.guard_path, self.guard)
         with self.assertRaises(INTAKE.IntakeBlocked):
+            self.inspect()
+
+    def test_conflicting_writer_and_runtime_ledger_tampering(self):
+        with self.lock.open("rb") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try:
+                self.assertEqual("WAITING_ISOLATION_OR_SOURCE", self.inspect()["status"])
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        self.new_state.write_text('{"schema_version":"wrong"}', encoding="utf-8")
+        with self.assertRaises(INTAKE.goal.GoalContractError):
             self.inspect()
 
     def test_public_checkout_cannot_hold_private_isolation_guard(self):
