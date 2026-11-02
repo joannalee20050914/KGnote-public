@@ -136,6 +136,7 @@ def _legacy_unloaded(runner: Callable[..., subprocess.CompletedProcess[str]]) ->
 
 def _require_isolated_proofs(
     guard: dict[str, Any], spec: dict[str, Any], repo: Path,
+    expected_state: Path, expected_ledger: Path,
     runner: Callable[..., subprocess.CompletedProcess[str]],
 ) -> bool:
     if guard.get("schema_version") != "kgnote.product-goal-isolation-guard.v1":
@@ -182,6 +183,8 @@ def _require_isolated_proofs(
     state = Path(str(runtime["state"]))
     ledger = Path(str(runtime["ledger"]))
     writer = Path(str(runtime["writer_lock"]))
+    if state.resolve() != expected_state.resolve() or ledger.resolve() != expected_ledger.resolve():
+        raise IntakeBlocked("preflight runtime and dispatcher runtime do not match")
     if (not state.is_absolute() or not ledger.is_absolute()
             or state.resolve() == ledger.resolve()
             or state.resolve() in {o2_state, o2_ledger}
@@ -213,7 +216,7 @@ def _require_isolated_proofs(
 
 def inspect(
     *, repo: Path, spec_relative: str, guard_path: Path, guard_sha256: str,
-    stop_marker: Path, now: datetime,
+    state_path: Path, ledger_path: Path, stop_marker: Path, now: datetime,
     comments_fetcher: Callable[[dict[str, Any]], list[dict[str, Any]]] = github.fetch_issue_comments,
     runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> dict[str, Any]:
@@ -248,7 +251,9 @@ def inspect(
     if hashlib.sha256(guard_path.read_bytes()).hexdigest() != guard_sha256:
         raise IntakeBlocked("private isolation guard bytes differ from activation pin")
     guard = _read(guard_path)
-    if not _require_isolated_proofs(guard, spec, repo, runner):
+    if not _require_isolated_proofs(
+        guard, spec, repo, state_path, ledger_path, runner
+    ):
         return _safe("WAITING_ISOLATION_OR_SOURCE", spec=spec)
     result = _safe("ADMISSION_ELIGIBLE_NO_MODEL_ONLY", spec=spec)
     result["authorization_comment_id"] = authority["record"]["comment_id"]
@@ -265,6 +270,8 @@ def main() -> int:
     parser.add_argument("--spec", required=True, help="repository-relative Goal spec")
     parser.add_argument("--guard", type=Path, required=True)
     parser.add_argument("--guard-sha256", required=True)
+    parser.add_argument("--state", type=Path, required=True)
+    parser.add_argument("--ledger", type=Path, required=True)
     parser.add_argument("--stop-marker", type=Path, required=True)
     parser.add_argument("--now")
     args = parser.parse_args()
@@ -272,7 +279,8 @@ def main() -> int:
         observed = datetime.fromisoformat(args.now) if args.now else datetime.now(ZONE)
         result = inspect(
             repo=args.repo, spec_relative=args.spec, guard_path=args.guard,
-            guard_sha256=args.guard_sha256, stop_marker=args.stop_marker, now=observed,
+            guard_sha256=args.guard_sha256, state_path=args.state,
+            ledger_path=args.ledger, stop_marker=args.stop_marker, now=observed,
         )
     except (OSError, ValueError, goal.GoalContractError, github.GitHubAuthorityError,
             subprocess.SubprocessError) as exc:
