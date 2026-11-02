@@ -165,7 +165,9 @@ def _require_isolated_proofs(
         raise IntakeBlocked("private source selection is not bound to this Goal")
     # The original source remains entirely on the local host and never enters
     # any GitHub output or model request through this preflight.
-    _pinned_file(selected_receipt.get("source"))
+    source_path = _pinned_file(selected_receipt.get("source"))
+    if source_path.is_relative_to(repo):
+        raise IntakeBlocked("private source cannot be stored inside the public repository")
     deps = guard.get("dependencies")
     if not isinstance(deps, dict):
         return False
@@ -184,7 +186,9 @@ def _require_isolated_proofs(
     if (not state.is_absolute() or not ledger.is_absolute()
             or state.resolve() == ledger.resolve()
             or state.resolve() in {o2_state, o2_ledger}
-            or ledger.resolve() in {o2_state, o2_ledger}):
+            or ledger.resolve() in {o2_state, o2_ledger}
+            or state.resolve().parent in {o2_state.parent, o2_ledger.parent}
+            or ledger.resolve().parent in {o2_state.parent, o2_ledger.parent}):
         raise IntakeBlocked("new Product Goal runtime is not separated from O2")
     if not _lock_available(writer):
         return False
