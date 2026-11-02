@@ -121,12 +121,8 @@ def _lock_available(path: Path) -> bool:
             fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return False
-        finally:
-            # A successful read-only probe never reserves or owns model work.
-            try:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-            except OSError:
-                pass
+        # A probe is not a durable dispatch reservation.
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
     return True
 
 
@@ -158,7 +154,10 @@ def _require_isolated_proofs(
     selected = guard.get("private_source_selection")
     if not isinstance(selected, dict) or set(selected) != {"receipt"}:
         return False
-    selected_receipt = _read(_pinned_file(selected["receipt"]))
+    selected_path = _pinned_file(selected["receipt"])
+    if selected_path.is_relative_to(repo):
+        raise IntakeBlocked("private source selection receipt is in the public repository")
+    selected_receipt = _read(selected_path)
     if (selected_receipt.get("goal_id") != spec["goal_id"]
             or selected_receipt.get("goal_spec_sha256") != goal.goal_spec_sha256(spec)
             or selected_receipt.get("selected_by_owner") is not True):
@@ -190,6 +189,21 @@ def _require_isolated_proofs(
             or state.resolve().parent in {o2_state.parent, o2_ledger.parent}
             or ledger.resolve().parent in {o2_state.parent, o2_ledger.parent}):
         raise IntakeBlocked("new Product Goal runtime is not separated from O2")
+    if (not state.is_file() or state.is_symlink()
+            or not ledger.is_file() or ledger.is_symlink()):
+        return False
+    runtime_state = goal.load_json(state)
+    goal.validate_runner_state(runtime_state, spec)
+    goal.validate_ledger_binding(goal.read_ledger(ledger), runtime_state, spec)
+    stored_receipts = {
+        row["dependency_id"]: row for row in runtime_state.get("dependency_receipts", [])
+    }
+    for dependency in spec["dependencies"]:
+        receipt = stored_receipts.get(dependency)
+        if not receipt or receipt.get("status") != "CLOSED":
+            return False
+        if receipt.get("evidence_sha256") != deps[dependency]["sha256"]:
+            raise IntakeBlocked("Runner dependency closure digest differs")
     if not _lock_available(writer):
         return False
     if not _legacy_unloaded(runner):
