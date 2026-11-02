@@ -65,10 +65,11 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
         self.dependency = write(self.private / "dependency.json", {
             "dependency_id": "O2-ISOLATION-RECEIPT", "status": "PASS",
         })
-        self.lock = self.private / "global-writer.lock"
+        self.lock = self.repo / "output/control-plane/collaboration-goal/writer.lock"
+        self.lock.parent.mkdir(parents=True)
         self.lock.write_bytes(b"")
-        self.runtime = self.private / "new-product-runtime"
-        self.runtime.mkdir()
+        self.runtime = self.repo / "output/control-plane/issue46-product-runtime"
+        self.runtime.mkdir(parents=True)
         self.new_state = self.runtime / "new-state.json"
         self.new_ledger = self.runtime / "new-ledger.jsonl"
         deps = [{
@@ -256,6 +257,17 @@ class GenericProductGoalIntakeTests(unittest.TestCase):
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
         self.new_state.write_text('{"schema_version":"wrong"}', encoding="utf-8")
         with self.assertRaises(INTAKE.goal.GoalContractError):
+            self.inspect()
+
+    def test_rejects_wrong_dispatcher_runtime_or_writer_lock(self):
+        self.guard["product_runtime"]["state"] = str(self.private / "unrelated.json")
+        write(self.guard_path, self.guard)
+        with self.assertRaises(INTAKE.IntakeBlocked):
+            self.inspect()
+        self.guard["product_runtime"]["state"] = str(self.new_state)
+        self.guard["product_runtime"]["writer_lock"] = str(self.private / "wrong-writer.lock")
+        write(self.guard_path, self.guard)
+        with self.assertRaises(INTAKE.IntakeBlocked):
             self.inspect()
 
     def test_public_checkout_cannot_hold_private_isolation_guard(self):
