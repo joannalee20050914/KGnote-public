@@ -245,7 +245,7 @@ def inspect(
     authority = github.resolve_authority(comments, spec)
     if authority["rejected_records"]:
         raise IntakeBlocked("invalid or conflicting Product Goal authority marker")
-    if (authority["status"] != "APPROVED" or authority["authority_lease"] != "ACTIVE"
+    if (authority["status"] not in {"APPROVED", "ACTIVE"} or authority["authority_lease"] != "ACTIVE"
             or not authority["record"]
             or authority["record"]["action"] not in {"APPROVE", "RESUME"}):
         return _safe("WAITING_AUTHORIZATION", spec=spec)
