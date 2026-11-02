@@ -33,4 +33,4 @@ jobs:
             tests.control_plane.test_product_goal_intake \
             tests.control_plane.test_collaboration_goal_entrypoint
       - name: Run full control-plane regression suite
-        run: python -m unittest discover -s tests/control_plane -t . -p 'test_*.py' -v
+        run: python -m unittest discover -s tests/control_plane -p 'test_*.py' -v
