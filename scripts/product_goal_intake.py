@@ -131,7 +131,11 @@ def _legacy_unloaded(runner: Callable[..., subprocess.CompletedProcess[str]]) ->
         ["/bin/launchctl", "print", f"gui/{os.getuid()}/{O2_LABEL}"],
         capture_output=True, text=True, check=False,
     )
-    return completed.returncode != 0
+    if completed.returncode == 0:
+        return False
+    if completed.returncode not in {3, 113}:
+        raise IntakeBlocked("cannot prove legacy O2 Runner is unloaded")
+    return True
 
 
 def _require_isolated_proofs(
@@ -222,7 +226,7 @@ def inspect(
 ) -> dict[str, Any]:
     if stop_marker.exists() or stop_marker.is_symlink():
         return _safe("STOPPED")
-    if not SHA.fullmatch(guard_sha256):
+    if not isinstance(guard_sha256, str) or not SHA.fullmatch(guard_sha256):
         raise IntakeBlocked("guard pin is not an exact SHA-256")
     repo = repo.resolve()
     spec = goal.load_json(_inside(repo, spec_relative))
@@ -242,7 +246,8 @@ def inspect(
     if authority["rejected_records"]:
         raise IntakeBlocked("invalid or conflicting Product Goal authority marker")
     if (authority["status"] != "APPROVED" or authority["authority_lease"] != "ACTIVE"
-            or not authority["record"] or authority["record"]["action"] != "APPROVE"):
+            or not authority["record"]
+            or authority["record"]["action"] not in {"APPROVE", "RESUME"}):
         return _safe("WAITING_AUTHORIZATION", spec=spec)
     if guard_path.is_symlink() or not guard_path.is_file():
         return _safe("WAITING_ISOLATION_GUARD", spec=spec)
